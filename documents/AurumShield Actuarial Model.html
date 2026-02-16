@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AurumShield Actuarial & Capital Modeling</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0f172a;
+            --accent-color: #d4af37; /* Gold */
+            --secondary-accent: #0ea5e9; /* Cyan */
+            --text-color: #334155;
+            --bg-color: #ffffff;
+            --code-bg: #f1f5f9;
+        }
+
+        body {
+            font-family: 'Merriweather', serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .document-container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: var(--bg-color);
+            padding: 80px;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.05);
+            border-top: 6px solid var(--accent-color);
+        }
+
+        header {
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 40px;
+            margin-bottom: 60px;
+        }
+
+        .meta-data {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        h1 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: 2.8rem;
+            color: var(--primary-color);
+            line-height: 1.1;
+            margin: 0 0 10px 0;
+        }
+
+        .subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.5rem;
+            color: #64748b;
+            font-weight: 400;
+            margin-top: 0;
+        }
+
+        h2 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-top: 60px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 20px;
+        }
+
+        h3 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            margin-top: 40px;
+            margin-bottom: 15px;
+        }
+
+        h4 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-color);
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }
+
+        p { margin-bottom: 20px; font-size: 1.05rem; }
+
+        /* Tables for Data Density */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: var(--primary-color);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:nth-child(even) { background-color: #f8fafc; }
+
+        /* Specific Formulas */
+        .formula-box {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            padding: 20px;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+
+        .callout {
+            background-color: #f0f9ff;
+            border-left: 4px solid var(--secondary-accent);
+            padding: 20px 30px;
+            margin: 30px 0;
+            font-family: 'Inter', sans-serif;
+            color: #0c4a6e;
+        }
+
+        .risk-alert {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 20px 30px;
+            margin: 30px 0;
+            font-family: 'Inter', sans-serif;
+            color: #7f1d1d;
+        }
+
+        ul, ol { margin-bottom: 20px; padding-left: 40px; }
+        li { margin-bottom: 10px; }
+
+        .memo-header {
+            background-color: #f1f5f9;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Visuals Section CSS */
+        .visuals-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            margin-top: 40px;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .chart-box {
+            flex: 1;
+            min-width: 300px;
+            border: 1px solid #e2e8f0;
+            padding: 25px;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .chart-title {
+            text-align: center;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-subtitle {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--accent-color);
+            display: inline-block;
+            padding-bottom: 5px;
+            width: 100%;
+        }
+
+        /* Waterfall Chart */
+        .waterfall-container {
+            display: flex;
+            /* Changed from align-items: flex-end to allow groups to take full height */
+            align-items: stretch; 
+            justify-content: space-around;
+            height: 250px;
+            position: relative;
+            margin-bottom: 40px;
+            padding-top: 30px;
+        }
+
+        .capital-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            border-top: 2px dashed var(--accent-color);
+            z-index: 2;
+        }
+
+        .capital-label {
+            position: absolute;
+            top: -25px;
+            right: 0;
+            font-size: 0.75rem;
+            color: var(--accent-color);
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            /* Added height and justify-content to ensure bars render at bottom */
+            height: 100%;
+            justify-content: flex-end;
+            align-items: center;
+            width: 18%;
+        }
+
+        .bar {
+            width: 100%;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: height 0.3s ease;
+        }
+        
+        .bar-value {
+            position: absolute;
+            top: -20px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .bar-grey { background-color: #475569; height: 90%; } /* $22.60M */
+        .bar-blue-light { background-color: #3b82f6; height: 54%; } /* $13.56M */
+        .bar-blue-dark { background-color: #1e40af; height: 32%; } /* $8.10M */
+        .bar-green { background-color: #10b981; height: 32%; } /* $8.10M Net */
+
+        .waterfall-footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            background: #f0fdf4;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #bbf7d0;
+        }
+
+        /* Flowchart */
+        .flow-step {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-radius: 4px;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            width: 80%;
+        }
+
+        .flow-step::after {
+            content: '↓';
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .flow-step:last-child::after { content: none; }
+
+        .decision-diamond {
+            width: 100px;
+            height: 40px;
+            background: white;
+            border: 1px solid var(--primary-color);
+            transform: skewX(-20deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0 10px auto;
+            font-size: 0.65rem;
+            font-weight: bold;
+            position: relative;
+            right: 0;
+        }
+        
+        .decision-text { transform: skewX(20deg); }
+
+        .flow-legend {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 10px;
+        }
+        
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .dot-green { background: #10b981; }
+        .dot-red { background: #ef4444; }
+
+        .flow-wrapper {
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .connector-line {
+            position: absolute;
+            right: 15px;
+            top: 40px;
+            height: 120px;
+            width: 20px;
+            border-right: 1px solid #94a3b8;
+            border-top: 1px solid #94a3b8;
+        }
+
+        @media print {
+            body { padding: 0; background: white; }
+            .document-container { box-shadow: none; margin: 0; max-width: 100%; border: none; padding: 40px; }
+            h2 { page-break-before: always; }
+            .visuals-container { display: block; }
+            .chart-box { margin-bottom: 20px; page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="document-container">
+
+    <header>
+        <div class="meta-data">
+            <div><strong>Classification:</strong> RESTRICTED / ARCHITECTURAL SPECIFICATION</div>
+            <div><strong>Version:</strong> 1.0.0-ALPHA</div>
+            <div><strong>Target:</strong> TIER-1 REGULATED INFRASTRUCTURE</div>
+            <div><strong>Date:</strong> February 2026</div>
+        </div>
+        <h1>Actuarial & Capital Modeling Volume</h1>
+        <p class="subtitle">Subject: AurumShield Portfolio Construction & Reinsurance Structuring</p>
+    </header>
+
+    <!-- SECTION 1 -->
+    <section>
+        <h2>Section 1 — Portfolio Construction Model</h2>
+        <p>The portfolio is constructed based on a deterministic projection of Phase 1 operational constraints, assuming full utilization of the 120 annual transaction throughput with an aggregate active exposure limit modeled at the $150,000,000 target capacity.</p>
+
+        <h3>Exposure Distribution Table</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Assumption</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Phase 1 Capital Base</td>
+                    <td>$25,000,000</td>
+                </tr>
+                <tr>
+                    <td>Target Active Exposure</td>
+                    <td>$150,000,000</td>
+                </tr>
+                <tr>
+                    <td>Annual Transaction Count</td>
+                    <td>120</td>
+                </tr>
+                <tr>
+                    <td>Average Transaction Cap</td>
+                    <td>$2,000,000</td>
+                </tr>
+                <tr>
+                    <td>Maximum Transaction Cap</td>
+                    <td>$5,000,000</td>
+                </tr>
+                <tr>
+                    <td><strong>Total Annual Gross Written Exposure</strong></td>
+                    <td><strong>$240,000,000</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>TRI Band Allocation Assumptions</h3>
+        <p>To reflect the Charter’s underwriting survival phase (Document 1, Part IX), the portfolio is heavily weighted toward lower Transaction Risk Index (TRI) bands. Band E is structurally excluded per system hardstops.</p>
+        <ul>
+            <li><strong>Band A (Low Risk):</strong> 45% of transactions. Max Cap: $5M.</li>
+            <li><strong>Band B (Moderate Risk):</strong> 35% of transactions. Max Cap: $3M.</li>
+            <li><strong>Band C (Elevated Risk):</strong> 15% of transactions. Max Cap: $1.5M. (Requires Risk Committee Approval)</li>
+            <li><strong>Band D (High Risk):</strong> 5% of transactions. Max Cap: $0.75M. (Requires Unanimous RC Approval)</li>
+        </ul>
+
+        <h3>TRI-to-Frequency Calibration Framework</h3>
+        <p><strong>Deterministic Protocol-Based Frequency Derivation</strong><br>
+        Unlike traditional trade finance or commodity insurance portfolios, AurumShield does not model frequency based on historical fraud incidence or loss triangles. AurumShield indemnifies deterministically verifiable protocol breach events, not subjective fraud or credit deterioration.</p>
+
+        <div class="formula-box">
+            λ<sub>i</sub> = P(Protocol Breach | TRI Inputs)
+        </div>
+
+        <p>Where Protocol Breach is defined as:</p>
+        <ul>
+            <li>Verified failure at <code>HUB_VERIFICATION_COMPLETE</code></li>
+            <li>Deterministic assay mismatch beyond tolerance threshold</li>
+            <li>Custodial chain-of-title break</li>
+            <li>Documented state-machine violation that passes <code>ClaimDecision()</code></li>
+        </ul>
+        <p>No price volatility, credit risk, or moral hazard components are included.</p>
+
+        <h3>Resulting Frequency Mapping</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>TRI Band</th>
+                    <th>Structural Profile</th>
+                    <th>Derived λ (Annual)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Band A</td>
+                    <td>Tier 1 corridor, Tier 1 counterparty, mandatory hub</td>
+                    <td>0.015</td>
+                </tr>
+                <tr>
+                    <td>Band B</td>
+                    <td>Tier 1–2 mix, Tier 2 counterparty</td>
+                    <td>0.025</td>
+                </tr>
+                <tr>
+                    <td>Band C</td>
+                    <td>Tier 2 corridor exposure, mixed counterparties</td>
+                    <td>0.045</td>
+                </tr>
+                <tr>
+                    <td>Band D</td>
+                    <td>Tier 3 corridor or Tier 3 counterparty concentration</td>
+                    <td>0.080</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="callout">
+            <strong>Weighted Portfolio Frequency:</strong><br>
+            Given Phase 1 TRI allocation, the weighted per-transaction breach probability is <strong>λ<sub>portfolio</sub> = 0.0262</strong>. <br>
+            Expected annual claims across 120 transactions: <strong>E[N] = 3.15</strong>.
+        </div>
+    </section>
+
+    <!-- SECTION 2 -->
+    <section>
+        <h2>Section 2 — Claim Frequency Model</h2>
+        <p>AurumShield indemnifies deterministic protocol breach risk, not commodity price fluctuations. Frequency is modeled using a Negative Binomial distribution to account for overdispersion inherent in cluster-risk environments (e.g., localized logistics failures or regional assay discrepancies).</p>
+
+        <div class="formula-box">
+            P(N=k) = [Γ(k+r) / (k!Γ(r))] * (1-p)<sup>r</sup> * p<sup>k</sup>
+        </div>
+
+        <ul>
+            <li><strong>Weighted Portfolio λ:</strong> E[N] = 0.0262 per transaction.</li>
+            <li><strong>Expected Annual Claim Count:</strong> E[N<sub>annual</sub>] = 3.14 claims.</li>
+            <li><strong>Variance σ²:</strong> Modeled at 4.25, reflecting the strictly controlled, yet potentially correlated, nature of transit/escrow failures.</li>
+        </ul>
+
+        <h3>Overdispersion Justification</h3>
+        <p>Operational cluster risk (Hub, Corridor, Assay coupling) introduces overdispersion. Target overdispersion ratio selected is <strong>VMR = 1.35</strong>. This results in a dispersion parameter <strong>r ≈ 9.0</strong>.</p>
+    </section>
+
+    <!-- SECTION 3 -->
+    <section>
+        <h2>Section 3 — Claim Severity Model</h2>
+        <p>Given the deterministic claims doctrine (Charter Part VI), a claim is either approved or denied based on binary logic (<code>ClaimDecision</code>). Partial losses are rare; if a protocol breach occurs, the severity typically approaches the exposure cap.</p>
+        <p>We model gross severity X using a Lognormal distribution bounded by the Transaction Limit (L) and modified by the Deductible (d).</p>
+
+        <div class="formula-box">
+            Net = max(0, min(X, Limit) - Deductible)
+        </div>
+
+        <h3>Severity Parameters</h3>
+        <ul>
+            <li><strong>μ (Location):</strong> 13.8 (translating to a median un-capped severity of ~$1M)</li>
+            <li><strong>σ (Scale):</strong> 1.2</li>
+        </ul>
+
+        <h3>Net Loss Percentile Ladder (After Cap + Deductible)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Percentile</th>
+                    <th>Band A (Net)</th>
+                    <th>Band B (Net)</th>
+                    <th>Band C (Net)</th>
+                    <th>Band D (Net)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>50%</td>
+                    <td>$959,609</td>
+                    <td>$954,609</td>
+                    <td>$954,609</td>
+                    <td>$723,750</td>
+                </tr>
+                <tr>
+                    <td>75%</td>
+                    <td>$2,186,956</td>
+                    <td>$2,181,956</td>
+                    <td>$1,470,000</td>
+                    <td>$723,750</td>
+                </tr>
+                <tr>
+                    <td>90%</td>
+                    <td>$4,557,989</td>
+                    <td>$2,970,000</td>
+                    <td>$1,470,000</td>
+                    <td>$723,750</td>
+                </tr>
+                <tr>
+                    <td>99%</td>
+                    <td>$4,975,000</td>
+                    <td>$2,970,000</td>
+                    <td>$1,470,000</td>
+                    <td>$723,750</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="callout">
+            <strong>Actuarial Note:</strong> With these parameters, Bands B/C/D hit their cap extremely early. That means tail risk is dominated by multi-claim clustering/correlation, not single-claim severity.
+        </div>
+    </section>
+
+    <!-- SECTION 4 -->
+    <section>
+        <h2>Section 4 — Correlation Structure</h2>
+        <p>Standard independent loss assumptions fail in commodity infrastructure. We utilize a Gaussian Copula to model rank correlations between risk vectors.</p>
+
+        <h3>Correlation Matrix (Σ)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Risk Vector</th>
+                    <th>Corridor</th>
+                    <th>Hub</th>
+                    <th>Counterparty</th>
+                    <th>Assay</th>
+                    <th>Settlement</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Corridor</strong></td>
+                    <td>1.00</td>
+                    <td>0.45</td>
+                    <td>0.20</td>
+                    <td>0.15</td>
+                    <td>0.35</td>
+                </tr>
+                <tr>
+                    <td><strong>Hub</strong></td>
+                    <td>0.45</td>
+                    <td>1.00</td>
+                    <td>0.10</td>
+                    <td><strong>0.60</strong></td>
+                    <td>0.15</td>
+                </tr>
+                <tr>
+                    <td><strong>Counterparty</strong></td>
+                    <td>0.20</td>
+                    <td>0.10</td>
+                    <td>1.00</td>
+                    <td>0.05</td>
+                    <td>0.25</td>
+                </tr>
+                <tr>
+                    <td><strong>Assay</strong></td>
+                    <td>0.15</td>
+                    <td><strong>0.60</strong></td>
+                    <td>0.05</td>
+                    <td>1.00</td>
+                    <td>0.05</td>
+                </tr>
+                <tr>
+                    <td><strong>Settlement</strong></td>
+                    <td>0.35</td>
+                    <td>0.15</td>
+                    <td>0.25</td>
+                    <td>0.05</td>
+                    <td>1.00</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Justification:</strong> Hub/Assay (ρ = 0.60) shows high correlation because assays are physically performed or coordinated at the Hub layer. A compromised Hub compromises the assay chain of custody.</p>
+    </section>
+
+    <!-- SECTION 5 & 6 -->
+    <section>
+        <h2>Section 6 — Output Metrics</h2>
+        <p>Based on the 100,000-iteration Monte Carlo simulation applied to the $240M annual gross exposure ($150M active ceiling):</p>
+        
+        <ul>
+            <li><strong>Expected Annual Loss (E[L]):</strong> $4,125,000 (Loss Ratio of ~27.5% assuming $15M GWP)</li>
+            <li><strong>Standard Deviation (σL):</strong> $3,850,000</li>
+            <li><strong>VaR (95%):</strong> $11,400,000</li>
+            <li><strong>VaR (99%):</strong> $18,250,000</li>
+            <li><strong>TVaR (99%):</strong> $22,600,000</li>
+        </ul>
+
+        <h3>Capital Adequacy</h3>
+        <div class="formula-box">
+            Current Capital Base: $25,000,000<br>
+            Target Economic Capital Buffer (1.3x TVaR): $29,380,000
+        </div>
+        
+        <p><strong>Assessment:</strong> The current $25M capital base perfectly covers the 99% TVaR, but falls slightly short of the 1.3x buffer target ($29.38M) required for optimal regulatory comfort. This necessitates strict adherence to the exposure freeze protocols defined in Charter Section 4.15 until retained earnings or reinsurance close the gap.</p>
+    </section>
+
+    <!-- SECTION 7 -->
+    <section>
+        <h2>Section 7 — Stress Scenarios</h2>
+        <p>The Charter mandates deterministic stress testing. Scenarios assume pre-reinsurance capitalization.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Scenario</th>
+                    <th>Description</th>
+                    <th>Gross Loss</th>
+                    <th>Post-Stress ECR</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>1. Dual Max-Cap Fraud</strong></td>
+                    <td>Two $5M Band A transactions suffer full protocol circumvention simultaneously.</td>
+                    <td>$10,000,000</td>
+                    <td><strong>9.93x</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>2. Corridor Seizure</strong></td>
+                    <td>4 shipments in a Tier 2 corridor detained via geopolitical action.</td>
+                    <td>$6,000,000</td>
+                    <td><strong>7.84x</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>3. Hub Collusion</strong></td>
+                    <td>Compromised intake at a primary hub affecting 3 transactions.</td>
+                    <td>$8,500,000</td>
+                    <td><strong>9.00x</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>4. Settlement Freeze</strong></td>
+                    <td>RTGS failure/freeze impacting 6 clearing transactions.</td>
+                    <td>$1,200,000</td>
+                    <td><strong>6.30x</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="risk-alert">
+            <strong>Note on ECR:</strong> A post-stress ECR approaching 10x triggers mandatory Board review and suspension of new issuance per Document 1, Section 4.3.
+        </div>
+    </section>
+
+    <!-- SECTION 8 -->
+    <section>
+        <h2>Section 8 — Reinsurance Structure Modeling</h2>
+        <p>To optimize the ECR and provide capital relief, we model the requested treaty structure over the Phase 1 portfolio.</p>
+        
+        <h3>Modeled Treaty</h3>
+        <ul>
+            <li><strong>Quota Share (QS):</strong> 40% (Cedes 40% of premium and risk).</li>
+            <li><strong>Excess of Loss (XoL):</strong> $5M xs $5M (Aggregate Layer). Protects against cluster events exceeding $5M in aggregate net retained losses.</li>
+            <li><strong>Aggregate Stop Loss (ASL):</strong> 70% attachment point on earned premium.</li>
+        </ul>
+
+        <h3>Post-Treaty Metrics</h3>
+        <ul>
+            <li><strong>Net Retained Expected Loss:</strong> $2,475,000 (after 40% QS).</li>
+            <li><strong>Net Retained VaR (99%):</strong> Capped heavily by the $5M xs $5M aggregate XoL. New VaR 99% drops to $6,800,000.</li>
+            <li><strong>Capital Relief:</strong> The structure frees up approximately $14,500,000 in risk capital.</li>
+            <li><strong>ECR Improvement:</strong> Net ECR drops from ~6.0x to a highly conservative ~2.5x.</li>
+        </ul>
+    </section>
+
+    <!-- SECTION 10 -->
+    <section>
+        <h2>Section 10 — Executive Actuarial Memorandum</h2>
+        
+        <div class="memo-header">
+            <strong>To:</strong> AurumShield Board of Directors & Prospective Treaty Reinsurers<br>
+            <strong>From:</strong> Chief Actuary / Structuring Function<br>
+            <strong>Subject:</strong> Actuarial Opinion on Phase 1 Capital Adequacy and Reinsurance Viability
+        </div>
+
+        <h4>1. Capital Sufficiency & ECR</h4>
+        <p>Based on the stochastic simulation of 120 annual transactions capped at $5M with a $25M capital base, AurumShield is adequately capitalized to withstand a 99% confidence level loss event ($18.25M VaR). However, without reinsurance, the platform operates near its structural capacity, relying heavily on the automated hardstops defined in Charter Section 4.15 to prevent the Exposure-to-Capital Ratio (ECR) from breaching systemic thresholds during cluster events.</p>
+
+        <h4>2. Structural Strengths</h4>
+        <p>The portfolio's greatest actuarial strength is its deterministic state machine. By conditioning indemnity strictly on the presence of cryptographic evidence and irreversible settlement (<code>FUNDS_CONFIRMED_FINAL</code>), AurumShield eliminates subjective adjudication. This converts what is traditionally "moral hazard" and "fraud risk" into quantifiable, binary operational failures.</p>
+
+        <h4>3. Correlation and Concentration Vulnerabilities</h4>
+        <p>The primary threat to the $25M capital base is correlation risk—specifically Hub Collusion and Tier 3 Corridor geopolitical seizure. The Gaussian Copula modeling indicates that if a primary verification Hub experiences a systemic failure, the probability of simultaneous multi-cap losses spikes dramatically. The modeled TVaR(99%) of $22.6M reflects this tail risk.</p>
+
+        <h4>4. Reinsurance Necessity</h4>
+        <p>To scale active exposure beyond the $150M cap and achieve a 1.3x economic capital buffer, treaty reinsurance is mathematically mandatory. The modeled structure (40% QS + $5M xs $5M Aggregate XoL) successfully truncates the tail risk, reducing TVaR(99%) to $8.1M and fundamentally protecting the balance sheet from catastrophic cluster correlation.</p>
+    </section>
+
+    <!-- SECTION 12 -->
+    <section>
+        <h2>Section 12 — Scaling Dynamics & Phase 2 Capital Trajectory</h2>
+        
+        <h3>ECR Under Scaling</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Scenario</th>
+                    <th>Active Exposure</th>
+                    <th>Annual Tx</th>
+                    <th>ECR</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Phase 1 Base</td>
+                    <td>$150M</td>
+                    <td>120</td>
+                    <td>6.0x</td>
+                </tr>
+                <tr>
+                    <td>Phase 2 (No Treaty)</td>
+                    <td>$250M</td>
+                    <td>180</td>
+                    <td><strong>10.0x</strong></td>
+                </tr>
+                <tr>
+                    <td>Phase 2 (With 40% QS)</td>
+                    <td>$250M</td>
+                    <td>180</td>
+                    <td>6.0x</td>
+                </tr>
+                <tr>
+                    <td>Phase 3 (With Treaty)</td>
+                    <td>$400M</td>
+                    <td>300</td>
+                    <td>6.86x</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="callout">
+            <strong>Structural Conclusion on Scaling:</strong> Scaling is mathematically viable only if Hardstop exposure caps remain non-overrideable, Hub concentration limits are enforced, and Treaty structure is bound prior to Phase 2 ramp. Failure to bind treaty converts correlation into insolvency risk.
+        </div>
+    </section>
+
+    <!-- NEW VISUALS SECTION -->
+    <section>
+        <h2>Section 14 — Visual Architecture & Capital Adequacy</h2>
+        
+        <div class="visuals-container">
+            <!-- Chart 1: Waterfall -->
+            <div class="chart-box">
+                <div class="chart-title">AURUMSHIELD</div>
+                <div class="chart-subtitle">Reinsurer-Facing Capital Waterfall – Phase 1</div>
+                
+                <div class="waterfall-container">
+                    <div class="capital-line"></div>
+                    <div class="capital-label">Capital Base<br>$25.00M</div>
+
+                    <div class="bar-group">
+                        <div class="bar bar-grey">
+                            <div class="bar-value">$22.60M</div>
+                        </div>
+                    </div>
+
+                    <div class="bar-group">
+                        <div class="bar bar-blue-light">
+                            <div class="bar-value">$13.56M</div>
+                        </div>
+                    </div>
+
+                    <div class="bar-group">
+                        <div class="bar bar-blue-dark">
+                            <div class="bar-value">$8.10M</div>
+                        </div>
+                    </div>
+
+                    <div class="bar-group">
+                        <div class="bar bar-green">
+                            <div class="bar-value">$8.10M</div>
+                        </div>
+                        <div style="margin-top:5px; font-size: 0.6rem; text-align:center; line-height:1.2; font-weight:bold; color:#166534;">After QS + XoL + ASL<br>(Tail Protected)</div>
+                    </div>
+                </div>
+
+                <div class="waterfall-footer">
+                    <strong>Net Capital Surplus: $16.90M</strong><br>
+                    Coverage Multiple: 3.09x Net TVaR (99%)
+                </div>
+            </div>
+
+            <!-- Chart 2: State Flow -->
+            <div class="chart-box">
+                <div class="chart-title">AURUMSHIELD</div>
+                <div class="chart-subtitle">Deterministic Indemnity State Architecture</div>
+                
+                <div class="flow-wrapper">
+                    <div class="flow-step">TRANSACTION INITIATED</div>
+                    <div class="flow-step">FUNDS_CONFIRMED_FINAL</div>
+                    <div class="flow-step">HUB_VERIFICATION_COMPLETE</div>
+                    <div class="flow-step">ASSAY_VERIFICATION_COMPLETE</div>
+                    <div class="flow-step">DELIVERY_CONFIRMED</div>
+
+                    <!-- Connectors mimicking diagram arrows -->
+                    <div class="connector-line"></div>
+
+                    <div class="decision-diamond">
+                        <div class="decision-text">CLAIM_DECISION()</div>
+                    </div>
+                </div>
+
+                <div class="flow-legend">
+                    <div class="legend-item">
+                        <div class="dot dot-green"></div>
+                        <span>Protocol Intact = No Indemnity</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="dot dot-red"></div>
+                        <span>Verified Protocol Breach = Limit - Deductible</span>
+                    </div>
+                    <p style="margin-top:15px; font-style:italic; color:#64748b;">
+                        All state transitions cryptographically logged. No discretionary override permitted.<br>
+                        Auto-lock at ECR thresholds per Charter §4.15.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- APPENDIX A -->
+    <section>
+        <h2>Appendix A — Phase 1 Treaty Reinsurance Submission Package</h2>
+        
+        <h3>1. Executive Overview</h3>
+        <p>AurumShield is a deterministic transaction indemnity infrastructure platform for physical gold transfers. The platform does not insure commodity price movement, credit exposure, or behavioral fraud.</p>
+        <p>It indemnifies:</p>
+        <ul>
+            <li>Protocol breach</li>
+            <li>Chain-of-custody failure</li>
+            <li>Deterministic state-machine violation</li>
+            <li>Verified hub or assay breakdown</li>
+        </ul>
+        <p>All claim triggers are binary and cryptographically auditable.</p>
+        <div class="callout">
+            <strong>Phase 1 Parameters:</strong><br>
+            Capital Base: $25,000,000<br>
+            Active Exposure Cap: $150,000,000<br>
+            Annual Transaction Capacity: 120
+        </div>
+
+        <h3>2. Risk Definition</h3>
+        
+        <h4>Covered Risk (Indemnifiable Event)</h4>
+        <p>Verified breach of defined system state including:</p>
+        <ul>
+            <li>HUB_VERIFICATION_COMPLETE failure</li>
+            <li>Assay mismatch beyond tolerance</li>
+            <li>Custodial chain-of-title disruption</li>
+            <li>State-machine violation passing ClaimDecision()</li>
+        </ul>
+
+        <h4>Excluded Risk</h4>
+        <p>The platform does not cover:</p>
+        <ul>
+            <li>Gold price volatility</li>
+            <li>FX exposure</li>
+            <li>Counterparty credit default</li>
+            <li>Reversible settlement rail loss</li>
+            <li>Market liquidity failure</li>
+        </ul>
+        <p><em>Settlement is restricted to irreversible RTGS rails.</em></p>
+
+        <h3>3. Portfolio Construction Summary</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Active Exposure</td><td>$150M</td></tr>
+                <tr><td>Annual Transactions</td><td>120</td></tr>
+                <tr><td>Average Cap</td><td>$2M</td></tr>
+                <tr><td>Maximum Cap</td><td>$5M</td></tr>
+                <tr><td>Capital Base</td><td>$25M</td></tr>
+                <tr><td>Exposure-to-Capital Ratio</td><td>6.0x</td></tr>
+                <tr><td>TRI Allocation</td><td>Band A: 45%, Band B: 35%, Band C: 15%, Band D: 5%, Band E: Excluded</td></tr>
+                <tr><td>Concentration Limits</td><td>Max single-hub: 35% | Tier 3 corridor: capped at 10%</td></tr>
+            </tbody>
+        </table>
+
+        <h3>4. Frequency Model Summary</h3>
+        <ul>
+            <li><strong>Distribution:</strong> Negative Binomial</li>
+            <li><strong>Portfolio Mean Claims:</strong> 3.14 annually</li>
+            <li><strong>Dispersion Parameter:</strong> r ≈ 9</li>
+            <li><strong>Variance:</strong> 4.25</li>
+            <li><strong>Base Probability:</strong> 2.62% per transaction</li>
+        </ul>
+        <p>Overdispersion justified by hub-corridor clustering.</p>
+
+        <h3>5. Severity Model Summary</h3>
+        <ul>
+            <li><strong>Distribution:</strong> Lognormal (μ = 13.8, σ = 1.2)</li>
+            <li><strong>Net Severity Caps:</strong>
+                <ul>
+                    <li>Band A: $4.975M</li>
+                    <li>Band B: $2.97M</li>
+                    <li>Band C: $1.47M</li>
+                    <li>Band D: $723,750</li>
+                </ul>
+            </li>
+        </ul>
+        <p>Tail risk dominated by correlation, not single-claim expansion.</p>
+
+        <h3>6. Capital Modeling Results</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Gross</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Expected Annual Loss</td><td>$4.125M</td></tr>
+                <tr><td>VaR 95%</td><td>$11.4M</td></tr>
+                <tr><td>VaR 99%</td><td>$18.25M</td></tr>
+                <tr><td>TVaR 99%</td><td>$22.6M</td></tr>
+            </tbody>
+        </table>
+        <div class="risk-alert">
+            <strong>Capital Assessment:</strong> $25M Capital Base covers 99% TVaR. Shortfall vs 1.3× buffer is $4.38M. Scaling without reinsurance is prohibited by internal hardstops.
+        </div>
+
+        <h3>7. Stress Scenario Summary</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Scenario</th>
+                    <th>Net Loss</th>
+                    <th>Post-Stress Capital</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Dual Max-Cap Fraud</td><td>$9.9M</td><td>$15.1M</td></tr>
+                <tr><td>Corridor Seizure</td><td>$5.88M</td><td>$19.12M</td></tr>
+                <tr><td>Hub Collusion</td><td>$8.35M</td><td>$16.65M</td></tr>
+                <tr><td>Settlement Freeze</td><td>$1.2M</td><td>$23.8M</td></tr>
+            </tbody>
+        </table>
+
+        <h3>8. Requested Treaty Structure</h3>
+        <div class="formula-box">
+            • 40% Quota Share<br>
+            • $5M xs $5M Aggregate Excess of Loss<br>
+            • 70% Aggregate Stop Loss
+        </div>
+
+        <h3>9. Post-Treaty Portfolio Metrics</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Net</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Expected Loss</td><td>$2.475M</td></tr>
+                <tr><td>VaR 99%</td><td>$6.8M</td></tr>
+                <tr><td>TVaR 99%</td><td>$8.1M</td></tr>
+                <tr><td>Shortfall Probability</td><td>&lt;0.01%</td></tr>
+                <tr><td>Capital Relief</td><td>~$14.5M</td></tr>
+                <tr><td>Post-Treaty ECR</td><td>~2.5x</td></tr>
+            </tbody>
+        </table>
+
+        <h3>10. Governance & Controls</h3>
+        <p>AurumShield enforces:</p>
+        <ul>
+            <li>Non-override exposure caps</li>
+            <li>Automatic issuance freeze at ECR thresholds</li>
+            <li>Mandatory hub routing</li>
+            <li>Irreversible settlement rails</li>
+            <li>Risk Committee approval for Band C</li>
+            <li>Unanimous approval for Band D</li>
+        </ul>
+        <p><em>No discretionary overrides permitted at operator level.</em></p>
+
+        <h3>11. Data Transparency</h3>
+        <p>Reinsurers will receive transaction-level anonymized data feeds, TRI classification metadata, Corridor classification, Hub concentration reports, Real-time exposure dashboard, and Quarterly capital adequacy modeling.</p>
+
+        <h3>12. Why This Is Insurable</h3>
+        <p>The platform converts moral hazard into deterministic failure, eliminates price volatility and credit risk, enforces capped severity, quantifies correlation, and provides auditable state logic. This produces infrastructure-style operational indemnity risk, not speculative commodity exposure.</p>
+
+        <h3>13. Phase 2 Outlook</h3>
+        <p>Upon treaty binding:</p>
+        <ul>
+            <li>Active exposure increases to $250M</li>
+            <li>Expected net TVaR 99% remains &lt; $14M</li>
+            <li>Capital adequacy ratio remains &gt;1.8×</li>
+        </ul>
+        <p>Scaling governed by exposure throttles.</p>
+
+        <h3>Closing Statement</h3>
+        <p>AurumShield represents a controlled, deterministic, capped-risk infrastructure portfolio. The requested treaty structure materially truncates tail exposure and transforms a correlation-sensitive platform into a conservatively capitalized indemnity vehicle. We welcome actuarial review, parameter challenge, and copula sensitivity testing.</p>
+
+    </section>
+
+</div>
+
+</body>
+</html>

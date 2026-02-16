@@ -1,0 +1,445 @@
+@import "tailwindcss";
+
+/* ================================================================
+   GOLD — Sovereign Financial Infrastructure Design System
+   ================================================================
+   Institutional authority palette: bullion banks / sovereign funds.
+   Dark-first. Print forces light. WCAG AA compliant.
+   ================================================================ */
+
+/* ----------------------------------------------------------------
+   1. DESIGN TOKENS — Dark Theme (default)
+   ---------------------------------------------------------------- */
+:root {
+  --bg: #0b1220;
+  --surface-1: #0f1a2b;
+  --surface-2: #13233a;
+  --surface-3: #182b46;
+  --border: #243653;
+  --text: #e7ecf4;
+  --text-muted: #aab6c8;
+  --text-faint: #7f8ca3;
+  --gold: #c6a86b;
+  --gold-hover: #d3b77d;
+  --gold-pressed: #b99657;
+  --success: #3fae7a;
+  --warning: #d0a85c;
+  --danger: #d16a5d;
+  --info: #5a8ccb;
+  --focus-ring: #7fa6ff;
+
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-input: 12px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.25);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+}
+
+/* ----------------------------------------------------------------
+   2. LIGHT THEME TOKENS
+   ---------------------------------------------------------------- */
+.light,
+[data-theme="light"] {
+  --bg: #f6f2ea;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --surface-3: #f0ece4;
+  --border: #d8d2c7;
+  --text: #141821;
+  --text-muted: #4a5568;
+  --text-faint: #718096;
+  --gold: #8a6e3a;
+  --gold-hover: #7a6030;
+  --gold-pressed: #6a5228;
+  --success: #2e8b5e;
+  --warning: #b8942f;
+  --danger: #c0503e;
+  --info: #3a6faa;
+  --focus-ring: #4a7fd4;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* ----------------------------------------------------------------
+   3. TAILWIND v4 THEME MAPPING
+   ---------------------------------------------------------------- */
+@theme inline {
+  /* Colors */
+  --color-bg: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-gold: var(--gold);
+  --color-gold-hover: var(--gold-hover);
+  --color-gold-pressed: var(--gold-pressed);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-focus-ring: var(--focus-ring);
+
+  /* Radii */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 14px;
+  --radius-input: 12px;
+
+  /* Fonts */
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-serif: var(--font-source-serif-4);
+}
+
+/* ----------------------------------------------------------------
+   4. BASE STYLES
+   ---------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ----------------------------------------------------------------
+   5. TYPOGRAPHY SCALE
+   ---------------------------------------------------------------- */
+
+/* Heading 1 — Serif, 30px/36px, tight tracking */
+.typo-h1 {
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+
+/* Heading 2 — Serif, 24px/32px, tight tracking */
+.typo-h2 {
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* Heading 3 — Sans, 20px/28px */
+.typo-h3 {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* Body — Sans, 14px/22px */
+.typo-body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  font-weight: 400;
+  color: var(--text);
+}
+
+/* Label/Overline — Sans, 11px, uppercase, tracked */
+.typo-label {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Monospace — for reference IDs, hashes, codes */
+.typo-mono {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tabular numbers for financial data — enforced in all tables */
+.tabular-nums,
+table td,
+table th {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------
+   6. LAYOUT UTILITIES
+   ---------------------------------------------------------------- */
+
+/* Container: max-width 1440px, centered, responsive padding */
+.page-container {
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem; /* 24px mobile */
+  padding-right: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .page-container {
+    padding-left: 2rem; /* 32px desktop */
+    padding-right: 2rem;
+  }
+}
+
+/* 12-column grid */
+.grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem 1.5rem; /* gap-y: 16px, gap-x: 24px */
+}
+
+/* Section spacing */
+.section-gap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* 24px */
+}
+
+@media (min-width: 768px) {
+  .section-gap {
+    gap: 2rem; /* 32px */
+  }
+}
+
+/* ----------------------------------------------------------------
+   7. CARD PRIMITIVES
+   ---------------------------------------------------------------- */
+.card-base {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: box-shadow 0.2s ease;
+}
+
+/* Only interactive cards get hover shadow */
+.card-base[data-interactive]:hover,
+a.card-base:hover {
+  box-shadow: var(--shadow);
+}
+
+/* ----------------------------------------------------------------
+   7b. TABLE UTILITIES
+   ---------------------------------------------------------------- */
+
+/* Zebra striping for table readability */
+.row-stripe tbody tr:nth-child(even) {
+  background-color: color-mix(in srgb, var(--surface-2) 30%, transparent);
+}
+
+/* Dense table mode — tighter padding for dashboards/reports */
+.dense-table th { padding: 0.375rem 0.75rem !important; }
+.dense-table td { padding: 0.375rem 0.75rem !important; }
+
+/* Stronger header separation */
+.strong-header thead {
+  border-bottom: 2px solid var(--border);
+}
+.strong-header thead th {
+  background-color: var(--surface-2);
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------------
+   8. FOCUS STYLES
+   ---------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------
+   8b. SKIP-TO-CONTENT
+   ---------------------------------------------------------------- */
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--gold);
+  border-radius: var(--radius-sm);
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* ----------------------------------------------------------------
+   8c. REDUCED MOTION
+   ---------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ----------------------------------------------------------------
+   9. SCROLLBAR (dark-themed)
+   ---------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}
+
+/* ----------------------------------------------------------------
+   10. PRINT MODE
+   ----------------------------------------------------------------
+   Forces light theme, hides navigation chrome, optimizes for paper.
+   Dashboard panels avoid splitting across pages.
+   ---------------------------------------------------------------- */
+@media print {
+  /* Force light palette */
+  :root {
+    --bg: #ffffff;
+    --surface-1: #ffffff;
+    --surface-2: #f9f9f9;
+    --surface-3: #f3f3f3;
+    --border: #d8d2c7;
+    --text: #141821;
+    --text-muted: #4a5568;
+    --text-faint: #718096;
+    --gold: #8a6e3a;
+    --success: #2e8b5e;
+    --warning: #b8942f;
+    --danger: #c0503e;
+    --info: #3a6faa;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #141821 !important;
+  }
+
+  /* Hide navigation chrome — sidebar, topbar, command palette */
+  [data-print-hide="true"],
+  .print-hide,
+  aside,
+  nav,
+  header[data-topbar] {
+    display: none !important;
+  }
+
+  /* Main content fills full width when sidebar hidden */
+  main {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Increase memo readability */
+  .typo-h1,
+  .typo-h2 {
+    font-family: var(--font-serif), Georgia, serif;
+    color: #141821;
+  }
+
+  /* Remove shadows, simplify borders, prevent splitting */
+  .card-base {
+    box-shadow: none;
+    border: 1px solid #d8d2c7;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Tighten spacing for paper */
+  .page-container {
+    max-width: 100%;
+    padding-left: 0.5in;
+    padding-right: 0.5in;
+  }
+
+  .section-gap {
+    gap: 1rem;
+  }
+
+  /* Force bar colours to print (Chrome/Safari strip bg) */
+  .bg-success,
+  .bg-warning,
+  .bg-danger,
+  .bg-info,
+  .bg-gold,
+  .bg-text-faint {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Scenario toggle hidden in print */
+  button:has(.print-hide),
+  [data-scenario-toggle] {
+    display: none !important;
+  }
+}
+
+/* ----------------------------------------------------------------
+   PRINT PREVIEW — on-screen print simulation
+   Forces light theme tokens so the user sees exactly what prints.
+   ---------------------------------------------------------------- */
+.print-preview {
+  --bg: #f6f2ea;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --surface-3: #f0ece4;
+  --border: #d8d2c7;
+  --text: #141821;
+  --text-muted: #4a5568;
+  --text-faint: #718096;
+  --gold: #8a6e3a;
+  --gold-hover: #7a6030;
+  --success: #2e8b5e;
+  --warning: #b8942f;
+  --danger: #c0503e;
+  --info: #3a6faa;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  background-color: var(--bg);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+.print-preview .card-base {
+  box-shadow: none;
+  border: 1px solid #d8d2c7;
+}
