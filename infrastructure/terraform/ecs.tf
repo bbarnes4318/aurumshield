@@ -95,11 +95,11 @@ resource "aws_ecs_task_definition" "app" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${var.app_port}${var.health_check_path} || exit 1"]
+        command     = ["CMD-SHELL", "node -e \"const http = require('http'); const req = http.get('http://localhost:${var.app_port}${var.health_check_path}', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.setTimeout(3000, () => { req.destroy(); process.exit(1); });\""]
         interval    = 30
         timeout     = 5
         retries     = 3
-        startPeriod = 60
+        startPeriod = 120
       }
     }
   ])
