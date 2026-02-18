@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+infrastructure/
+.github/
+.agent/
+gold-temp/
+documents/
+.env*
+*.pem
+*.tsbuildinfo
+next-env.d.ts
