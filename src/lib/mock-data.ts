@@ -1237,7 +1237,7 @@ export const mockTimeline: TimelineEvent[] = [
 /* ---------- Governance Audit Domain Model ---------- */
 
 export type AuditActorRole = UserRole | "system";
-export type AuditResourceType = "order" | "settlement" | "transaction" | "listing" | "claim" | "counterparty" | "reservation" | "receipt" | "CAPITAL";
+export type AuditResourceType = "order" | "settlement" | "transaction" | "listing" | "claim" | "counterparty" | "reservation" | "receipt" | "CAPITAL" | "CERTIFICATE";
 
 export type AuditAction =
   | "SESSION_CREATED"
@@ -1262,7 +1262,8 @@ export type AuditAction =
   | "CAPITAL_CONTROL_MODE_CHANGED"
   | "CAPITAL_CONTROL_BLOCKED"
   | "CAPITAL_OVERRIDE_CREATED"
-  | "CAPITAL_OVERRIDE_REVOKED";
+  | "CAPITAL_OVERRIDE_REVOKED"
+  | "CLEARING_CERTIFICATE_ISSUED";
 
 export type AuditSeverity = "info" | "warning" | "critical";
 

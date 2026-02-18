@@ -465,3 +465,21 @@ a.card-base:hover {
   box-shadow: none;
   border: 1px solid #d8d2c7;
 }
+
+/* ----------------------------------------------------------------
+   PRESENTATION MODE — Executive screen sharing (SHIFT+D)
+   CSS-only: toggled via class on <body>
+   ---------------------------------------------------------------- */
+body.presentation-mode {
+  font-size: 106%;
+}
+body.presentation-mode aside {
+  display: none !important;
+}
+body.presentation-mode .page-container {
+  max-width: 100%;
+}
+body.presentation-mode main {
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+}

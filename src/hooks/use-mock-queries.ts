@@ -506,6 +506,10 @@ export function useApplySettlementAction() {
       queryClient.invalidateQueries({ queryKey: ["settlement-ledger"] });
       queryClient.invalidateQueries({ queryKey: ["my-orders"] });
       queryClient.invalidateQueries({ queryKey: ["order"] });
+      queryClient.invalidateQueries({ queryKey: ["certificates"] });
+      queryClient.invalidateQueries({ queryKey: ["certificate"] });
+      queryClient.invalidateQueries({ queryKey: ["certificate-by-settlement"] });
+      queryClient.invalidateQueries({ queryKey: ["governance-audit-events"] });
     },
   });
 }
@@ -519,6 +523,40 @@ export function useExportSettlementPacket() {
     mutationFn: async ({ settlementId }) => {
       return apiExportSettlementPacket(settlementId);
     },
+  });
+}
+
+/* ================================================================
+   Certificate hooks — deterministic, localStorage-backed
+   ================================================================ */
+
+import type { ClearingCertificate } from "@/lib/certificate-engine";
+import {
+  apiGetCertificates,
+  apiGetCertificate,
+  apiGetCertificateBySettlement,
+} from "@/lib/api";
+
+export function useCertificates() {
+  return useQuery<ClearingCertificate[]>({
+    queryKey: ["certificates"],
+    queryFn: () => apiGetCertificates(),
+  });
+}
+
+export function useCertificate(id: string) {
+  return useQuery<ClearingCertificate | undefined>({
+    queryKey: ["certificate", id],
+    queryFn: () => apiGetCertificate(id),
+    enabled: !!id,
+  });
+}
+
+export function useCertificateBySettlement(settlementId: string) {
+  return useQuery<ClearingCertificate | undefined>({
+    queryKey: ["certificate-by-settlement", settlementId],
+    queryFn: () => apiGetCertificateBySettlement(settlementId),
+    enabled: !!settlementId,
   });
 }
 

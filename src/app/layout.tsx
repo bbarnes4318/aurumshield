@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/providers/auth-provider";
+import { DemoProvider } from "@/providers/demo-provider";
 import { AppShell } from "@/components/layout/app-shell";
 
 /* ----------------------------------------------------------------
@@ -51,7 +53,11 @@ export default function RootLayout({
         <ThemeProvider>
           <QueryProvider>
             <AuthProvider>
-              <AppShell>{children}</AppShell>
+              <Suspense fallback={null}>
+                <DemoProvider>
+                  <AppShell>{children}</AppShell>
+                </DemoProvider>
+              </Suspense>
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

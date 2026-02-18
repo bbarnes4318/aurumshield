@@ -29,10 +29,11 @@ const ACTIONS: AuditAction[] = [
   "ORDER_CREATED", "SETTLEMENT_OPENED", "SETTLEMENT_ACTION_APPLIED",
   "RECEIPT_GENERATED", "LISTING_DRAFT_CREATED", "LISTING_PUBLISHED",
   "CLAIM_OPENED", "CLAIM_DECIDED", "EXPORT_REQUESTED",
+  "CLEARING_CERTIFICATE_ISSUED",
 ];
 
 const RESOURCE_TYPES: AuditResourceType[] = [
-  "order", "settlement", "transaction", "listing", "claim", "counterparty", "reservation", "receipt",
+  "order", "settlement", "transaction", "listing", "claim", "counterparty", "reservation", "receipt", "CERTIFICATE",
 ];
 
 const SEVERITIES: AuditSeverity[] = ["info", "warning", "critical"];

@@ -26,10 +26,12 @@ import {
   Gavel,
   Activity,
   ShieldOff,
+  Presentation,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
+import { useDemo } from "@/providers/demo-provider";
 import type { UserRole } from "@/lib/mock-data";
 
 interface SidebarProps {
@@ -131,7 +133,14 @@ const NAV_GROUPS: NavGroup[] = [
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { isDemo } = useDemo();
   const userRole = user?.role ?? "buyer";
+
+  // Prepend demo nav group when demo mode is active
+  const demoGroup: NavGroup[] = isDemo
+    ? [{ title: "Demo", items: [{ label: "Guided Walkthrough", href: "/demo", icon: Presentation }] }]
+    : [];
+  const allGroups = [...demoGroup, ...NAV_GROUPS];
 
   return (
     <aside
@@ -154,7 +163,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2 px-1.5" aria-label="Main navigation">
-        {NAV_GROUPS.map((group) => {
+        {allGroups.map((group) => {
           // Filter items by role
           const visibleItems = group.items.filter((item) => {
             if (item.roles && !item.roles.includes(userRole as UserRole)) return false;

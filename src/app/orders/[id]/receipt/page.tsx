@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   XCircle,
   Shield,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RequireAuth } from "@/components/auth/require-auth";
@@ -22,6 +24,7 @@ import {
   useListings,
   useSettlementByOrder,
   useSettlementLedger,
+  useCertificateBySettlement,
 } from "@/hooks/use-mock-queries";
 import type {
   Listing,
@@ -245,6 +248,7 @@ function ReceiptContent() {
 
   const ledgerQ = useSettlementLedger(settlementId);
   const ledger = ledgerQ.data ?? [];
+  const certQ = useCertificateBySettlement(settlementId);
 
   const listing = useMemo(
     () => listingsQ.data?.find((l: Listing) => l.id === order?.listingId),
@@ -542,6 +546,58 @@ function ReceiptContent() {
               )}
             </div>
           </div>
+
+          {/* ═══ CLEARING CERTIFICATION ═══ */}
+          {certQ.data && (() => {
+            const cert = certQ.data;
+            return (
+              <div className="px-8 py-5 border-t border-border">
+                <h2 className="text-[10px] font-bold uppercase tracking-wider text-text-faint mb-3">Clearing Certification</h2>
+                <table className="w-full text-xs">
+                  <tbody>
+                    <tr>
+                      <td className="py-1 pr-4 text-text-faint w-52">Certificate Number</td>
+                      <td className="py-1">
+                        <span className="font-mono font-semibold text-gold">{cert.certificateNumber}</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(cert.certificateNumber)}
+                          className="ml-2 inline-flex items-center text-text-faint hover:text-gold transition-colors print:hidden"
+                          title="Copy certificate number"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 pr-4 text-text-faint">Issued</td>
+                      <td className="py-1 font-mono tabular-nums">{cert.issuedAt}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 pr-4 text-text-faint">Signature Hash</td>
+                      <td className="py-1">
+                        <span className="font-mono text-[10px]">{cert.signatureHash.slice(0, 16)}…{cert.signatureHash.slice(-8)}</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(cert.signatureHash)}
+                          className="ml-2 inline-flex items-center text-text-faint hover:text-gold transition-colors print:hidden"
+                          title="Copy full signature hash"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="mt-3 print:hidden">
+                  <Link
+                    href={`/certificates/${cert.certificateNumber}`}
+                    className="inline-flex items-center gap-1.5 text-xs text-gold font-semibold hover:underline"
+                  >
+                    View Certificate <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ═══ LEDGER INTEGRITY & CLEARING ATTESTATION ═══ */}
           <div className="px-8 py-5">

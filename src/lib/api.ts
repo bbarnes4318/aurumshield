@@ -403,6 +403,13 @@ import {
   loadSettlementState,
   saveSettlementState,
 } from "./settlement-store";
+import {
+  issueCertificate,
+  getAllCertificates,
+  getCertificateByNumber,
+  getCertificateBySettlementId,
+  type ClearingCertificate,
+} from "./certificate-engine";
 
 /* ---------- READ endpoints ---------- */
 
@@ -529,13 +536,71 @@ export async function apiApplySettlementAction(input: {
 
   saveSettlementState(result.state);
 
-  // If settlement is now SETTLED, update order to completed
+  // If settlement is now SETTLED, update order to completed + issue certificate
   if (result.settlement.status === "SETTLED") {
     const mktState = freshState();
     const mktOrders = mktState.orders.map((o) =>
       o.id === result.settlement.orderId ? { ...o, status: "completed" as const } : o,
     );
     saveMarketplaceState({ ...mktState, orders: mktOrders });
+
+    // ── Certificate issuance (idempotent) ──
+    if (input.payload.action === "EXECUTE_DVP") {
+      try {
+        // Find the DVP_EXECUTED ledger entry just created
+        const dvpEntry = result.ledgerEntries.find(
+          (e) => e.settlementId === input.settlementId && e.type === "DVP_EXECUTED",
+        );
+        if (dvpEntry) {
+          // Resolve order and listing for certificate payload
+          const freshMktState = freshState();
+          const order = freshMktState.orders.find((o) => o.id === result.settlement.orderId);
+          const listing = order
+            ? freshMktState.listings.find((l) => l.id === order.listingId)
+            : undefined;
+
+          if (order && listing) {
+            const cert = await issueCertificate({
+              settlement: result.settlement,
+              order,
+              listing,
+              dvpLedgerEntry: dvpEntry,
+              now: input.now,
+            });
+
+            // Idempotent audit event: CLEARING_CERTIFICATE_ISSUED
+            const auditExplicitId = `CERT_ISSUED:${cert.certificateNumber}`;
+            appendAuditEvent({
+              occurredAt: input.now,
+              actorRole: (input.payload.actorRole ?? "system") as AuditActorRole,
+              actorUserId: input.payload.actorUserId ?? null,
+              action: "CLEARING_CERTIFICATE_ISSUED",
+              resourceType: "CERTIFICATE",
+              resourceId: cert.certificateNumber,
+              corridorId: result.settlement.corridorId,
+              hubId: result.settlement.hubId,
+              ip: null,
+              userAgent: null,
+              result: "SUCCESS",
+              severity: "info",
+              message: `Clearing certificate ${cert.certificateNumber} issued for settlement ${result.settlement.id}`,
+              metadata: {
+                certificateNumber: cert.certificateNumber,
+                settlementId: result.settlement.id,
+                orderId: result.settlement.orderId,
+                signatureHash: cert.signatureHash,
+                dvpLedgerEntryId: dvpEntry.id,
+                notionalUsd: result.settlement.notionalUsd,
+                weightOz: result.settlement.weightOz,
+              },
+            }, auditExplicitId);
+          }
+        }
+      } catch (certErr) {
+        // Certificate issuance failure should NOT block the settlement action
+        console.error("[AurumShield] Certificate issuance failed:", certErr);
+      }
+    }
   }
 
   return mockFetch({ settlement: result.settlement, ledgerEntries: result.ledgerEntries });
@@ -588,6 +653,22 @@ import type {
   AuditActorRole,
 } from "./mock-data";
 import { loadAuditState, appendAuditEvent } from "./audit-store";
+
+/* ================================================================
+   CERTIFICATE API — Clearing certificate read endpoints
+   ================================================================ */
+
+export async function apiGetCertificates(): Promise<ClearingCertificate[]> {
+  return mockFetch(getAllCertificates());
+}
+
+export async function apiGetCertificate(certificateNumber: string): Promise<ClearingCertificate | undefined> {
+  return mockFetch(getCertificateByNumber(certificateNumber));
+}
+
+export async function apiGetCertificateBySettlement(settlementId: string): Promise<ClearingCertificate | undefined> {
+  return mockFetch(getCertificateBySettlementId(settlementId));
+}
 
 export interface AuditEventFilters {
   startDate?: string;
