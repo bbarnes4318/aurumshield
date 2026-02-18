@@ -1,9 +1,10 @@
 name: Deploy to AWS ECS
 
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
+    tags:
+      - "v*"
 
 permissions:
   id-token: write
