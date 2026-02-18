@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,11 +14,13 @@ import {
   Shield,
   Copy,
   ExternalLink,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { useAuth } from "@/providers/auth-provider";
+import { useDemo } from "@/providers/demo-provider";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import {
   useOrder,
@@ -27,6 +29,7 @@ import {
   useSettlementLedger,
   useCertificateBySettlement,
 } from "@/hooks/use-mock-queries";
+import type { ClearingCertificate } from "@/lib/certificate-engine";
 import type {
   Listing,
   LedgerEntry,
@@ -55,16 +58,23 @@ function fmtUsd(n: number) {
   return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-
-
-function fmtDateTime(iso: string) {
+/** Format ISO timestamp to institutional format: DD MMM YYYY · HH:MM UTC */
+function fmtUtc(iso: string): string {
   const d = new Date(iso);
-  return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} ${d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const mon = months[d.getUTCMonth()];
+  const year = d.getUTCFullYear();
+  const hours = String(d.getUTCHours()).padStart(2, "0");
+  const mins = String(d.getUTCMinutes()).padStart(2, "0");
+  const secs = String(d.getUTCSeconds()).padStart(2, "0");
+  return `${day} ${mon} ${year} · ${hours}:${mins}:${secs} UTC`;
 }
+
+
 
 /** Deterministic document ID: AR-CLR-{orderId}-{settlementId}-{YYYYMMDD} */
 function buildDocId(orderId: string, settlementId: string, ledger: LedgerEntry[]): string {
-  // Use the last ledger entry timestamp (ESCROW_CLOSED or DVP_EXECUTED) as the date basis
   const dvpEntry = ledger.find((e) => e.type === "DVP_EXECUTED");
   const dateStr = dvpEntry
     ? dvpEntry.timestamp
@@ -234,10 +244,137 @@ function buildJsonPayload(
   };
 }
 
+/* ---------- Certificate Modal (Print-ready, B&W) ---------- */
+function CertificateModal({
+  cert,
+  settlement,
+  dvpEntry,
+  onClose,
+}: {
+  cert: ClearingCertificate;
+  settlement: SettlementCase;
+  dvpEntry: LedgerEntry | undefined;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center print:static print:block">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/70 print:hidden"
+        onClick={onClose}
+      />
+
+      {/* Modal content — B&W, institutional, print-ready */}
+      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm bg-white text-black print:max-w-none print:rounded-none print:shadow-none">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-400 hover:text-black transition-colors print:hidden"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {/* Certificate Content */}
+        <div className="px-10 py-8 space-y-6" style={{ fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace" }}>
+          {/* Header */}
+          <div className="text-center border-b border-black pb-4">
+            <h2 className="text-lg font-bold tracking-[0.15em] uppercase">
+              Gold Clearing Certificate
+            </h2>
+            <p className="text-[10px] tracking-[0.2em] uppercase text-gray-500 mt-1">
+              AurumShield Sovereign Clearing Authority
+            </p>
+          </div>
+
+          {/* Certificate Number */}
+          <div className="border border-black p-4 text-center">
+            <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Certificate Number</div>
+            <div className="text-base font-bold tracking-wider">{cert.certificateNumber}</div>
+          </div>
+
+          {/* Details Grid */}
+          <table className="w-full text-xs border-collapse">
+            <tbody>
+              <tr className="border-b border-gray-200">
+                <td className="py-2 pr-4 text-gray-500 w-48">Settlement ID</td>
+                <td className="py-2 font-mono">{cert.settlementId}</td>
+              </tr>
+              <tr className="border-b border-gray-200">
+                <td className="py-2 pr-4 text-gray-500">Order ID</td>
+                <td className="py-2 font-mono">{cert.orderId}</td>
+              </tr>
+              <tr className="border-b border-gray-200">
+                <td className="py-2 pr-4 text-gray-500">Issued At</td>
+                <td className="py-2 font-mono">{fmtUtc(cert.issuedAt)}</td>
+              </tr>
+              <tr className="border-b border-gray-200">
+                <td className="py-2 pr-4 text-gray-500">Execution Timestamp</td>
+                <td className="py-2 font-mono">{dvpEntry ? fmtUtc(dvpEntry.timestamp) : fmtUtc(settlement.updatedAt)}</td>
+              </tr>
+              <tr className="border-b border-gray-200">
+                <td className="py-2 pr-4 text-gray-500">Weight</td>
+                <td className="py-2 font-mono">{cert.asset.weightOz} oz {cert.asset.form} ({cert.asset.purity})</td>
+              </tr>
+              <tr className="border-b border-gray-200">
+                <td className="py-2 pr-4 text-gray-500">Notional</td>
+                <td className="py-2 font-mono">{fmtUsd(cert.economics.notional)}</td>
+              </tr>
+              <tr className="border-b border-gray-200">
+                <td className="py-2 pr-4 text-gray-500">Total Fees</td>
+                <td className="py-2 font-mono">{fmtUsd(cert.economics.fees.totalFees)}</td>
+              </tr>
+              <tr className="border-b border-gray-200">
+                <td className="py-2 pr-4 text-gray-500">Settlement Status</td>
+                <td className="py-2 font-mono font-bold">{settlement.status}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Signature Hash */}
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Signature Hash</div>
+            <div className="border border-gray-300 p-3 text-[10px] font-mono break-all leading-relaxed bg-gray-50">
+              {cert.signatureHash}
+            </div>
+          </div>
+
+          {/* Ledger Integrity Statement */}
+          <div className="border-t border-black pt-4">
+            <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Ledger Integrity Statement</div>
+            <p className="text-[11px] leading-relaxed text-gray-700">
+              This certificate was derived deterministically from the append-only settlement ledger.
+              The signature hash is computed from a canonical serialization of all settlement parameters,
+              counterparty identifiers, and economic terms. The certificate is immutable and may be
+              independently verified against the ledger state at time of issuance.
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center text-[9px] text-gray-400 border-t border-gray-200 pt-3">
+            AurumShield — Sovereign Clearing Infrastructure — Certificate v1
+          </div>
+        </div>
+
+        {/* Print button */}
+        <div className="px-10 pb-6 flex justify-end print:hidden">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 rounded-sm border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Printer className="h-3.5 w-3.5" /> Print Certificate
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ================================================================ */
 function ReceiptContent() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { isDemo } = useDemo();
+  const [showCertModal, setShowCertModal] = useState(false);
 
   const orderQ = useOrder(params.id);
   const listingsQ = useListings();
@@ -376,6 +513,28 @@ function ReceiptContent() {
         </div>
       </div>
 
+      {/* ═══ DEMO: Institutional Header Band ═══ */}
+      {isDemo && certQ.data && (
+        <div className="max-w-3xl mx-auto mb-4 print:hidden">
+          <div className="rounded-sm border border-success/30 bg-success/5 px-6 py-4 text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-success" style={{ fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace" }}>
+              Clearing Certificate Issued — Verified Delivery
+            </p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-[10px] text-text-faint">
+              <span>Certificate: <span className="typo-mono font-semibold text-gold">{certQ.data.certificateNumber}</span></span>
+              <span>Settlement: <span className="typo-mono font-semibold text-text">{certQ.data.settlementId}</span></span>
+              <span>Issued: <span className="typo-mono">{fmtUtc(certQ.data.issuedAt)}</span></span>
+            </div>
+            <button
+              onClick={() => setShowCertModal(true)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-sm border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-muted hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-colors"
+            >
+              View Full Certificate
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Receipt Document */}
       <div className="receipt-print max-w-3xl mx-auto">
         <div className="rounded-lg border border-border bg-surface-1 overflow-hidden">
@@ -414,14 +573,12 @@ function ReceiptContent() {
                 <p className="text-sm font-semibold text-text">{buyerOrg?.legalName ?? settlement.buyerOrgId}</p>
                 <p className="text-[10px] text-text-faint mt-0.5">LEI: <span className="font-mono">{buyerCp?.legalEntityId ?? "N/A"}</span></p>
                 <p className="text-[10px] text-text-faint">Jurisdiction: {buyerOrg?.jurisdiction ?? "N/A"}</p>
-                <p className="text-[10px] text-text-faint font-mono">User ID: {settlement.buyerUserId}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-text-faint mb-1">Seller</p>
                 <p className="text-sm font-semibold text-text">{sellerOrg?.legalName ?? settlement.sellerOrgId}</p>
                 <p className="text-[10px] text-text-faint mt-0.5">LEI: <span className="font-mono">{sellerCp?.legalEntityId ?? "N/A"}</span></p>
                 <p className="text-[10px] text-text-faint">Jurisdiction: {sellerOrg?.jurisdiction ?? "N/A"}</p>
-                <p className="text-[10px] text-text-faint font-mono">User ID: {settlement.sellerUserId}</p>
               </div>
             </div>
           </div>
@@ -495,15 +652,15 @@ function ReceiptContent() {
               <tbody>
                 <tr>
                   <td className="py-1 pr-4 text-text-faint text-xs w-40">Corridor</td>
-                  <td className="py-1 text-xs">{corridor?.name ?? settlement.corridorId} <span className="font-mono text-text-faint">({settlement.corridorId})</span></td>
+                  <td className="py-1 text-xs">{corridor?.name ?? settlement.corridorId}</td>
                 </tr>
                 <tr>
                   <td className="py-1 pr-4 text-text-faint text-xs">Settlement Hub</td>
-                  <td className="py-1 text-xs">{hub?.name ?? settlement.hubId} <span className="font-mono text-text-faint">({settlement.hubId})</span></td>
+                  <td className="py-1 text-xs">{hub?.name ?? settlement.hubId}</td>
                 </tr>
                 <tr>
                   <td className="py-1 pr-4 text-text-faint text-xs">Vault Hub</td>
-                  <td className="py-1 text-xs">{vaultHub?.name ?? settlement.vaultHubId} <span className="font-mono text-text-faint">({settlement.vaultHubId})</span></td>
+                  <td className="py-1 text-xs">{vaultHub?.name ?? settlement.vaultHubId}</td>
                 </tr>
               </tbody>
             </table>
@@ -528,26 +685,26 @@ function ReceiptContent() {
               {authEntry && (
                 <div className="rounded border border-border bg-surface-2 px-4 py-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-gold">{authEntry.type}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gold">Settlement Authorized</span>
                     <span className="text-[10px] font-mono text-text-faint">{authEntry.id}</span>
                   </div>
                   <p className="text-[10px] text-text-muted font-mono break-all leading-relaxed">{authEntry.detail}</p>
                   <div className="flex items-center gap-3 mt-1.5 text-[10px] text-text-faint">
-                    <span className="tabular-nums">{fmtDateTime(authEntry.timestamp)}</span>
-                    <span>Actor: {authEntry.actor} ({authEntry.actorUserId})</span>
+                    <span className="typo-mono tabular-nums">{fmtUtc(authEntry.timestamp)}</span>
+                    <span>Actor: {authEntry.actorRole === "admin" ? "Clearing Authority" : authEntry.actorRole}</span>
                   </div>
                 </div>
               )}
               {dvpEntry && (
                 <div className="rounded border border-border bg-surface-2 px-4 py-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-success">{dvpEntry.type}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-success">Delivery versus Payment Executed</span>
                     <span className="text-[10px] font-mono text-text-faint">{dvpEntry.id}</span>
                   </div>
                   <p className="text-[10px] text-text-muted font-mono break-all leading-relaxed">{dvpEntry.detail}</p>
                   <div className="flex items-center gap-3 mt-1.5 text-[10px] text-text-faint">
-                    <span className="tabular-nums">{fmtDateTime(dvpEntry.timestamp)}</span>
-                    <span>Actor: {dvpEntry.actor} ({dvpEntry.actorUserId})</span>
+                    <span className="typo-mono tabular-nums">{fmtUtc(dvpEntry.timestamp)}</span>
+                    <span>Actor: {dvpEntry.actorRole === "admin" ? "Clearing Authority" : dvpEntry.actorRole}</span>
                   </div>
                 </div>
               )}
@@ -580,7 +737,7 @@ function ReceiptContent() {
                     </tr>
                     <tr>
                       <td className="py-1 pr-4 text-text-faint">Issued</td>
-                      <td className="py-1 font-mono tabular-nums">{cert.issuedAt}</td>
+                      <td className="py-1 font-mono tabular-nums">{fmtUtc(cert.issuedAt)}</td>
                     </tr>
                     <tr>
                       <td className="py-1 pr-4 text-text-faint">Signature Hash</td>
@@ -597,13 +754,21 @@ function ReceiptContent() {
                     </tr>
                   </tbody>
                 </table>
-                <div className="mt-3 print:hidden">
+                <div className="mt-3 flex items-center gap-3 print:hidden">
                   <Link
                     href={`/certificates/${cert.certificateNumber}`}
                     className="inline-flex items-center gap-1.5 text-xs text-gold font-semibold hover:underline"
                   >
                     View Certificate <ExternalLink className="h-3 w-3" />
                   </Link>
+                  {isDemo && (
+                    <button
+                      onClick={() => setShowCertModal(true)}
+                      className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-surface-2 px-3 py-1 text-xs text-text-muted hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-colors"
+                    >
+                      View Full Certificate
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -669,7 +834,7 @@ function ReceiptContent() {
                 <tbody>
                   <tr>
                     <td className="py-0.5 pr-4 text-text-faint w-52">Generated At</td>
-                    <td className="py-0.5 font-mono tabular-nums">{generatedAt}</td>
+                    <td className="py-0.5 font-mono tabular-nums">{fmtUtc(generatedAt)}</td>
                   </tr>
                   <tr>
                     <td className="py-0.5 pr-4 text-text-faint">Receipt Version</td>
@@ -685,6 +850,16 @@ function ReceiptContent() {
           </div>
         </div>
       </div>
+
+      {/* Certificate Modal (demo only) */}
+      {showCertModal && certQ.data && (
+        <CertificateModal
+          cert={certQ.data}
+          settlement={settlement!}
+          dvpEntry={dvpEntry}
+          onClose={() => setShowCertModal(false)}
+        />
+      )}
     </>
   );
 }

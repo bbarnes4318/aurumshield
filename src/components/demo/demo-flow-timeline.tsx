@@ -1,12 +1,15 @@
 "use client";
 
 /* ================================================================
-   DEMO FLOW TIMELINE — Reads real data from settlement + certificate stores
+   DEMO FLOW TIMELINE — Institutional settlement lifecycle rendering
    
-   Displays the full settlement lifecycle from REAL ledger entries.
-   Never hardcodes steps — all data derived from actual store state.
+   Reads real data from settlement + certificate stores.
+   Displays canonical institutional step labels, UTC timestamps,
+   actor role labels. No raw ledger IDs in primary view.
+   No animations, no retail iconography.
    ================================================================ */
 
+import { useState } from "react";
 import { useSettlementLedger } from "@/hooks/use-mock-queries";
 import { getCertificateBySettlementId } from "@/lib/certificate-engine";
 
@@ -14,16 +17,16 @@ interface DemoFlowTimelineProps {
   settlementId: string;
 }
 
-/** Map ledger entry types to human-readable step labels. */
+/** Canonical institutional step labels — keyed by ledger entry type. */
 const STEP_LABELS: Record<string, string> = {
   ESCROW_OPENED: "Settlement Opened",
-  FUNDS_DEPOSITED: "Funds Confirmed",
-  GOLD_ALLOCATED: "Gold Allocated",
-  VERIFICATION_PASSED: "Verification Cleared",
-  AUTHORIZATION: "Authorized",
-  DVP_EXECUTED: "DvP Executed",
-  ESCROW_CLOSED: "Escrow Closed",
+  FUNDS_DEPOSITED: "Funds Confirmed Final",
+  GOLD_ALLOCATED: "Gold Allocated to Vault Account",
+  VERIFICATION_PASSED: "Compliance Verification Cleared",
+  AUTHORIZATION: "Settlement Authorized",
   SETTLEMENT_AUTHORIZED: "Settlement Authorized",
+  DVP_EXECUTED: "Delivery versus Payment Executed",
+  ESCROW_CLOSED: "Escrow Closed",
   FUNDS_RELEASED: "Funds Released",
   GOLD_RELEASED: "Gold Released",
 };
@@ -31,15 +34,30 @@ const STEP_LABELS: Record<string, string> = {
 /** Map actor roles to institutional labels. */
 const ACTOR_LABELS: Record<string, string> = {
   admin: "Clearing Authority",
-  treasury: "Treasury Operations",
-  vault_ops: "Vault Operations",
-  compliance: "Compliance Officer",
+  treasury: "Treasury",
+  vault_ops: "Vault Ops",
+  compliance: "Compliance",
   buyer: "Buyer",
   seller: "Seller",
+  system: "System",
+  SYSTEM: "System",
 };
+
+/** Format ISO timestamp to institutional format: DD MMM YYYY · HH:MM UTC */
+function fmtTimestamp(iso: string): string {
+  const d = new Date(iso);
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const mon = months[d.getUTCMonth()];
+  const year = d.getUTCFullYear();
+  const hours = String(d.getUTCHours()).padStart(2, "0");
+  const mins = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${mon} ${year} · ${hours}:${mins} UTC`;
+}
 
 export function DemoFlowTimeline({ settlementId }: DemoFlowTimelineProps) {
   const { data: ledgerEntries, isLoading } = useSettlementLedger(settlementId);
+  const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -66,13 +84,19 @@ export function DemoFlowTimeline({ settlementId }: DemoFlowTimelineProps) {
         <h3 className="text-sm font-semibold text-text">
           Settlement Lifecycle
         </h3>
-        <span className="typo-mono text-xs text-text-faint">{settlementId}</span>
+        <span className="text-[10px] uppercase tracking-widest text-text-faint font-semibold">
+          {ledgerEntries.length + (certificate ? 1 : 0)} Steps
+        </span>
       </div>
 
       {/* Timeline */}
       <div className="space-y-0">
         {ledgerEntries.map((entry, idx) => {
           const isLast = idx === ledgerEntries.length - 1 && !certificate;
+          const isExpanded = expandedEntry === entry.id;
+          const actorLabel = ACTOR_LABELS[entry.actorRole] ?? ACTOR_LABELS[entry.actor] ?? entry.actorRole;
+          const stepLabel = STEP_LABELS[entry.type] ?? entry.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
           return (
             <div key={entry.id} className="flex gap-3">
               {/* Vertical line + dot */}
@@ -88,31 +112,38 @@ export function DemoFlowTimeline({ settlementId }: DemoFlowTimelineProps) {
               </div>
 
               {/* Step content */}
-              <div className="pb-4 pt-0">
+              <div className="pb-4 pt-0 flex-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-xs font-semibold text-text">
-                    {STEP_LABELS[entry.type] ?? entry.type}
+                    {stepLabel}
                   </span>
                   <span className="text-[10px] text-text-faint">
-                    {ACTOR_LABELS[entry.actorRole] ?? entry.actorRole}
+                    {actorLabel}
                   </span>
                 </div>
-                <div className="mt-0.5 flex items-center gap-3">
+                <div className="mt-0.5">
                   <span className="typo-mono text-[10px] text-text-faint">
-                    {new Date(entry.timestamp).toLocaleString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                      hour12: false,
-                    })}
-                  </span>
-                  <span className="typo-mono text-[10px] text-text-faint">
-                    {entry.id}
+                    {fmtTimestamp(entry.timestamp)}
                   </span>
                 </div>
+                {/* Expandable details — ledger entry ID hidden from primary view */}
+                <button
+                  onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}
+                  className="mt-1 text-[9px] text-text-faint/60 hover:text-text-faint transition-colors"
+                >
+                  {isExpanded ? "Hide Details" : "Details"}
+                </button>
+                {isExpanded && (
+                  <div className="mt-1 rounded border border-border/50 bg-surface-2 px-2.5 py-1.5">
+                    <div className="text-[9px] text-text-faint space-y-0.5">
+                      <div><span className="text-text-faint/60">Entry ID:</span> <span className="typo-mono">{entry.id}</span></div>
+                      <div><span className="text-text-faint/60">Actor:</span> <span className="typo-mono">{entry.actorUserId ?? entry.actor}</span></div>
+                      {entry.detail && (
+                        <div><span className="text-text-faint/60">Detail:</span> <span className="typo-mono">{entry.detail}</span></div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -128,27 +159,42 @@ export function DemoFlowTimeline({ settlementId }: DemoFlowTimelineProps) {
                 </svg>
               </div>
             </div>
-            <div className="pb-1 pt-0">
+            <div className="pb-1 pt-0 flex-1">
               <div className="flex items-baseline gap-2">
                 <span className="text-xs font-semibold text-gold">
                   Clearing Certificate Issued
                 </span>
                 <span className="text-[10px] text-text-faint">System</span>
               </div>
-              <div className="mt-0.5 flex items-center gap-3">
+              <div className="mt-0.5">
                 <span className="typo-mono text-[10px] text-text-faint">
-                  {new Date(certificate.issuedAt).toLocaleString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    hour12: false,
-                  })}
+                  {fmtTimestamp(certificate.issuedAt)}
                 </span>
+              </div>
+              <div className="mt-1">
                 <span className="typo-mono text-[10px] text-gold/70">
                   {certificate.certificateNumber}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pending: Clearing Certificate (if not yet issued) */}
+        {!certificate && (
+          <div className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-surface-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-text-faint/40" />
+              </div>
+            </div>
+            <div className="pb-1 pt-0">
+              <div className="flex items-baseline gap-2">
+                <span className="text-xs text-text-faint">
+                  Clearing Certificate Issued
+                </span>
+                <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider bg-surface-2 text-text-faint border border-border">
+                  Pending
                 </span>
               </div>
             </div>

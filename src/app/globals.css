@@ -469,11 +469,17 @@ a.card-base:hover {
 /* ----------------------------------------------------------------
    PRESENTATION MODE — Executive screen sharing (SHIFT+D)
    CSS-only: toggled via class on <body>
+   All rules scoped to body.presentation-mode to avoid production impact.
    ---------------------------------------------------------------- */
 body.presentation-mode {
-  font-size: 106%;
+  font-size: 108%;
+  line-height: 1.55;
+  overflow-x: hidden;
 }
 body.presentation-mode aside {
+  display: none !important;
+}
+body.presentation-mode nav[aria-label="Breadcrumb"] {
   display: none !important;
 }
 body.presentation-mode .page-container {
@@ -482,4 +488,11 @@ body.presentation-mode .page-container {
 body.presentation-mode main {
   padding-left: 2.5rem;
   padding-right: 2.5rem;
+  margin-left: 0 !important;
+}
+body.presentation-mode .card-base {
+  padding: calc(1em * 1.12);
+}
+body.presentation-mode .typo-mono {
+  font-variant-numeric: tabular-nums;
 }

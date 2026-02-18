@@ -6,6 +6,13 @@
    2. Idempotent — skips if demo settlement already exists
    3. Fully deterministic — no randomness
    4. Does not bypass validation or capital guardrails
+   
+   Idempotency Strategy:
+   - PRIMARY guard: Anchor artifact detection on real domain state.
+     Checks for a settled settlement with buyerUserId === "demo-buyer"
+     OR an existing certificate linked to such a settlement.
+   - SECONDARY guard: localStorage key (fast path, not source of truth).
+   - Session guard: Handled by DemoProvider via useRef, NOT here.
    ================================================================ */
 
 import {
@@ -32,6 +39,7 @@ import {
   saveVerificationCase,
 } from "./verification-engine";
 import type { VerificationCase } from "./mock-data";
+import { getCertificateBySettlementId } from "./certificate-engine";
 
 const DEMO_SCENARIO_NAME =
   "Sovereign Gold Settlement — Institutional Walkthrough";
@@ -100,6 +108,40 @@ export const DEMO_ORGS = [
   },
 ] as const;
 
+/* ---------- Anchor artifact detection ---------- */
+
+/**
+ * PRIMARY idempotency guard.
+ * Checks real domain state for existence of demo artifacts:
+ * 1. A settlement with buyerUserId === "demo-buyer" AND status === "SETTLED"
+ * 2. OR a certificate linked to any demo settlement
+ */
+function hasDemoAnchorArtifact(): boolean {
+  const settState = loadSettlementState();
+  const demoSettlement = settState.settlements.find(
+    (s) => s.buyerUserId === "demo-buyer",
+  );
+
+  if (!demoSettlement) return false;
+
+  // If settlement exists and is SETTLED → anchor found
+  if (demoSettlement.status === "SETTLED") return true;
+
+  // If a certificate exists for this settlement → anchor found
+  const cert = getCertificateBySettlementId(demoSettlement.id);
+  if (cert) return true;
+
+  // Settlement exists but not yet SETTLED and no cert — partial seed.
+  // Treat as seeded to avoid duplicate partial artifacts.
+  return true;
+}
+
+/** Check if demo listing already exists in marketplace state. */
+function hasDemoListing(): boolean {
+  const state = loadMarketplaceState();
+  return state.listings.some((l) => l.sellerUserId === "demo-seller");
+}
+
 /* ---------- Public API ---------- */
 
 /** Get the scenario name for display purposes. */
@@ -107,33 +149,28 @@ export function getDemoScenarioName(): string {
   return DEMO_SCENARIO_NAME;
 }
 
-/** Check if demo scenario has already been seeded (idempotent guard). */
+/** Check if demo has been seeded (secondary cache — fast path). */
 export function isDemoSeeded(): boolean {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(DEMO_SEEDED_KEY) === "true";
 }
 
-/** Check if a demo settlement exists in real stores. */
-function hasDemoSettlement(): boolean {
-  const state = loadSettlementState();
-  return state.settlements.some((s) => s.buyerUserId === "demo-buyer");
-}
-
-/** Check if demo listing already exists. */
-function hasDemoListing(): boolean {
-  const state = loadMarketplaceState();
-  return state.listings.some((l) => l.sellerUserId === "demo-seller");
-}
-
 /**
  * Seed the demo scenario through real API calls.
- * Idempotent: if demo settlement already exists, returns immediately.
+ * Idempotent: checks anchor artifacts before proceeding.
+ *
+ * @returns true if seeding was performed, false if already present.
  */
-export async function seedDemoScenario(): Promise<void> {
-  // Guard: already seeded
-  if (isDemoSeeded() || hasDemoSettlement()) {
+export async function seedDemoScenario(): Promise<boolean> {
+  // Fast path: secondary cache
+  if (isDemoSeeded() && hasDemoAnchorArtifact()) {
+    return false;
+  }
+
+  // Primary guard: anchor artifact detection on real domain state
+  if (hasDemoAnchorArtifact()) {
     markSeeded();
-    return;
+    return false;
   }
 
   // Phase 1: Ensure demo accounts exist
@@ -144,6 +181,7 @@ export async function seedDemoScenario(): Promise<void> {
 
   // Mark as complete
   markSeeded();
+  return true;
 }
 
 /** Ensure all demo user accounts and orgs exist in auth-store. */
@@ -182,19 +220,85 @@ export function ensureDemoAccounts(): void {
       lastScreenedAt: now,
       nextRequiredStepId: null,
       steps: [
-        { id: "email_phone", title: "Email & Phone Confirmation", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "id_document", title: "Government ID Capture", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "selfie_liveness", title: "Selfie / Liveness Verification", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "sanctions_pep", title: "Sanctions & PEP Screening", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "business_registration", title: "Business Registration Filing", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "ubo_capture", title: "Ultimate Beneficial Owner Declaration", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "proof_of_address", title: "Proof of Registered Address", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "source_of_funds", title: "Source of Funds Declaration", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
+        {
+          id: "email_phone",
+          title: "Email & Phone Confirmation",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "id_document",
+          title: "Government ID Capture",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "selfie_liveness",
+          title: "Selfie / Liveness Verification",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "sanctions_pep",
+          title: "Sanctions & PEP Screening",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "business_registration",
+          title: "Business Registration Filing",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "ubo_capture",
+          title: "Ultimate Beneficial Owner Declaration",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "proof_of_address",
+          title: "Proof of Registered Address",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "source_of_funds",
+          title: "Source of Funds Declaration",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
       ],
       evidenceIds: [],
       audit: [
-        { at: now, actor: "demo-buyer", action: "CASE_INITIATED", detail: "Verification case opened — track: BUSINESS_KYB" },
-        { at: now, actor: "AUTO", action: "CASE_VERIFIED", detail: "All steps passed — identity perimeter verified." },
+        {
+          at: now,
+          actor: "demo-buyer",
+          action: "CASE_INITIATED",
+          detail: "Verification case opened — track: BUSINESS_KYB",
+        },
+        {
+          at: now,
+          actor: "AUTO",
+          action: "CASE_VERIFIED",
+          detail: "All steps passed — identity perimeter verified.",
+        },
       ],
     };
     saveVerificationCase(verifiedCase);
@@ -214,19 +318,85 @@ export function ensureDemoAccounts(): void {
       lastScreenedAt: now,
       nextRequiredStepId: null,
       steps: [
-        { id: "email_phone", title: "Email & Phone Confirmation", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "id_document", title: "Government ID Capture", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "selfie_liveness", title: "Selfie / Liveness Verification", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "sanctions_pep", title: "Sanctions & PEP Screening", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "business_registration", title: "Business Registration Filing", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "ubo_capture", title: "Ultimate Beneficial Owner Declaration", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "proof_of_address", title: "Proof of Registered Address", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
-        { id: "source_of_funds", title: "Source of Funds Declaration", status: "PASSED", submittedAt: now, decidedAt: now, decidedBy: "AUTO" },
+        {
+          id: "email_phone",
+          title: "Email & Phone Confirmation",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "id_document",
+          title: "Government ID Capture",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "selfie_liveness",
+          title: "Selfie / Liveness Verification",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "sanctions_pep",
+          title: "Sanctions & PEP Screening",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "business_registration",
+          title: "Business Registration Filing",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "ubo_capture",
+          title: "Ultimate Beneficial Owner Declaration",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "proof_of_address",
+          title: "Proof of Registered Address",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
+        {
+          id: "source_of_funds",
+          title: "Source of Funds Declaration",
+          status: "PASSED",
+          submittedAt: now,
+          decidedAt: now,
+          decidedBy: "AUTO",
+        },
       ],
       evidenceIds: [],
       audit: [
-        { at: now, actor: "demo-seller", action: "CASE_INITIATED", detail: "Verification case opened — track: BUSINESS_KYB" },
-        { at: now, actor: "AUTO", action: "CASE_VERIFIED", detail: "All steps passed — identity perimeter verified." },
+        {
+          at: now,
+          actor: "demo-seller",
+          action: "CASE_INITIATED",
+          detail: "Verification case opened — track: BUSINESS_KYB",
+        },
+        {
+          at: now,
+          actor: "AUTO",
+          action: "CASE_VERIFIED",
+          detail: "All steps passed — identity perimeter verified.",
+        },
       ],
     };
     saveVerificationCase(sellerVerifiedCase);

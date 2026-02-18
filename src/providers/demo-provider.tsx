@@ -9,6 +9,7 @@
       - URL contains ?demo=true
    2. Presentation mode only toggles CSS class on <body>
    3. Does NOT change component tree or layout logic
+   4. Uses useRef for session-level seed guard (not module scope)
    ================================================================ */
 
 import {
@@ -17,6 +18,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useSearchParams } from "next/navigation";
@@ -61,6 +63,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [presentationMode, setPresentationMode] = useState(false);
   const [seeded, setSeeded] = useState(false);
 
+  // Session-level guard: prevent re-seeding on navigation or toggle
+  const seededOnceRef = useRef(false);
+
   // SHIFT+D keyboard shortcut for presentation mode
   useEffect(() => {
     if (!isDemo) return;
@@ -92,14 +97,22 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isDemo) return;
 
+    // Session guard: if already seeded in this React lifecycle, skip
+    if (seededOnceRef.current) return;
+    seededOnceRef.current = true;
+
     let cancelled = false;
     seedDemoScenario()
-      .then(() => {
-        if (!cancelled) setSeeded(true);
+      .then((didSeed) => {
+        if (cancelled) return;
+        setSeeded(true);
+        if (didSeed) {
+          console.log("[DemoProvider] Demo scenario seeded successfully.");
+        }
       })
       .catch((err) => {
         console.error("[DemoProvider] Seed failed:", err);
-        if (!cancelled) setSeeded(true); // Mark as complete even on error
+        if (!cancelled) setSeeded(true);
       });
     return () => {
       cancelled = true;

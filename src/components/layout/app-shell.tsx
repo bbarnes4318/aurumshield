@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { CommandPalette } from "@/components/ui/command-palette";
+import { DemoScriptOverlay } from "@/components/demo/demo-script-overlay";
 import { useDemo } from "@/providers/demo-provider";
 
 /** Routes that render WITHOUT the app shell (sidebar/topbar) */
@@ -64,6 +65,8 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       <CommandPalette />
+      <DemoScriptOverlay />
     </div>
   );
 }
+
