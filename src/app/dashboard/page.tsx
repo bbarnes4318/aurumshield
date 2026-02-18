@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DashboardPanel } from "@/components/ui/dashboard-panel";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ErrorState } from "@/components/ui/state-views";
-import { useDashboardData } from "@/hooks/use-mock-queries";
+import { useDashboardData, useCapitalControls, useIntradayCapital } from "@/hooks/use-mock-queries";
+import Link from "next/link";
 import type {
   DashboardScenario,
   DashboardCapital,
@@ -24,6 +25,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  ShieldOff,
+  Activity,
 } from "lucide-react";
 
 /* ================================================================
@@ -549,6 +552,101 @@ function WORMStatusPanel({
 }
 
 /* ================================================================
+   INTRADAY CAPITAL + CONTROL MODE CARD
+   Compact card showing live breach level, control mode, and links.
+   ================================================================ */
+
+const CONTROL_MODE_BADGE: Record<string, { label: string; cls: string; bg: string }> = {
+  NORMAL: { label: "NORMAL", cls: "text-success", bg: "bg-success/10 border-success/30" },
+  THROTTLE_RESERVATIONS: { label: "THROTTLE", cls: "text-warning", bg: "bg-warning/10 border-warning/30" },
+  FREEZE_CONVERSIONS: { label: "FREEZE", cls: "text-warning", bg: "bg-warning/10 border-warning/30" },
+  FREEZE_MARKETPLACE: { label: "FREEZE MKT", cls: "text-danger", bg: "bg-danger/10 border-danger/30" },
+  EMERGENCY_HALT: { label: "HALT", cls: "text-danger", bg: "bg-danger/10 border-danger/30" },
+};
+
+const BREACH_BADGE_COMPACT: Record<string, { label: string; cls: string; icon: typeof CheckCircle2 }> = {
+  CLEAR: { label: "CLEAR", cls: "text-success", icon: CheckCircle2 },
+  CAUTION: { label: "CAUTION", cls: "text-warning", icon: AlertTriangle },
+  BREACH: { label: "BREACH", cls: "text-danger", icon: AlertTriangle },
+};
+
+function IntradayControlCard() {
+  const capitalQ = useIntradayCapital();
+  const controlsQ = useCapitalControls();
+
+  if (capitalQ.isLoading || controlsQ.isLoading) {
+    return (
+      <section>
+        <h2 className="typo-label mb-3">Intraday Capital</h2>
+        <div className="card-base px-5 py-4 animate-pulse">
+          <div className="h-5 w-48 rounded bg-surface-3" />
+        </div>
+      </section>
+    );
+  }
+
+  if (!capitalQ.data || !controlsQ.data) return null;
+
+  const snap = capitalQ.data;
+  const decision = controlsQ.data;
+  const breachCfg = BREACH_BADGE_COMPACT[snap.breachLevel] ?? BREACH_BADGE_COMPACT.CLEAR;
+  const modeCfg = CONTROL_MODE_BADGE[decision.mode] ?? CONTROL_MODE_BADGE.NORMAL;
+  const BreachIcon = breachCfg.icon;
+
+  return (
+    <section>
+      <h2 className="typo-label mb-3">Intraday Capital</h2>
+      <div className="card-base px-5 py-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            {/* Breach Level */}
+            <div className="flex items-center gap-2">
+              <BreachIcon className={cn("h-5 w-5", breachCfg.cls)} />
+              <span className={cn("text-sm font-bold tracking-wider", breachCfg.cls)}>
+                {breachCfg.label}
+              </span>
+            </div>
+
+            {/* Control Mode */}
+            <div className={cn("flex items-center gap-1.5 rounded-full border px-2.5 py-0.5", modeCfg.bg)}>
+              <ShieldOff className={cn("h-3.5 w-3.5", modeCfg.cls)} />
+              <span className={cn("text-[11px] font-semibold uppercase tracking-wider", modeCfg.cls)}>
+                {modeCfg.label}
+              </span>
+            </div>
+
+            {/* KPI chips */}
+            <span className="text-xs tabular-nums text-text-faint">
+              ECR {snap.ecr.toFixed(2)}x
+            </span>
+            <span className="text-xs tabular-nums text-text-faint">
+              HU {(snap.hardstopUtilization * 100).toFixed(1)}%
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 print:hidden">
+            <Link
+              href="/intraday"
+              className="flex items-center gap-1.5 rounded-[var(--radius-input)] border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-3"
+            >
+              <Activity className="h-3.5 w-3.5" />
+              Open Console →
+            </Link>
+            <Link
+              href="/capital-controls"
+              className="flex items-center gap-1.5 rounded-[var(--radius-input)] border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-3"
+            >
+              <ShieldOff className="h-3.5 w-3.5" />
+              Controls →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ================================================================
    MAIN DASHBOARD PAGE
    ================================================================ */
 export default function DashboardPage() {
@@ -661,6 +759,11 @@ export default function DashboardPage() {
           })}
         </p>
       </section>
+
+      {/* ============================================================
+         SECTION 1.5: INTRADAY CAPITAL + CONTROL MODE (compact card)
+         ============================================================ */}
+      <IntradayControlCard />
 
       {/* ============================================================
          SECTION 2: RISK DISTRIBUTION

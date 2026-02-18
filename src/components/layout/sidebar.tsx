@@ -15,9 +15,22 @@ import {
   ClipboardList,
   ChevronLeft,
   ChevronRight,
+  Store,
+  Clock,
+  ShoppingCart,
+  Fingerprint,
+  UserCircle,
+  Shield,
+  Landmark,
+  ShieldCheck,
+  Gavel,
+  Activity,
+  ShieldOff,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/providers/auth-provider";
+import type { UserRole } from "@/lib/mock-data";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -28,6 +41,10 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean;
+  sellerOnly?: boolean;
+  /** Fine-grained role gating — item visible only to these roles */
+  roles?: UserRole[];
 }
 
 interface NavGroup {
@@ -35,139 +52,163 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const navGroups: NavGroup[] = [
+const NAV_GROUPS: NavGroup[] = [
   {
-    title: "Overview",
+    title: "Command",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: "Identity",
+    items: [
+      { label: "Verification", href: "/verification", icon: Fingerprint },
+      { label: "Account", href: "/account", icon: UserCircle },
+    ],
+  },
+  {
+    title: "Trading",
+    items: [
+      { label: "Marketplace", href: "/marketplace", icon: Store },
+      { label: "Reservations", href: "/reservations", icon: Clock },
+      { label: "Orders", href: "/orders", icon: ShoppingCart },
+    ],
+  },
+  {
+    title: "Clearing",
+    items: [
+      { label: "Settlements", href: "/settlements", icon: Landmark },
+    ],
+  },
+  {
+    title: "Capital",
+    items: [
+      { label: "Intraday", href: "/intraday", icon: Activity, roles: ["admin", "compliance", "treasury", "vault_ops"] },
+      { label: "Controls", href: "/capital-controls", icon: ShieldOff, roles: ["admin", "treasury", "compliance"] },
+    ],
+  },
+  {
+    title: "Supply",
+    items: [
+      { label: "Create Listing", href: "/sell", icon: ClipboardList, sellerOnly: true },
+      { label: "My Listings", href: "/sell/listings", icon: ScrollText, sellerOnly: true },
     ],
   },
   {
     title: "Operations",
     items: [
       { label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
+      { label: "Counterparties", href: "/counterparties", icon: Building2 },
       { label: "Corridors", href: "/corridors", icon: Globe },
       { label: "Hubs", href: "/hubs", icon: Server },
+      { label: "Labs", href: "/labs", icon: FlaskConical },
     ],
   },
   {
     title: "Risk & Compliance",
     items: [
-      { label: "Counterparties", href: "/counterparties", icon: Building2 },
       { label: "Claims", href: "/claims", icon: ShieldAlert },
       { label: "Reinsurance", href: "/reinsurance", icon: Umbrella },
     ],
   },
   {
-    title: "Innovation",
+    title: "Governance",
     items: [
-      { label: "Labs", href: "/labs", icon: FlaskConical },
+      { label: "Audit Console", href: "/audit", icon: ShieldCheck, roles: ["admin", "compliance", "treasury", "vault_ops"] },
+      { label: "Supervisory Mode", href: "/supervisory", icon: Gavel, roles: ["admin", "compliance"] },
     ],
   },
   {
     title: "Administration",
     items: [
-      { label: "Policy", href: "/admin/policy", icon: ScrollText },
-      { label: "Roles", href: "/admin/roles", icon: Users },
-      { label: "Audit Log", href: "/admin/audit", icon: ClipboardList },
+      { label: "Audit Log", href: "/admin/audit", icon: ScrollText, adminOnly: true },
+      { label: "Roles", href: "/admin/roles", icon: Users, adminOnly: true },
+      { label: "Policies", href: "/admin/policies", icon: Shield, adminOnly: true },
     ],
   },
 ];
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
-
-  /** An item is "active" if the current path starts with its href (handles nested routes). */
-  function isActive(href: string) {
-    if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/";
-    return pathname.startsWith(href);
-  }
+  const { user } = useAuth();
+  const userRole = user?.role ?? "buyer";
 
   return (
     <aside
-      data-print-hide="true"
-      aria-label="Main navigation"
       className={cn(
-        "relative flex flex-col border-r border-border bg-surface-1 transition-[width] duration-200 ease-in-out print:hidden",
-        collapsed ? "w-[60px]" : "w-[240px]"
+        "flex h-screen shrink-0 flex-col border-r border-border bg-surface-1 transition-all duration-200",
+        collapsed ? "w-[52px]" : "w-56"
       )}
     >
-      {/* Logo area */}
-      <div className="flex h-14 items-center border-b border-border px-4">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-gold/10">
-            <span className="text-sm font-bold text-gold" aria-hidden="true">G</span>
-          </div>
-          {!collapsed && (
-            <span className="typo-label whitespace-nowrap text-gold">
-              Gold Platform
-            </span>
-          )}
-        </div>
+      {/* Brand */}
+      <div className="flex h-14 items-center gap-2 border-b border-border px-3">
+        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gold text-bg text-sm font-bold">
+          Au
+        </span>
+        {!collapsed && (
+          <span className="text-sm font-semibold tracking-tight text-text">
+            AurumShield
+          </span>
+        )}
       </div>
 
-      {/* Nav groups */}
-      <nav className="flex-1 overflow-y-auto py-4" aria-label="Primary">
-        {navGroups.map((group) => (
-          <div key={group.title} className="mb-4">
-            {!collapsed && (
-              <p className="typo-label mb-2 px-4 text-text-faint" aria-hidden="true">
-                {group.title}
-              </p>
-            )}
-            <ul className="space-y-0.5 px-2" role="list">
-              {group.items.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      title={collapsed ? item.label : undefined}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-sm transition-colors",
-                        active
-                          ? "bg-gold/10 text-gold font-medium"
-                          : "text-text-muted hover:bg-surface-2 hover:text-text"
-                      )}
-                    >
-                      <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-                      {!collapsed && (
-                        <span className="truncate">{item.label}</span>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </nav>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-2 px-1.5" aria-label="Main navigation">
+        {NAV_GROUPS.map((group) => {
+          // Filter items by role
+          const visibleItems = group.items.filter((item) => {
+            if (item.roles && !item.roles.includes(userRole as UserRole)) return false;
+            if (item.adminOnly && userRole !== "admin") return false;
+            if (item.sellerOnly && userRole !== "seller" && userRole !== "admin") return false;
+            return true;
+          });
+          if (visibleItems.length === 0) return null;
 
-      {/* ⌘K hint */}
-      {!collapsed && (
-        <div className="border-t border-border px-4 py-2">
-          <div className="flex items-center justify-between text-xs text-text-faint">
-            <span>Command</span>
-            <kbd className="rounded-[6px] border border-border bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium">
-              ⌘K
-            </kbd>
-          </div>
-        </div>
-      )}
+          return (
+            <div key={group.title} className="mb-3">
+              {!collapsed && (
+                <p className="mb-1 px-2 text-[10px] uppercase tracking-widest text-text-faint font-semibold select-none">
+                  {group.title}
+                </p>
+              )}
+              <ul className="space-y-0.5">
+                {visibleItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    pathname === item.href || pathname.startsWith(item.href + "/");
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-sm transition-colors",
+                          isActive
+                            ? "bg-gold/10 text-gold font-medium"
+                            : "text-text-muted hover:bg-surface-2 hover:text-text",
+                          collapsed && "justify-center px-0"
+                        )}
+                        aria-current={isActive ? "page" : undefined}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span className="truncate">{item.label}</span>}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+      </nav>
 
       {/* Collapse toggle */}
       <div className="border-t border-border p-2">
         <button
           onClick={onToggle}
-          className="flex w-full items-center justify-center rounded-[var(--radius-sm)] p-2 text-text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+          className="flex w-full items-center justify-center rounded-[var(--radius-sm)] py-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? (
-            <ChevronRight className="h-[18px] w-[18px]" aria-hidden="true" />
-          ) : (
-            <ChevronLeft className="h-[18px] w-[18px]" aria-hidden="true" />
-          )}
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>
     </aside>

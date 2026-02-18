@@ -3,6 +3,7 @@ import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { AuthProvider } from "@/providers/auth-provider";
 import { AppShell } from "@/components/layout/app-shell";
 
 /* ----------------------------------------------------------------
@@ -15,10 +16,10 @@ const ibmPlexSans = IBM_Plex_Sans({
   display: "swap",
 });
 
-const sourceSerif4 = Source_Serif_4({
+const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
-  variable: "--font-source-serif-4",
+  variable: "--font-source-serif",
   display: "swap",
 });
 
@@ -26,9 +27,10 @@ const sourceSerif4 = Source_Serif_4({
    METADATA
    ---------------------------------------------------------------- */
 export const metadata: Metadata = {
-  title: "Gold — Sovereign Financial Infrastructure",
+  title: "AurumShield — Sovereign Financial Infrastructure",
   description:
-    "Institutional-grade risk management, counterparty analysis, and compliance platform for sovereign funds, bullion banks, and reinsurers.",
+    "Institutional gold clearing, custody, and compliance. Deterministic risk-first execution for sovereign-grade counterparties.",
+  icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
 /* ----------------------------------------------------------------
@@ -36,24 +38,21 @@ export const metadata: Metadata = {
    ---------------------------------------------------------------- */
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html
       lang="en"
-      className={`${ibmPlexSans.variable} ${sourceSerif4.variable}`}
       suppressHydrationWarning
+      className={`${ibmPlexSans.variable} ${sourceSerif.variable}`}
     >
-      <body>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
+      <body className="font-sans antialiased">
+        <ThemeProvider>
           <QueryProvider>
-            <AppShell>{children}</AppShell>
+            <AuthProvider>
+              <AppShell>{children}</AppShell>
+            </AuthProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

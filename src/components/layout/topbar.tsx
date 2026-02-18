@@ -1,10 +1,32 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Search, Bell, Sun, Moon, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  Search,
+  Bell,
+  Sun,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut,
+  UserCircle,
+  Fingerprint,
+  ChevronDown,
+} from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { useAuth } from "@/providers/auth-provider";
+
+/* ---------- Status badge colors ---------- */
+const VS_COLORS: Record<string, string> = {
+  VERIFIED: "bg-success/10 text-success border-success/30",
+  IN_PROGRESS: "bg-info/10 text-info border-info/30",
+  NEEDS_REVIEW: "bg-warning/10 text-warning border-warning/30",
+  NOT_STARTED: "bg-surface-3 text-text-faint border-border",
+  REJECTED: "bg-danger/10 text-danger border-danger/30",
+};
 
 interface TopbarProps {
   collapsed: boolean;
@@ -13,74 +35,143 @@ interface TopbarProps {
 
 export function Topbar({ collapsed, onToggleSidebar }: TopbarProps) {
   const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Prevent hydration mismatch — only render theme toggle after mount
-  useEffect(() => setMounted(true), []);
+  useEffect(() => { setMounted(true); }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const handleLogout = () => {
+    setDropdownOpen(false);
+    logout();
+    router.push("/login");
+  };
 
   return (
-    <header
-      data-print-hide="true"
-      className="flex h-14 shrink-0 items-center border-b border-border bg-surface-1 px-4"
-    >
-      {/* Left section: sidebar toggle + breadcrumbs */}
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface-1 px-4">
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleSidebar}
-          className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-text-muted transition-colors hover:bg-surface-2 hover:text-text md:hidden"
-          aria-label="Toggle sidebar"
+          className="rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4" />
-          )}
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
         <Breadcrumbs />
       </div>
 
-      {/* Right section */}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="flex items-center gap-2">
         {/* Search */}
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
-          <input
-            type="text"
-            placeholder="Search…"
-            className={cn(
-              "h-8 w-56 rounded-[var(--radius-input)] border border-border bg-surface-2 pl-9 pr-3 text-sm text-text placeholder:text-text-faint",
-              "focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent",
-              "transition-colors"
-            )}
-          />
-        </div>
+        <button
+          className="rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+          aria-label="Search"
+        >
+          <Search className="h-4 w-4" />
+        </button>
 
         {/* Notifications */}
         <button
-          className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+          className="relative rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />
+          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-gold" />
         </button>
 
         {/* Theme toggle */}
         {mounted && (
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
-            aria-label="Toggle theme"
+            className="rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
           >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
         )}
 
-        {/* Profile avatar */}
-        <div className="ml-1 flex h-8 w-8 items-center justify-center rounded-full bg-gold/15 text-xs font-semibold text-gold">
-          AR
+        {/* Profile dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setDropdownOpen((o) => !o)}
+            className={cn(
+              "flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 transition-colors hover:bg-surface-2",
+              dropdownOpen && "bg-surface-2"
+            )}
+            aria-expanded={dropdownOpen}
+            aria-haspopup="menu"
+            id="profile-trigger"
+          >
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/20 text-gold text-xs font-semibold">
+              {user?.name?.charAt(0)?.toUpperCase() ?? "?"}
+            </div>
+            <div className="hidden sm:flex flex-col items-start">
+              <span className="text-xs font-medium text-text leading-none">{user?.name ?? "—"}</span>
+              <span className="text-[10px] text-text-faint leading-none mt-0.5 uppercase tracking-wide">{user?.role ?? "—"}</span>
+            </div>
+            <ChevronDown className="h-3 w-3 text-text-faint" />
+          </button>
+
+          {dropdownOpen && (
+            <div
+              className="absolute right-0 top-full mt-1 z-50 w-64 rounded-[var(--radius)] border border-border bg-surface-1 shadow-md py-1"
+              role="menu"
+              aria-labelledby="profile-trigger"
+            >
+              {/* User info header */}
+              <div className="px-3 py-2 border-b border-border">
+                <p className="text-sm font-medium text-text">{user?.name ?? "—"}</p>
+                <p className="text-xs text-text-faint font-mono mt-0.5">{user?.email ?? "—"}</p>
+                <span className={cn(
+                  "mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                  VS_COLORS[user?.verificationStatus ?? "NOT_STARTED"]
+                )}>
+                  <span className="h-1 w-1 rounded-full bg-current" />
+                  {user?.verificationStatus?.replace(/_/g, " ") ?? "—"}
+                </span>
+              </div>
+
+              {/* Menu items */}
+              <button
+                onClick={() => { setDropdownOpen(false); router.push("/account"); }}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:bg-surface-2 hover:text-text transition-colors"
+                role="menuitem"
+              >
+                <UserCircle className="h-4 w-4" />
+                Account
+              </button>
+              <button
+                onClick={() => { setDropdownOpen(false); router.push("/verification"); }}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:bg-surface-2 hover:text-text transition-colors"
+                role="menuitem"
+              >
+                <Fingerprint className="h-4 w-4" />
+                Verification
+              </button>
+              <div className="border-t border-border mt-1 pt-1">
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-danger hover:bg-danger/5 transition-colors"
+                  role="menuitem"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
