@@ -78,9 +78,9 @@ function ReceiptViewerContent() {
               <Image
                 src="/arum-logo-navy.png"
                 alt="AurumShield"
-                width={140}
-                height={32}
-                className="h-4 w-auto"
+                width={240}
+                height={54}
+                className="h-8 w-auto"
               />
             </div>
             <p className="text-[10px] text-text-faint mt-0.5">Generated from audit governance console — read-only</p>

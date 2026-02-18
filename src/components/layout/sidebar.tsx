@@ -26,6 +26,7 @@ import {
   Gavel,
   Activity,
   ShieldOff,
+  DollarSign,
   Presentation,
 } from "lucide-react";
 import Link from "next/link";
@@ -127,6 +128,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Administration",
     items: [
       { label: "Audit Log", href: "/admin/audit", icon: ScrollText, adminOnly: true, dataTour: "sidebar-admin-audit" },
+      { label: "Pricing", href: "/admin/pricing", icon: DollarSign, adminOnly: true, dataTour: "sidebar-admin-pricing" },
       { label: "Roles", href: "/admin/roles", icon: Users, adminOnly: true, dataTour: "sidebar-admin-roles" },
       { label: "Policies", href: "/admin/policies", icon: Shield, adminOnly: true, dataTour: "sidebar-admin-policies" },
     ],
@@ -162,9 +164,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <Image
             src="/arum-logo-white.png"
             alt="AurumShield"
-            width={140}
-            height={32}
-            className="h-6 w-auto"
+            width={200}
+            height={46}
+            className="h-8 w-auto"
             priority
           />
         )}

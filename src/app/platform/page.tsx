@@ -248,7 +248,7 @@ export default function PlatformCapabilitiesPage() {
             <img
               src="/arum-logo-white.png"
               alt="AurumShield"
-              style={{ height: 36, width: "auto" }}
+              style={{ height: 44, width: "auto" }}
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
               }}

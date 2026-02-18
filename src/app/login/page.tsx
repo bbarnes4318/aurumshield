@@ -57,9 +57,9 @@ function LoginContent() {
             <Image
               src="/arum-logo-white.png"
               alt="AurumShield"
-              width={200}
-              height={46}
-              className="h-8 w-auto"
+              width={280}
+              height={64}
+              className="h-12 w-auto"
               priority
             />
           </div>

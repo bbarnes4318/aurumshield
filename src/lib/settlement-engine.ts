@@ -167,6 +167,8 @@ export function openSettlementFromOrder(
 
   const rail: SettlementRail = corridor.riskLevel === "high" || corridor.riskLevel === "critical" ? "RTGS" : "WIRE";
 
+  const notionalCents = Math.round(order.notional * 100);
+
   const settlement: SettlementCase = {
     id: nextId("stl", state.settlements),
     orderId: order.id,
@@ -194,6 +196,14 @@ export function openSettlementFromOrder(
     hardstopUtilizationAtOpen: capital.hardstopUtilization,
     lastDecisionBy: "SYSTEM",
     lastDecisionAt: now,
+    // Fee & activation gate defaults
+    notionalCents,
+    currency: "USD",
+    selectedAddOns: [],
+    paymentStatus: "unpaid",
+    activationStatus: "draft",
+    requiresManualApproval: false,
+    approvalStatus: "not_required",
   };
 
   const ledgerEntry: LedgerEntry = {
@@ -231,6 +241,22 @@ export function computeSettlementRequirements(
   const blockers: string[] = [];
   const warns: string[] = [];
   const requiredActions: string[] = [];
+
+  // ── Activation gate (hard blocker) ──
+  if (settlement.activationStatus !== "activated") {
+    blockers.push(
+      settlement.activationStatus === "awaiting_payment"
+        ? "Activation required — indemnification fee payment pending"
+        : "Activation required — navigate to Activation & Fees to configure and pay"
+    );
+  }
+
+  // ── Manual approval gate ──
+  if (settlement.requiresManualApproval && settlement.approvalStatus === "pending") {
+    blockers.push("Manual approval pending — one or more selected services require OPS/Compliance sign-off");
+  } else if (settlement.requiresManualApproval && settlement.approvalStatus === "rejected") {
+    blockers.push("Manual approval rejected — contact Operations to resolve");
+  }
 
   // ── Corridor checks ──
   if (!corridor) {
@@ -354,6 +380,17 @@ export function applySettlementAction(
   const TERMINAL: SettlementStatus[] = ["SETTLED", "FAILED", "CANCELLED"];
   if (TERMINAL.includes(settlement.status)) {
     return { ok: false, code: "TERMINAL_STATE", message: `Settlement ${settlementId} is ${settlement.status} — no further actions allowed` };
+  }
+
+  // ── Activation gate enforcement (engine level) ──
+  // Only CANCEL_SETTLEMENT and FAIL_SETTLEMENT bypass this gate.
+  const BYPASS_ACTIVATION: SettlementActionType[] = ["CANCEL_SETTLEMENT", "FAIL_SETTLEMENT"];
+  if (settlement.activationStatus !== "activated" && !BYPASS_ACTIVATION.includes(payload.action)) {
+    return {
+      ok: false,
+      code: "ACTIVATION_REQUIRED",
+      message: `Activation required — clearing fees must be paid before ${payload.action}`,
+    };
   }
 
   switch (payload.action) {

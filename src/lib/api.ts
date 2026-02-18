@@ -670,6 +670,387 @@ export async function apiGetCertificateBySettlement(settlementId: string): Promi
   return mockFetch(getCertificateBySettlementId(settlementId));
 }
 
+/* ================================================================
+   FEE & ACTIVATION API — Clearing fee, payment, and activation
+   
+   Rules:
+   1. FeeQuote is recalculated dynamically until paymentStatus === "paid"
+   2. Once paid, FeeQuote becomes immutable (frozen=true)
+   3. Admin pricing changes do NOT retroactively alter paid invoices
+   4. Payment automatically attempts activation (Option A)
+   5. Activation = paymentStatus==="paid" AND
+      (approvalStatus==="approved" OR "not_required")
+   ================================================================ */
+
+/** Local helper — maps UserRole to LedgerEntry actor category. */
+function roleToActor(role: UserRole): LedgerEntry["actor"] {
+  switch (role) {
+    case "compliance": return "COMPLIANCE";
+    case "buyer": return "BUYER";
+    case "seller": return "SELLER";
+    default: return "OPS";
+  }
+}
+
+import {
+  type PricingConfig,
+  type SelectedAddOn,
+  type FeeQuote,
+  computeFeeQuote,
+  freezeFeeQuoteOnPayment,
+  ADD_ON_CATALOG,
+} from "./fees/fee-engine";
+import {
+  loadPricingConfig,
+  savePricingConfig,
+} from "./fees/pricing-store";
+
+/* ---------- Pricing Config CRUD ---------- */
+
+export async function apiGetPricingConfig(): Promise<PricingConfig> {
+  return mockFetch(loadPricingConfig());
+}
+
+export async function apiSavePricingConfig(config: PricingConfig): Promise<PricingConfig> {
+  savePricingConfig(config);
+  return mockFetch(config);
+}
+
+/* ---------- Add-On Selection ---------- */
+
+export async function apiSelectAddOns(input: {
+  settlementId: string;
+  addOns: SelectedAddOn[];
+  now: string;
+}): Promise<{ settlement: SettlementCase; feeQuote: FeeQuote }> {
+  const state = loadSettlementState();
+  const idx = state.settlements.findIndex((s) => s.id === input.settlementId);
+  if (idx === -1) throw new Error(`Settlement ${input.settlementId} not found`);
+
+  const settlement = { ...state.settlements[idx] };
+
+  // Guard: cannot modify add-ons after payment
+  if (settlement.paymentStatus === "paid") {
+    throw new Error("Cannot modify add-ons after payment — fee quote is frozen");
+  }
+
+  // Validate add-on codes exist in catalog
+  const config = loadPricingConfig();
+  for (const addOn of input.addOns) {
+    const entry = ADD_ON_CATALOG.find((c) => c.code === addOn.code);
+    if (!entry) throw new Error(`Unknown add-on code: ${addOn.code}`);
+    const override = config.addOnOverrides[addOn.code];
+    if (override && !override.enabled) throw new Error(`Add-on ${addOn.code} is disabled by admin`);
+  }
+
+  settlement.selectedAddOns = input.addOns;
+
+  // Recalculate fee quote with current pricing config
+  const result = computeFeeQuote({
+    notionalCents: settlement.notionalCents,
+    selectedAddOns: input.addOns,
+    config,
+    now: input.now,
+  });
+
+  settlement.feeQuote = result.feeQuote;
+
+  // Determine manual approval status (revision #4)
+  settlement.requiresManualApproval = result.requiresManualApproval;
+  if (result.requiresManualApproval) {
+    settlement.approvalStatus = "pending";
+  } else {
+    settlement.approvalStatus = "not_required";
+  }
+
+  // If anything is selected, move to awaiting_payment if still draft
+  if (settlement.activationStatus === "draft") {
+    settlement.activationStatus = "awaiting_payment";
+  }
+
+  settlement.updatedAt = input.now;
+
+  // Persist
+  const newSettlements = [...state.settlements];
+  newSettlements[idx] = settlement;
+
+  // Add ledger entry for add-on selection
+  const addOnLabels = input.addOns.map(
+    (a) => ADD_ON_CATALOG.find((c) => c.code === a.code)?.label ?? a.code,
+  );
+  const ledgerEntry: LedgerEntry = {
+    id: `le-fee-${Date.now()}`,
+    settlementId: settlement.id,
+    type: "STATUS_CHANGED",
+    timestamp: input.now,
+    actor: "OPS",
+    actorRole: "admin",
+    actorUserId: "system",
+    detail: `Add-ons configured: ${addOnLabels.join(", ") || "None"} — Fee recalculated to $${(result.feeQuote.totalDueCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+  };
+
+  saveSettlementState({
+    settlements: newSettlements,
+    ledger: [...state.ledger, ledgerEntry],
+  });
+
+  return mockFetch({ settlement, feeQuote: result.feeQuote });
+}
+
+/* ---------- Mock Payment Processing ---------- */
+
+function generatePaymentReference(): string {
+  const year = new Date().getFullYear();
+  const seq = String(Math.floor(Math.random() * 999999) + 1).padStart(6, "0");
+  return `AS-PAY-${year}-${seq}`;
+}
+
+export async function apiProcessPayment(input: {
+  settlementId: string;
+  method: "mock_card" | "wire_mock" | "invoice_mock";
+  now: string;
+  actorUserId: string;
+}): Promise<{ settlement: SettlementCase; activated: boolean }> {
+  const state = loadSettlementState();
+  const idx = state.settlements.findIndex((s) => s.id === input.settlementId);
+  if (idx === -1) throw new Error(`Settlement ${input.settlementId} not found`);
+
+  const settlement = { ...state.settlements[idx] };
+
+  // Guard: cannot pay twice
+  if (settlement.paymentStatus === "paid") {
+    throw new Error("Payment already processed for this settlement");
+  }
+
+  // Guard: fee quote must exist
+  if (!settlement.feeQuote) {
+    // Compute one with current config if no add-ons selected yet
+    const config = loadPricingConfig();
+    const result = computeFeeQuote({
+      notionalCents: settlement.notionalCents,
+      selectedAddOns: settlement.selectedAddOns,
+      config,
+      now: input.now,
+    });
+    settlement.feeQuote = result.feeQuote;
+    settlement.requiresManualApproval = result.requiresManualApproval;
+    settlement.approvalStatus = result.requiresManualApproval ? "pending" : "not_required";
+  }
+
+  // Freeze fee quote on payment (revision #1 / #7)
+  settlement.feeQuote = freezeFeeQuoteOnPayment(settlement.feeQuote);
+
+  // Process payment
+  settlement.paymentStatus = "paid";
+  settlement.paymentMethod = input.method;
+  settlement.paymentReceipt = {
+    id: `pay-${Date.now()}`,
+    paidAtUtc: input.now,
+    reference: generatePaymentReference(),
+  };
+
+  // Option A (revision #5): automatically attempt activation after payment
+  let activated = false;
+  const approvalSatisfied =
+    settlement.approvalStatus === "approved" ||
+    settlement.approvalStatus === "not_required";
+
+  if (approvalSatisfied) {
+    settlement.activationStatus = "activated";
+    settlement.activatedAtUtc = input.now;
+    activated = true;
+  } else {
+    // Payment received but approval still pending — stays awaiting
+    settlement.activationStatus = "awaiting_payment";
+  }
+
+  settlement.updatedAt = input.now;
+
+  // Persist
+  const newSettlements = [...state.settlements];
+  newSettlements[idx] = settlement;
+
+  // Ledger entries
+  const newLedger = [...state.ledger];
+
+  newLedger.push({
+    id: `le-pay-${Date.now()}`,
+    settlementId: settlement.id,
+    type: "STATUS_CHANGED",
+    timestamp: input.now,
+    actor: "OPS",
+    actorRole: "admin",
+    actorUserId: input.actorUserId,
+    detail: `Payment processed — ${input.method.replace(/_/g, " ")} — $${(settlement.feeQuote.totalDueCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })} — Ref: ${settlement.paymentReceipt!.reference}`,
+  });
+
+  if (activated) {
+    newLedger.push({
+      id: `le-act-${Date.now()}`,
+      settlementId: settlement.id,
+      type: "STATUS_CHANGED",
+      timestamp: input.now,
+      actor: "SYSTEM",
+      actorRole: "admin",
+      actorUserId: "system",
+      detail: `Clearing activated — all gates satisfied (payment: paid, approval: ${settlement.approvalStatus})`,
+    });
+  }
+
+  saveSettlementState({ settlements: newSettlements, ledger: newLedger });
+
+  // Audit
+  appendAuditEvent({
+    occurredAt: input.now,
+    actorRole: "admin",
+    actorUserId: input.actorUserId,
+    action: "PAYMENT_PROCESSED",
+    resourceType: "settlement",
+    resourceId: settlement.id,
+    result: "SUCCESS",
+    severity: "info",
+    message: `Payment ${settlement.paymentReceipt!.reference} processed for ${settlement.id} via ${input.method}`,
+    metadata: {
+      paymentMethod: input.method,
+      totalCents: settlement.feeQuote.totalDueCents,
+      reference: settlement.paymentReceipt!.reference,
+      activated,
+    },
+  });
+
+  return mockFetch({ settlement, activated });
+}
+
+/* ---------- Manual Approval ---------- */
+
+export async function apiApproveManualReview(input: {
+  settlementId: string;
+  now: string;
+  actorRole: UserRole;
+  actorUserId: string;
+}): Promise<{ settlement: SettlementCase; activated: boolean }> {
+  const state = loadSettlementState();
+  const idx = state.settlements.findIndex((s) => s.id === input.settlementId);
+  if (idx === -1) throw new Error(`Settlement ${input.settlementId} not found`);
+
+  const settlement = { ...state.settlements[idx] };
+
+  if (!settlement.requiresManualApproval) {
+    throw new Error("This settlement does not require manual approval");
+  }
+  if (settlement.approvalStatus !== "pending") {
+    throw new Error(`Cannot approve — current status is ${settlement.approvalStatus}`);
+  }
+
+  settlement.approvalStatus = "approved";
+  settlement.updatedAt = input.now;
+
+  // If payment is already done, auto-activate
+  let activated = false;
+  if (settlement.paymentStatus === "paid") {
+    settlement.activationStatus = "activated";
+    settlement.activatedAtUtc = input.now;
+    activated = true;
+  }
+
+  const newSettlements = [...state.settlements];
+  newSettlements[idx] = settlement;
+
+  const newLedger = [...state.ledger];
+  newLedger.push({
+    id: `le-appr-${Date.now()}`,
+    settlementId: settlement.id,
+    type: "STATUS_CHANGED",
+    timestamp: input.now,
+    actor: roleToActor(input.actorRole),
+    actorRole: input.actorRole,
+    actorUserId: input.actorUserId,
+    detail: `Manual review approved by ${input.actorRole}${activated ? " — clearing activated" : ""}`,
+  });
+
+  saveSettlementState({ settlements: newSettlements, ledger: newLedger });
+
+  return mockFetch({ settlement, activated });
+}
+
+export async function apiRejectManualReview(input: {
+  settlementId: string;
+  reason: string;
+  now: string;
+  actorRole: UserRole;
+  actorUserId: string;
+}): Promise<SettlementCase> {
+  const state = loadSettlementState();
+  const idx = state.settlements.findIndex((s) => s.id === input.settlementId);
+  if (idx === -1) throw new Error(`Settlement ${input.settlementId} not found`);
+
+  const settlement = { ...state.settlements[idx] };
+
+  if (settlement.approvalStatus !== "pending") {
+    throw new Error(`Cannot reject — current status is ${settlement.approvalStatus}`);
+  }
+
+  settlement.approvalStatus = "rejected";
+  settlement.updatedAt = input.now;
+
+  const newSettlements = [...state.settlements];
+  newSettlements[idx] = settlement;
+
+  const newLedger = [...state.ledger];
+  newLedger.push({
+    id: `le-rej-${Date.now()}`,
+    settlementId: settlement.id,
+    type: "STATUS_CHANGED",
+    timestamp: input.now,
+    actor: roleToActor(input.actorRole),
+    actorRole: input.actorRole,
+    actorUserId: input.actorUserId,
+    detail: `Manual review rejected — ${input.reason}`,
+  });
+
+  saveSettlementState({ settlements: newSettlements, ledger: newLedger });
+
+  return mockFetch(settlement);
+}
+
+/* ---------- Recalculate Fee Quote (explicit refresh) ---------- */
+
+export async function apiRecalculateFeeQuote(input: {
+  settlementId: string;
+  now: string;
+}): Promise<{ settlement: SettlementCase; feeQuote: FeeQuote }> {
+  const state = loadSettlementState();
+  const idx = state.settlements.findIndex((s) => s.id === input.settlementId);
+  if (idx === -1) throw new Error(`Settlement ${input.settlementId} not found`);
+
+  const settlement = { ...state.settlements[idx] };
+
+  // Guard: frozen quotes are immutable
+  if (settlement.feeQuote?.frozen) {
+    return mockFetch({ settlement, feeQuote: settlement.feeQuote });
+  }
+
+  const config = loadPricingConfig();
+  const result = computeFeeQuote({
+    notionalCents: settlement.notionalCents,
+    selectedAddOns: settlement.selectedAddOns,
+    config,
+    now: input.now,
+  });
+
+  settlement.feeQuote = result.feeQuote;
+  settlement.requiresManualApproval = result.requiresManualApproval;
+  settlement.approvalStatus = result.requiresManualApproval ? "pending" : "not_required";
+  settlement.updatedAt = input.now;
+
+  const newSettlements = [...state.settlements];
+  newSettlements[idx] = settlement;
+  saveSettlementState({ ...state, settlements: newSettlements });
+
+  return mockFetch({ settlement, feeQuote: result.feeQuote });
+}
+
+
 export interface AuditEventFilters {
   startDate?: string;
   endDate?: string;

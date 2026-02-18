@@ -1263,7 +1263,11 @@ export type AuditAction =
   | "CAPITAL_CONTROL_BLOCKED"
   | "CAPITAL_OVERRIDE_CREATED"
   | "CAPITAL_OVERRIDE_REVOKED"
-  | "CLEARING_CERTIFICATE_ISSUED";
+  | "CLEARING_CERTIFICATE_ISSUED"
+  | "PAYMENT_PROCESSED"
+  | "FEE_ADDON_CONFIGURED"
+  | "MANUAL_REVIEW_APPROVED"
+  | "MANUAL_REVIEW_REJECTED";
 
 export type AuditSeverity = "info" | "warning" | "critical";
 
@@ -2796,7 +2800,12 @@ export type LedgerEntryType =
   | "FUNDS_RELEASED"
   | "GOLD_RELEASED"
   | "SETTLEMENT_FAILED"
-  | "ESCROW_CLOSED";
+  | "ESCROW_CLOSED"
+  | "STATUS_CHANGED"
+  | "FEE_CONFIGURED"
+  | "PAYMENT_RECEIVED"
+  | "ACTIVATION_COMPLETED"
+  | "APPROVAL_UPDATED";
 
 export interface LedgerEntrySnapshot {
   checksStatus: "PASS" | "WARN" | "BLOCK";
@@ -2834,6 +2843,13 @@ export type SettlementStatus =
   | "FAILED"
   | "CANCELLED";
 
+/* ---------- Payment Receipt ---------- */
+export interface PaymentReceipt {
+  id: string;
+  paidAtUtc: string;
+  reference: string;
+}
+
 export interface SettlementCase {
   id: string;
   orderId: string;
@@ -2869,6 +2885,31 @@ export interface SettlementCase {
 
   lastDecisionBy?: "SYSTEM" | "OPS" | "COMPLIANCE";
   lastDecisionAt?: string | null;
+
+  /* ── Fee & Activation Gate (added for fee engine) ── */
+
+  /** Notional in integer cents (notionalUsd * 100). */
+  notionalCents: number;
+  /** Settlement currency. */
+  currency: string;
+  /** Fee quote — recalculated dynamically until frozen on payment. */
+  feeQuote?: import("./fees/fee-engine").FeeQuote;
+  /** Selected add-ons for this settlement. */
+  selectedAddOns: import("./fees/fee-engine").SelectedAddOn[];
+  /** Payment lifecycle status. */
+  paymentStatus: "unpaid" | "authorized" | "paid" | "failed" | "refunded";
+  /** Payment method used. */
+  paymentMethod?: "mock_card" | "wire_mock" | "invoice_mock";
+  /** Payment receipt (populated after successful payment). */
+  paymentReceipt?: PaymentReceipt;
+  /** Activation lifecycle status — gates settlement actions. */
+  activationStatus: "draft" | "awaiting_payment" | "activated";
+  /** UTC timestamp of activation. */
+  activatedAtUtc?: string;
+  /** Whether any selected add-on requires manual approval. */
+  requiresManualApproval: boolean;
+  /** Manual approval status. */
+  approvalStatus: "not_required" | "pending" | "approved" | "rejected";
 }
 
 /* ---------- Settlement Fixtures ---------- */
@@ -2910,6 +2951,39 @@ export const mockSettlements: SettlementCase[] = [
     hardstopUtilizationAtOpen: 0.75,
     lastDecisionBy: "OPS",
     lastDecisionAt: "2026-02-14T18:30:00Z",
+    // Fee & activation — paid + activated (frozen snapshot)
+    notionalCents: 5_121_250,
+    currency: "USD",
+    feeQuote: {
+      coreIndemnificationFeeCents: 5_000_000,
+      addOnFeesCents: 0,
+      vendorPassThroughCents: 0,
+      totalDueCents: 5_000_000,
+      lineItems: [
+        {
+          code: "indemnification_fee",
+          label: "Indemnification Fee (Fraud Protection)",
+          type: "platform_fee",
+          pricingModel: "percent",
+          amountCents: 5_000_000,
+          metadata: { percentBps: 100, minCents: 5_000_000, maxCents: 50_000_000 },
+        },
+      ],
+      calculatedAtUtc: "2026-02-14T16:05:00Z",
+      frozen: true,
+    },
+    selectedAddOns: [],
+    paymentStatus: "paid",
+    paymentMethod: "wire_mock",
+    paymentReceipt: {
+      id: "pay-001",
+      paidAtUtc: "2026-02-14T16:10:00Z",
+      reference: "AS-PAY-2026-000001",
+    },
+    activationStatus: "activated",
+    activatedAtUtc: "2026-02-14T16:10:00Z",
+    requiresManualApproval: false,
+    approvalStatus: "not_required",
   },
   {
     id: "stl-002",
@@ -2938,6 +3012,14 @@ export const mockSettlements: SettlementCase[] = [
     hardstopUtilizationAtOpen: 0.7502,
     lastDecisionBy: "OPS",
     lastDecisionAt: "2026-02-15T14:00:00Z",
+    // Fee & activation — unpaid, awaiting payment
+    notionalCents: 3_057_000,
+    currency: "USD",
+    selectedAddOns: [],
+    paymentStatus: "unpaid",
+    activationStatus: "awaiting_payment",
+    requiresManualApproval: false,
+    approvalStatus: "not_required",
   },
   {
     id: "stl-003",
@@ -2966,6 +3048,14 @@ export const mockSettlements: SettlementCase[] = [
     hardstopUtilizationAtOpen: 0.7506,
     lastDecisionBy: "SYSTEM",
     lastDecisionAt: "2026-02-16T08:00:00Z",
+    // Fee & activation — draft, no payment yet
+    notionalCents: 10_261_250,
+    currency: "USD",
+    selectedAddOns: [],
+    paymentStatus: "unpaid",
+    activationStatus: "draft",
+    requiresManualApproval: false,
+    approvalStatus: "not_required",
   },
 ];
 

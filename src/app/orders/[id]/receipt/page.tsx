@@ -547,9 +547,9 @@ function ReceiptContent() {
                   <Image
                     src="/arum-logo-white.png"
                     alt="AurumShield"
-                    width={180}
-                    height={42}
-                    className="h-6 w-auto"
+                    width={280}
+                    height={64}
+                    className="h-10 w-auto"
                   />
                 </div>
                 <h1 className="text-lg font-bold tracking-tight text-text" style={{ fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace" }}>

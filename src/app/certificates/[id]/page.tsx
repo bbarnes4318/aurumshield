@@ -197,9 +197,9 @@ function CertificateContent() {
                   <Image
                     src="/arum-logo-navy.png"
                     alt="AurumShield"
-                    width={160}
-                    height={36}
-                    className="h-5 w-auto"
+                    width={280}
+                    height={64}
+                    className="h-10 w-auto"
                   />
                 </div>
                 <h1 className="text-lg font-semibold text-text tracking-wide">

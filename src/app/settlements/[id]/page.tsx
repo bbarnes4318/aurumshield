@@ -17,6 +17,9 @@ import {
   ShieldCheck,
   Zap,
   Lock,
+  AlertTriangle,
+  CreditCard,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -66,6 +69,11 @@ const LEDGER_ICON: Record<string, React.ReactNode> = {
   GOLD_RELEASED: <Shield className="h-3 w-3 text-info" />,
   SETTLEMENT_FAILED: <XCircle className="h-3 w-3 text-danger" />,
   ESCROW_CLOSED: <Landmark className="h-3 w-3 text-text-faint" />,
+  STATUS_CHANGED: <Activity className="h-3 w-3 text-info" />,
+  FEE_CONFIGURED: <DollarSign className="h-3 w-3 text-gold" />,
+  PAYMENT_RECEIVED: <CreditCard className="h-3 w-3 text-success" />,
+  ACTIVATION_COMPLETED: <ShieldCheck className="h-3 w-3 text-success" />,
+  APPROVAL_UPDATED: <AlertTriangle className="h-3 w-3 text-warning" />,
 };
 
 /* ---------- Action UI config ---------- */
@@ -302,6 +310,77 @@ function SettlementDetailContent() {
           </div>
         </DashboardPanel>
 
+
+        {/* ═══ Activation Gate ═══ */}
+        <DashboardPanel title="Activation Gate" tooltip="Fee payment and approval status required to unlock settlement actions" asOf={settlement.updatedAt}>
+          {(() => {
+            const activated = settlement.activationStatus === "activated";
+            const paid = settlement.paymentStatus === "paid";
+            const pendingApproval = settlement.requiresManualApproval && settlement.approvalStatus === "pending";
+            const rejected = settlement.approvalStatus === "rejected";
+            return (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-text-faint">Activation</span>
+                    <span className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                      activated ? "bg-success/10 text-success border-success/20" :
+                      settlement.activationStatus === "awaiting_payment" ? "bg-warning/10 text-warning border-warning/20" :
+                      "bg-surface-3 text-text-faint border-border"
+                    )}>
+                      {settlement.activationStatus.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-text-faint">Payment</span>
+                    <span className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                      paid ? "bg-success/10 text-success border-success/20" :
+                      settlement.paymentStatus === "failed" ? "bg-danger/10 text-danger border-danger/20" :
+                      "bg-surface-3 text-text-faint border-border"
+                    )}>
+                      {settlement.paymentStatus}
+                    </span>
+                  </div>
+                  {settlement.requiresManualApproval && (
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-text-faint">Approval</span>
+                      <span className={cn(
+                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                        settlement.approvalStatus === "approved" ? "bg-success/10 text-success border-success/20" :
+                        rejected ? "bg-danger/10 text-danger border-danger/20" :
+                        pendingApproval ? "bg-warning/10 text-warning border-warning/20" :
+                        "bg-surface-3 text-text-faint border-border"
+                      )}>
+                        {settlement.approvalStatus.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {!activated && (
+                  <Link
+                    href={`/settlements/${settlement.id}/activation`}
+                    className="flex items-center justify-center gap-2 rounded-md border border-gold/30 bg-gold/10 px-3 py-2 text-xs font-medium text-gold hover:bg-gold/20 transition-colors"
+                    data-tour="activation-gate-link"
+                  >
+                    <Shield className="h-3.5 w-3.5" />
+                    {paid ? "Awaiting Approval" : "Configure & Pay"}
+                  </Link>
+                )}
+                {activated && (
+                  <Link
+                    href={`/settlements/${settlement.id}/activation`}
+                    className="flex items-center justify-center gap-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs font-medium text-success hover:bg-success/20 transition-colors"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    View Fee Receipt
+                  </Link>
+                )}
+              </div>
+            );
+          })()}
+        </DashboardPanel>
 
         {/* ═══ CENTER PANEL: Immutable Ledger Timeline ═══ */}
         <DashboardPanel title="Escrow Ledger" tooltip="Append-only ledger — no edits, no deletes" asOf={settlement.updatedAt}>

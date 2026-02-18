@@ -561,6 +561,146 @@ export function useCertificateBySettlement(settlementId: string) {
 }
 
 /* ================================================================
+   Fee & Activation hooks
+   ================================================================ */
+
+import type { PricingConfig, SelectedAddOn, FeeQuote } from "@/lib/fees/fee-engine";
+import { computeFeeQuote as engineComputeFeeQuote } from "@/lib/fees/fee-engine";
+import { loadPricingConfig as loadConfig } from "@/lib/fees/pricing-store";
+import {
+  apiGetPricingConfig,
+  apiSavePricingConfig,
+  apiSelectAddOns,
+  apiProcessPayment,
+  apiApproveManualReview,
+  apiRejectManualReview,
+  apiRecalculateFeeQuote,
+} from "@/lib/api";
+
+export function usePricingConfig() {
+  return useQuery<PricingConfig>({
+    queryKey: ["pricing-config"],
+    queryFn: () => apiGetPricingConfig(),
+  });
+}
+
+export function useSavePricingConfig() {
+  const queryClient = useQueryClient();
+  return useMutation<PricingConfig, Error, PricingConfig>({
+    mutationFn: (config) => apiSavePricingConfig(config),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pricing-config"] });
+    },
+  });
+}
+
+/**
+ * Direct fee computation hook — computes fee quote locally via engine import.
+ * Does NOT hit the mock API — per revision #2 (avoid pseudo-API indirection).
+ */
+export function useComputeFeeQuote(
+  notionalCents: number,
+  selectedAddOns: SelectedAddOn[],
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["compute-fee-quote", notionalCents, selectedAddOns],
+    queryFn: () => {
+      const config = loadConfig();
+      const now = new Date().toISOString();
+      return engineComputeFeeQuote({ notionalCents, selectedAddOns, config, now });
+    },
+    enabled,
+  });
+}
+
+export function useSelectAddOns() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { settlement: SettlementCase; feeQuote: FeeQuote },
+    Error,
+    { settlementId: string; addOns: SelectedAddOn[] }
+  >({
+    mutationFn: ({ settlementId, addOns }) =>
+      apiSelectAddOns({ settlementId, addOns, now: new Date().toISOString() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settlement"] });
+      queryClient.invalidateQueries({ queryKey: ["settlements"] });
+      queryClient.invalidateQueries({ queryKey: ["settlement-ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["compute-fee-quote"] });
+    },
+  });
+}
+
+export function useProcessPayment() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { settlement: SettlementCase; activated: boolean },
+    Error,
+    { settlementId: string; method: "mock_card" | "wire_mock" | "invoice_mock"; actorUserId: string }
+  >({
+    mutationFn: ({ settlementId, method, actorUserId }) =>
+      apiProcessPayment({ settlementId, method, now: new Date().toISOString(), actorUserId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settlement"] });
+      queryClient.invalidateQueries({ queryKey: ["settlements"] });
+      queryClient.invalidateQueries({ queryKey: ["settlement-ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["governance-audit-events"] });
+    },
+  });
+}
+
+export function useApproveManualReview() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { settlement: SettlementCase; activated: boolean },
+    Error,
+    { settlementId: string; actorRole: UserRole; actorUserId: string }
+  >({
+    mutationFn: ({ settlementId, actorRole, actorUserId }) =>
+      apiApproveManualReview({ settlementId, now: new Date().toISOString(), actorRole, actorUserId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settlement"] });
+      queryClient.invalidateQueries({ queryKey: ["settlements"] });
+      queryClient.invalidateQueries({ queryKey: ["settlement-ledger"] });
+    },
+  });
+}
+
+export function useRejectManualReview() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    SettlementCase,
+    Error,
+    { settlementId: string; reason: string; actorRole: UserRole; actorUserId: string }
+  >({
+    mutationFn: ({ settlementId, reason, actorRole, actorUserId }) =>
+      apiRejectManualReview({ settlementId, reason, now: new Date().toISOString(), actorRole, actorUserId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settlement"] });
+      queryClient.invalidateQueries({ queryKey: ["settlements"] });
+      queryClient.invalidateQueries({ queryKey: ["settlement-ledger"] });
+    },
+  });
+}
+
+export function useRecalculateFeeQuote() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { settlement: SettlementCase; feeQuote: FeeQuote },
+    Error,
+    { settlementId: string }
+  >({
+    mutationFn: ({ settlementId }) =>
+      apiRecalculateFeeQuote({ settlementId, now: new Date().toISOString() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settlement"] });
+      queryClient.invalidateQueries({ queryKey: ["settlements"] });
+    },
+  });
+}
+
+/* ================================================================
    Governance Audit hooks
    ================================================================ */
 
