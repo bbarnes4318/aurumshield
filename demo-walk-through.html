@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AurumShield | Institutional Demo Walkthrough</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#0b1220',
+                        surface: {
+                            1: '#0f1a2b',
+                            2: '#13233a',
+                            3: '#182b46',
+                        },
+                        border: '#243653',
+                        text: {
+                            DEFAULT: '#e7ecf4',
+                            muted: '#aab6c8',
+                            faint: '#7f8ca3',
+                        },
+                        gold: {
+                            DEFAULT: '#c6a86b',
+                            hover: '#d3b77d',
+                            pressed: '#b99657',
+                        },
+                        success: '#3fae7a',
+                        warning: '#d0a85c',
+                        danger: '#d16a5d',
+                        info: '#5a8ccb',
+                    },
+                    fontFamily: {
+                        sans: ['"IBM Plex Sans"', 'sans-serif'],
+                        serif: ['"Source Serif 4"', 'serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+                    },
+                    borderRadius: {
+                        DEFAULT: '14px',
+                        sm: '10px',
+                        input: '12px',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* App-like Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f1a2b; }
+        ::-webkit-scrollbar-thumb { background: #243653; border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: #7f8ca3; }
+        
+        body {
+            background-color: #0b1220;
+            color: #e7ecf4;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .typo-label {
+            font-size: 0.6875rem;
+            line-height: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #7f8ca3;
+        }
+
+        /* Card Primitive */
+        .card-base {
+            background-color: #0f1a2b;
+            border: 1px solid #243653;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        /* Navigation Active State */
+        .nav-link.active {
+            background-color: rgba(198, 168, 107, 0.1);
+            color: #c6a86b;
+            border-left: 3px solid #c6a86b;
+        }
+
+        /* Table Styling to match app */
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th { 
+            text-transform: uppercase; 
+            font-size: 0.6875rem; 
+            letter-spacing: 0.08em; 
+            color: #7f8ca3; 
+            font-weight: 600; 
+            text-align: left; 
+            padding: 0.75rem 1rem; 
+            background-color: #13233a;
+            border-bottom: 1px solid #243653;
+        }
+        td { 
+            padding: 0.75rem 1rem; 
+            border-bottom: 1px solid #243653; 
+            color: #e7ecf4;
+        }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background-color: rgba(19, 35, 58, 0.5); }
+
+        /* Smooth Scroll */
+        html { scroll-behavior: smooth; }
+
+        /* Code Block */
+        pre {
+            background: #13233a;
+            border: 1px solid #243653;
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.85rem;
+            color: #aab6c8;
+            overflow-x: auto;
+        }
+        code {
+            color: #c6a86b;
+            background: rgba(198, 168, 107, 0.1);
+            padding: 0.1em 0.3em;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        pre code {
+            color: inherit;
+            background: transparent;
+            padding: 0;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-72 flex-shrink-0 border-r border-border bg-surface-1 flex flex-col h-full">
+        <!-- Brand -->
+        <div class="h-16 flex items-center px-6 border-b border-border shrink-0">
+            <img src="arum-logo-white.png" alt="AurumShield" class="h-6 w-auto">
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto p-4 space-y-8" id="sidebar-nav">
+            
+            <!-- Group 1 -->
+            <div>
+                <p class="px-3 mb-2 typo-label">Preparation</p>
+                <ul class="space-y-1">
+                    <li><a href="#prerequisites" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">Prerequisites</a></li>
+                    <li><a href="#entering-demo" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">1. Entering Demo Mode</a></li>
+                </ul>
+            </div>
+
+            <!-- Group 2 -->
+            <div>
+                <p class="px-3 mb-2 typo-label">Core Modules</p>
+                <ul class="space-y-1">
+                    <li><a href="#dashboard" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">2. Dashboard Overview</a></li>
+                    <li><a href="#marketplace" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">3. Marketplace & Reservation</a></li>
+                    <li><a href="#settlement" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">4. Settlement Lifecycle</a></li>
+                    <li><a href="#capital" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">5. Capital Adequacy</a></li>
+                    <li><a href="#verification" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">6. Verification & Identity</a></li>
+                </ul>
+            </div>
+
+            <!-- Group 3 -->
+            <div>
+                <p class="px-3 mb-2 typo-label">Oversight</p>
+                <ul class="space-y-1">
+                    <li><a href="#audit" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">7. Audit & Supervisory</a></li>
+                    <li><a href="#seller" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">8. Seller Supply Controls</a></li>
+                </ul>
+            </div>
+
+            <!-- Group 4 -->
+            <div>
+                <p class="px-3 mb-2 typo-label">Tools & Reference</p>
+                <ul class="space-y-1">
+                    <li><a href="#presentation" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">9. Presentation Mode</a></li>
+                    <li><a href="#notes" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">10. Presenter Notes</a></li>
+                    <li><a href="#reference" class="nav-link block px-3 py-2 text-sm text-text-muted hover:text-text rounded-md transition-colors">Role Permissions</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Footer Stub -->
+        <div class="p-4 border-t border-border shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="h-8 w-8 rounded-full bg-surface-3 flex items-center justify-center text-text-faint">
+                    <i data-lucide="book-open" class="h-4 w-4"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-text">Demo Guide</p>
+                    <p class="text-[10px] text-text-faint">v2.4 Internal</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-bg relative">
+        <!-- Top Bar -->
+        <header class="h-16 border-b border-border bg-surface-1 flex items-center justify-between px-8 shrink-0 z-10">
+            <div class="flex items-center gap-2 text-sm text-text-muted">
+                <span>Documentation</span>
+                <i data-lucide="chevron-right" class="h-4 w-4 text-text-faint"></i>
+                <span class="text-text font-medium text-gold">Institutional Demo Walkthrough</span>
+            </div>
+            <div class="flex items-center gap-3">
+                 <a href="https://aurumshield.vip" target="_blank" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-gold text-bg text-xs font-bold uppercase tracking-wider hover:bg-gold-hover transition-colors">
+                    Launch Platform <i data-lucide="external-link" class="h-3 w-3"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto p-8 scroll-smooth" id="main-scroll">
+            <div class="max-w-4xl mx-auto space-y-12 pb-24">
+
+                <!-- Header -->
+                <div>
+                    <h1 class="font-serif text-3xl font-bold text-text mb-4">AurumShield — Institutional Demo Walkthrough</h1>
+                    <div class="bg-surface-2 border-l-4 border-gold p-4 rounded-r-lg text-sm text-text-muted leading-relaxed">
+                        <p class="mb-2"><strong class="text-text">Audience:</strong> Investor, partner, or executive being presented a guided demonstration.</p>
+                        <p class="mb-2"><strong class="text-text">Live URL:</strong> <a href="https://aurumshield.vip" class="text-gold hover:underline">https://aurumshield.vip</a></p>
+                        <p><strong class="text-text">Duration:</strong> 20–30 minutes.</p>
+                    </div>
+                </div>
+
+                <!-- Prerequisites -->
+                <section id="prerequisites" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4 flex items-center gap-2">
+                        <i data-lucide="check-square" class="text-text-faint h-5 w-5"></i> Prerequisites
+                    </h2>
+                    <ul class="list-disc pl-5 space-y-2 text-sm text-text-muted">
+                        <li>A modern web browser (Chrome, Edge, Safari, Firefox).</li>
+                        <li>Internet connection to <span class="font-mono text-xs">aurumshield.vip</span>.</li>
+                        <li>No login credentials needed — uses one-click role selection.</li>
+                    </ul>
+                </section>
+
+                <hr class="border-border">
+
+                <!-- 1. Entering Demo Mode -->
+                <section id="entering-demo" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4">1. Entering Demo Mode</h2>
+                    
+                    <div class="card-base p-6 space-y-6">
+                        <div>
+                            <h3 class="font-semibold text-text mb-2">Step 1.1 — Navigate to demo login</h3>
+                            <div class="mb-3">
+                                <pre><code>https://aurumshield.vip/demo/login?demo=true</code></pre>
+                            </div>
+                            <div class="bg-warning/10 border border-warning/20 p-3 rounded-lg flex gap-3">
+                                <i data-lucide="alert-triangle" class="text-warning h-5 w-5 shrink-0"></i>
+                                <p class="text-xs text-warning"><strong>Important:</strong> The <code>?demo=true</code> parameter is required to activate the environment.</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="font-semibold text-text mb-2">Step 1.2 — Select "Clearing Authority"</h3>
+                            <p class="text-sm text-text-muted mb-3">Click the card labeled <strong>"Clearing Authority"</strong>. This role provides full visibility across all modules.</p>
+                            <div class="p-3 bg-surface-2 rounded-lg text-xs text-text-faint border border-border">
+                                <span class="font-bold text-text">System Action:</span> Seeds a deterministic scenario (listing, reservation, order, settlement) and redirects to Dashboard.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Dashboard -->
+                <section id="dashboard" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4">2. Dashboard Overview</h2>
+                    <div class="card-base overflow-hidden">
+                        <table class="w-full">
+                            <thead>
+                                <tr>
+                                    <th class="w-1/3">Section</th>
+                                    <th class="w-2/3">Talking Point</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-medium">Capital Summary</td>
+                                    <td class="italic text-text-muted">"All capital metrics are derived in real time from actual settlement state — not static mock numbers."</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-medium">Settlement Queue</td>
+                                    <td class="italic text-text-muted">"Every settlement in the pipeline is tracked with deterministic status transitions."</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-medium">Breach Card</td>
+                                    <td class="italic text-text-muted">"Breach events are generated deterministically when capital thresholds are exceeded."</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 3. Marketplace -->
+                <section id="marketplace" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4">3. Marketplace & Reservation Flow</h2>
+                    <div class="card-base p-6 space-y-6">
+                        
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="font-semibold text-text mb-2">Step 3.1 — View</h3>
+                                <p class="text-sm text-text-muted">Navigate to <strong>Marketplace</strong>. Show the listing details: Form, Purity, Weight, Vault Location.</p>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-text mb-2">Step 3.2 — Reserve</h3>
+                                <p class="text-sm text-text-muted">Click <strong>Reserve</strong>. Enter weight. Show the pre-trade policy check (TRI Score, ECR Impact).</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-surface-2 p-4 rounded-lg border-l-4 border-gold">
+                            <p class="typo-label text-gold mb-1">Talking Point</p>
+                            <p class="text-sm italic text-text">"No exposure is created without passing the capital adequacy perimeter. The reservation locks bilateral exposure into the risk management system before any commercial commitment is made."</p>
+                        </div>
+
+                        <div>
+                            <h3 class="font-semibold text-text mb-2">Step 3.3 — Convert</h3>
+                            <p class="text-sm text-text-muted">Go to <strong>Reservations</strong>. Click <strong>Convert to Order</strong>. Explain the frozen <span class="font-mono text-gold text-xs">MarketplacePolicySnapshot</span>.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Settlement -->
+                <section id="settlement" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4">4. Settlement Lifecycle</h2>
+                    <p class="text-sm text-text-muted mb-4">Core demonstration. Uses pre-seeded <code>ESCROW_OPEN</code> case.</p>
+                    
+                    <div class="card-base p-6 space-y-6">
+                        <h3 class="font-semibold text-text">Step 4.2 — Execution Sequence</h3>
+                        
+                        <div class="relative pl-6 border-l border-border space-y-6">
+                            <!-- Step 1 -->
+                            <div class="relative">
+                                <div class="absolute -left-[31px] bg-surface-1 border border-border p-1 rounded-full"><i data-lucide="dollar-sign" class="w-4 h-4 text-info"></i></div>
+                                <p class="text-sm font-medium text-text">1. Confirm Funds Final</p>
+                                <p class="text-xs text-text-muted">Treasury confirms fiat receipt.</p>
+                            </div>
+                            <!-- Step 2 -->
+                            <div class="relative">
+                                <div class="absolute -left-[31px] bg-surface-1 border border-border p-1 rounded-full"><i data-lucide="shield" class="w-4 h-4 text-gold"></i></div>
+                                <p class="text-sm font-medium text-text">2. Allocate Gold</p>
+                                <p class="text-xs text-text-muted">Vault ops confirms physical allocation.</p>
+                            </div>
+                            <!-- Step 3 -->
+                            <div class="relative">
+                                <div class="absolute -left-[31px] bg-surface-1 border border-border p-1 rounded-full"><i data-lucide="user-check" class="w-4 h-4 text-success"></i></div>
+                                <p class="text-sm font-medium text-text">3. Clear Verification</p>
+                                <p class="text-xs text-text-muted">Compliance confirms KYC/KYB pass.</p>
+                            </div>
+                            <!-- Step 4 -->
+                            <div class="relative">
+                                <div class="absolute -left-[31px] bg-surface-1 border border-border p-1 rounded-full"><i data-lucide="lock" class="w-4 h-4 text-text"></i></div>
+                                <p class="text-sm font-medium text-text">4. Authorize Settlement</p>
+                                <p class="text-xs text-text-muted">Clearing Authority reviews & authorizes. Freezes capital snapshot.</p>
+                            </div>
+                            <!-- Step 5 -->
+                            <div class="relative">
+                                <div class="absolute -left-[31px] bg-gold border border-gold p-1 rounded-full"><i data-lucide="zap" class="w-4 h-4 text-bg"></i></div>
+                                <p class="text-sm font-medium text-gold">5. Execute DvP</p>
+                                <p class="text-xs text-text-muted">Atomic title/payment transfer. Status → <span class="font-mono text-xs">SETTLED</span>.</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-gold/10 border border-gold/30 p-4 rounded-lg">
+                            <p class="typo-label text-gold mb-1">Key Talking Point</p>
+                            <p class="text-sm italic text-text">"This is the atomic settlement moment. Title transfer and payment transfer occur simultaneously in a single deterministic operation. There is no window where one party has delivered and the other has not."</p>
+                        </div>
+
+                        <div>
+                            <h3 class="font-semibold text-text mb-2">Step 4.4 — Clearing Certificate</h3>
+                            <p class="text-sm text-text-muted mb-2">Click <strong>View Receipt</strong> on the settled order. Show the certificate number, SHA-256 hash, and ledger integrity statement.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Capital -->
+                <section id="capital" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4">5. Capital Adequacy Console</h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="card-base p-6">
+                            <h3 class="font-semibold text-text mb-3">Intraday Console</h3>
+                            <ul class="text-sm text-text-muted space-y-2 list-disc pl-4">
+                                <li><strong>ECR:</strong> Gross exposure / Capital base.</li>
+                                <li><strong>Hardstop Util:</strong> % of absolute limit.</li>
+                                <li><strong>Breach Level:</strong> Computed deterministically.</li>
+                            </ul>
+                        </div>
+                        <div class="card-base p-6">
+                            <h3 class="font-semibold text-text mb-3">Capital Controls</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-xs border-b border-border pb-1"><span>NORMAL</span> <span class="text-success">Allowed</span></div>
+                                <div class="flex justify-between text-xs border-b border-border pb-1"><span>THROTTLE</span> <span class="text-warning">Limited</span></div>
+                                <div class="flex justify-between text-xs border-b border-border pb-1"><span>FREEZE</span> <span class="text-danger">Blocked</span></div>
+                                <div class="flex justify-between text-xs"><span>HALT</span> <span class="text-danger font-bold">Suspended</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-text-muted italic mt-4">"Continuous monitoring replaces periodic reporting. Breaches are immediate."</p>
+                </section>
+
+                <!-- 6. Verification -->
+                <section id="verification" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4">6. Verification & Identity</h2>
+                    <div class="card-base p-6">
+                        <p class="text-sm text-text-muted mb-4">Demonstrate the multi-step identity perimeter.</p>
+                        <div class="grid grid-cols-2 gap-4 text-xs">
+                            <div class="bg-surface-2 p-3 rounded-lg border border-border">
+                                <p class="typo-label mb-2">KYC Steps</p>
+                                <ul class="space-y-1 text-text-faint">
+                                    <li>1. Email & Phone</li>
+                                    <li>2. Gov ID Capture</li>
+                                    <li>3. Liveness Check</li>
+                                    <li>4. Sanctions Screening</li>
+                                </ul>
+                            </div>
+                            <div class="bg-surface-2 p-3 rounded-lg border border-border">
+                                <p class="typo-label mb-2">KYB Steps</p>
+                                <ul class="space-y-1 text-text-faint">
+                                    <li>1. Company Reg Docs</li>
+                                    <li>2. UBO Declaration</li>
+                                    <li>3. Proof of Address</li>
+                                    <li>4. Source of Funds</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. Audit -->
+                <section id="audit" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4">7. Audit & Supervisory</h2>
+                    <div class="card-base p-6">
+                        <h3 class="font-semibold text-text mb-2">Supervisory Mode</h3>
+                        <p class="text-sm text-text-muted mb-4">Show the "Case Dossier" view.</p>
+                        <ul class="list-disc pl-5 text-sm text-text-muted space-y-1">
+                            <li>Full settlement details</li>
+                            <li>Complete ledger history (immutable)</li>
+                            <li>Capital snapshot frozen at authorization</li>
+                        </ul>
+                        <div class="mt-4 bg-surface-2 p-3 rounded-lg border-l-4 border-info">
+                            <p class="text-xs italic text-text-muted">"The supervisory console is the regulator-ready evidence package."</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. Seller -->
+                <section id="seller" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4">8. Seller Supply Controls</h2>
+                    <div class="card-base p-6">
+                        <p class="text-sm text-text-muted mb-4">Switch to <strong>Seller</strong> role to show the listing wizard.</p>
+                        <div class="flex items-center gap-4 text-sm text-text mb-4">
+                            <div class="flex-1 bg-surface-2 p-3 rounded border border-border text-center">Assay Report</div>
+                            <i data-lucide="plus" class="text-text-faint w-4 h-4"></i>
+                            <div class="flex-1 bg-surface-2 p-3 rounded border border-border text-center">Chain of Custody</div>
+                            <i data-lucide="plus" class="text-text-faint w-4 h-4"></i>
+                            <div class="flex-1 bg-surface-2 p-3 rounded border border-border text-center">Attestation</div>
+                        </div>
+                        <p class="text-xs text-text-faint text-center">Three-part evidence pack required for the Publish Gate.</p>
+                    </div>
+                </section>
+
+                <hr class="border-border">
+
+                <!-- Tools -->
+                <section id="presentation" class="scroll-mt-24">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h2 class="text-lg font-bold text-text mb-2">9. Presentation Mode</h2>
+                            <p class="text-sm text-text-muted mb-2">Press <kbd class="bg-surface-3 px-1.5 py-0.5 rounded text-xs font-mono text-text">SHIFT + D</kbd> to toggle.</p>
+                            <ul class="text-xs text-text-faint list-disc pl-4 space-y-1">
+                                <li>Hides sidebar & breadcrumbs</li>
+                                <li>Increases font size (108%)</li>
+                                <li>Optimizes layout for projectors</li>
+                            </ul>
+                        </div>
+                        <div id="notes">
+                            <h2 class="text-lg font-bold text-text mb-2">10. Presenter Notes</h2>
+                            <p class="text-sm text-text-muted mb-2">Click the <strong>Notes</strong> button (bottom-right).</p>
+                            <ul class="text-xs text-text-faint list-disc pl-4 space-y-1">
+                                <li>Structured talking points per section</li>
+                                <li>Key takeaways highlighted</li>
+                                <li>Hidden during Presentation Mode</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Reference -->
+                <section id="reference" class="scroll-mt-24">
+                    <h2 class="text-xl font-bold text-text mb-4">Role Permissions Reference</h2>
+                    <div class="card-base overflow-hidden">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th class="text-center">Clearing Auth</th>
+                                    <th class="text-center">Buyer</th>
+                                    <th class="text-center">Seller</th>
+                                    <th class="text-center">Compliance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Dashboard</td><td class="text-center text-success">✅</td><td class="text-center text-success">✅</td><td class="text-center text-success">✅</td><td class="text-center text-success">✅</td></tr>
+                                <tr><td>Settlements</td><td class="text-center text-success">✅ Full</td><td class="text-center text-text-faint">View</td><td class="text-center text-text-faint">View</td><td class="text-center text-text-faint">View</td></tr>
+                                <tr><td>Execute DvP</td><td class="text-center text-success">✅</td><td class="text-center text-danger">❌</td><td class="text-center text-danger">❌</td><td class="text-center text-danger">❌</td></tr>
+                                <tr><td>Intraday Capital</td><td class="text-center text-success">✅</td><td class="text-center text-danger">❌</td><td class="text-center text-danger">❌</td><td class="text-center text-success">✅</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Troubleshooting -->
+                <section id="troubleshooting" class="scroll-mt-24">
+                    <h2 class="text-lg font-bold text-text mb-4">Troubleshooting</h2>
+                    <div class="space-y-3">
+                        <div class="bg-surface-2 p-3 rounded-lg border border-border flex gap-3">
+                            <i data-lucide="help-circle" class="text-info h-5 w-5 shrink-0"></i>
+                            <div>
+                                <p class="text-sm font-medium text-text">Settlement actions not available?</p>
+                                <p class="text-xs text-text-muted">Ensure you are logged in as <strong>Clearing Authority</strong> (Admin). Only admins can authorize and execute DvP.</p>
+                            </div>
+                        </div>
+                        <div class="bg-surface-2 p-3 rounded-lg border border-border flex gap-3">
+                            <i data-lucide="help-circle" class="text-info h-5 w-5 shrink-0"></i>
+                            <div>
+                                <p class="text-sm font-medium text-text">Certificate missing?</p>
+                                <p class="text-xs text-text-muted">The settlement must reach <code>SETTLED</code> status first. Complete all 5 lifecycle actions.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Scrollspy for Sidebar Active State
+        const navLinks = document.querySelectorAll('.nav-link');
+        const mainScroll = document.getElementById('main-scroll');
+        const sections = document.querySelectorAll('section');
+
+        mainScroll.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (mainScroll.scrollTop >= (sectionTop - 150)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                link.classList.remove('text-gold');
+                link.classList.add('text-text-muted');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                    link.classList.remove('text-text-muted');
+                    link.classList.add('text-gold');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

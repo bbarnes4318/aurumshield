@@ -9,7 +9,7 @@ import { DemoScriptOverlay } from "@/components/demo/demo-script-overlay";
 import { useDemo } from "@/providers/demo-provider";
 
 /** Routes that render WITHOUT the app shell (sidebar/topbar) */
-const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/demo/login"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/demo/login", "/platform", "/demo/walkthrough"];
 
 interface AppShellProps {
   children: React.ReactNode;
