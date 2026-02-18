@@ -6,7 +6,10 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { DemoScriptOverlay } from "@/components/demo/demo-script-overlay";
+import { TourOverlay } from "@/demo/tour-engine/TourOverlay";
+import { TourHighlighter } from "@/demo/tour-engine/TourHighlighter";
 import { useDemo } from "@/providers/demo-provider";
+import { useTour } from "@/demo/tour-engine/TourProvider";
 
 /** Routes that render WITHOUT the app shell (sidebar/topbar) */
 const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/demo/login", "/platform", "/demo/walkthrough"];
@@ -20,6 +23,8 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const isPublic = PUBLIC_ROUTES.includes(pathname);
   const { isDemo, presentationMode, scenarioName } = useDemo();
+  const { state: tourState } = useTour();
+  const isTourActive = tourState.status === "active" || tourState.status === "paused";
 
   // Public routes: no sidebar, no topbar — full-bleed layout
   if (isPublic) {
@@ -36,8 +41,9 @@ export function AppShell({ children }: AppShellProps) {
         Skip to content
       </a>
 
-      {/* Sidebar hidden in presentation mode via CSS */}
-      {!presentationMode && (
+      {/* Sidebar: hidden in presentation mode ONLY if tour is NOT active.
+          When tour is active, sidebar must remain accessible so click targets work. */}
+      {!(presentationMode && !isTourActive) && (
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       )}
 
@@ -65,8 +71,17 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       <CommandPalette />
-      <DemoScriptOverlay />
+
+      {/* DemoScriptOverlay is hidden when tour is active (overlay collision prevention) */}
+      {!isTourActive && <DemoScriptOverlay />}
+
+      {/* Tour engine overlays — only active during guided tours */}
+      {isTourActive && (
+        <>
+          <TourHighlighter />
+          <TourOverlay />
+        </>
+      )}
     </div>
   );
 }
-

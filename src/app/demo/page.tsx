@@ -1,221 +1,183 @@
 "use client";
 
 /* ================================================================
-   GUIDED WALKTHROUGH HUB — Institutional demo control room
-   
-   Structured navigation with systemic risk framing.
-   Each section includes:
-   - Title
-   - Risk Addressed (systemic risk statement)
-   - Control Mechanism (what this control prevents)
-   - Why It Matters (clearing authority rationale)
-   - Launch button
+   DEMO CONSOLE — Role-based guided tour entry point
+
+   Displays 6 role cards with CTA to start guided tours.
+   Each card shows role icon, display name, description, preview path.
+   Role selection triggers: set demo role → navigate to tour start → begin.
    ================================================================ */
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
+  ShoppingCart,
   Store,
-  ClipboardList,
   Landmark,
-  Activity,
-  ShieldOff,
-  Gavel,
-  Award,
-  LayoutDashboard,
+  ShieldCheck,
+  Wallet,
+  Settings,
+  ChevronRight,
+  RotateCcw,
+  Play,
 } from "lucide-react";
+import { useDemo } from "@/providers/demo-provider";
+import { useTour } from "@/demo/tour-engine/TourProvider";
+import { ROLE_DISPLAY } from "@/demo/tour-engine/tourTypes";
+import { getAllTours } from "@/demo/tours";
+import type { UserRole } from "@/lib/mock-data";
 
-interface WalkthroughSection {
-  id: string;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  riskAddressed: string;
-  controlMechanism: string;
-  whyItMatters: string;
-  href: string;
-}
+/* ---------- Role Icon Mapping ---------- */
+const ROLE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  buyer: ShoppingCart,
+  seller: Store,
+  vault_ops: Landmark,
+  compliance: ShieldCheck,
+  treasury: Wallet,
+  admin: Settings,
+};
 
-const SECTIONS: WalkthroughSection[] = [
-  {
-    id: "overview",
-    icon: LayoutDashboard,
-    title: "System Overview",
-    riskAddressed:
-      "Fragmented operational awareness across clearing functions. Capital, settlement, and governance data siloed in separate subsystems.",
-    controlMechanism:
-      "The dashboard consolidates capital adequacy, counterparty risk distribution, settlement queue depth, and governance events into a single institutional command surface.",
-    whyItMatters:
-      "Systemic risk management requires unified observability. A central authority view ensures timely decision-making under intraday stress conditions.",
-    href: "/dashboard?demo=true",
-  },
-  {
-    id: "marketplace",
-    icon: Store,
-    title: "Marketplace",
-    riskAddressed:
-      "Bilateral counterparty exposure prior to clearing. Unpriced risk from uncollateralized off-ledger agreements.",
-    controlMechanism:
-      "Reservation locks exposure into a capital-aware system. Reservation-to-order conversion enforces policy gates including TRI scoring, ECR impact, and hardstop utilization thresholds.",
-    whyItMatters:
-      "Prevents uncollateralized off-ledger agreements. No exposure is created without passing the capital adequacy perimeter.",
-    href: "/marketplace?demo=true",
-  },
-  {
-    id: "seller",
-    icon: ClipboardList,
-    title: "Seller Supply Controls",
-    riskAddressed:
-      "Unverified or under-documented inventory entering the marketplace. Counterparty exposure to sellers with incomplete identity verification.",
-    controlMechanism:
-      "Sellers must submit a complete evidence pack — certified assay report, chain of custody certificate, and seller attestation. A publish gate validates seller verification status, evidence completeness, and capital control constraints.",
-    whyItMatters:
-      "Inventory integrity is a precondition for settlement finality. The clearing authority cannot guarantee delivery without verified provenance.",
-    href: "/sell/listings?demo=true",
-  },
-  {
-    id: "settlement",
-    icon: Landmark,
-    title: "Settlement Lifecycle",
-    riskAddressed:
-      "Settlement failure risk from incomplete or out-of-sequence lifecycle transitions. Bilateral reconciliation disputes from non-atomic execution.",
-    controlMechanism:
-      "Each order generates a deterministic settlement case. The lifecycle follows escrow open, funds confirmation, gold allocation, verification clearance, authorization, then atomic DvP execution. Status transitions are action-driven with role-based enforcement.",
-    whyItMatters:
-      "Atomic delivery-versus-payment eliminates settlement failure modes inherent in sequential bilateral transfers.",
-    href: "/settlements?demo=true",
-  },
-  {
-    id: "capital",
-    icon: Activity,
-    title: "Capital Adequacy",
-    riskAddressed:
-      "Intraday concentration risk exceeding capital buffers. Unmonitored accumulation of gross exposure relative to available capital base.",
-    controlMechanism:
-      "The intraday capital console computes a live capital snapshot from all active exposures — reservations, orders, settlements. Metrics include gross exposure, ECR, TVaR₉₉ buffer, and hardstop utilization. Breach events are generated deterministically when thresholds are exceeded.",
-    whyItMatters:
-      "Sovereign-grade clearing requires continuous capital adequacy monitoring. Breach escalation is automatic and non-discretionary.",
-    href: "/intraday?demo=true",
-  },
-  {
-    id: "controls",
-    icon: ShieldOff,
-    title: "Capital Guardrails",
-    riskAddressed:
-      "Systemic exposure accumulation beyond risk appetite. Discretionary override abuse without documented authorization.",
-    controlMechanism:
-      "Capital controls enforce operational restrictions based on breach level. In CAUTION mode, new reservations are throttled. In BREACH mode, settlement execution is blocked. EMERGENCY_HALT suspends all marketplace activity. Overrides require documented authorization with time-limited scope.",
-    whyItMatters:
-      "Automated policy enforcement removes discretionary intervention from critical risk decisions. Overrides create an auditable exception trail.",
-    href: "/capital-controls?demo=true",
-  },
-  {
-    id: "supervisory",
-    icon: Gavel,
-    title: "Supervisory Oversight",
-    riskAddressed:
-      "Lack of regulator-ready audit trails for clearing governance decisions. Opacity in settlement authorization and capital state at time of execution.",
-    controlMechanism:
-      "The supervisory console presents case dossiers for regulatory review. Each case includes settlement details, ledger history, capital snapshot at time of authorization, and an append-only audit trail.",
-    whyItMatters:
-      "Regulatory examination requires immutable evidence of governance integrity. The clearing authority must demonstrate that every settlement was authorized under documented conditions.",
-    href: "/supervisory?demo=true",
-  },
-  {
-    id: "certificate",
-    icon: Award,
-    title: "Clearing Certificate",
-    riskAddressed:
-      "Post-settlement reconciliation disputes. Lack of cryptographic proof of settlement finality.",
-    controlMechanism:
-      "Upon atomic DvP execution, the system issues a cryptographically verifiable clearing certificate. The certificate contains deterministic identifiers, a canonical signature hash, settlement details, and fee structure.",
-    whyItMatters:
-      "The clearing certificate serves as the authoritative proof of settlement finality for bilateral reconciliation, audit, and regulatory reporting.",
-    href: "/certificates?demo=true",
-  },
-];
+/* ---------- Role Descriptions ---------- */
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  buyer:
+    "Experience the buy-side workflow: market overview, reservation creation, order confirmation, settlement tracking, and certificate issuance.",
+  seller:
+    "Walk through the sell-side workflow: listing creation, evidence packing, publish gate verification, and settlement lifecycle participation.",
+  vault_ops:
+    "Clearing operations walk-through: queue management, settlement execution, compliance verification, and finality confirmation.",
+  compliance:
+    "Risk oversight workflow: exposure monitoring, policy enforcement, breach escalation, and regulatory examination preparation.",
+  treasury:
+    "Treasury capital workflow: ECR monitoring, hardstop management, breach handling, and settlement fund confirmation.",
+  admin:
+    "Administrative operations: role management, policy configuration, audit controls, and platform operations.",
+};
 
-export default function DemoWalkthroughPage() {
+/* ---------- Page Component ---------- */
+export default function DemoConsolePage() {
+  const router = useRouter();
+  const { isDemo, resetDemo } = useDemo();
+  const { startTour, state: tourState, exitTour } = useTour();
+  const tours = getAllTours();
+
+  const handleStartTour = (roleId: string) => {
+    // Exit any active tour first
+    if (tourState.status !== "idle") {
+      exitTour();
+    }
+    startTour(roleId);
+  };
+
+  if (!isDemo) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <h1 className="text-xl font-semibold text-text mb-2">Demo Mode Required</h1>
+        <p className="text-sm text-text-muted mb-4">
+          Add <code className="typo-mono text-gold">?demo=true</code> to the URL to access the demo console.
+        </p>
+        <button
+          onClick={() => router.push("/demo?demo=true")}
+          className="rounded-sm bg-gold px-4 py-2 text-sm font-medium text-bg hover:bg-gold-hover transition-colors"
+        >
+          Enter Demo Mode
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-3xl space-y-8 py-4">
+    <>
       {/* Header */}
-      <div>
-        <h1 className="typo-h2 mb-2">Guided Walkthrough</h1>
-        <p className="text-sm text-text-muted leading-relaxed">
-          Structured executive demonstration of AurumShield sovereign clearing
-          infrastructure. Each section addresses a specific systemic risk
-          control function.
+      <div className="mb-8">
+        <h1 className="text-lg font-semibold text-text mb-1">
+          Demo Console
+        </h1>
+        <p className="text-sm text-text-muted leading-relaxed max-w-2xl">
+          Select a role to begin a guided tour of AurumShield&apos;s clearing and settlement infrastructure.
+          Each tour covers the primary workflow for that role with structured commentary.
         </p>
       </div>
 
-      {/* Sections */}
-      <div className="space-y-4">
-        {SECTIONS.map((section, idx) => {
-          const Icon = section.icon;
+      {/* Role Cards Grid */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 mb-8">
+        {tours.map((tour) => {
+          const Icon = ROLE_ICONS[tour.role] ?? Settings;
+          const displayName = ROLE_DISPLAY[tour.role as UserRole] ?? tour.role;
+          const description = ROLE_DESCRIPTIONS[tour.role] ?? tour.description;
+
           return (
             <div
-              key={section.id}
-              className="card-base p-5"
-              id={`walkthrough-${section.id}`}
+              key={tour.id}
+              className="card-base border border-border p-5 flex flex-col justify-between"
             >
-              <div className="flex items-start gap-4">
-                {/* Step number + icon */}
-                <div className="flex flex-col items-center gap-1.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface-2 text-gold">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <span className="text-[10px] font-bold text-text-faint tabular-nums">
-                    {String(idx + 1).padStart(2, "0")}
-                  </span>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 space-y-3">
-                  <h3 className="text-sm font-semibold text-text">
-                    {section.title}
-                  </h3>
-
-                  {/* Risk Addressed */}
-                  <div>
-                    <span className="text-[10px] uppercase tracking-widest text-text-faint font-semibold">
-                      Risk Addressed
-                    </span>
-                    <p className="mt-0.5 text-xs text-text-muted leading-relaxed">
-                      {section.riskAddressed}
-                    </p>
+              {/* Card Header */}
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-surface-2">
+                    <Icon className="h-4 w-4 text-gold" />
                   </div>
-
-                  {/* Control Mechanism */}
                   <div>
+                    <h2 className="text-sm font-semibold text-text">{displayName}</h2>
                     <span className="text-[10px] uppercase tracking-widest text-text-faint font-semibold">
-                      Control Mechanism
+                      {tour.steps.length} steps
                     </span>
-                    <p className="mt-0.5 text-xs text-text-muted leading-relaxed">
-                      {section.controlMechanism}
-                    </p>
-                  </div>
-
-                  {/* Why It Matters */}
-                  <div>
-                    <span className="text-[10px] uppercase tracking-widest text-text-faint font-semibold">
-                      Why It Matters
-                    </span>
-                    <p className="mt-0.5 text-xs text-gold/80 leading-relaxed">
-                      {section.whyItMatters}
-                    </p>
                   </div>
                 </div>
 
-                {/* Launch button */}
-                <Link
-                  href={section.href}
-                  className="shrink-0 rounded-sm border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-gold/10 hover:text-gold hover:border-gold/30"
-                >
-                  Launch
-                </Link>
+                {/* Description */}
+                <p className="text-xs text-text-muted leading-relaxed mb-4">
+                  {description}
+                </p>
+
+                {/* Preview Path */}
+                <div className="mb-4">
+                  <span className="text-[9px] uppercase tracking-widest text-text-faint font-semibold mb-1.5 block">
+                    Tour Path
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {tour.previewPath.slice(0, 6).map((label, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-0.5 text-[10px] text-text-faint"
+                      >
+                        {idx > 0 && <ChevronRight className="h-2.5 w-2.5 opacity-40" />}
+                        {label}
+                      </span>
+                    ))}
+                    {tour.previewPath.length > 6 && (
+                      <span className="text-[10px] text-text-faint">
+                        +{tour.previewPath.length - 6} more
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              {/* CTA */}
+              <button
+                onClick={() => handleStartTour(tour.role)}
+                className="flex w-full items-center justify-center gap-2 rounded-sm bg-gold px-4 py-2.5 text-xs font-semibold text-bg uppercase tracking-wider transition-colors hover:bg-gold-hover active:bg-gold-pressed"
+              >
+                <Play className="h-3 w-3" />
+                Start Guided Tour
+              </button>
             </div>
           );
         })}
       </div>
-    </div>
+
+      {/* Footer Controls */}
+      <div className="flex items-center justify-between border-t border-border pt-4">
+        <div className="text-[10px] text-text-faint uppercase tracking-widest">
+          AurumShield Institutional Demonstration
+        </div>
+        <button
+          onClick={resetDemo}
+          className="flex items-center gap-1.5 rounded-sm border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-muted hover:bg-surface-3 hover:text-text transition-colors"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Reset Demo
+        </button>
+      </div>
+    </>
   );
 }

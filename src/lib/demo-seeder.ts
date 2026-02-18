@@ -45,6 +45,15 @@ const DEMO_SCENARIO_NAME =
   "Sovereign Gold Settlement — Institutional Walkthrough";
 const DEMO_SEEDED_KEY = "aurumshield:demo-seeded";
 
+/**
+ * Reset demo seeder state — clears localStorage seed flags.
+ * Called by DemoProvider.resetDemo().
+ */
+export function resetDemoSeederState(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(DEMO_SEEDED_KEY);
+}
+
 /* ---------- Deterministic demo accounts ---------- */
 export const DEMO_ACCOUNTS = [
   {

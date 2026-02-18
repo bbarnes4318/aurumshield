@@ -594,7 +594,7 @@ function IntradayControlCard() {
   const BreachIcon = breachCfg.icon;
 
   return (
-    <section>
+    <section data-tour="dashboard-intraday-card">
       <h2 className="typo-label mb-3">Intraday Capital</h2>
       <div className="card-base px-5 py-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -708,7 +708,7 @@ export default function DashboardPage() {
       {/* ============================================================
          SECTION 1: CAPITAL ADEQUACY
          ============================================================ */}
-      <section>
+      <section data-tour="dashboard-capital">
         <div className="mb-3 flex items-center gap-2">
           <h2 className="typo-label">Capital Adequacy</h2>
           <InfoTooltip content={TOOLTIPS.capitalPanel} />
@@ -768,7 +768,7 @@ export default function DashboardPage() {
       {/* ============================================================
          SECTION 2: RISK DISTRIBUTION
          ============================================================ */}
-      <section>
+      <section data-tour="dashboard-risk">
         <h2 className="typo-label mb-3">Risk Distribution</h2>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -786,7 +786,7 @@ export default function DashboardPage() {
       {/* ============================================================
          SECTION 3: EVIDENCE HEALTH
          ============================================================ */}
-      <section>
+      <section data-tour="dashboard-evidence">
         <h2 className="typo-label mb-3">Evidence Health</h2>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

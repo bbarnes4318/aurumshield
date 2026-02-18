@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { DemoProvider } from "@/providers/demo-provider";
+import { TourProvider } from "@/demo/tour-engine/TourProvider";
 import { AppShell } from "@/components/layout/app-shell";
 
 /* ----------------------------------------------------------------
@@ -54,8 +55,10 @@ export default function RootLayout({
           <QueryProvider>
             <AuthProvider>
               <Suspense fallback={null}>
-                <DemoProvider>
-                  <AppShell>{children}</AppShell>
+              <DemoProvider>
+                  <TourProvider>
+                    <AppShell>{children}</AppShell>
+                  </TourProvider>
                 </DemoProvider>
               </Suspense>
             </AuthProvider>

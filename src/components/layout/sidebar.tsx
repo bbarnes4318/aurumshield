@@ -48,6 +48,8 @@ interface NavItem {
   sellerOnly?: boolean;
   /** Fine-grained role gating — item visible only to these roles */
   roles?: UserRole[];
+  /** Stable tour target attribute */
+  dataTour?: string;
 }
 
 interface NavGroup {
@@ -59,42 +61,42 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Command",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, dataTour: "sidebar-dashboard" },
     ],
   },
   {
     title: "Identity",
     items: [
-      { label: "Verification", href: "/verification", icon: Fingerprint },
-      { label: "Account", href: "/account", icon: UserCircle },
+      { label: "Verification", href: "/verification", icon: Fingerprint, dataTour: "sidebar-verification" },
+      { label: "Account", href: "/account", icon: UserCircle, dataTour: "sidebar-account" },
     ],
   },
   {
     title: "Trading",
     items: [
-      { label: "Marketplace", href: "/marketplace", icon: Store },
-      { label: "Reservations", href: "/reservations", icon: Clock },
-      { label: "Orders", href: "/orders", icon: ShoppingCart },
+      { label: "Marketplace", href: "/marketplace", icon: Store, dataTour: "sidebar-marketplace" },
+      { label: "Reservations", href: "/reservations", icon: Clock, dataTour: "sidebar-reservations" },
+      { label: "Orders", href: "/orders", icon: ShoppingCart, dataTour: "sidebar-orders" },
     ],
   },
   {
     title: "Clearing",
     items: [
-      { label: "Settlements", href: "/settlements", icon: Landmark },
+      { label: "Settlements", href: "/settlements", icon: Landmark, dataTour: "sidebar-settlements" },
     ],
   },
   {
     title: "Capital",
     items: [
-      { label: "Intraday", href: "/intraday", icon: Activity, roles: ["admin", "compliance", "treasury", "vault_ops"] },
-      { label: "Controls", href: "/capital-controls", icon: ShieldOff, roles: ["admin", "treasury", "compliance"] },
+      { label: "Intraday", href: "/intraday", icon: Activity, roles: ["admin", "compliance", "treasury", "vault_ops"], dataTour: "sidebar-intraday" },
+      { label: "Controls", href: "/capital-controls", icon: ShieldOff, roles: ["admin", "treasury", "compliance"], dataTour: "sidebar-controls" },
     ],
   },
   {
     title: "Supply",
     items: [
-      { label: "Create Listing", href: "/sell", icon: ClipboardList, sellerOnly: true },
-      { label: "My Listings", href: "/sell/listings", icon: ScrollText, sellerOnly: true },
+      { label: "Create Listing", href: "/sell", icon: ClipboardList, sellerOnly: true, dataTour: "sidebar-create-listing" },
+      { label: "My Listings", href: "/sell/listings", icon: ScrollText, sellerOnly: true, dataTour: "sidebar-my-listings" },
     ],
   },
   {
@@ -117,16 +119,16 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Governance",
     items: [
-      { label: "Audit Console", href: "/audit", icon: ShieldCheck, roles: ["admin", "compliance", "treasury", "vault_ops"] },
-      { label: "Supervisory Mode", href: "/supervisory", icon: Gavel, roles: ["admin", "compliance"] },
+      { label: "Audit Console", href: "/audit", icon: ShieldCheck, roles: ["admin", "compliance", "treasury", "vault_ops"], dataTour: "sidebar-audit" },
+      { label: "Supervisory Mode", href: "/supervisory", icon: Gavel, roles: ["admin", "compliance"], dataTour: "sidebar-supervisory" },
     ],
   },
   {
     title: "Administration",
     items: [
-      { label: "Audit Log", href: "/admin/audit", icon: ScrollText, adminOnly: true },
-      { label: "Roles", href: "/admin/roles", icon: Users, adminOnly: true },
-      { label: "Policies", href: "/admin/policies", icon: Shield, adminOnly: true },
+      { label: "Audit Log", href: "/admin/audit", icon: ScrollText, adminOnly: true, dataTour: "sidebar-admin-audit" },
+      { label: "Roles", href: "/admin/roles", icon: Users, adminOnly: true, dataTour: "sidebar-admin-roles" },
+      { label: "Policies", href: "/admin/policies", icon: Shield, adminOnly: true, dataTour: "sidebar-admin-policies" },
     ],
   },
 ];
@@ -196,6 +198,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        data-tour={item.dataTour}
                         className={cn(
                           "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-sm transition-colors",
                           isActive
