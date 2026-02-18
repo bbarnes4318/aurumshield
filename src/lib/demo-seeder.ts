@@ -38,7 +38,7 @@ const DEMO_SCENARIO_NAME =
 const DEMO_SEEDED_KEY = "aurumshield:demo-seeded";
 
 /* ---------- Deterministic demo accounts ---------- */
-const DEMO_ACCOUNTS = [
+export const DEMO_ACCOUNTS = [
   {
     id: "demo-buyer",
     email: "buyer@aurumshield.demo",
@@ -76,7 +76,7 @@ const DEMO_ACCOUNTS = [
   },
 ] as const;
 
-const DEMO_ORGS = [
+export const DEMO_ORGS = [
   {
     id: "demo-org-buyer",
     legalName: "Sovereign Acquisition Corp.",
@@ -392,5 +392,3 @@ export function resetDemoSeed(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(DEMO_SEEDED_KEY);
 }
-
-export { DEMO_ACCOUNTS, DEMO_ORGS };
