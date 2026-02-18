@@ -45,3 +45,9 @@ variable "github_repo" {
   default     = "bbarnes4318/aurumshield"
   description = "GitHub repository in owner/repo format for OIDC trust policy"
 }
+
+variable "domain_name" {
+  type        = string
+  default     = "aurumshield.vip"
+  description = "Primary domain name for the application"
+}

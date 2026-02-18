@@ -24,8 +24,8 @@ output "DATABASE_SECRET_ARN" {
 }
 
 output "APP_BASE_URL" {
-  value       = "http://${aws_lb.main.dns_name}"
-  description = "Application base URL via ALB"
+  value       = "https://${var.domain_name}"
+  description = "Application base URL via custom domain"
 }
 
 output "AWS_REGION" {
@@ -56,4 +56,14 @@ output "ALB_DNS_NAME" {
 output "GITHUB_ACTIONS_ROLE_ARN" {
   value       = aws_iam_role.github_actions.arn
   description = "IAM role ARN for GitHub Actions OIDC — set as AWS_ROLE_ARN secret in repo"
+}
+
+output "ROUTE53_NAMESERVERS" {
+  value       = aws_route53_zone.main.name_servers
+  description = "Set these as nameservers in GoDaddy for aurumshield.vip"
+}
+
+output "DOMAIN" {
+  value       = var.domain_name
+  description = "Primary domain"
 }
