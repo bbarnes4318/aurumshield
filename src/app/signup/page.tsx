@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Shield, UserPlus, AlertCircle } from "lucide-react";
+import { UserPlus, AlertCircle } from "lucide-react";
+import Image from "next/image";
 import { useAuth } from "@/providers/auth-provider";
 
 const signupSchema = z.object({
@@ -55,8 +56,15 @@ export default function SignupPage() {
       <div className="w-full max-w-lg">
         {/* Brand */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gold/10 border border-gold/20">
-            <Shield className="h-6 w-6 text-gold" />
+          <div className="mb-4">
+            <Image
+              src="/arum-logo-white.png"
+              alt="AurumShield"
+              width={200}
+              height={46}
+              className="h-8 w-auto"
+              priority
+            />
           </div>
           <h1 className="text-xl font-semibold text-text tracking-tight">Register Institution</h1>
           <p className="mt-1 text-sm text-text-faint">Create an institutional account on AurumShield</p>

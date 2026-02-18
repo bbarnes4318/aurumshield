@@ -6,6 +6,7 @@
    ================================================================ */
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/providers/auth-provider";
 import { DEMO_ACCOUNTS } from "@/lib/demo-seeder";
 import { findUserByEmail } from "@/lib/auth-store";
@@ -50,13 +51,15 @@ export default function DemoLoginPage() {
       <div className="w-full max-w-xl space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mb-4 flex items-center justify-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-gold text-bg text-sm font-bold">
-              Au
-            </span>
-            <span className="text-lg font-semibold tracking-tight text-text">
-              AurumShield
-            </span>
+          <div className="mb-4 flex items-center justify-center">
+            <Image
+              src="/arum-logo-white.png"
+              alt="AurumShield"
+              width={200}
+              height={46}
+              className="h-8 w-auto"
+              priority
+            />
           </div>
           <h1 className="typo-h2 mb-2">Institutional Demonstration Mode</h1>
           <p className="text-sm text-text-muted">

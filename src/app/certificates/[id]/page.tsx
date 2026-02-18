@@ -6,11 +6,11 @@ import {
   ArrowLeft,
   Printer,
   Download,
-  Shield,
   Copy,
   Check,
   Lock,
 } from "lucide-react";
+import Image from "next/image";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { useAuth } from "@/providers/auth-provider";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
@@ -194,10 +194,13 @@ function CertificateContent() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <Shield className="h-5 w-5 text-gold" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gold">
-                    AurumShield Global
-                  </span>
+                  <Image
+                    src="/arum-logo-navy.png"
+                    alt="AurumShield"
+                    width={160}
+                    height={36}
+                    className="h-5 w-auto"
+                  />
                 </div>
                 <h1 className="text-lg font-semibold text-text tracking-wide">
                   Clearing Certificate

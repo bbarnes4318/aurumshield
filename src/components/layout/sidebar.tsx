@@ -29,6 +29,7 @@ import {
   Presentation,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image"; // Added Image import
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { useDemo } from "@/providers/demo-provider";
@@ -150,14 +151,20 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       )}
     >
       {/* Brand */}
-      <div className="flex h-14 items-center gap-2 border-b border-border px-3">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gold text-bg text-sm font-bold">
-          Au
-        </span>
-        {!collapsed && (
-          <span className="text-sm font-semibold tracking-tight text-text">
-            AurumShield
+      <div className="flex h-14 items-center border-b border-border px-3">
+        {collapsed ? (
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gold text-bg text-sm font-bold">
+            Au
           </span>
+        ) : (
+          <Image
+            src="/arum-logo-white.png"
+            alt="AurumShield"
+            width={140}
+            height={32}
+            className="h-6 w-auto"
+            priority
+          />
         )}
       </div>
 

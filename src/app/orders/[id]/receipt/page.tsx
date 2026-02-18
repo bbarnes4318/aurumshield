@@ -15,6 +15,7 @@ import {
   Copy,
   ExternalLink,
 } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { useAuth } from "@/providers/auth-provider";
@@ -383,8 +384,17 @@ function ReceiptContent() {
           <div className="border-b-2 border-gold/30 bg-surface-2 px-8 py-6">
             <div className="flex items-center justify-between">
               <div>
+                <div className="mb-2">
+                  <Image
+                    src="/arum-logo-white.png"
+                    alt="AurumShield"
+                    width={180}
+                    height={42}
+                    className="h-6 w-auto"
+                  />
+                </div>
                 <h1 className="text-lg font-bold tracking-tight text-text" style={{ fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace" }}>
-                  AURUMSHIELD CLEARING RECEIPT
+                  CLEARING RECEIPT
                 </h1>
                 <p className="text-[10px] text-text-faint mt-1 font-mono">{docId}</p>
               </div>

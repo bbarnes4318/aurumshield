@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Shield, Send, CheckCircle2 } from "lucide-react";
+import { Send, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -31,8 +32,15 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gold/10 border border-gold/20">
-            <Shield className="h-6 w-6 text-gold" />
+          <div className="mb-4">
+            <Image
+              src="/arum-logo-white.png"
+              alt="AurumShield"
+              width={200}
+              height={46}
+              className="h-8 w-auto"
+              priority
+            />
           </div>
           <h1 className="text-xl font-semibold text-text tracking-tight">Reset Password</h1>
           <p className="mt-1 text-sm text-text-faint">AurumShield Identity Perimeter</p>
