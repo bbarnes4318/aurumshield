@@ -100,6 +100,7 @@ export default function OrdersPage() {
       cell: ({ row }) => (
         <Link
           href={`/orders/${row.original.id}`}
+          data-tour="order-detail-link"
           className="text-xs text-gold hover:text-gold-hover transition-colors"
         >
           Detail →

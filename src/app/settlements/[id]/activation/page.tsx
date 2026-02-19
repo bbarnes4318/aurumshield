@@ -36,6 +36,7 @@ import {
   type AddOnCategory,
   type AddOnCatalogEntry,
 } from "@/lib/fees/fee-engine";
+import { CapitalAllocationSequence } from "@/components/demo/CapitalAllocationSequence";
 
 /* ================================================================
    Activation & Fees Page
@@ -449,6 +450,11 @@ export default function ActivationPage() {
             <ContactSupportInline compact />
           </div>
         </div>
+      )}
+
+      {/* Post-Activation Capital Position */}
+      {isPaid && (
+        <CapitalAllocationSequence active={isPaid} />
       )}
 
       {/* Payment Modal */}

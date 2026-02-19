@@ -127,19 +127,29 @@ export function TourHighlighter() {
     );
   }
 
-  // Target not found — no highlight
+  // Target not found — render NO mask, just a small non-blocking info banner
   if (!found || !rect) {
     return createPortal(
       <div
         style={{
           position: "fixed",
-          inset: 0,
+          bottom: 80,
+          left: "50%",
+          transform: "translateX(-50%)",
           zIndex: MASK_Z,
-          backgroundColor: "rgba(0, 0, 0, 0.45)",
           pointerEvents: "none",
+          background: "rgba(30, 30, 30, 0.85)",
+          backdropFilter: "blur(4px)",
+          border: "1px solid rgba(198, 168, 107, 0.3)",
+          borderRadius: 8,
+          padding: "8px 16px",
+          fontSize: 12,
+          color: "rgba(198, 168, 107, 0.9)",
+          whiteSpace: "nowrap",
         }}
-        aria-hidden="true"
-      />,
+      >
+        Tour target unavailable on this page — you can continue manually.
+      </div>,
       document.body,
     );
   }
@@ -218,12 +228,17 @@ export function TourHighlighter() {
           cursor: "pointer",
         }}
         onClick={(e) => {
-          // Let the click pass through to the actual element
+          // Temporarily hide this overlay so elementFromPoint finds the real target
+          const overlay = e.currentTarget as HTMLElement;
+          overlay.style.pointerEvents = "none";
+          overlay.style.display = "none";
           const targetEl = document.elementFromPoint(
             rect.left + rect.width / 2,
             rect.top + rect.height / 2,
           );
-          if (targetEl && targetEl !== e.currentTarget) {
+          overlay.style.display = "";
+          overlay.style.pointerEvents = "auto";
+          if (targetEl) {
             (targetEl as HTMLElement).click();
           }
         }}

@@ -177,6 +177,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {allGroups.map((group) => {
           // Filter items by role
           const visibleItems = group.items.filter((item) => {
+            // In demo mode, always show items that are tour-targeted
+            if (isDemo && item.dataTour) return true;
             if (item.roles && !item.roles.includes(userRole as UserRole)) return false;
             if (item.adminOnly && userRole !== "admin") return false;
             if (item.sellerOnly && userRole !== "seller" && userRole !== "admin") return false;

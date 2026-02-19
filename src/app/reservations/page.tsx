@@ -202,6 +202,7 @@ export default function ReservationsPage() {
               <button
                 onClick={() => handleConvert(r)}
                 disabled={convertMut.isPending}
+                data-tour="reservation-convert-cta"
                 className="rounded-[var(--radius-input)] border border-gold/30 bg-gold/5 px-3 py-1 text-xs font-medium text-gold transition-colors hover:bg-gold/10 disabled:opacity-50"
               >
                 {convertMut.isPending ? "…" : "Convert"}

@@ -1,10 +1,17 @@
 /* ================================================================
-   BUYER TOUR — Participant / Buyer Primary Path
-   
-   Overview of market state → Browse eligible inventory →
-   Initiate reservation → Review settlement rails →
-   Confirm allocation → View certificate issuance →
-   Audit proof / finality check
+   BUYER TOUR — Full Buy-Side Clearing Path (9 steps)
+
+   1. Buyer Home – Transaction Console overview (manual)
+   2. Browse Marketplace – click sidebar nav (click)
+   3. Reserve Inventory – view reserve CTA (manual)
+   4. Convert Reservation → Order – click convert CTA (click)
+   5. Counterparty Verification – click verification-continue (click)
+   6. Pay & Activate Clearing – click activation-pay-cta (click)
+   7. Settlement Console – click settlement row (click)
+   8. Clearing Certificate – click certificate-view (click)
+   9. Audit Trail – navigate to audit (manual)
+
+   Click-gated: 6/9 = 67%
    ================================================================ */
 
 import type { TourDefinition } from "../tour-engine/tourTypes";
@@ -13,68 +20,47 @@ export const buyerTour: TourDefinition = {
   id: "buyer",
   name: "Participant / Buyer",
   description:
-    "Walk through the complete buy-side workflow: from market overview through reservation, order creation, settlement tracking, and certificate issuance.",
+    "Walk through the complete buy-side clearing workflow: marketplace browse, reservation, order conversion, counterparty verification, activation payment, settlement lifecycle, certificate issuance, and audit trail.",
   role: "buyer",
-  startRoute: "/dashboard?demo=true",
+  startRoute: "/buyer?demo=true",
   previewPath: [
-    "Dashboard Overview",
-    "Capital Adequacy Review",
+    "Transaction Console",
     "Browse Marketplace",
-    "View Listing Detail",
-    "Create Reservation",
-    "Review Reservation",
+    "Reserve Inventory",
     "Convert to Order",
-    "Settlement Tracking",
-    "Settlement Lifecycle & Timeline",
-    "Clearing Certificate Issuance",
-    "Audit Trail Review",
+    "Counterparty Verification",
+    "Pay & Activate",
+    "Settlement Lifecycle",
+    "Clearing Certificate",
+    "Audit Trail",
   ],
   steps: [
+    /* ── 1. Buyer Home ── */
     {
-      id: "buyer-dashboard",
-      title: "Risk Dashboard Overview",
-      body: "The dashboard provides a unified operational view of AurumShield's clearing infrastructure. All metrics are computed from real-time settlement and position state.",
-      structure: [
-        {
-          label: "Risk Addressed",
-          text: "Fragmented operational awareness across clearing functions.",
-        },
-        {
-          label: "Control Mechanism",
-          text: "Consolidates capital adequacy, risk distribution, and evidence health into a single institutional command surface.",
-        },
-        {
-          label: "Why It Matters",
-          text: "Systemic risk management requires unified observability for timely decision-making.",
-        },
-      ],
-      route: "/dashboard?demo=true",
-      target: '[data-tour="dashboard-capital"]',
+      id: "buyer-home",
+      title: "Transaction Console",
+      body: "The buyer console provides a unified view of your clearing operations: active transactions anchored to settlement stl-002, counterparty verification status, indemnification coverage, and portfolio summary.",
+      route: "/buyer?demo=true",
+      target: '[data-tour="buyer-active-transaction"]',
       placement: "bottom",
       next: { type: "manual" },
     },
+
+    /* ── 2. Browse Marketplace (click sidebar) ── */
     {
-      id: "buyer-capital-overview",
-      title: "Capital Adequacy Metrics",
-      body: "Capital Base, Active Exposure, ECR, and Hardstop Utilization are computed deterministically from the active position book. These metrics gate all downstream trading activity.",
-      route: "/dashboard?demo=true",
-      target: '[data-tour="dashboard-capital"]',
-      placement: "bottom",
-      next: { type: "manual" },
-    },
-    {
-      id: "buyer-nav-marketplace",
-      title: "Navigate to Marketplace",
-      body: "The marketplace shows all eligible listings published by verified sellers. Each listing has passed evidence and capital control gates before becoming visible.",
-      route: "/dashboard?demo=true",
+      id: "buyer-marketplace-nav",
+      title: "Browse Marketplace",
+      body: "Click the Marketplace link to browse verified gold inventory. Every listing has passed a three-part evidence gate: assay report, chain of custody, and seller attestation.",
       target: '[data-tour="sidebar-marketplace"]',
       placement: "right",
       next: { type: "click", target: '[data-tour="sidebar-marketplace"]' },
     },
+
+    /* ── 3. Reserve Inventory (manual — user reads the listing) ── */
     {
-      id: "buyer-marketplace-browse",
-      title: "Browse Eligible Inventory",
-      body: "Listed inventory has been verified through a three-part evidence pack: assay report, chain of custody, and seller attestation. Only verified sellers with complete evidence appear here.",
+      id: "buyer-marketplace-reserve",
+      title: "Reserve Eligible Inventory",
+      body: "Listed inventory is vault-verified and capital-gated. The Reserve button locks a deterministic inventory position and creates bilateral exposure in the risk management system.",
       structure: [
         {
           label: "Risk Addressed",
@@ -90,111 +76,74 @@ export const buyerTour: TourDefinition = {
         },
       ],
       route: "/marketplace?demo=true",
-      placement: "center",
+      target: '[data-tour="marketplace-reserve-cta"]',
+      placement: "left",
       next: { type: "manual" },
     },
+
+    /* ── 4. Convert Reservation → Order (click) ── */
     {
-      id: "buyer-reservation-nav",
-      title: "View Reservations",
-      body: "Reservations lock bilateral exposure into the capital-aware perimeter. Navigate to the reservations view to see active and completed reservations.",
-      target: '[data-tour="sidebar-reservations"]',
-      placement: "right",
-      next: { type: "click", target: '[data-tour="sidebar-reservations"]' },
-    },
-    {
-      id: "buyer-reservations",
-      title: "Reservation Management",
-      body: "Each reservation represents a locked position against a listing. Policy gates enforce TRI scoring, ECR impact, and hardstop utilization thresholds before conversion to an order.",
-      structure: [
-        {
-          label: "Risk Addressed",
-          text: "Bilateral counterparty exposure prior to clearing.",
-        },
-        {
-          label: "Control Mechanism",
-          text: "Reservation-to-order conversion enforces policy gates including TRI scoring, ECR impact, and hardstop thresholds.",
-        },
-        {
-          label: "Why It Matters",
-          text: "No exposure is created without passing the capital adequacy perimeter.",
-        },
-      ],
+      id: "buyer-convert-order",
+      title: "Convert Reservation to Order",
+      body: "Navigate to Reservations and click 'Convert to Order' to freeze the marketplace policy snapshot and create a binding commercial commitment. This transition locks the TRI score, ECR impact, and capital adequacy state.",
       route: "/reservations?demo=true",
-      placement: "center",
-      next: { type: "manual" },
+      target: '[data-tour="reservation-convert-cta"]',
+      placement: "bottom",
+      next: { type: "click", target: '[data-tour="reservation-convert-cta"]' },
     },
+
+    /* ── 5. Counterparty Verification — click CTA ── */
     {
-      id: "buyer-orders-nav",
-      title: "View Orders",
-      body: "Navigate to the orders view to see confirmed orders with their policy snapshots frozen at time of conversion.",
-      target: '[data-tour="sidebar-orders"]',
-      placement: "right",
-      next: { type: "click", target: '[data-tour="sidebar-orders"]' },
+      id: "buyer-verification",
+      title: "Counterparty Verification",
+      body: "Both buyer and seller organizations pass a dual verification screen: registry match, UBO confirmation, sanctions/PEP screening, and jurisdiction-specific compliance. Click 'Open Verification Report' to review the full assessment.",
+      structure: [
+        {
+          label: "Risk Addressed",
+          text: "Counterparty exposure to unverified or sanctioned entities.",
+        },
+        {
+          label: "Control Mechanism",
+          text: "Dual-sided KYC/KYB verification gate with sequential compliance checks.",
+        },
+        {
+          label: "Why It Matters",
+          text: "No bilateral exposure is created without passing the identity perimeter.",
+        },
+      ],
+      route: "/buyer?demo=true",
+      target: '[data-tour="verification-continue"]',
+      placement: "top",
+      next: { type: "click", target: '[data-tour="verification-continue"]' },
     },
+
+    /* ── 6. Pay & Activate Clearing (click) ── */
     {
-      id: "buyer-orders",
-      title: "Order Confirmation",
-      body: "Each order contains a frozen policy snapshot capturing the capital adequacy state at the moment of conversion. This snapshot is preserved for regulatory examination.",
-      route: "/orders?demo=true",
-      placement: "center",
-      next: { type: "manual" },
+      id: "buyer-activate",
+      title: "Pay & Activate Clearing",
+      body: "Click 'Activate Clearing' to configure fee add-ons, review the invoice breakdown, and submit payment. Activation unlocks the settlement state machine and allows counterparties to execute clearing actions.",
+      route: "/buyer?demo=true",
+      target: '[data-tour="activation-pay-cta"]',
+      placement: "top",
+      next: { type: "click", target: '[data-tour="activation-pay-cta"]' },
     },
+
+    /* ── 7. Settlement Console — click demo row ── */
     {
-      id: "buyer-settlement-nav",
-      title: "Settlement Tracking",
-      body: "Navigate to settlements to track the deterministic lifecycle of your order through the clearing pipeline.",
-      target: '[data-tour="sidebar-settlements"]',
-      placement: "right",
-      next: { type: "click", target: '[data-tour="sidebar-settlements"]' },
-    },
-    {
-      id: "buyer-settlements",
+      id: "buyer-settlement-row",
       title: "Settlement Lifecycle",
-      body: "The settlement follows a deterministic state machine: escrow open → funds confirmation → gold allocation → verification clearance → authorization → atomic DvP execution. Each transition is role-gated.",
-      structure: [
-        {
-          label: "Risk Addressed",
-          text: "Settlement failure from incomplete or out-of-sequence lifecycle transitions.",
-        },
-        {
-          label: "Control Mechanism",
-          text: "Deterministic state machine with role-gated transitions and append-only ledger entries.",
-        },
-        {
-          label: "Why It Matters",
-          text: "Atomic delivery-versus-payment eliminates settlement failure modes inherent in sequential bilateral transfers.",
-        },
-      ],
+      body: "The settlement console shows all clearing operations. Click the highlighted settlement to open its detail page and inspect the complete lifecycle, including the immutable escrow ledger and settlement rails visualization.",
       route: "/settlements?demo=true",
-      placement: "center",
-      next: { type: "manual" },
+      target: '[data-tour="settlement-row-demo"]',
+      placement: "bottom",
+      next: { type: "click", target: '[data-tour="settlement-row-demo"]' },
     },
-    {
-      id: "buyer-settlement-detail",
-      title: "Settlement Lifecycle & Timeline",
-      body: "The settlement detail page shows the complete lifecycle: escrow open → funds confirmation → gold allocation → verification → authorization → atomic DvP execution. Each transition is recorded in the append-only ledger with actor identity and frozen snapshots.",
-      structure: [
-        {
-          label: "Risk Addressed",
-          text: "Settlement failure from incomplete or out-of-sequence lifecycle transitions.",
-        },
-        {
-          label: "Control Mechanism",
-          text: "Deterministic state machine with role-gated transitions, append-only ledger, and atomic DvP.",
-        },
-        {
-          label: "Why It Matters",
-          text: "Atomic delivery-versus-payment eliminates settlement failure modes inherent in sequential bilateral transfers.",
-        },
-      ],
-      route: "/settlements?demo=true",
-      placement: "center",
-      next: { type: "manual" },
-    },
+
+    /* ── 8. Clearing Certificate — click view ── */
     {
       id: "buyer-certificate",
-      title: "Clearing Certificate Issuance",
-      body: "Upon atomic DvP execution, the system issues a clearing certificate containing deterministic identifiers, a canonical signature hash, settlement details, and fee structure. The certificate is the authoritative proof of settlement finality — the single most important artifact in the clearing lifecycle.",
+      title: "Clearing Certificate",
+      body: "Upon atomic DvP execution, the system issues a clearing certificate containing deterministic identifiers, a canonical signature hash (SHA-256), UTC timestamp, and fee structure. Click 'View Certificate' to inspect the authoritative proof of settlement finality.",
       structure: [
         {
           label: "Risk Addressed",
@@ -202,29 +151,23 @@ export const buyerTour: TourDefinition = {
         },
         {
           label: "Control Mechanism",
-          text: "Cryptographically verifiable clearing certificate issued automatically upon DvP execution. Deterministic certificate number, canonical payload serialization, and SHA-256 signature hash.",
+          text: "Cryptographically verifiable clearing certificate with deterministic number, canonical payload serialization, and SHA-256 signature hash.",
         },
         {
           label: "Why It Matters",
           text: "The certificate is the authoritative proof of settlement finality for bilateral reconciliation, regulatory reporting, and custody transfer documentation.",
         },
       ],
-      route: "/settlements?demo=true",
-      placement: "center",
-      next: { type: "manual" },
+      target: '[data-tour="certificate-view"]',
+      placement: "top",
+      next: { type: "click", target: '[data-tour="certificate-view"]' },
     },
-    {
-      id: "buyer-audit-nav",
-      title: "Audit Trail",
-      body: "Navigate to the audit console to verify the immutable governance record of your settlement.",
-      target: '[data-tour="sidebar-audit"]',
-      placement: "right",
-      next: { type: "click", target: '[data-tour="sidebar-audit"]' },
-    },
+
+    /* ── 9. Audit Trail (manual) ── */
     {
       id: "buyer-audit",
-      title: "Settlement Audit Record",
-      body: "The audit console provides an immutable record of every settlement action, capital event, and governance decision. This is the authoritative evidence package for bilateral reconciliation and regulatory reporting.",
+      title: "Audit Trail",
+      body: "The Governance Command Center provides an immutable record of every settlement action, capital event, and governance decision. Filter by severity, resource type, or time range. This is the authoritative evidence package for bilateral reconciliation and regulatory reporting.",
       route: "/audit?demo=true",
       placement: "center",
       next: { type: "manual" },

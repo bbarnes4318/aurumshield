@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   CreditCard,
   Activity,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -32,6 +33,7 @@ import {
   useSettlementLedger,
   useApplySettlementAction,
   useExportSettlementPacket,
+  useCertificateBySettlement,
 } from "@/hooks/use-mock-queries";
 import {
   computeSettlementRequirements,
@@ -41,6 +43,7 @@ import {
 import type { SettlementActionPayload, SettlementActionType } from "@/lib/settlement-engine";
 import type { SettlementStatus, LedgerEntry, UserRole } from "@/lib/mock-data";
 import { mockCorridors, mockHubs } from "@/lib/mock-data";
+import { SettlementRailsVisualization } from "@/components/demo/SettlementRailsVisualization";
 
 /* ---------- Status chip config ---------- */
 const STATUS_CONFIG: Record<SettlementStatus, { label: string; color: string }> = {
@@ -164,6 +167,7 @@ function SettlementDetailContent() {
 
   const settlementQ = useSettlement(params.id);
   const ledgerQ = useSettlementLedger(params.id);
+  const certQ = useCertificateBySettlement(params.id);
   const applyAction = useApplySettlementAction();
   const exportPacket = useExportSettlementPacket();
 
@@ -255,6 +259,23 @@ function SettlementDetailContent() {
           {statusCfg.label}
         </span>
       </div>
+
+      {/* ═══ DvP Settlement Rails Visualization ═══ */}
+      <SettlementRailsVisualization
+        fundsState={
+          settlement.status === "SETTLED" ? "certified" :
+          settlement.status === "AUTHORIZED" ? "authorized" :
+          settlement.fundsConfirmedFinal ? "reserved" :
+          "pending"
+        }
+        assetState={
+          settlement.status === "SETTLED" ? "certified" :
+          settlement.status === "AUTHORIZED" ? "authorized" :
+          settlement.goldAllocated ? "reserved" :
+          "pending"
+        }
+        settlementId={settlement.id}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ═══ LEFT PANEL: Settlement Summary ═══ */}
@@ -384,6 +405,7 @@ function SettlementDetailContent() {
 
         {/* ═══ CENTER PANEL: Immutable Ledger Timeline ═══ */}
         <DashboardPanel title="Escrow Ledger" tooltip="Append-only ledger — no edits, no deletes" asOf={settlement.updatedAt}>
+          <div data-tour="settlement-ledger">
           {ledger.length === 0 ? (
             <p className="text-sm text-text-faint">No ledger entries.</p>
           ) : (
@@ -396,7 +418,48 @@ function SettlementDetailContent() {
               </div>
             </div>
           )}
+          </div>
         </DashboardPanel>
+
+        {/* ═══ CERTIFICATE MODULE ═══ */}
+        {settlement.status === "SETTLED" && certQ.data && (
+          <DashboardPanel title="Clearing Certificate" tooltip="Issued upon atomic DvP execution — immutable proof of settlement finality" asOf={certQ.data.issuedAt}>
+            <div className="space-y-3">
+              <div className="rounded-[var(--radius-sm)] border border-success/20 bg-success/5 px-4 py-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-success" />
+                  <span className="text-xs font-semibold text-success">Certificate Issued</span>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-faint">Certificate #</span>
+                    <span className="font-mono text-text">{certQ.data.certificateNumber}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-faint">Issued</span>
+                    <span className="tabular-nums text-text">
+                      {new Date(certQ.data.issuedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-faint">Signature Hash</span>
+                    <span className="font-mono text-[10px] text-text-muted truncate max-w-[180px]" title={certQ.data.signatureHash}>
+                      {certQ.data.signatureHash.slice(0, 16)}…
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <Link
+                href={`/certificates/${certQ.data.certificateNumber}?demo=true`}
+                data-tour="certificate-view"
+                className="flex items-center justify-center gap-2 rounded-md border border-gold/30 bg-gold/10 px-3 py-2 text-xs font-medium text-gold hover:bg-gold/20 transition-colors"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                View Certificate
+              </Link>
+            </div>
+          </DashboardPanel>
+        )}
 
         {/* ═══ RIGHT PANEL: Ops Actions ═══ */}
         <aside className="rounded-lg border border-border bg-surface-1 divide-y divide-border h-fit print:hidden">
@@ -553,6 +616,7 @@ function SettlementDetailContent() {
           <div className="p-4">
             <button
               id="settlement-export-btn"
+              data-tour="certificate-export"
               onClick={handleExport}
               disabled={exportPacket.isPending}
               className="flex items-center gap-2 text-xs text-text-muted hover:text-text transition-colors disabled:opacity-50"

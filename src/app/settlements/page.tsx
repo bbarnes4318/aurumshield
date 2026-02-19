@@ -194,7 +194,11 @@ function SettlementRow({ settlement: s }: { settlement: SettlementCase }) {
   return (
     <tr className="group hover:bg-surface-2/40 transition-colors cursor-pointer">
       <td className="px-3 py-2.5 whitespace-nowrap">
-        <Link href={`/settlements/${s.id}`} className="font-mono text-gold hover:underline">
+        <Link
+          href={`/settlements/${s.id}`}
+          className="font-mono text-gold hover:underline"
+          {...(s.buyerUserId === "demo-buyer" ? { "data-tour": "settlement-row-demo" } : {})}
+        >
           {s.id}
         </Link>
       </td>

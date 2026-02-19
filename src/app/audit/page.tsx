@@ -4,7 +4,7 @@ import { RequireAuth } from "@/components/auth/require-auth";
 import { useGovernanceAuditEvents, useExportAuditCSV } from "@/hooks/use-mock-queries";
 import type { AuditSeverity, AuditResourceType } from "@/lib/mock-data";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 /* ---------- helpers ---------- */
 
@@ -42,6 +42,28 @@ function AuditOverview() {
   const { data: events, isLoading } = useGovernanceAuditEvents();
   const exportCSV = useExportAuditCSV();
 
+  /* Filter state */
+  const [severityFilter, setSeverityFilter] = useState<AuditSeverity | "all">("all");
+  const [resourceFilter, setResourceFilter] = useState<string>("all");
+
+  /* Derive unique resource types from events */
+  const resourceTypes = useMemo(() => {
+    if (!events) return [];
+    const types = new Set<string>();
+    for (const e of events) types.add(e.resourceType);
+    return [...types].sort();
+  }, [events]);
+
+  /* Apply filters */
+  const filteredEvents = useMemo(() => {
+    if (!events) return [];
+    return events.filter((e) => {
+      if (severityFilter !== "all" && e.severity !== severityFilter) return false;
+      if (resourceFilter !== "all" && e.resourceType !== resourceFilter) return false;
+      return true;
+    });
+  }, [events, severityFilter, resourceFilter]);
+
   const metrics = useMemo(() => {
     if (!events) return { total24h: 0, critical24h: 0, denied24h: 0, exports7d: 0 };
     const now = new Date();
@@ -57,14 +79,14 @@ function AuditOverview() {
   }, [events]);
 
   const criticalDenied = useMemo(
-    () => (events ?? []).filter((e) => e.severity === "critical" || e.result === "DENIED" || e.result === "ERROR").slice(0, 12),
-    [events],
+    () => filteredEvents.filter((e) => e.severity === "critical" || e.result === "DENIED" || e.result === "ERROR").slice(0, 12),
+    [filteredEvents],
   );
 
   const hotResources = useMemo(() => {
-    if (!events) return [];
+    if (!filteredEvents.length) return [];
     const map = new Map<string, { type: AuditResourceType; id: string; count: number; lastAt: string }>();
-    for (const e of events) {
+    for (const e of filteredEvents) {
       const key = `${e.resourceType}:${e.resourceId}`;
       const existing = map.get(key);
       if (existing) {
@@ -75,7 +97,7 @@ function AuditOverview() {
       }
     }
     return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 10);
-  }, [events]);
+  }, [filteredEvents]);
 
   const handleExport = () => exportCSV.mutate({ filters: {} });
 
@@ -106,6 +128,42 @@ function AuditOverview() {
             Print
           </button>
         </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex items-center gap-3 flex-wrap" data-tour="audit-filters">
+        <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-text-faint">Filters</label>
+        <select
+          value={severityFilter}
+          onChange={(e) => setSeverityFilter(e.target.value as AuditSeverity | "all")}
+          className="rounded-md border border-border bg-surface-2 px-2.5 py-1.5 text-xs text-text font-medium focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors"
+        >
+          <option value="all">All Severities</option>
+          <option value="info">Info</option>
+          <option value="warning">Warning</option>
+          <option value="critical">Critical</option>
+        </select>
+        <select
+          value={resourceFilter}
+          onChange={(e) => setResourceFilter(e.target.value)}
+          className="rounded-md border border-border bg-surface-2 px-2.5 py-1.5 text-xs text-text font-medium focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors"
+        >
+          <option value="all">All Resources</option>
+          {resourceTypes.map((rt) => (
+            <option key={rt} value={rt}>{rt}</option>
+          ))}
+        </select>
+        {(severityFilter !== "all" || resourceFilter !== "all") && (
+          <button
+            onClick={() => { setSeverityFilter("all"); setResourceFilter("all"); }}
+            className="text-[10px] text-gold hover:underline font-medium"
+          >
+            Clear Filters
+          </button>
+        )}
+        <span className="ml-auto text-[10px] text-text-faint font-mono">
+          {filteredEvents.length} event{filteredEvents.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
       {/* Metrics Strip */}

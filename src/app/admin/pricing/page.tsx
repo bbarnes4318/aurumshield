@@ -142,6 +142,7 @@ export default function AdminPricingPage() {
             onClick={handleSave}
             disabled={saveMutation.isPending}
             className="flex items-center gap-1.5 text-xs font-medium px-4 py-1.5 rounded-md bg-[var(--gold)] text-[var(--bg-primary)] hover:brightness-110 transition-all disabled:opacity-50"
+            data-tour="pricing-save-btn"
           >
             {saved ? (
               <>
@@ -164,7 +165,7 @@ export default function AdminPricingPage() {
       </div>
 
       {/* Core Indemnification Fee */}
-      <div className="card-base p-5">
+      <div className="card-base p-5" data-tour="pricing-edit-btn">
         <div className="flex items-center gap-2 mb-4">
           <Shield className="h-5 w-5 text-[var(--gold)]" />
           <h2 className="text-base font-semibold text-[var(--text-primary)]">

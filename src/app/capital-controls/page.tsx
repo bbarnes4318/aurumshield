@@ -155,6 +155,7 @@ function CapitalControlsConsole() {
               onClick={() => sweepMutation.mutate()}
               disabled={sweepMutation.isPending}
               className="flex items-center gap-2 rounded-input border border-border bg-surface-2 px-3 py-2 text-xs font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-3 disabled:opacity-50"
+              data-tour="control-mode-toggle"
             >
               <RotateCw className={cn("h-3.5 w-3.5", sweepMutation.isPending && "animate-spin")} />
               Run Sweep

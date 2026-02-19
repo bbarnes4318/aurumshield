@@ -1,9 +1,16 @@
 /* ================================================================
-   SELLER TOUR — Participant / Seller Primary Path
-   
-   Inventory / availability → Upload/verify evidence pack →
-   Publish clearing eligibility → Accept reservation →
-   Settlement confirmation → Certificate issuance record
+   SELLER TOUR — Sell-Side Clearing Workflow (8 steps)
+
+   1. Seller Console — listing overview (manual)
+   2. Publish Listing — click listing-publish-btn (click)
+   3. Navigate Marketplace — click sidebar (click)
+   4. Accept Reservation — click accept-reservation CTA (click)
+   5. Open Settlement — click settlement row (click)
+   6. Settlement Detail & Ledger (manual)
+   7. Clearing Certificate — click certificate-view (click)
+   8. Audit Trail (manual)
+
+   Click-gated: 5/8 = 62.5%
    ================================================================ */
 
 import type { TourDefinition } from "../tour-engine/tourTypes";
@@ -12,43 +19,25 @@ export const sellerTour: TourDefinition = {
   id: "seller",
   name: "Participant / Seller",
   description:
-    "Walk through the sell-side workflow: inventory creation, evidence packing, publish gate verification, and settlement lifecycle participation.",
+    "Walk through the sell-side clearing workflow: listing management, publish gate verification, reservation acceptance, marketplace visibility, settlement lifecycle participation, and certificate issuance.",
   role: "seller",
-  startRoute: "/dashboard?demo=true",
+  startRoute: "/seller?demo=true",
   previewPath: [
-    "Dashboard Overview",
-    "Navigate to Listings",
-    "Listing Console",
-    "Create New Listing",
-    "Evidence Pack Requirements",
-    "Publish Gate Enforcement",
+    "Seller Console",
+    "Publish Listing",
     "Marketplace Visibility",
-    "Reservation Acceptance",
-    "Settlement Participation",
-    "Certificate Record",
+    "Accept Reservation",
+    "Open Settlement",
+    "Settlement Ledger",
+    "Clearing Certificate",
+    "Audit Trail",
   ],
   steps: [
+    /* ── 1. Seller Home ── */
     {
-      id: "seller-dashboard",
-      title: "Seller Dashboard",
-      body: "As a verified seller, the dashboard provides visibility into your inventory status, active settlements, and marketplace conditions.",
-      route: "/dashboard?demo=true",
-      target: '[data-tour="dashboard-capital"]',
-      placement: "bottom",
-      next: { type: "manual" },
-    },
-    {
-      id: "seller-listings-nav",
-      title: "Navigate to My Listings",
-      body: "Access your listing console to manage inventory and track evidence pack status.",
-      target: '[data-tour="sidebar-my-listings"]',
-      placement: "right",
-      next: { type: "click", target: '[data-tour="sidebar-my-listings"]' },
-    },
-    {
-      id: "seller-listings",
-      title: "Listing Console",
-      body: "The listing console shows all your inventory with evidence pack status, publish gate results, and marketplace visibility. Each listing must pass a publish gate before buyers can see it.",
+      id: "seller-home",
+      title: "Listing & Settlement Console",
+      body: "The seller console shows your listing inventory with evidence pack status, incoming reservations from verified buyers, and settlement participation overview. All data is deterministically seeded.",
       structure: [
         {
           label: "Risk Addressed",
@@ -63,77 +52,95 @@ export const sellerTour: TourDefinition = {
           text: "The clearing authority cannot guarantee delivery without verified provenance.",
         },
       ],
-      route: "/sell/listings?demo=true",
-      placement: "center",
+      route: "/seller?demo=true",
+      target: '[data-tour="seller-listings"]',
+      placement: "bottom",
       next: { type: "manual" },
     },
+
+    /* ── 2. Publish Listing — click CTA ── */
     {
-      id: "seller-create-nav",
-      title: "Create New Listing",
-      body: "Navigate to the listing wizard to create inventory with certified specifications.",
-      target: '[data-tour="sidebar-create-listing"]',
-      placement: "right",
-      next: { type: "click", target: '[data-tour="sidebar-create-listing"]' },
+      id: "seller-publish",
+      title: "Publish Listing",
+      body: "Click the Publish button to submit your listing through the publish gate. The gate validates seller verification status, evidence completeness, and capital control constraints before making inventory visible to buyers.",
+      route: "/seller?demo=true",
+      target: '[data-tour="listing-publish-btn"]',
+      placement: "top",
+      next: { type: "click", target: '[data-tour="listing-publish-btn"]' },
     },
-    {
-      id: "seller-create-listing",
-      title: "Listing Creation Wizard",
-      body: "Specify gold form, purity, weight, price, and vault location. All fields are validated against clearing authority standards before proceeding to evidence upload.",
-      route: "/sell?demo=true",
-      placement: "center",
-      next: { type: "manual" },
-    },
-    {
-      id: "seller-evidence",
-      title: "Evidence Pack Requirements",
-      body: "Each listing requires three evidence documents: (1) Certified Assay Report — verifies gold purity and weight, (2) Chain of Custody Certificate — proves provenance from refiner to vault, (3) Seller Attestation — legal declaration of ownership and authority to sell.",
-      structure: [
-        {
-          label: "Risk Addressed",
-          text: "Counterparty exposure to sellers with incomplete identity verification.",
-        },
-        {
-          label: "Control Mechanism",
-          text: "Publish gate validates seller verification status, evidence completeness, and capital control constraints.",
-        },
-        {
-          label: "Why It Matters",
-          text: "Inventory integrity is enforced before any buyer interaction.",
-        },
-      ],
-      route: "/sell?demo=true",
-      placement: "center",
-      next: { type: "manual" },
-    },
+
+    /* ── 3. Navigate to Marketplace — click sidebar ── */
     {
       id: "seller-marketplace-nav",
       title: "Marketplace Visibility",
-      body: "Once published, your listing becomes visible in the marketplace to all verified buyers.",
+      body: "Once published, your listing becomes visible in the marketplace to all verified buyers. Click the Marketplace link to verify your published inventory appears correctly.",
       target: '[data-tour="sidebar-marketplace"]',
       placement: "right",
       next: { type: "click", target: '[data-tour="sidebar-marketplace"]' },
     },
+
+    /* ── 4. Accept Reservation — click CTA ── */
     {
-      id: "seller-marketplace",
-      title: "Published Inventory",
-      body: "Your published listing is now available for reservation by verified buyers. The marketplace enforces capital adequacy gates on all reservation attempts.",
-      route: "/marketplace?demo=true",
-      placement: "center",
+      id: "seller-accept-reservation",
+      title: "Accept Incoming Reservation",
+      body: "Navigate back to your seller console to view incoming reservations. The reservation panel shows the verified buyer's order details. Click 'Open Settlement' to accept and begin the clearing process.",
+      route: "/seller?demo=true",
+      target: '[data-tour="seller-open-settlement-cta"]',
+      placement: "top",
+      next: { type: "click", target: '[data-tour="seller-open-settlement-cta"]' },
+    },
+
+    /* ── 5. Open Settlement — click settlement row ── */
+    {
+      id: "seller-settlement-row",
+      title: "Settlement Console",
+      body: "The settlement console shows all clearing operations you are involved in. Click the highlighted settlement to view the full lifecycle detail and ledger.",
+      route: "/settlements?demo=true",
+      target: '[data-tour="settlement-row-demo"]',
+      placement: "bottom",
+      next: { type: "click", target: '[data-tour="settlement-row-demo"]' },
+    },
+
+    /* ── 6. Settlement Detail & Ledger (manual) ── */
+    {
+      id: "seller-settlement-detail",
+      title: "Settlement Lifecycle & Ledger",
+      body: "The settlement detail shows the complete lifecycle with append-only ledger entries and settlement rails visualization. As a seller, your view provides full transparency into the clearing process — settlement actions are role-gated to operations staff.",
+      structure: [
+        {
+          label: "Risk Addressed",
+          text: "Settlement failure from incomplete or out-of-sequence lifecycle transitions.",
+        },
+        {
+          label: "Control Mechanism",
+          text: "Deterministic state machine with role-gated transitions and append-only ledger.",
+        },
+        {
+          label: "Why It Matters",
+          text: "Atomic delivery-versus-payment eliminates settlement failure modes inherent in sequential bilateral transfers.",
+        },
+      ],
+      target: '[data-tour="settlement-ledger"]',
+      placement: "top",
       next: { type: "manual" },
     },
+
+    /* ── 7. Clearing Certificate — click view ── */
     {
-      id: "seller-settlements-nav",
-      title: "Settlement Participation",
-      body: "Navigate to settlements to view your involvement in active clearing cases.",
-      target: '[data-tour="sidebar-settlements"]',
-      placement: "right",
-      next: { type: "click", target: '[data-tour="sidebar-settlements"]' },
+      id: "seller-certificate",
+      title: "Clearing Certificate",
+      body: "Upon settlement finality, both buyer and seller receive access to the clearing certificate — SHA-256 signature hash, UTC issuance timestamp, and deterministic certificate number. Click 'View Certificate' to inspect the authoritative proof of atomic DvP execution.",
+      target: '[data-tour="certificate-view"]',
+      placement: "top",
+      next: { type: "click", target: '[data-tour="certificate-view"]' },
     },
+
+    /* ── 8. Audit Trail (manual) ── */
     {
-      id: "seller-settlements",
-      title: "Settlement Confirmation",
-      body: "As a seller, you participate in the settlement lifecycle as a counterparty. Settlement actions are role-gated — your view is limited to confirming gold availability and reviewing settlement status.",
-      route: "/settlements?demo=true",
+      id: "seller-audit",
+      title: "Audit Trail",
+      body: "The Governance Command Center provides an immutable record of every settlement action, capital event, and governance decision. This is the authoritative evidence package for bilateral reconciliation and regulatory reporting.",
+      route: "/audit?demo=true",
       placement: "center",
       next: { type: "manual" },
     },
