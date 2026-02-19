@@ -190,14 +190,18 @@ function Th({ children, align = "left" }: { children: React.ReactNode; align?: "
 /* ---------- Table row ---------- */
 function SettlementRow({ settlement: s }: { settlement: SettlementCase }) {
   const cfg = STATUS_CONFIG[s.status] ?? STATUS_CONFIG.DRAFT;
+  const isDemoBuyer = s.buyerUserId === "demo-buyer";
 
   return (
-    <tr className="group hover:bg-surface-2/40 transition-colors cursor-pointer">
+    <tr
+      className="group hover:bg-surface-2/40 transition-colors cursor-pointer"
+      {...(isDemoBuyer ? { "data-tour": "settlement-row-demo" } : {})}
+    >
       <td className="px-3 py-2.5 whitespace-nowrap">
         <Link
-          href={`/settlements/${s.id}`}
+          href={`/settlements/${s.id}${isDemoBuyer ? "?demo=true" : ""}`}
           className="font-mono text-gold hover:underline"
-          {...(s.buyerUserId === "demo-buyer" ? { "data-tour": "settlement-row-demo" } : {})}
+          {...(isDemoBuyer ? { "data-tour": "settlement-row-demo" } : {})}
         >
           {s.id}
         </Link>

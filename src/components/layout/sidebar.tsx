@@ -155,7 +155,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       )}
     >
       {/* Brand */}
-      <div className="flex h-14 items-center border-b border-border px-3">
+      <div className="flex h-16 items-center border-b border-border px-3">
         {collapsed ? (
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gold text-bg text-sm font-bold">
             Au
@@ -165,8 +165,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             src="/arum-logo-white.png"
             alt="AurumShield"
             width={200}
-            height={46}
-            className="h-8 w-auto"
+            height={52}
+            className="h-10 w-auto"
             priority
           />
         )}
@@ -196,12 +196,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <ul className="space-y-0.5">
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
+                  const linkHref = isDemo ? `${item.href}?demo=true` : item.href;
                   const isActive =
                     pathname === item.href || pathname.startsWith(item.href + "/");
                   return (
                     <li key={item.href}>
                       <Link
-                        href={item.href}
+                        href={linkHref}
                         data-tour={item.dataTour}
                         className={cn(
                           "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-sm transition-colors",

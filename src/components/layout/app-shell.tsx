@@ -8,6 +8,7 @@ import { CommandPalette } from "@/components/ui/command-palette";
 import { DemoScriptOverlay } from "@/components/demo/demo-script-overlay";
 import { TourOverlay } from "@/demo/tour-engine/TourOverlay";
 import { TourHighlighter } from "@/demo/tour-engine/TourHighlighter";
+import { TourDebugPanel } from "@/demo/tour-engine/TourDebugPanel";
 import { useDemo } from "@/providers/demo-provider";
 import { useTour } from "@/demo/tour-engine/TourProvider";
 
@@ -82,6 +83,9 @@ export function AppShell({ children }: AppShellProps) {
           <TourOverlay />
         </>
       )}
+
+      {/* Debug panel — visible only with ?debugTours=1 */}
+      <TourDebugPanel />
     </div>
   );
 }

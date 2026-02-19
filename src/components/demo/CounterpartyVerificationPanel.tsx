@@ -3,7 +3,9 @@
 
    Split-view verification checks for buyer + seller entities.
    Animated sequential check reveals (<400ms each).
-   Includes explicit CTA: "Open Verification Report" for tour gating.
+   Includes: Entity Match, UBO, Sanctions, PEP, Source of Funds,
+   AML Risk Score with Low/Medium/High banding,
+   and "Clearing Eligible" conclusion banner.
    ================================================================ */
 
 "use client";
@@ -22,7 +24,7 @@ interface VerificationCheck {
 }
 
 const BUYER_CHECKS: VerificationCheck[] = [
-  { label: "Registry Match", status: "pass" },
+  { label: "Entity Match", status: "pass" },
   { label: "UBO Confirmed", status: "pass" },
   { label: "Sanctions Screen", status: "pass" },
   { label: "PEP Screen", status: "pass" },
@@ -30,12 +32,18 @@ const BUYER_CHECKS: VerificationCheck[] = [
 ];
 
 const SELLER_CHECKS: VerificationCheck[] = [
-  { label: "Registry Match", status: "pass" },
+  { label: "Entity Match", status: "pass" },
   { label: "UBO Confirmed", status: "pass" },
   { label: "Sanctions Screen", status: "pass" },
-  { label: "LBMA Membership", status: "pass" },
+  { label: "PEP Screen", status: "pass" },
   { label: "Vault Attestation", status: "pass" },
 ];
+
+function getRiskBand(score: number): { label: string; color: string } {
+  if (score <= 25) return { label: "Low", color: "text-success" };
+  if (score <= 60) return { label: "Medium", color: "text-warning" };
+  return { label: "High", color: "text-danger" };
+}
 
 function VerificationColumn({
   title,
@@ -50,6 +58,7 @@ function VerificationColumn({
   riskScore: number;
   revealedCount: number;
 }) {
+  const band = getRiskBand(riskScore);
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 mb-2">
@@ -81,11 +90,16 @@ function VerificationColumn({
       {revealedCount >= checks.length && (
         <div className="flex items-center justify-between pt-2 border-t border-border mt-2">
           <span className="text-[10px] uppercase tracking-wider text-text-faint">
-            Risk Score
+            AML Risk Score
           </span>
-          <span className="font-mono text-xs font-semibold text-text">
-            {riskScore}/100
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-semibold text-text">
+              {riskScore}/100
+            </span>
+            <span className={`text-[9px] font-bold uppercase tracking-wider ${band.color}`}>
+              {band.label}
+            </span>
+          </div>
         </div>
       )}
     </div>

@@ -158,6 +158,7 @@ export const buyerTour: TourDefinition = {
           text: "The certificate is the authoritative proof of settlement finality for bilateral reconciliation, regulatory reporting, and custody transfer documentation.",
         },
       ],
+      route: "/settlements/stl-001?demo=true",
       target: '[data-tour="certificate-view"]',
       placement: "top",
       next: { type: "click", target: '[data-tour="certificate-view"]' },

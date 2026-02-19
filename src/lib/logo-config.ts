@@ -1,13 +1,13 @@
 /* ================================================================
    Logo Sizing — Single source of truth
    ================================================================
-   Normal mode: 32px tall (legible at small sidebar widths).
-   Presentation mode: 42px tall (sized for room projection).
+   Normal mode: 40px tall (legible at a glance).
+   Presentation mode: 52px tall (sized for room projection).
    ================================================================ */
 
 export const LOGO_SIZE = {
-  normal: { height: 32, width: "auto" as const },
-  presentation: { height: 42, width: "auto" as const },
+  normal: { height: 40, width: "auto" as const },
+  presentation: { height: 52, width: "auto" as const },
 } as const;
 
 /** CSS class to apply in presentation mode for logo scaling */

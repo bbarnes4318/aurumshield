@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
+import Image from "next/image";
 import { type ColumnDef } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -18,6 +19,25 @@ import { loadMarketplaceState } from "@/lib/marketplace-store";
 
 /* ================================================================ */
 const MOCK_USER_ID = "user-1";
+
+/** Map listing IDs to gold product images */
+const LISTING_IMAGES: Record<string, string> = {
+  "lst-001": "/1.png",
+  "lst-002": "/2.png",
+  "lst-003": "/3.png",
+  "lst-004": "/4.png",
+  "lst-005": "/5.png",
+};
+
+/** Delivery method descriptions */
+const DELIVERY_METHOD: Record<string, string> = {
+  "hub-001": "Vault Transfer (LBMA)",
+  "hub-002": "Allocated Storage (ZKB)",
+  "hub-003": "Vault Transfer (SGX)",
+  "hub-004": "COMEX Delivery",
+  "hub-005": "Allocated Storage (DBV)",
+  "hub-006": "Vault Transfer (DMCC)",
+};
 
 /* ---------- Countdown Timer ---------- */
 function CountdownTimer({ expiresAt }: { expiresAt: string }) {
@@ -125,7 +145,6 @@ function ReserveModal({
         </div>
 
         <div className="px-6 py-5 space-y-4">
-          {/* Listing summary */}
           <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3 space-y-1.5 text-sm">
             <div className="flex justify-between">
               <span className="text-text-faint">Reference</span>
@@ -145,7 +164,6 @@ function ReserveModal({
             </div>
           </div>
 
-          {/* Weight input */}
           <form onSubmit={form.handleSubmit(onSubmit)} id="reserve-form">
             <label className="typo-label mb-1.5 block" htmlFor="reserve-weight">Weight (oz)</label>
             <input
@@ -168,7 +186,6 @@ function ReserveModal({
             )}
           </form>
 
-          {/* Calculated total */}
           <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3">
             <div className="flex justify-between text-sm">
               <span className="text-text-faint">Calculated Total</span>
@@ -209,7 +226,6 @@ function ReserveModal({
    MAIN PAGE
    ================================================================ */
 
-/** Enriched listing row with inventory data joined */
 interface ListingRow extends Listing {
   availableWeightOz: number;
   reservedWeightOz: number;
@@ -219,7 +235,6 @@ interface ListingRow extends Listing {
 }
 
 function MarketplaceContent() {
-  /* Run expiry sweep on mount */
   useEffect(() => {
     runReservationExpirySweep({ nowMs: Date.now() });
   }, []);
@@ -229,7 +244,6 @@ function MarketplaceContent() {
   const filterValues = useFilterValues(["form", "purity", "vault", "jurisdiction"]);
   const [reserveTarget, setReserveTarget] = useState<Listing | null>(null);
 
-  /* Build enriched rows */
   const state = typeof window !== "undefined" ? loadMarketplaceState() : null;
   const rows: ListingRow[] = useMemo(() => {
     if (!listingsQ.data) return [];
@@ -248,7 +262,6 @@ function MarketplaceContent() {
     });
   }, [listingsQ.data, reservationsQ.data, state?.inventory]);
 
-  /* Apply filters */
   const filteredRows = useMemo(() => {
     return rows.filter((r) => {
       if (filterValues.form && r.form !== filterValues.form) return false;
@@ -259,13 +272,15 @@ function MarketplaceContent() {
     });
   }, [rows, filterValues]);
 
-  /* Inventory for reserve modal */
+  const featuredListings = useMemo(() => {
+    return filteredRows.filter((r) => LISTING_IMAGES[r.id]).slice(0, 5);
+  }, [filteredRows]);
+
   const targetInventory = useMemo(() => {
     if (!reserveTarget || !state) return undefined;
     return state.inventory.find((i) => i.listingId === reserveTarget.id);
   }, [reserveTarget, state]);
 
-  /* Column definitions */
   const columns: ColumnDef<ListingRow, unknown>[] = useMemo(() => [
     {
       accessorKey: "id",
@@ -346,7 +361,6 @@ function MarketplaceContent() {
     },
   ], []);
 
-  /* Loading / Error */
   if (listingsQ.isLoading || reservationsQ.isLoading) return <LoadingState message="Loading marketplace inventory…" />;
   if (listingsQ.isError) return <ErrorState message="Failed to load listings." onRetry={() => listingsQ.refetch()} />;
 
@@ -359,7 +373,91 @@ function MarketplaceContent() {
 
       <FilterBar filters={FILTERS} className="mt-4" />
 
-      <div className="mt-4">
+      {/* Featured Listings Card Grid */}
+      {featuredListings.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint mb-3">
+            Featured Allocations
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {featuredListings.map((listing, idx) => {
+              const imgSrc = LISTING_IMAGES[listing.id];
+              const notional = listing.availableWeightOz * listing.pricePerOz;
+              const delivery = DELIVERY_METHOD[listing.vaultHubId] ?? "Vault Transfer";
+              const isFirst = idx === 0;
+              return (
+                <div
+                  key={listing.id}
+                  data-tour={isFirst ? "marketplace-listing-demo" : undefined}
+                  className="group card-base border border-border overflow-hidden transition-all hover:border-gold/30"
+                >
+                  {/* Image */}
+                  <div className="relative h-36 w-full bg-surface-2 overflow-hidden">
+                    {imgSrc && (
+                      <Image
+                        src={imgSrc}
+                        alt={listing.title}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
+                      />
+                    )}
+                    <div className="absolute top-2 left-2 rounded-sm bg-bg/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gold">
+                      .{listing.purity}
+                    </div>
+                  </div>
+
+                  {/* Metadata */}
+                  <div className="p-3 space-y-2">
+                    <p className="text-xs font-medium text-text leading-tight truncate" title={listing.title}>
+                      {listing.title}
+                    </p>
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-text-faint">Weight</span>
+                        <span className="tabular-nums text-text">{listing.availableWeightOz.toLocaleString()} oz</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-faint">Vault</span>
+                        <span className="text-text truncate ml-2 text-right" title={listing.vaultName}>{listing.vaultName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-faint">Delivery</span>
+                        <span className="text-text text-right">{delivery}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-faint">Price/oz</span>
+                        <span className="tabular-nums font-medium text-text">
+                          ${listing.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t border-border pt-1 mt-1">
+                        <span className="text-text-faint">Notional</span>
+                        <span className="tabular-nums font-semibold text-gold">
+                          ${notional.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setReserveTarget(listing)}
+                      data-tour={isFirst ? "marketplace-reserve-cta" : undefined}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-gold/30 bg-gold/5 px-2 py-1.5 text-[11px] font-medium text-gold transition-colors hover:bg-gold/10"
+                    >
+                      Reserve
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Full Data Table */}
+      <div className="mt-6">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint mb-3">
+          Full Inventory Ledger
+        </h2>
         <DataTable
           columns={columns}
           data={filteredRows}

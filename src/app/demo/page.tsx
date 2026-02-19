@@ -3,18 +3,14 @@
 /* ================================================================
    DEMO CONSOLE — Role-based guided tour entry point
 
-   Displays 6 role cards with CTA to start guided tours.
+   Displays 3 role cards (Buyer / Seller / Admin) with CTA to start guided tours.
    Each card shows role icon, display name, description, preview path.
-   Role selection triggers: set demo role → navigate to tour start → begin.
    ================================================================ */
 
 import { useRouter } from "next/navigation";
 import {
   ShoppingCart,
   Store,
-  Landmark,
-  ShieldCheck,
-  Wallet,
   Settings,
   ChevronRight,
   RotateCcw,
@@ -24,15 +20,13 @@ import { useDemo } from "@/providers/demo-provider";
 import { useTour } from "@/demo/tour-engine/TourProvider";
 import { ROLE_DISPLAY } from "@/demo/tour-engine/tourTypes";
 import { getAllTours } from "@/demo/tours";
+import { SupportBanner } from "@/components/demo/SupportBanner";
 import type { UserRole } from "@/lib/mock-data";
 
 /* ---------- Role Icon Mapping ---------- */
 const ROLE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   buyer: ShoppingCart,
   seller: Store,
-  vault_ops: Landmark,
-  compliance: ShieldCheck,
-  treasury: Wallet,
   admin: Settings,
 };
 
@@ -42,25 +36,21 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
     "Experience the buy-side workflow: market overview, reservation creation, order confirmation, settlement tracking, and certificate issuance.",
   seller:
     "Walk through the sell-side workflow: listing creation, evidence packing, publish gate verification, and settlement lifecycle participation.",
-  vault_ops:
-    "Clearing operations walk-through: queue management, settlement execution, compliance verification, and finality confirmation.",
-  compliance:
-    "Risk oversight workflow: exposure monitoring, policy enforcement, breach escalation, and regulatory examination preparation.",
-  treasury:
-    "Treasury capital workflow: ECR monitoring, hardstop management, breach handling, and settlement fund confirmation.",
   admin:
-    "Administrative operations: role management, policy configuration, audit controls, and platform operations.",
+    "Administrative operations: fee pricing, capital controls, settlement oversight, and governance audit.",
 };
+
+/** Only these three roles appear on the demo console */
+const DEMO_ROLES = ["buyer", "seller", "admin"];
 
 /* ---------- Page Component ---------- */
 export default function DemoConsolePage() {
   const router = useRouter();
   const { isDemo, resetDemo } = useDemo();
   const { startTour, state: tourState, exitTour } = useTour();
-  const tours = getAllTours();
+  const tours = getAllTours().filter((t) => DEMO_ROLES.includes(t.role));
 
   const handleStartTour = (roleId: string) => {
-    // Exit any active tour first
     if (tourState.status !== "idle") {
       exitTour();
     }
@@ -97,8 +87,8 @@ export default function DemoConsolePage() {
         </p>
       </div>
 
-      {/* Role Cards Grid */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 mb-8">
+      {/* Role Cards Grid — 3 cards */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-8">
         {tours.map((tour) => {
           const Icon = ROLE_ICONS[tour.role] ?? Settings;
           const displayName = ROLE_DISPLAY[tour.role as UserRole] ?? tour.role;
@@ -165,10 +155,13 @@ export default function DemoConsolePage() {
         })}
       </div>
 
-      {/* Footer Controls */}
+      {/* Footer Controls + Support */}
       <div className="flex items-center justify-between border-t border-border pt-4">
-        <div className="text-[10px] text-text-faint uppercase tracking-widest">
-          AurumShield Institutional Demonstration
+        <div className="flex items-center gap-6">
+          <div className="text-[10px] text-text-faint uppercase tracking-widest">
+            AurumShield Institutional Demonstration
+          </div>
+          <SupportBanner compact />
         </div>
         <button
           onClick={resetDemo}

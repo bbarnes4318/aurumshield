@@ -145,7 +145,7 @@ export default function DemoWalkthroughPage() {
           border-bottom: 1px solid var(--border);
           flex-shrink: 0;
         }
-        .wt-sidebar-brand img { height: 32px; width: auto; }
+        .wt-sidebar-brand img { height: 40px; width: auto; }
         .wt-sidebar-nav {
           flex: 1;
           overflow-y: auto;

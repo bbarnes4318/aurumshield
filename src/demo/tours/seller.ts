@@ -130,6 +130,7 @@ export const sellerTour: TourDefinition = {
       id: "seller-certificate",
       title: "Clearing Certificate",
       body: "Upon settlement finality, both buyer and seller receive access to the clearing certificate — SHA-256 signature hash, UTC issuance timestamp, and deterministic certificate number. Click 'View Certificate' to inspect the authoritative proof of atomic DvP execution.",
+      route: "/settlements/stl-001?demo=true",
       target: '[data-tour="certificate-view"]',
       placement: "top",
       next: { type: "click", target: '[data-tour="certificate-view"]' },
