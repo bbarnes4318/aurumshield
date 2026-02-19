@@ -69,19 +69,19 @@ Always exclude: `tfplan`, `terraform.tfstate`, `.terraform/` directory.
 ### Step 3: Commit with a descriptive message
 
 ```
-cd c:\Users\jimbo\OneDrive\Desktop\gold && git commit -m "COMMIT_MESSAGE_HERE" 2>&1
+cd c:\Users\jimbo\OneDrive\Desktop\gold && $ErrorActionPreference='SilentlyContinue'; git commit -m "COMMIT_MESSAGE_HERE" 2>&1; $ErrorActionPreference='Continue'
 ```
 
 ### Step 4: Push to main
 
 ```
-cd c:\Users\jimbo\OneDrive\Desktop\gold && git push origin main 2>&1
+cd c:\Users\jimbo\OneDrive\Desktop\gold && $ErrorActionPreference='SilentlyContinue'; git push origin main 2>&1; $ErrorActionPreference='Continue'
 ```
 
 ### Step 5: Tag with a version number to trigger CI/CD deploy
 
 ```
-cd c:\Users\jimbo\OneDrive\Desktop\gold && git tag vX.Y.Z 2>&1; git push origin vX.Y.Z 2>&1
+cd c:\Users\jimbo\OneDrive\Desktop\gold && $ErrorActionPreference='SilentlyContinue'; git tag vX.Y.Z 2>&1; git push origin vX.Y.Z 2>&1; $ErrorActionPreference='Continue'
 ```
 
 Use semantic versioning. Check the latest tag first:

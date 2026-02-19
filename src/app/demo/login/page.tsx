@@ -11,6 +11,8 @@ import { useAuth } from "@/providers/auth-provider";
 import { DEMO_ACCOUNTS } from "@/lib/demo-seeder";
 import { findUserByEmail } from "@/lib/auth-store";
 import { ensureDemoAccounts } from "@/lib/demo-seeder";
+import { useTour } from "@/demo/tour-engine/TourProvider";
+import { useDemo } from "@/providers/demo-provider";
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
   buyer: "Institutional acquisition desk. Views marketplace, reserves gold, places orders.",
@@ -31,8 +33,10 @@ const ROLE_LABELS: Record<string, string> = {
 export default function DemoLoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { startTour } = useTour();
+  const { setDemoRole } = useDemo();
 
-  function handleSelectRole(email: string) {
+  function handleSelectRole(email: string, role: string) {
     // Ensure demo accounts exist before login
     ensureDemoAccounts();
 
@@ -43,7 +47,8 @@ export default function DemoLoginPage() {
     }
 
     login(email);
-    router.push("/dashboard?demo=true");
+    setDemoRole(role);
+    startTour(role);
   }
 
   return (
@@ -74,7 +79,7 @@ export default function DemoLoginPage() {
           {DEMO_ACCOUNTS.map((account) => (
             <button
               key={account.id}
-              onClick={() => handleSelectRole(account.email)}
+              onClick={() => handleSelectRole(account.email, account.role)}
               id={`demo-login-${account.role}`}
               className="card-base flex w-full items-start gap-4 p-4 text-left transition-colors hover:bg-surface-2"
             >
