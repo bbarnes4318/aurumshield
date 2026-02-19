@@ -256,7 +256,7 @@ export default function PlatformCapabilitiesPage() {
           </div>
           <div className="plat-meta">
             <span className="plat-badge">Confidential</span>
-            <div>v1.3.0 · Feb 2026</div>
+            <div>v1.7.0 · Feb 2026</div>
           </div>
         </div>
       </header>
@@ -299,10 +299,19 @@ export default function PlatformCapabilitiesPage() {
                 <a href="#governance">10. Governance &amp; Audit</a>
               </li>
               <li>
-                <a href="#security">12. Security Architecture</a>
+                <a href="#fee-engine">11. Fee Engine &amp; Pricing</a>
               </li>
               <li>
-                <a href="#alignment">13. Strategic Alignment</a>
+                <a href="#activation-gate">12. Settlement Activation Gate</a>
+              </li>
+              <li>
+                <a href="#security">13. Security Architecture</a>
+              </li>
+              <li>
+                <a href="#alignment">14. Strategic Alignment</a>
+              </li>
+              <li>
+                <a href="#demo-system">15. Interactive Demo System</a>
               </li>
             </ul>
           </nav>
@@ -493,6 +502,11 @@ export default function PlatformCapabilitiesPage() {
                   <strong>Certificate Engine</strong>
                   <span>SHA-256 Signing</span>
                   <span>Idempotent Issue</span>
+                </div>
+                <div className="plat-engine-box">
+                  <strong>Fee Engine</strong>
+                  <span>Tiered Pricing</span>
+                  <span>Activation Gate</span>
                 </div>
               </div>
             </div>
@@ -813,9 +827,97 @@ export default function PlatformCapabilitiesPage() {
             </pre>
           </section>
 
-          {/* ─── 12. Security ─── */}
+          {/* ─── 11. Fee Engine & Pricing ─── */}
+          <section id="fee-engine" className="plat-section">
+            <h2>11. Fee Engine &amp; Pricing</h2>
+            <p>
+              AurumShield implements a <strong>deterministic, three-component fee model</strong> that
+              calculates clearing costs at settlement activation. Fees are computed from a
+              configurable schedule and frozen into the settlement record before DvP execution.
+            </p>
+            <div className="plat-table-wrap">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "25%" }}>Fee Type</th>
+                    <th>Calculation</th>
+                    <th>Purpose</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Platform Fee</strong></td>
+                    <td>
+                      <span className="plat-code">notionalValue × platformFeeBps ÷ 10000</span>
+                    </td>
+                    <td>Core clearing service charge (% of trade value).</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Clearing Fee</strong></td>
+                    <td>
+                      <span className="plat-code">quantityOz × clearingFeePerOz</span>
+                    </td>
+                    <td>Per-ounce processing and custody transfer fee.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Insurance Levy</strong></td>
+                    <td>
+                      <span className="plat-code">notionalValue × insuranceLevyBps ÷ 10000</span>
+                    </td>
+                    <td>Capital reserve contribution for indemnity coverage.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="plat-callout">
+              <span className="plat-callout-title">Admin Pricing Console</span>
+              Clearing authorities configure fee schedules in real-time through the
+              Admin Pricing Console. Rate changes take effect on the next settlement
+              activation — active settlements retain their frozen fee snapshot.
+            </div>
+          </section>
+
+          {/* ─── 12. Settlement Activation Gate ─── */}
+          <section id="activation-gate" className="plat-section">
+            <h2>12. Settlement Activation Gate</h2>
+            <p>
+              Before any settlement can proceed to DvP execution, it must pass through
+              a <strong>five-point activation gate</strong>. This deterministic checklist
+              ensures that all preconditions are satisfied before capital is committed.
+            </p>
+            <div className="plat-engine-grid">
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
+                <strong>Identity Verified</strong>
+                <span>Both counterparties have completed KYC/KYB verification.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
+                <strong>Evidence Packed</strong>
+                <span>Assay report, chain of custody, and seller attestation attached.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
+                <strong>Policy Passed</strong>
+                <span>TRI score within acceptable band, no active blockers.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
+                <strong>Capital Adequate</strong>
+                <span>ECR below threshold, no active breach or HALT status.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--gold)" }}>
+                <strong>Fees Confirmed</strong>
+                <span>Fee breakdown reviewed and accepted by clearing authority.</span>
+              </div>
+            </div>
+            <p style={{ marginTop: "1rem" }}>
+              <strong>Gate Logic:</strong> All five checks must return{" "}
+              <span className="plat-code">PASS</span> before the settlement transitions
+              to <span className="plat-code">READY_TO_SETTLE</span>. Any failing check
+              blocks activation and surfaces a specific remediation action.
+            </p>
+          </section>
+
+          {/* ─── 13. Security ─── */}
           <section id="security" className="plat-section">
-            <h2>12. Security Architecture</h2>
+            <h2>13. Security Architecture</h2>
             <ul>
               <li>
                 <strong>No Settlement Gap:</strong> Atomic DvP execution.
@@ -835,9 +937,9 @@ export default function PlatformCapabilitiesPage() {
             </ul>
           </section>
 
-          {/* ─── 13. Strategic Alignment ─── */}
+          {/* ─── 14. Strategic Alignment ─── */}
           <section id="alignment" className="plat-section">
-            <h2>13. Strategic Alignment Analysis</h2>
+            <h2>14. Strategic Alignment Analysis</h2>
             <p>
               This platform architecture operationalizes the high-level promises
               of the Business Plan into specific, enforceable software
@@ -1039,6 +1141,52 @@ export default function PlatformCapabilitiesPage() {
             </div>
           </section>
 
+          {/* ─── 15. Interactive Demo System ─── */}
+          <section id="demo-system" className="plat-section">
+            <h2>15. Interactive Demo System</h2>
+            <p>
+              AurumShield includes a <strong>role-based guided tour system</strong> for
+              stakeholder demonstrations. Each tour walks the viewer through the
+              platform from a specific institutional perspective.
+            </p>
+            <div className="plat-engine-grid">
+              <div className="plat-engine-box">
+                <strong>Buyer Tour</strong>
+                <span>Marketplace → Reserve → Order → Settle → Certificate</span>
+              </div>
+              <div className="plat-engine-box">
+                <strong>Seller Tour</strong>
+                <span>Listings → Evidence → Publish → Settlement</span>
+              </div>
+              <div className="plat-engine-box">
+                <strong>Ops Admin Tour</strong>
+                <span>Dashboard → Capital → Settlements → Audit → Supervisory</span>
+              </div>
+              <div className="plat-engine-box">
+                <strong>Compliance Tour</strong>
+                <span>Dashboard → Capital → Controls → Supervisory → Audit</span>
+              </div>
+              <div className="plat-engine-box">
+                <strong>Treasury Tour</strong>
+                <span>Dashboard → Intraday → Controls → Settlements → Audit</span>
+              </div>
+              <div className="plat-engine-box">
+                <strong>Admin Tour</strong>
+                <span>Dashboard → Roles → Policy → Audit → Capital</span>
+              </div>
+            </div>
+            <h3>Tour Engine Architecture</h3>
+            <p>
+              The tour system is powered by a <strong>state machine</strong> with
+              localStorage persistence. Steps define target routes, UI element
+              highlights, and narrative content. The engine handles automatic
+              route navigation, overlay rendering, and step progression.
+            </p>
+            <div className="plat-flow">
+              Demo Login → Role Selection → startTour(role) → Step Navigation → Route Sync → Overlay Render → Complete
+            </div>
+          </section>
+
           {/* ─── API Stats ─── */}
           <hr
             style={{
@@ -1056,15 +1204,23 @@ export default function PlatformCapabilitiesPage() {
               </div>
               <div className="plat-engine-box">
                 <strong>Settlements</strong>
-                <span>5 Endpoints</span>
+                <span>8 Endpoints</span>
               </div>
               <div className="plat-engine-box">
                 <strong>Capital &amp; Risk</strong>
                 <span>8 Endpoints</span>
               </div>
               <div className="plat-engine-box">
+                <strong>Fees &amp; Pricing</strong>
+                <span>4 Endpoints</span>
+              </div>
+              <div className="plat-engine-box">
                 <strong>Audit &amp; Certs</strong>
                 <span>5 Endpoints</span>
+              </div>
+              <div className="plat-engine-box">
+                <strong>Demo &amp; Tours</strong>
+                <span>3 Endpoints</span>
               </div>
             </div>
             <p
@@ -1074,7 +1230,7 @@ export default function PlatformCapabilitiesPage() {
                 fontSize: "0.875rem",
               }}
             >
-              <strong>Total: 33 API Endpoints</strong>
+              <strong>Total: 42 API Endpoints</strong>
             </p>
           </section>
         </main>
