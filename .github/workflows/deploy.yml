@@ -95,8 +95,31 @@ jobs:
 
       - name: Wait for deployment to stabilize
         run: |
-          aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $ECS_SERVICE \
-            --region $AWS_REGION
-          echo "✅ Deployment complete — service is stable"
+          echo "Waiting for ECS service to stabilize (up to 15 minutes)..."
+          MAX_ATTEMPTS=60
+          POLL_INTERVAL=15
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            DEPLOYMENTS=$(aws ecs describe-services \
+              --cluster $ECS_CLUSTER \
+              --services $ECS_SERVICE \
+              --region $AWS_REGION \
+              --query 'services[0].deployments' \
+              --output json)
+            
+            DEPLOY_COUNT=$(echo "$DEPLOYMENTS" | jq 'length')
+            PRIMARY_RUNNING=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status == "PRIMARY")][0].runningCount // 0')
+            PRIMARY_DESIRED=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status == "PRIMARY")][0].desiredCount // 0')
+            
+            echo "Poll $i/$MAX_ATTEMPTS: deployments=$DEPLOY_COUNT, PRIMARY running=$PRIMARY_RUNNING/$PRIMARY_DESIRED"
+            
+            if [ "$DEPLOY_COUNT" -eq 1 ] && [ "$PRIMARY_RUNNING" -eq "$PRIMARY_DESIRED" ] && [ "$PRIMARY_DESIRED" -gt 0 ]; then
+              echo "✅ Deployment complete — service is stable ($PRIMARY_RUNNING/$PRIMARY_DESIRED tasks running)"
+              exit 0
+            fi
+            
+            sleep $POLL_INTERVAL
+          done
+
+          echo "❌ Deployment did not stabilize within $(( MAX_ATTEMPTS * POLL_INTERVAL / 60 )) minutes"
+          aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION --query 'services[0].events[:5]' --output table
+          exit 1
