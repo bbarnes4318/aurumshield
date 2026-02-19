@@ -51,7 +51,7 @@ export default function RootLayout({
       className={`${ibmPlexSans.variable} ${sourceSerif.variable}`}
     >
       <body className="font-sans antialiased">
-        <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
+        <ThemeProvider attribute="class" defaultTheme="dark">
           <QueryProvider>
             <AuthProvider>
               <Suspense fallback={null}>
