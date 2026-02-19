@@ -11,9 +11,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# NEXT_PUBLIC_* vars must be present at build time (inlined by Next.js compiler).
-# .dockerignore excludes .env* so we set them explicitly here.
-ENV NEXT_PUBLIC_DEMO_MODE=true
+# NEXT_PUBLIC_* vars are read from .env.production at build time (allowed through .dockerignore)
 RUN npm run build
 
 # Stage 3 — Production runner

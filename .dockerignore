@@ -9,6 +9,7 @@ infrastructure/
 gold-temp/
 documents/
 .env*
+!.env.production
 *.pem
 *.tsbuildinfo
 next-env.d.ts
