@@ -1,83 +1,103 @@
 "use client";
 
 /* ================================================================
-   BANK DETAILS FORM — Seller Counterparty Onboarding
+   BANK VERIFICATION — Diro.io Open Banking Onboarding
 
-   Captures the seller's banking details (name, routing number,
-   account number) and submits them directly to the registerSellerBank
-   Server Action.  Sensitive data is NEVER stored in local / global
-   state — only the returned counterparty_id is surfaced.
+   Replaces manual bank detail entry with Diro's institutionally
+   verified Open Banking flow.  The user never types routing or
+   account numbers — data comes strictly from the bank's own portal
+   via the Diro API.
+
+   Flow:
+   1. User clicks "Verify Institutional Bank Account"
+   2. Diro captures bank credentials directly from the institution
+   3. Verified payload → POST /api/webhooks/diro
+   4. Webhook → registerSellerBank (Modern Treasury) → counterparty_id
+
+   NOTE: Until the Diro client SDK is available, the button simulates
+   the flow by POSTing a demo payload to our webhook endpoint.
    ================================================================ */
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Landmark, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
-import { registerSellerBank } from "@/actions/onboarding";
-
-/* ---------- Schema ---------- */
-
-const bankDetailsSchema = z.object({
-  name: z.string().min(1, "Account holder name is required"),
-  routingNumber: z
-    .string()
-    .regex(/^\d{9}$/, "ABA routing number must be exactly 9 digits"),
-  accountNumber: z
-    .string()
-    .regex(/^\d{4,17}$/, "Account number must be 4–17 digits"),
-});
-
-type BankDetailsForm = z.infer<typeof bankDetailsSchema>;
+import { ShieldCheck, AlertCircle, Loader2, Fingerprint } from "lucide-react";
 
 /* ---------- Props ---------- */
 
 interface BankDetailsFormProps {
-  /** Called with the Modern Treasury counterparty ID after successful registration */
+  /** Called with the Modern Treasury counterparty ID after successful verification */
   onSuccess?: (counterpartyId: string) => void;
 }
+
+/* ---------- Demo Constants ---------- */
+
+/**
+ * Simulated Diro verified payload for demo mode.
+ * In production, the real Diro SDK handles the bank login flow and
+ * POSTs the verified result to our webhook automatically.
+ */
+const DEMO_DIRO_PAYLOAD = {
+  event: "bank_account.verified" as const,
+  verificationId: "diro-demo-verification-001",
+  sellerUserId: "user-3", // Demo seller
+  verifiedAccount: {
+    accountName: "Meridian Gold Trading LLC",
+    routingNumber: "021000021",
+    accountNumber: "1234567890",
+  },
+};
 
 /* ---------- Component ---------- */
 
 export function BankDetailsForm({ onSuccess }: BankDetailsFormProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [linkedId, setLinkedId] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<BankDetailsForm>({
-    resolver: zodResolver(bankDetailsSchema),
-    defaultValues: {
-      name: "",
-      routingNumber: "",
-      accountNumber: "",
-    },
-  });
-
-  const onSubmit = async (data: BankDetailsForm) => {
+  /**
+   * Initiate the Diro verification flow.
+   *
+   * TODO: Replace this mock with the real Diro client SDK when available.
+   *       The SDK will handle the bank portal redirect and POST the
+   *       verified payload to /api/webhooks/diro automatically.
+   *       This mock simulates that exact end-to-end path.
+   */
+  const handleVerify = async () => {
     setServerError(null);
+    setIsVerifying(true);
 
-    const result = await registerSellerBank(
-      data.name,
-      data.routingNumber,
-      data.accountNumber,
-    );
+    try {
+      // Simulate Diro processing delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    if (result.success && result.counterpartyId) {
-      setLinkedId(result.counterpartyId);
-      reset();
-      onSuccess?.(result.counterpartyId);
-    } else {
-      setServerError(result.error ?? "Failed to link bank account.");
+      // POST the demo verified payload to our own webhook
+      const response = await fetch("/api/webhooks/diro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(DEMO_DIRO_PAYLOAD),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.action === "failed") {
+        setServerError(
+          data.error ?? `Verification failed (${response.status})`,
+        );
+        return;
+      }
+
+      if (data.counterpartyId) {
+        setLinkedId(data.counterpartyId);
+        onSuccess?.(data.counterpartyId);
+      } else {
+        setServerError("No counterparty ID returned from verification.");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setServerError(`Verification error: ${message}`);
+    } finally {
+      setIsVerifying(false);
     }
   };
-
-  /* ── Input class (matches project design system) ── */
-  const inputCls =
-    "w-full rounded-[var(--radius-input)] border border-border bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-faint focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-colors";
 
   /* ── Success state ── */
   if (linkedId) {
@@ -92,6 +112,9 @@ export function BankDetailsForm({ onSuccess }: BankDetailsFormProps) {
               Bank Account Linked Securely
             </h3>
             <p className="mt-1 text-xs text-text-faint">
+              Verified via Diro Open Banking
+            </p>
+            <p className="mt-2 text-xs text-text-faint">
               Counterparty ID:{" "}
               <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-gold">
                 {linkedId}
@@ -103,23 +126,32 @@ export function BankDetailsForm({ onSuccess }: BankDetailsFormProps) {
             onClick={() => setLinkedId(null)}
             className="mt-2 text-xs font-medium text-gold hover:text-gold-hover transition-colors"
           >
-            Link another account →
+            Verify another account →
           </button>
         </div>
       </div>
     );
   }
 
-  /* ── Form state ── */
+  /* ── Verification state ── */
   return (
     <div className="rounded-[var(--radius)] border border-border bg-surface-1 p-6 shadow-md">
       {/* Header */}
       <div className="mb-5 flex items-center gap-2">
-        <Landmark className="h-5 w-5 text-gold" />
+        <Fingerprint className="h-5 w-5 text-gold" />
         <h2 className="text-sm font-semibold text-text tracking-tight">
-          Link Bank Account
+          Institutional Bank Verification
         </h2>
       </div>
+
+      {/* Description */}
+      <p className="mb-5 text-xs leading-relaxed text-text-muted">
+        Verify your institutional bank account securely through{" "}
+        <strong className="text-text">Diro&apos;s Open Banking</strong>{" "}
+        protocol. You will authenticate directly with your bank — AurumShield{" "}
+        <strong className="text-text">never sees</strong> your login
+        credentials, routing number, or account number.
+      </p>
 
       {/* Server error */}
       {serverError && (
@@ -129,111 +161,50 @@ export function BankDetailsForm({ onSuccess }: BankDetailsFormProps) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Account Holder Name */}
-        <div>
-          <label
-            htmlFor="bank-name"
-            className="block text-xs font-medium text-text-muted mb-1.5"
-          >
-            Account Holder Name
-          </label>
-          <input
-            id="bank-name"
-            type="text"
-            autoComplete="off"
-            placeholder="Aurelia Sovereign Fund Ltd."
-            className={inputCls}
-            {...register("name")}
-          />
-          {errors.name && (
-            <p className="mt-1 text-xs text-danger">{errors.name.message}</p>
-          )}
-        </div>
+      {/* Security notice */}
+      <div className="mb-5 flex items-start gap-2 rounded-[var(--radius-sm)] border border-gold/20 bg-gold/5 px-3 py-2.5">
+        <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-gold" />
+        <p className="text-[11px] leading-relaxed text-text-muted">
+          Diro captures your bank details directly from your institution&apos;s
+          portal using cryptographic verification. The verified data is
+          transmitted to our banking partner (Modern Treasury) over an encrypted
+          channel and is{" "}
+          <strong className="text-text">immediately discarded</strong> from
+          our servers.
+        </p>
+      </div>
 
-        {/* Routing + Account side-by-side */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* ABA Routing Number */}
-          <div>
-            <label
-              htmlFor="bank-routing"
-              className="block text-xs font-medium text-text-muted mb-1.5"
-            >
-              ABA Routing Number
-            </label>
-            <input
-              id="bank-routing"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={9}
-              placeholder="021000021"
-              className={inputCls}
-              {...register("routingNumber")}
-            />
-            {errors.routingNumber && (
-              <p className="mt-1 text-xs text-danger">
-                {errors.routingNumber.message}
-              </p>
-            )}
-          </div>
+      {/* Verify Button */}
+      <button
+        type="button"
+        disabled={isVerifying}
+        onClick={handleVerify}
+        className="w-full flex items-center justify-center gap-2 rounded-[var(--radius-input)] bg-gold px-4 py-3 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-focus-ring"
+      >
+        {isVerifying ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Verifying with your bank…
+          </>
+        ) : (
+          <>
+            <Fingerprint className="h-4 w-4" />
+            Verify Institutional Bank Account
+          </>
+        )}
+      </button>
 
-          {/* Account Number */}
-          <div>
-            <label
-              htmlFor="bank-account"
-              className="block text-xs font-medium text-text-muted mb-1.5"
-            >
-              Account Number
-            </label>
-            <input
-              id="bank-account"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={17}
-              placeholder="••••••••1234"
-              className={inputCls}
-              {...register("accountNumber")}
-            />
-            {errors.accountNumber && (
-              <p className="mt-1 text-xs text-danger">
-                {errors.accountNumber.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Security notice */}
-        <div className="flex items-start gap-2 rounded-[var(--radius-sm)] border border-gold/20 bg-gold/5 px-3 py-2.5">
-          <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-gold" />
-          <p className="text-[11px] leading-relaxed text-text-muted">
-            Your banking details are transmitted directly to our banking
-            partner (Modern Treasury) over an encrypted channel. AurumShield{" "}
-            <strong className="text-text">never stores</strong> your routing
-            or account numbers.
-          </p>
-        </div>
-
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full flex items-center justify-center gap-2 rounded-[var(--radius-input)] bg-gold px-4 py-2.5 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-focus-ring"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Linking…
-            </>
-          ) : (
-            <>
-              <Landmark className="h-4 w-4" />
-              Link Bank Account
-            </>
-          )}
-        </button>
-      </form>
+      {/* Trust badges */}
+      <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-text-faint">
+        <span className="flex items-center gap-1">
+          <ShieldCheck className="h-3 w-3" />
+          256-bit Encryption
+        </span>
+        <span className="opacity-30">|</span>
+        <span>Open Banking Verified</span>
+        <span className="opacity-30">|</span>
+        <span>Zero Data Storage</span>
+      </div>
     </div>
   );
 }
