@@ -6,7 +6,7 @@
    ================================================================ */
 
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { AppLogo } from "@/components/app-logo";
 import { useAuth } from "@/providers/auth-provider";
 import { DEMO_ACCOUNTS } from "@/lib/demo-seeder";
 import { findUserByEmail } from "@/lib/auth-store";
@@ -57,14 +57,7 @@ export default function DemoLoginPage() {
         {/* Header */}
         <div className="text-center">
           <div className="mb-4 flex items-center justify-center">
-            <Image
-              src="/arum-logo-white.png"
-              alt="AurumShield"
-              width={280}
-              height={64}
-              className="h-12 w-auto"
-              priority
-            />
+            <AppLogo size="presentation" variant="white" priority />
           </div>
           <h1 className="typo-h2 mb-2">Institutional Demonstration Mode</h1>
           <p className="text-sm text-text-muted">

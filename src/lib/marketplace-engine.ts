@@ -435,6 +435,38 @@ export function runPublishGate(
     }
   }
 
+  // 3) Assay data verification — compare Textract-extracted values against listing specs
+  const assayEvidence = listingEvidenceItems.find((e) => e.type === "ASSAY_REPORT");
+  if (assayEvidence?.extractedMetadata) {
+    const meta = assayEvidence.extractedMetadata;
+
+    if (!meta.analysisSucceeded) {
+      // Textract analysis failed entirely — block publication
+      blockers.push(
+        `ANALYSIS_FAILED: Assay report document analysis failed — ${meta.analysisError ?? "unknown error"}. Re-upload a legible document.`,
+      );
+    } else {
+      // Purity cross-check: extracted purity must match listing.purity
+      if (meta.extractedPurity !== null && meta.extractedPurity !== listing.purity) {
+        blockers.push(
+          `DATA_MISMATCH: Uploaded Assay Report purity (${meta.rawPurityText ?? meta.extractedPurity}) does not match listing specifications (${listing.purity}). ` +
+            `Expected document purity to be ${listing.purity}.`,
+        );
+      }
+
+      // Weight cross-check: extracted weight must match listing.totalWeightOz (advisory warning only)
+      if (
+        meta.extractedWeightOz !== null &&
+        meta.extractedWeightOz !== listing.totalWeightOz
+      ) {
+        // Weight mismatch is a blocker — document must match declared weight exactly
+        blockers.push(
+          `DATA_MISMATCH: Uploaded Assay Report weight (${meta.rawWeightText ?? `${meta.extractedWeightOz} oz`}) does not match listing weight (${listing.totalWeightOz} oz).`,
+        );
+      }
+    }
+  }
+
   return {
     allowed: blockers.length === 0,
     blockers,

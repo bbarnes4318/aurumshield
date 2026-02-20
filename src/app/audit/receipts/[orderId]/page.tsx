@@ -4,7 +4,7 @@ import { RequireAuth } from "@/components/auth/require-auth";
 import { useOrder, useSettlementByOrder, useSettlementLedger } from "@/hooks/use-mock-queries";
 import type { LedgerEntry } from "@/lib/mock-data";
 import Link from "next/link";
-import Image from "next/image";
+import { AppLogo } from "@/components/app-logo";
 import { useParams } from "next/navigation";
 
 function fmtUsd(v: number) {
@@ -75,13 +75,7 @@ function ReceiptViewerContent() {
         <div className="border-b border-gold/20 bg-gold/5 px-6 py-3 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <Image
-                src="/arum-logo-navy.png"
-                alt="AurumShield"
-                width={240}
-                height={54}
-                className="h-8 w-auto"
-              />
+              <AppLogo size="document" variant="navy" />
             </div>
             <p className="text-[10px] text-text-faint mt-0.5">Generated from audit governance console — read-only</p>
           </div>

@@ -118,6 +118,14 @@ resource "aws_iam_policy" "ecs_task_policy" {
       {
         Effect = "Allow"
         Action = [
+          "textract:AnalyzeDocument",
+          "textract:DetectDocumentText"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "secretsmanager:GetSecretValue"
         ]
         Resource = [

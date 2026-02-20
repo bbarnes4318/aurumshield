@@ -230,6 +230,8 @@ export async function apiCreateListingEvidence(input: {
   listingId: string;
   evidenceType: ListingEvidenceType;
   userId: string;
+  /** Optional file buffer for document analysis (Textract). Only used for ASSAY_REPORT type. */
+  fileBuffer?: Buffer;
 }): Promise<ListingEvidenceItem> {
   const nowMs = Date.now();
   const state = freshState(nowMs);
@@ -240,8 +242,59 @@ export async function apiCreateListingEvidence(input: {
     input.userId,
     nowMs,
   );
-  saveMarketplaceState(next);
-  return mockFetch(evidence);
+
+  // If this is an assay report with a file buffer, run Textract analysis
+  let enrichedEvidence = evidence;
+  if (input.evidenceType === "ASSAY_REPORT" && input.fileBuffer) {
+    try {
+      const { analyzeAssayReport } = await import("./services/textract-service");
+      const extractionResult = await analyzeAssayReport(input.fileBuffer);
+
+      enrichedEvidence = {
+        ...evidence,
+        extractedMetadata: {
+          extractedPurity: extractionResult.extractedPurity,
+          rawPurityText: extractionResult.rawPurityText,
+          extractedWeightOz: extractionResult.extractedWeightOz,
+          rawWeightText: extractionResult.rawWeightText,
+          analysisSucceeded: extractionResult.success,
+          analysisError: extractionResult.error,
+        },
+      };
+
+      console.log(
+        `[AurumShield] Textract analysis for ${evidence.id}:`,
+        JSON.stringify(enrichedEvidence.extractedMetadata, null, 2),
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error(`[AurumShield] Textract analysis failed for ${evidence.id}:`, errorMessage);
+
+      // Still attach metadata with the error — don't block evidence creation
+      enrichedEvidence = {
+        ...evidence,
+        extractedMetadata: {
+          extractedPurity: null,
+          rawPurityText: null,
+          extractedWeightOz: null,
+          rawWeightText: null,
+          analysisSucceeded: false,
+          analysisError: errorMessage,
+        },
+      };
+    }
+  }
+
+  // Persist state with enriched evidence (Textract metadata included)
+  const nextWithMetadata = {
+    ...next,
+    listingEvidence: next.listingEvidence.map((e) =>
+      e.id === enrichedEvidence.id ? enrichedEvidence : e,
+    ),
+  };
+  saveMarketplaceState(nextWithMetadata);
+
+  return mockFetch(enrichedEvidence);
 }
 
 export async function apiPublishListing(input: {

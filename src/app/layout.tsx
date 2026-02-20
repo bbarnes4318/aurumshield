@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
 import { Suspense } from "react";
+import { ClerkWrapper } from "@/providers/clerk-wrapper";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
@@ -45,26 +46,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${ibmPlexSans.variable} ${sourceSerif.variable}`}
-    >
-      <body className="font-sans antialiased">
-        <ThemeProvider attribute="class" defaultTheme="dark">
-          <QueryProvider>
-            <AuthProvider>
-              <Suspense fallback={null}>
-              <DemoProvider>
-                  <TourProvider>
-                    <AppShell>{children}</AppShell>
-                  </TourProvider>
-                </DemoProvider>
-              </Suspense>
-            </AuthProvider>
-          </QueryProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+    <ClerkWrapper>
+      <html
+        lang="en"
+        suppressHydrationWarning
+        className={`${ibmPlexSans.variable} ${sourceSerif.variable}`}
+      >
+        <body className="font-sans antialiased">
+          <ThemeProvider attribute="class" defaultTheme="dark">
+            <QueryProvider>
+              <AuthProvider>
+                <Suspense fallback={null}>
+                <DemoProvider>
+                    <TourProvider>
+                      <AppShell>{children}</AppShell>
+                    </TourProvider>
+                  </DemoProvider>
+                </Suspense>
+              </AuthProvider>
+            </QueryProvider>
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkWrapper>
   );
 }

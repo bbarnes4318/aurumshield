@@ -2032,6 +2032,21 @@ export interface ListingEvidenceItem {
   title: string;
   createdAt: string;
   createdBy: string;
+  /** Metadata extracted by AWS Textract from the uploaded document (assay reports only). */
+  extractedMetadata?: {
+    /** Normalized purity code extracted from the document. */
+    extractedPurity: Purity | null;
+    /** Raw purity text as it appeared in the document. */
+    rawPurityText: string | null;
+    /** Extracted weight in troy ounces. */
+    extractedWeightOz: number | null;
+    /** Raw weight text as it appeared in the document. */
+    rawWeightText: string | null;
+    /** Whether the Textract analysis was successful. */
+    analysisSucceeded: boolean;
+    /** Error message if analysis failed. */
+    analysisError: string | null;
+  };
 }
 
 export interface InventoryPosition {

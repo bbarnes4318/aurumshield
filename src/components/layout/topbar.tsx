@@ -18,6 +18,13 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { useAuth } from "@/providers/auth-provider";
+import { UserButton } from "@clerk/nextjs";
+
+/** Check if Clerk is configured with real (non-placeholder) keys */
+const CLERK_ENABLED =
+  typeof process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === "string" &&
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "YOUR_PUBLISHABLE_KEY" &&
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
 
 /* ---------- Status badge colors ---------- */
 const VS_COLORS: Record<string, string> = {
@@ -40,6 +47,9 @@ export function Topbar({ collapsed, onToggleSidebar }: TopbarProps) {
   const [mounted, setMounted] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Is this user authenticated via Clerk (vs mock/demo)?
+  const isClerkUser = CLERK_ENABLED && user?.id?.startsWith("user_");
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -102,7 +112,18 @@ export function Topbar({ collapsed, onToggleSidebar }: TopbarProps) {
           </button>
         )}
 
-        {/* Profile dropdown */}
+        {/* Profile — Clerk UserButton for Clerk users, custom dropdown otherwise */}
+        {isClerkUser ? (
+          <UserButton
+            afterSignOutUrl="/login"
+            appearance={{
+              elements: {
+                avatarBox: "h-7 w-7",
+                userButtonPopoverCard: "bg-surface-1 border border-border shadow-md",
+              },
+            }}
+          />
+        ) : (
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((o) => !o)}
@@ -173,6 +194,7 @@ export function Topbar({ collapsed, onToggleSidebar }: TopbarProps) {
             </div>
           )}
         </div>
+        )}
       </div>
     </header>
   );

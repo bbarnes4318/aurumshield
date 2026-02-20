@@ -1,8 +1,11 @@
 "use client";
 
 /* ================================================================
-   REQUIRE AUTH — Client-side route guard
+   REQUIRE AUTH — Client-side route guard (Clerk + Demo compatible)
    ================================================================
+   - When Clerk is configured: checks Clerk session + falls back
+     to mock session for demo users
+   - When Clerk is NOT configured: uses mock auth only
    - Renders <LoadingState> while session resolves
    - Redirects to /login?next=<pathname+search> if no session
    - Wraps in <Suspense> to satisfy Next.js useSearchParams rule

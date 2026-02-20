@@ -28,9 +28,11 @@ import {
   ShieldOff,
   DollarSign,
   Presentation,
+  Briefcase,
+  Package,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image"; // Added Image import
+import { AppLogo } from "@/components/app-logo";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { useDemo } from "@/providers/demo-provider";
@@ -63,6 +65,8 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Command",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, dataTour: "sidebar-dashboard" },
+      { label: "Buyer Home", href: "/buyer", icon: Briefcase, roles: ["buyer", "admin"], dataTour: "sidebar-buyer-home" },
+      { label: "Seller Home", href: "/seller", icon: Package, roles: ["seller", "admin"], dataTour: "sidebar-seller-home" },
     ],
   },
   {
@@ -155,20 +159,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       )}
     >
       {/* Brand */}
-      <div className="flex h-16 items-center border-b border-border px-3">
+      <div className="flex items-center border-b border-border px-4 py-4">
         {collapsed ? (
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gold text-bg text-sm font-bold">
             Au
           </span>
         ) : (
-          <Image
-            src="/arum-logo-white.png"
-            alt="AurumShield"
-            width={200}
-            height={52}
-            className="h-10 w-auto"
-            priority
-          />
+          <AppLogo size="sidebar" variant="white" priority />
         )}
       </div>
 

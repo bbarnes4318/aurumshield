@@ -1,9 +1,28 @@
 "use client";
 
+import { AppLogoImg } from "@/components/app-logo";
+
 /* ================================================================
-   PLATFORM CAPABILITIES — Public-facing technical overview
+   PLATFORM CAPABILITIES — Investor-Grade Technical Overview
    Route: /platform
    Renders outside the app shell (no sidebar/topbar).
+
+   Table of Contents:
+   1.  Executive Summary
+   2.  The Problem
+   3.  The Solution
+   4.  Platform Architecture
+   5.  Core Clearing Engine
+   6.  Capital Adequacy Framework
+   7.  Policy & Risk Engine
+   8.  Verification & Identity Perimeter
+   9.  Marketplace Infrastructure
+   10. Certificate Engine
+   11. Fee Model & Pricing
+   12. Settlement Activation Gate
+   13. Security Architecture
+   14. Strategic Alignment
+   15. Interactive Demo System
    ================================================================ */
 
 export default function PlatformCapabilitiesPage() {
@@ -58,7 +77,7 @@ export default function PlatformCapabilitiesPage() {
         .plat-header {
           background: var(--surface-1);
           border-bottom: 1px solid var(--border);
-          padding: 1.5rem 0;
+          padding: 1rem 0;
           position: sticky;
           top: 0;
           z-index: 50;
@@ -204,6 +223,33 @@ export default function PlatformCapabilitiesPage() {
         }
         .plat-callout-title { font-weight: bold; color: var(--gold); display: block; margin-bottom: 0.5rem; font-family: var(--font-sans); }
 
+        .plat-takeaway {
+          border-left: 4px solid var(--gold);
+          background: rgba(198, 168, 107, 0.08);
+          padding: 1rem 1.5rem;
+          border-radius: 0 var(--radius) var(--radius) 0;
+          margin: 2rem 0;
+          font-size: 0.925rem;
+        }
+        .plat-takeaway strong { color: var(--gold); font-family: var(--font-sans); }
+
+        .plat-guarantee-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin: 2rem 0;
+        }
+        .plat-guarantee-box {
+          background: var(--surface-1);
+          border: 1px solid var(--border);
+          border-top: 3px solid var(--gold);
+          padding: 1.25rem;
+          border-radius: var(--radius-sm);
+          text-align: center;
+        }
+        .plat-guarantee-box strong { display: block; color: var(--text); margin-bottom: 0.5rem; font-size: 0.95rem; }
+        .plat-guarantee-box span { display: block; font-size: 0.8rem; color: var(--text-muted); }
+
         .plat-footer {
           text-align: center;
           padding: 4rem 0 2rem;
@@ -244,19 +290,11 @@ export default function PlatformCapabilitiesPage() {
       <header className="plat-header">
         <div className="plat-header-inner">
           <div className="plat-logo">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/arum-logo-white.png"
-              alt="AurumShield"
-              style={{ height: 44, width: "auto" }}
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
+            <AppLogoImg size="sidebar" variant="white" />
           </div>
           <div className="plat-meta">
             <span className="plat-badge">Confidential</span>
-            <div>v1.7.0 · Feb 2026</div>
+            <div>v1.9.0 · Feb 2026</div>
           </div>
         </div>
       </header>
@@ -268,51 +306,21 @@ export default function PlatformCapabilitiesPage() {
           <nav className="plat-toc">
             <h3 className="plat-toc-title">Contents</h3>
             <ul>
-              <li>
-                <a href="#executive-summary">1. Executive Summary</a>
-              </li>
-              <li>
-                <a href="#problem-statement">2. The Problem</a>
-              </li>
-              <li>
-                <a href="#platform-architecture">3. Platform Architecture</a>
-              </li>
-              <li>
-                <a href="#clearing-engine">4. Core Clearing Engine</a>
-              </li>
-              <li>
-                <a href="#capital-framework">5. Capital Adequacy</a>
-              </li>
-              <li>
-                <a href="#policy-engine">6. Policy &amp; Risk Engine</a>
-              </li>
-              <li>
-                <a href="#verification">7. Verification Perimeter</a>
-              </li>
-              <li>
-                <a href="#marketplace">8. Marketplace Infrastructure</a>
-              </li>
-              <li>
-                <a href="#settlement">9. Certificate Engine</a>
-              </li>
-              <li>
-                <a href="#governance">10. Governance &amp; Audit</a>
-              </li>
-              <li>
-                <a href="#fee-engine">11. Fee Engine &amp; Pricing</a>
-              </li>
-              <li>
-                <a href="#activation-gate">12. Settlement Activation Gate</a>
-              </li>
-              <li>
-                <a href="#security">13. Security Architecture</a>
-              </li>
-              <li>
-                <a href="#alignment">14. Strategic Alignment</a>
-              </li>
-              <li>
-                <a href="#demo-system">15. Interactive Demo System</a>
-              </li>
+              <li><a href="#executive-summary">1. Executive Summary</a></li>
+              <li><a href="#problem-statement">2. The Problem</a></li>
+              <li><a href="#the-solution">3. The Solution</a></li>
+              <li><a href="#platform-architecture">4. Platform Architecture</a></li>
+              <li><a href="#clearing-engine">5. Core Clearing Engine</a></li>
+              <li><a href="#capital-framework">6. Capital Adequacy</a></li>
+              <li><a href="#policy-engine">7. Policy &amp; Risk Engine</a></li>
+              <li><a href="#verification">8. Verification Perimeter</a></li>
+              <li><a href="#marketplace">9. Marketplace Infrastructure</a></li>
+              <li><a href="#certificate-engine">10. Certificate Engine</a></li>
+              <li><a href="#fee-model">11. Fee Model &amp; Pricing</a></li>
+              <li><a href="#activation-gate">12. Activation Gate</a></li>
+              <li><a href="#security">13. Security Architecture</a></li>
+              <li><a href="#alignment">14. Strategic Alignment</a></li>
+              <li><a href="#demo-system">15. Demo System</a></li>
             </ul>
           </nav>
         </aside>
@@ -323,8 +331,7 @@ export default function PlatformCapabilitiesPage() {
           <div className="plat-card" id="title-card">
             <h1>AurumShield Platform</h1>
             <p style={{ fontSize: "1.2rem", marginBottom: "2rem" }}>
-              Sovereign Clearing Infrastructure for Institutional Precious
-              Metals
+              Institutional Clearing Infrastructure for Physical Gold Transactions
             </p>
             <div
               style={{
@@ -347,88 +354,159 @@ export default function PlatformCapabilitiesPage() {
           {/* ─── 1. Executive Summary ─── */}
           <section id="executive-summary" className="plat-section">
             <h2>1. Executive Summary</h2>
+            <p style={{ fontSize: "1.1rem", color: "var(--text)" }}>
+              <strong>AurumShield is clearing infrastructure for institutional physical gold transactions.</strong>
+            </p>
             <p>
-              AurumShield is a sovereign clearing platform purpose-built for the
-              institutional physical gold market. It addresses the fundamental
-              structural risk that has plagued precious metals trading for
-              decades:{" "}
-              <strong>
-                the absence of a central clearing mechanism for physical gold
-                transactions
-              </strong>
-              .
+              For decades, large-value gold trades have settled bilaterally — exposing
+              counterparties to principal risk, operational opacity, and fragmented
+              verification processes. Unlike financial securities, physical gold lacks
+              a standardized clearing authority.
+            </p>
+            <p style={{ fontSize: "1.05rem", color: "var(--text)" }}>
+              <strong>AurumShield closes that structural gap.</strong>
+            </p>
+            <p>
+              By acting as a neutral clearing layer between counterparties, the platform
+              replaces trust-dependent settlement with deterministic execution, capital
+              constraints, and cryptographic proof of completion.
             </p>
 
-            <div className="plat-callout">
-              <span className="plat-callout-title">The Value Proposition</span>
-              Today, institutional gold trades settle bilaterally, creating{" "}
-              <strong>principal risk</strong>. AurumShield eliminates this via
-              atomic Delivery-versus-Payment (DvP) and continuous capital
-              adequacy monitoring.
-            </div>
+            <h3>The Structural Problem</h3>
+            <p>In traditional gold transactions:</p>
+            <ul>
+              <li>Payment and delivery are separate events.</li>
+              <li>Verification is inconsistent across jurisdictions.</li>
+              <li>Capital adequacy is not centrally enforced.</li>
+              <li>Finality relies on documentation rather than computation.</li>
+            </ul>
+            <p>This creates exposure — not just operational friction.</p>
 
-            <h3>Key Capabilities</h3>
+            <h3>The AurumShield Model</h3>
+            <p>
+              AurumShield introduces a central clearing framework purpose-built for physical gold:
+            </p>
             <ul>
               <li>
-                <strong>Atomic Delivery-versus-Payment (DvP):</strong> Title and
-                payment transfer simultaneously in a single deterministic
-                operation.
+                <strong>Atomic Delivery-versus-Payment (DvP)</strong><br />
+                Title and payment transfer simultaneously in a single deterministic operation.
               </li>
               <li>
-                <strong>Continuous Capital Adequacy Monitoring:</strong>{" "}
-                Real-time exposure tracking with deterministic breach detection.
+                <strong>Continuous Capital Adequacy Monitoring</strong><br />
+                Real-time exposure tracking with automated breach detection and enforceable hardstop controls.
               </li>
               <li>
-                <strong>Deterministic Policy Enforcement:</strong> Risk scoring
-                and approval tiering that cannot be bypassed.
+                <strong>Deterministic Policy Enforcement</strong><br />
+                Transaction risk scoring and approval tiering that cannot be bypassed once frozen into settlement state.
               </li>
               <li>
-                <strong>Cryptographic Settlement Finality:</strong> SHA-256
-                signed clearing certificates proving settlement completion.
+                <strong>Institutional Verification Perimeter</strong><br />
+                Multi-stage KYC/KYB, sanctions screening, and source-of-funds validation required prior to settlement activation.
               </li>
               <li>
-                <strong>Institutional Verification Perimeter:</strong>{" "}
-                Multi-step KYC/KYB with sanctions screening.
+                <strong>Cryptographic Settlement Finality</strong><br />
+                SHA-256 signed clearing certificates proving that execution occurred under capital-constrained, policy-compliant conditions.
               </li>
             </ul>
+
+            <h3>The Result</h3>
+            <p>
+              AurumShield transforms physical gold settlement from a bilateral trust exercise
+              into a governed clearing process.
+            </p>
+            <div className="plat-guarantee-grid">
+              <div className="plat-guarantee-box">
+                <strong>Principal Risk Eliminated</strong>
+                <span>Structurally removed through atomic DvP execution.</span>
+              </div>
+              <div className="plat-guarantee-box">
+                <strong>Capital Adequacy Enforced</strong>
+                <span>Computationally constrained — not advisory.</span>
+              </div>
+              <div className="plat-guarantee-box">
+                <strong>Settlement Finality Verifiable</strong>
+                <span>Independently provable via cryptographic certification.</span>
+              </div>
+            </div>
+            <p style={{ color: "var(--text)", fontStyle: "italic" }}>
+              This is clearing infrastructure — not escrow, not brokerage, and not marketplace software.
+            </p>
           </section>
 
           {/* ─── 2. The Problem ─── */}
           <section id="problem-statement" className="plat-section">
-            <h2>2. The Problem: Systemic Risk</h2>
+            <h2>2. The Problem: Structural Risk in Physical Gold</h2>
+            <p style={{ color: "var(--text)", fontSize: "1rem" }}>
+              Physical gold settlement operates without centralized clearing. Payment and
+              delivery are separate acts, creating principal risk and structural exposure.
+            </p>
             <p>
-              In traditional bilateral gold transactions, payment and delivery
-              occur as separate events. This creates a settlement gap—principal
-              risk—where one party delivers while the other defaults.
+              In traditional bilateral gold transactions, payment and delivery occur as
+              separate events. This creates a settlement gap — <strong>principal risk</strong> — where
+              one party delivers while the other defaults. There is no institutional
+              mechanism equivalent to what equities and derivatives markets have had for
+              decades.
             </p>
             <div className="plat-engine-grid" style={{ marginTop: "2rem" }}>
               <div className="plat-engine-box">
                 <strong>The Settlement Gap</strong>
-                <span>
-                  Traditional T+2 settlement creates temporal exposure.
-                </span>
+                <span>Traditional T+2 settlement creates temporal exposure. Full notional value at risk until both legs complete.</span>
               </div>
               <div className="plat-engine-box">
                 <strong>Counterparty Opacity</strong>
-                <span>
-                  Limited standardized risk assessment in OTC markets.
-                </span>
+                <span>No standardized risk assessment in OTC precious metals. Limited visibility into counterparty solvency.</span>
               </div>
               <div className="plat-engine-box">
                 <strong>Inventory Integrity</strong>
-                <span>Fragmented paper trails for provenance and assay.</span>
+                <span>Fragmented paper trails for provenance, assay certification, and chain of custody documentation.</span>
               </div>
               <div className="plat-engine-box">
-                <strong>Regulatory Gaps</strong>
-                <span>Fragmented records across email, CRM, and banking.</span>
+                <strong>Regulatory Deficiency</strong>
+                <span>No centralized audit trail. Compliance records spread across email, CRM, and banking systems.</span>
               </div>
+            </div>
+            <div className="plat-takeaway">
+              <strong>Takeaway:</strong> The physical gold market has no clearing infrastructure. Every bilateral settlement carries full principal risk with no institutional backstop.
+            </div>
+            <p style={{ color: "var(--text)", fontStyle: "italic", marginTop: "1rem" }}>
+              This structural gap is not operational — it is systemic.
+            </p>
+          </section>
+
+          {/* ─── 3. The Solution ─── */}
+          <section id="the-solution" className="plat-section">
+            <h2>3. The Solution</h2>
+            <p>
+              AurumShield addresses the structural deficiencies of bilateral gold settlement
+              through four interlocking mechanisms:
+            </p>
+            <div className="plat-engine-grid" style={{ marginTop: "1.5rem" }}>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Central Clearing Model</strong>
+                <span>AurumShield interposes as the central counterparty to every trade. Buyers and sellers face AurumShield, not each other — eliminating bilateral default risk.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Deterministic Controls</strong>
+                <span>Every state transition is governed by precondition logic. Settlements cannot advance without verified identity, packed evidence, and policy approval.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Capital-Constrained Execution</strong>
+                <span>Real-time exposure monitoring prevents AurumShield from clearing more than its capital base supports. Hardstop limits enforce systemic solvency.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Cryptographic Certification</strong>
+                <span>Upon settlement finality, a SHA-256 signed clearing certificate provides independently verifiable proof of execution.</span>
+              </div>
+            </div>
+            <div className="plat-takeaway">
+              <strong>Takeaway:</strong> AurumShield transforms physical gold settlement from a trust-based bilateral process into a deterministic, capital-backed, cryptographically verified clearing operation.
             </div>
           </section>
 
-          {/* ─── 3. Platform Architecture ─── */}
+          {/* ─── 4. Platform Architecture ─── */}
           <section id="platform-architecture" className="plat-section">
-            <h2>3. Platform Architecture</h2>
-            <h3>3.1 Design Principles</h3>
+            <h2>4. Platform Architecture</h2>
+            <h3>4.1 Design Principles</h3>
             <div className="plat-table-wrap">
               <table className="plat-table">
                 <thead>
@@ -440,112 +518,99 @@ export default function PlatformCapabilitiesPage() {
                 <tbody>
                   <tr>
                     <td>Determinism</td>
-                    <td>
-                      Every computation produces the same output given the same
-                      inputs. No randomness. Time is passed as an explicit
-                      parameter.
-                    </td>
+                    <td>Every computation produces the same output given the same inputs. No randomness. Time is passed as an explicit parameter.</td>
                   </tr>
                   <tr>
                     <td>Immutability</td>
-                    <td>
-                      All engine functions return new state objects. Ledger
-                      entries are append-only. Frozen snapshots cannot be
-                      altered.
-                    </td>
+                    <td>All engine functions return new state objects. Ledger entries are append-only. Frozen snapshots cannot be altered.</td>
                   </tr>
                   <tr>
                     <td>Idempotency</td>
-                    <td>
-                      Every operation can be safely retried. Certificate
-                      issuance and breach events check for existing artifacts.
-                    </td>
+                    <td>Every operation can be safely retried. Certificate issuance and breach events check for existing artifacts before creating duplicates.</td>
                   </tr>
                   <tr>
                     <td>Zero Trust</td>
-                    <td>
-                      Every action is gated by role-based access control. All
-                      state transitions validated against preconditions.
-                    </td>
+                    <td>Every action is gated by role-based access control. All state transitions validated against preconditions before execution.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <h3>3.2 Engine Architecture</h3>
+            <h3>4.2 System Architecture</h3>
             <div className="plat-arch">
               <div className="plat-layer">
                 <span className="plat-layer-title">Presentation Layer</span>
-                Dashboard · Marketplace · Settlements · Capital · Audit
+                Dashboard · Marketplace · Settlements · Capital Controls · Audit Console
               </div>
               <div className="plat-layer">
-                <span className="plat-layer-title">API / Hook Layer</span>
-                TanStack Query (React) · Mock Endpoints · LocalStorage
+                <span className="plat-layer-title">Interface &amp; Orchestration Layer</span>
+                Role surfaces · Workflow orchestration · Deterministic state transitions
               </div>
-              <div className="plat-engine-grid">
-                <div className="plat-engine-box">
-                  <strong>Settlement Engine</strong>
-                  <span>Open → Auth → DvP</span>
-                  <span>Append-only Ledger</span>
-                </div>
-                <div className="plat-engine-box">
-                  <strong>Capital Engine</strong>
-                  <span>ECR · Hardstop Util</span>
-                  <span>Breach Detection</span>
-                </div>
-                <div className="plat-engine-box">
-                  <strong>Policy Engine</strong>
-                  <span>TRI Score</span>
-                  <span>Capital Validation</span>
-                </div>
-                <div className="plat-engine-box">
-                  <strong>Certificate Engine</strong>
-                  <span>SHA-256 Signing</span>
-                  <span>Idempotent Issue</span>
-                </div>
-                <div className="plat-engine-box">
-                  <strong>Fee Engine</strong>
-                  <span>Tiered Pricing</span>
-                  <span>Activation Gate</span>
-                </div>
+              <div className="plat-layer">
+                <span className="plat-layer-title">Clearing Engines</span>
+                Settlement Engine · Fee Engine · Certificate Engine
+              </div>
+              <div className="plat-layer">
+                <span className="plat-layer-title">Capital &amp; Policy Engines</span>
+                Capital Adequacy · Breach Detection · Policy Gating · Risk Scoring
+              </div>
+              <div className="plat-layer">
+                <span className="plat-layer-title">Certificate &amp; Audit Layer</span>
+                SHA-256 Signing · Append-Only Ledger · Supervisory Dossiers · Immutable Event Stream
               </div>
             </div>
           </section>
 
-          {/* ─── 4. Core Clearing Engine ─── */}
+          {/* ─── 5. Core Clearing Engine ─── */}
           <section id="clearing-engine" className="plat-section">
-            <h2>4. Core Clearing Engine</h2>
+            <h2>5. Core Clearing Engine</h2>
             <p>
-              The settlement engine implements a{" "}
-              <strong>six-stage deterministic lifecycle</strong> for every gold
-              transaction:
+              The settlement engine implements a <strong>six-stage deterministic lifecycle</strong> for
+              every gold transaction:
             </p>
             <div className="plat-flow">
-              ESCROW_OPEN → AWAITING_FUNDS → AWAITING_GOLD →
-              AWAITING_VERIFICATION → READY_TO_SETTLE → AUTHORIZED → SETTLED
+              ESCROW_OPEN → AWAITING_FUNDS → AWAITING_GOLD → AWAITING_VERIFICATION → READY_TO_SETTLE → AUTHORIZED → SETTLED
             </div>
 
             <h3>Atomic DvP Execution</h3>
             <p>The centerpiece is the two-step DvP mechanism:</p>
             <ol>
               <li>
-                <strong>Authorization:</strong> Clearing authority authorizes
-                settlement. A capital snapshot is frozen into the ledger.
+                <strong>Authorization:</strong> Clearing authority authorizes settlement.
+                A capital snapshot is frozen into the ledger, recording the exact exposure
+                and adequacy state at the moment of decision.
               </li>
               <li>
-                <strong>DvP Execution:</strong> Title and payment transfer
-                simultaneously. Status transitions directly to{" "}
-                <span className="plat-code">SETTLED</span>.
+                <strong>DvP Execution:</strong> Title and payment transfer simultaneously.
+                Status transitions directly to <span className="plat-code">SETTLED</span>.
+                No intermediate state exists where value is exposed.
               </li>
             </ol>
+            <div className="plat-takeaway">
+              <strong>Takeaway:</strong> Settlement finality is not procedural — it is computational.
+            </div>
           </section>
 
-          {/* ─── 5. Capital Adequacy ─── */}
+          {/* ─── 6. Capital Adequacy Framework ─── */}
           <section id="capital-framework" className="plat-section">
-            <h2>5. Capital Adequacy Framework</h2>
+            <h2>6. Capital Adequacy Framework</h2>
+            <p style={{ color: "var(--text)", fontSize: "1rem" }}>
+              Clearing without capital constraints introduces systemic fragility.<br />
+              AurumShield enforces solvency before execution.
+            </p>
             <p>
-              AurumShield implements continuous intraday capital monitoring. The
-              engine derives a complete snapshot from the current system state.
+              Unlike bilateral gold settlement — where exposure accumulates invisibly —
+              AurumShield maintains a continuous, deterministic capital snapshot derived
+              from the complete system state at any given moment.
+            </p>
+            <p style={{ color: "var(--text)" }}>
+              <strong>No settlement can execute unless sufficient clearing capital exists.</strong>
+            </p>
+
+            <h3>Real-Time Capital Snapshot</h3>
+            <p>
+              At all times, the engine derives capital metrics directly from current
+              reservations, pending orders, and open settlements.
             </p>
             <div className="plat-table-wrap">
               <table className="plat-table">
@@ -557,89 +622,82 @@ export default function PlatformCapabilitiesPage() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>
-                      <strong>Capital Base</strong>
-                    </td>
-                    <td>Total available capital for clearing operations.</td>
+                    <td><strong>Capital Base</strong></td>
+                    <td>Total capital allocated to clearing operations.</td>
                   </tr>
                   <tr>
-                    <td>
-                      <strong>Gross Exposure</strong>
-                    </td>
-                    <td>
-                      Sum of all active reservations, pending orders, and open
-                      settlements.
-                    </td>
+                    <td><strong>Gross Exposure</strong></td>
+                    <td>Sum of all active reservations, pending orders, and open settlements.</td>
                   </tr>
                   <tr>
-                    <td>
-                      <strong>ECR (Ratio)</strong>
-                    </td>
-                    <td>
-                      Gross Exposure ÷ Capital Base. Primary adequacy indicator.
-                    </td>
+                    <td><strong>ECR (Exposure Coverage Ratio)</strong></td>
+                    <td>Gross Exposure ÷ Capital Base. Primary solvency indicator.</td>
                   </tr>
                   <tr>
-                    <td>
-                      <strong>Hardstop Util</strong>
-                    </td>
-                    <td>
-                      Gross Exposure ÷ Hardstop Limit. Approaching 95% triggers
-                      critical breach.
-                    </td>
+                    <td><strong>Hardstop Utilization</strong></td>
+                    <td>Gross Exposure ÷ Hardstop Limit. Approaching 95% triggers critical breach logic.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
+            <p style={{ color: "var(--text)", fontStyle: "italic" }}>
+              These metrics are not advisory dashboards. They are computational gates.
+            </p>
 
-            <h3>Capital Controls Enforcement</h3>
+            <h3>Deterministic Breach Enforcement</h3>
             <p>
-              The engine translates breach history into enforceable control
-              decisions:
+              When capital utilization exceeds predefined thresholds, the system
+              automatically transitions into enforceable control states:
             </p>
             <div
               className="plat-engine-grid"
-              style={{
-                gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-              }}
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}
             >
-              <div
-                className="plat-engine-box"
-                style={{ borderLeft: "3px solid var(--success)" }}
-              >
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
                 <strong className="plat-status-success">NORMAL</strong>
                 <span>All operations permitted.</span>
               </div>
-              <div
-                className="plat-engine-box"
-                style={{ borderLeft: "3px solid var(--warning)" }}
-              >
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--warning)" }}>
                 <strong className="plat-status-warning">THROTTLE</strong>
                 <span>New reservations limited.</span>
               </div>
-              <div
-                className="plat-engine-box"
-                style={{ borderLeft: "3px solid var(--warning)" }}
-              >
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--warning)" }}>
                 <strong className="plat-status-warning">FREEZE</strong>
-                <span>Conversions blocked.</span>
+                <span>Order conversions blocked.</span>
               </div>
-              <div
-                className="plat-engine-box"
-                style={{ borderLeft: "3px solid var(--danger)" }}
-              >
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--danger)" }}>
                 <strong className="plat-status-danger">HALT</strong>
-                <span>All operations suspended.</span>
+                <span>All new settlement activity suspended.</span>
               </div>
+            </div>
+            <p style={{ color: "var(--text)", fontStyle: "italic" }}>
+              These states are not administrative decisions. They are deterministic outcomes of capital calculations.
+            </p>
+
+            <h3>Frozen Capital Snapshot at Execution</h3>
+            <p>
+              At the moment of DvP authorization:
+            </p>
+            <ul>
+              <li>The current capital state is frozen.</li>
+              <li>The snapshot is appended to the immutable ledger.</li>
+              <li>Settlement proceeds only if solvency conditions are satisfied.</li>
+            </ul>
+            <p style={{ color: "var(--text)", fontStyle: "italic" }}>
+              Capital adequacy is therefore not policy-based. It is mathematically enforced.
+            </p>
+
+            <div className="plat-takeaway">
+              <strong>Takeaway:</strong> AurumShield prevents overexposure before it can occur. Clearing capacity is constrained by capital reality — not intention.
             </div>
           </section>
 
-          {/* ─── 6. Policy & Risk Engine ─── */}
+          {/* ─── 7. Policy & Risk Engine ─── */}
           <section id="policy-engine" className="plat-section">
-            <h2>6. Policy &amp; Risk Engine</h2>
+            <h2>7. Policy &amp; Risk Engine</h2>
             <p>
-              The Transaction Risk Index (TRI) is a weighted composite score
-              used to classify transaction risk.
+              The Transaction Risk Index (TRI) is a weighted composite score used to
+              classify transaction risk and determine approval routing.
             </p>
             <div className="plat-table-wrap">
               <table className="plat-table">
@@ -653,45 +711,21 @@ export default function PlatformCapabilitiesPage() {
                 <tbody>
                   <tr>
                     <td>
-                      <span
-                        className="plat-badge"
-                        style={{
-                          background: "rgba(63, 174, 122, 0.2)",
-                          color: "var(--success)",
-                        }}
-                      >
-                        Green
-                      </span>
+                      <span className="plat-badge" style={{ background: "rgba(63, 174, 122, 0.2)", color: "var(--success)" }}>Green</span>
                     </td>
                     <td>0 – 3.0</td>
                     <td>Low risk. Auto-approval eligible.</td>
                   </tr>
                   <tr>
                     <td>
-                      <span
-                        className="plat-badge"
-                        style={{
-                          background: "rgba(208, 168, 92, 0.2)",
-                          color: "var(--warning)",
-                        }}
-                      >
-                        Amber
-                      </span>
+                      <span className="plat-badge" style={{ background: "rgba(208, 168, 92, 0.2)", color: "var(--warning)" }}>Amber</span>
                     </td>
                     <td>3.0 – 6.0</td>
                     <td>Moderate risk. Senior review required.</td>
                   </tr>
                   <tr>
                     <td>
-                      <span
-                        className="plat-badge"
-                        style={{
-                          background: "rgba(209, 106, 93, 0.2)",
-                          color: "var(--danger)",
-                        }}
-                      >
-                        Red
-                      </span>
+                      <span className="plat-badge" style={{ background: "rgba(209, 106, 93, 0.2)", color: "var(--danger)" }}>Red</span>
                     </td>
                     <td>6.0 – 10.0</td>
                     <td>High risk. Committee approval required.</td>
@@ -700,79 +734,70 @@ export default function PlatformCapabilitiesPage() {
               </table>
             </div>
             <p>
-              <strong>Immutable Policy Snapshot:</strong> When a reservation
-              converts to an order, a{" "}
-              <span className="plat-code">MarketplacePolicySnapshot</span> is
-              frozen and attached to the order. This creates an unalterable
-              record of the risk conditions under which the trade was approved.
+              <strong>Immutable Policy Snapshot:</strong> When a reservation converts to
+              an order, the complete risk assessment is frozen and attached to the order.
+              This creates an unalterable record of the conditions under which the trade
+              was approved — critical for regulatory review and dispute resolution.
             </p>
           </section>
 
-          {/* ─── 7. Verification ─── */}
+          {/* ─── 8. Verification ─── */}
           <section id="verification" className="plat-section">
-            <h2>7. Verification &amp; Identity Perimeter</h2>
+            <h2>8. Verification &amp; Identity Perimeter</h2>
             <p>
-              Mandatory identity perimeter. No counterparty trades without
-              completing the appropriate track.
+              Mandatory identity perimeter. No counterparty can access clearing services
+              without completing the appropriate verification track.
             </p>
             <ul>
-              <li>
-                <strong>KYC (Individuals):</strong> ID Capture, Liveness Check,
-                Sanctions Screening.
-              </li>
-              <li>
-                <strong>KYB (Entities):</strong> Company Registration, UBO
-                Declaration, Source of Funds.
-              </li>
+              <li><strong>KYC (Individuals):</strong> ID Capture, Liveness Check, Sanctions Screening.</li>
+              <li><strong>KYB (Entities):</strong> Company Registration, UBO Declaration, Source of Funds.</li>
             </ul>
             <p>
-              Every verification step produces an evidence stub with a
-              deterministic document ID and timestamp.
+              Every verification step produces an evidence stub with a deterministic
+              document ID and UTC timestamp. Verification status is checked at multiple
+              enforcement points: reservation creation, order conversion, and settlement activation.
             </p>
           </section>
 
-          {/* ─── 8. Marketplace Infrastructure ─── */}
+          {/* ─── 9. Marketplace Infrastructure ─── */}
           <section id="marketplace" className="plat-section">
-            <h2>8. Marketplace Infrastructure</h2>
+            <h2>9. Marketplace Infrastructure</h2>
             <p>
-              The marketplace implements a strict sell-side pipeline. Before
-              publishing, sellers must attach a three-part evidence pack:
+              The marketplace implements a strict sell-side pipeline. Before publishing,
+              sellers must attach a three-part evidence pack:
             </p>
             <div className="plat-engine-grid">
               <div className="plat-engine-box">
                 <strong>1. Assay Report</strong>
-                <span>Laboratory analysis confirming purity.</span>
+                <span>Laboratory analysis confirming purity and weight.</span>
               </div>
               <div className="plat-engine-box">
                 <strong>2. Chain of Custody</strong>
-                <span>Documented provenance history.</span>
+                <span>Documented provenance history from source to vault.</span>
               </div>
               <div className="plat-engine-box">
                 <strong>3. Seller Attestation</strong>
-                <span>Legal declaration of ownership.</span>
+                <span>Legal declaration of ownership and authority to sell.</span>
               </div>
             </div>
             <p style={{ marginTop: "1rem" }}>
-              <strong>Publish Gate:</strong> A deterministic function evaluates
-              Seller Verification and Evidence Completeness before allowing a
-              listing to go live.
+              <strong>Publish Gate:</strong> A deterministic function evaluates seller
+              verification status and evidence completeness before allowing a listing
+              to go live. Incomplete submissions are blocked at the code level.
             </p>
           </section>
 
-          {/* ─── 9. Certificate Engine ─── */}
-          <section id="settlement" className="plat-section">
-            <h2>9. Certificate Engine</h2>
+          {/* ─── 10. Certificate Engine ─── */}
+          <section id="certificate-engine" className="plat-section">
+            <h2>10. Certificate Engine</h2>
             <p>
-              When a settlement reaches{" "}
-              <span className="plat-code">SETTLED</span> status via DvP
-              execution, the engine automatically issues a{" "}
-              <strong>Gold Clearing Certificate</strong>.
+              When a settlement reaches <span className="plat-code">SETTLED</span> status
+              via DvP execution, the engine automatically issues a <strong>Gold Clearing Certificate</strong>.
             </p>
             <div className="plat-callout">
               <span className="plat-callout-title">Cryptographic Finality</span>
-              Each certificate contains a{" "}
-              <strong>SHA-256 signature hash</strong> of its canonically
-              serialized payload. This allows any party to independently verify
+              Each certificate contains a <strong>SHA-256 signature hash</strong> of its
+              canonically serialized payload. This allows any party to independently verify
               that the certificate contents match the immutable ledger record.
             </div>
             <div className="plat-table-wrap">
@@ -786,95 +811,97 @@ export default function PlatformCapabilitiesPage() {
                 <tbody>
                   <tr>
                     <td>Certificate Number</td>
-                    <td>
-                      <span className="plat-code">
-                        AS-GC-YYYYMMDD-&lt;HEX&gt;-&lt;SEQ&gt;
-                      </span>{" "}
-                      (Deterministic generation)
-                    </td>
+                    <td><span className="plat-code">AS-GC-YYYYMMDD-&lt;HEX&gt;-&lt;SEQ&gt;</span> (Deterministic generation)</td>
                   </tr>
                   <tr>
                     <td>Signature Hash</td>
-                    <td>SHA-256 of canonical payload.</td>
+                    <td>SHA-256 of canonical payload serialization.</td>
                   </tr>
                   <tr>
                     <td>DvP Ledger ID</td>
-                    <td>Reference to the specific execution ledger entry.</td>
+                    <td>Reference to the specific atomic execution ledger entry.</td>
+                  </tr>
+                  <tr>
+                    <td>Issuance Timestamp</td>
+                    <td>UTC timestamp of certificate generation, immutably recorded.</td>
+                  </tr>
+                  <tr>
+                    <td>Fee Summary</td>
+                    <td>Frozen fee breakdown at settlement activation — indemnification, add-ons, total.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
+            <div className="plat-takeaway">
+              <strong>Takeaway:</strong> Immutable clearing certificates provide independently verifiable proof of settlement finality for bilateral reconciliation, regulatory reporting, and custody transfer documentation.
+            </div>
           </section>
 
-          {/* ─── 10. Governance ─── */}
-          <section id="governance" className="plat-section">
-            <h2>10. Governance &amp; Audit</h2>
+          {/* ─── 11. Fee Model & Pricing ─── */}
+          <section id="fee-model" className="plat-section">
+            <h2>11. Fee Model &amp; Pricing</h2>
             <p>
-              Every significant system action generates an append-only audit
-              event. The <strong>Supervisory Console</strong> presents these
-              events as regulator-ready case dossiers.
+              AurumShield{`'`}s revenue model is anchored by a single, transparent core fee:
+              the <strong>indemnification fee</strong>. This is the price counterparties pay
+              for fraud-indemnified, capital-backed clearing.
             </p>
-            <pre className="plat-pre">
-              {`{
-  "occurredAt": "2026-02-18T14:30:00Z",
-  "actorRole": "admin",
-  "action": "EXECUTE_DVP",
-  "resourceType": "settlement",
-  "resourceId": "stl-001",
-  "result": "SUCCESS",
-  "hash": "a1b2c3d4..."
-}`}
-            </pre>
-          </section>
 
-          {/* ─── 11. Fee Engine & Pricing ─── */}
-          <section id="fee-engine" className="plat-section">
-            <h2>11. Fee Engine &amp; Pricing</h2>
-            <p>
-              AurumShield implements a <strong>deterministic, three-component fee model</strong> that
-              calculates clearing costs at settlement activation. Fees are computed from a
-              configurable schedule and frozen into the settlement record before DvP execution.
-            </p>
+            <h3>Core Indemnification Fee: 1% of Notional</h3>
+            <div className="plat-callout">
+              <span className="plat-callout-title">Core Fee: 1% of Transaction Notional Value</span>
+              Applied to every cleared transaction. This fee activates AurumShield{`'`}s
+              fraud indemnification guarantee — backed by the platform{`'`}s clearing capital reserve.
+              Subject to configurable minimum and maximum thresholds.
+            </div>
             <div className="plat-table-wrap">
               <table className="plat-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "25%" }}>Fee Type</th>
-                    <th>Calculation</th>
-                    <th>Purpose</th>
+                    <th style={{ width: "25%" }}>Parameter</th>
+                    <th>Default Value</th>
+                    <th>Description</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td><strong>Platform Fee</strong></td>
-                    <td>
-                      <span className="plat-code">notionalValue × platformFeeBps ÷ 10000</span>
-                    </td>
-                    <td>Core clearing service charge (% of trade value).</td>
+                    <td><strong>Indemnification Rate</strong></td>
+                    <td><span className="plat-code">100 bps (1.00%)</span></td>
+                    <td>Core platform fee. Percentage of transaction notional value.</td>
                   </tr>
                   <tr>
-                    <td><strong>Clearing Fee</strong></td>
-                    <td>
-                      <span className="plat-code">quantityOz × clearingFeePerOz</span>
-                    </td>
-                    <td>Per-ounce processing and custody transfer fee.</td>
+                    <td><strong>Minimum Fee</strong></td>
+                    <td><span className="plat-code">$250.00</span></td>
+                    <td>Floor applied to small transactions.</td>
                   </tr>
                   <tr>
-                    <td><strong>Insurance Levy</strong></td>
-                    <td>
-                      <span className="plat-code">notionalValue × insuranceLevyBps ÷ 10000</span>
-                    </td>
-                    <td>Capital reserve contribution for indemnity coverage.</td>
+                    <td><strong>Maximum Fee</strong></td>
+                    <td><span className="plat-code">$50,000.00</span></td>
+                    <td>Cap applied to large transactions.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <div className="plat-callout">
-              <span className="plat-callout-title">Admin Pricing Console</span>
-              Clearing authorities configure fee schedules in real-time through the
-              Admin Pricing Console. Rate changes take effect on the next settlement
-              activation — active settlements retain their frozen fee snapshot.
-            </div>
+            <p style={{ color: "var(--text)" }}>
+              Fees are <strong>frozen into the settlement record at activation</strong>.
+              Active settlements retain their fee snapshot even if rates are subsequently adjusted.
+            </p>
+
+            <h3>Optional Add-On Services</h3>
+            <p>
+              In addition to the core indemnification fee, clearing authorities may configure
+              optional service add-ons. These are independently toggled and itemized —
+              distinguishing vendor pass-through costs from platform coordination fees:
+            </p>
+            <ul>
+              <li><strong>Expedited Settlement:</strong> Priority processing for time-sensitive transactions.</li>
+              <li><strong>Vault Insurance:</strong> Extended storage and transit coverage (vendor pass-through).</li>
+              <li><strong>Regulatory Reporting:</strong> Automated compliance report generation.</li>
+              <li><strong>Optional Clearing Charge:</strong> Configurable per-transaction processing charge, if applicable.</li>
+            </ul>
+            <p style={{ fontStyle: "italic", color: "var(--text-muted)" }}>
+              The core economics are simple: 1% of notional for indemnification.
+              Everything else is optional and itemized.
+            </p>
           </section>
 
           {/* ─── 12. Settlement Activation Gate ─── */}
@@ -919,220 +946,110 @@ export default function PlatformCapabilitiesPage() {
           <section id="security" className="plat-section">
             <h2>13. Security Architecture</h2>
             <ul>
-              <li>
-                <strong>No Settlement Gap:</strong> Atomic DvP execution.
-              </li>
-              <li>
-                <strong>Precondition Enforcement:</strong> Code-level validation
-                of funds/gold status.
-              </li>
-              <li>
-                <strong>Role-Gated Actions:</strong> Deterministic role maps
-                defined in source code.
-              </li>
-              <li>
-                <strong>Frozen Snapshots:</strong> Capital and policy state
-                recorded at moment of execution.
-              </li>
+              <li><strong>No Settlement Gap:</strong> Atomic DvP execution eliminates temporal exposure between payment and delivery.</li>
+              <li><strong>Precondition Enforcement:</strong> Code-level validation of funds, gold status, and identity before any state transition.</li>
+              <li><strong>Role-Gated Actions:</strong> Deterministic role maps enforce that only authorized actors can perform specific operations.</li>
+              <li><strong>Frozen Snapshots:</strong> Capital and policy state recorded at moment of execution, creating an immutable audit trail.</li>
+              <li><strong>Append-Only Ledger:</strong> All state transitions produce immutable ledger entries. No record can be modified or deleted.</li>
             </ul>
           </section>
 
           {/* ─── 14. Strategic Alignment ─── */}
           <section id="alignment" className="plat-section">
-            <h2>14. Strategic Alignment Analysis</h2>
+            <h2>14. Strategic Alignment</h2>
+
+            <h3>Why This Matters Now</h3>
             <p>
-              This platform architecture operationalizes the high-level promises
-              of the Business Plan into specific, enforceable software
-              mechanisms. It translates trust and insurance concepts into
+              The physical gold market is at an inflection point. Growing regulatory
+              scrutiny of OTC precious metals trading, rising fraud exposure in cross-border
+              gold transactions, the ongoing institutionalization of physical commodity
+              markets, and the increasing demand for standardized clearing mechanisms
+              all point to the same conclusion: bilateral settlement is an institutional
+              liability, and the market needs clearing infrastructure.
+            </p>
+
+            <p>
+              AurumShield operationalizes the high-level business proposition into specific,
+              enforceable mechanisms. It translates trust and insurance concepts into
               cryptographic proofs and capital constraints.
             </p>
-            <div className="plat-callout">
-              <span className="plat-callout-title">
-                Architectural Realization
-              </span>
-              The platform is the technical &quot;How&quot; to the Business
-              Plan&apos;s &quot;What&quot;. It moves beyond intent to provide
-              mathematical guarantees for the proposed business value.
-            </div>
             <div className="plat-table-wrap">
               <table className="plat-table">
                 <thead>
                   <tr>
                     <th style={{ width: "25%" }}>Business Requirement</th>
                     <th style={{ width: "35%" }}>Technical Implementation</th>
-                    <th>Strategic Alignment</th>
+                    <th>Alignment</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>
-                      <strong>Eliminate Principal Risk</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-faint)",
-                        }}
-                      >
-                        &quot;Non-delivery after payment&quot;
-                      </span>
+                      <strong>Eliminate Principal Risk</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>&quot;Non-delivery after payment&quot;</span>
                     </td>
                     <td>
-                      <strong>Atomic DvP (Core Clearing Engine)</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        Money and title transfer simultaneously in one
-                        computational step.
-                      </span>
+                      <strong>Atomic DvP (Core Clearing Engine)</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Money and title transfer simultaneously in one computational step.</span>
                     </td>
                     <td>
-                      <span className="plat-status-success">
-                        ✓ Mathematically Prevents Fraud
-                      </span>
-                      <br />
+                      <span className="plat-status-success">✓ Mathematically Prevents Fraud</span><br />
                       Eliminates the settlement gap entirely.
                     </td>
                   </tr>
                   <tr>
                     <td>
-                      <strong>Physical Verification</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-faint)",
-                        }}
-                      >
-                        &quot;Inspection of mines &amp; purity&quot;
-                      </span>
+                      <strong>Physical Verification</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>&quot;Inspection of mines &amp; purity&quot;</span>
                     </td>
                     <td>
-                      <strong>Evidence Packing &amp; Publish Gate</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        Listings blocked without digital artifacts (Assay, Chain
-                        of Custody).
-                      </span>
+                      <strong>Evidence Packing &amp; Publish Gate</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Listings blocked without digital artifacts (Assay, Chain of Custody).</span>
                     </td>
                     <td>
-                      <span className="plat-status-success">
-                        ✓ Digital Enforcement
-                      </span>
-                      <br />
-                      Transforms physical checks into mandatory digital
-                      preconditions.
+                      <span className="plat-status-success">✓ Digital Enforcement</span><br />
+                      Transforms physical checks into mandatory digital preconditions.
                     </td>
                   </tr>
                   <tr>
                     <td>
-                      <strong>Insurance-Backed</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-faint)",
-                        }}
-                      >
-                        &quot;Transaction insurance&quot;
-                      </span>
+                      <strong>Insurance-Backed</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>&quot;Transaction indemnification&quot;</span>
                     </td>
                     <td>
-                      <strong>Capital Adequacy Framework</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        Real-time ECR tracking and Hardstop Limits preventing
-                        over-underwriting.
-                      </span>
+                      <strong>Capital Adequacy Framework</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Real-time ECR tracking and Hardstop Limits preventing over-underwriting.</span>
                     </td>
                     <td>
-                      <span className="plat-status-success">
-                        ✓ Solvency Guarantee
-                      </span>
-                      <br />
-                      Ensures indemnity capital actually exists before trades
-                      clear.
+                      <span className="plat-status-success">✓ Solvency Guarantee</span><br />
+                      Ensures indemnity capital actually exists before trades clear.
                     </td>
                   </tr>
                   <tr>
                     <td>
-                      <strong>Anonymity &amp; Privacy</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-faint)",
-                        }}
-                      >
-                        &quot;Anonymous transaction option&quot;
-                      </span>
+                      <strong>Anonymity &amp; Privacy</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>&quot;Anonymous transaction option&quot;</span>
                     </td>
                     <td>
-                      <strong>Central Clearing Model</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        AurumShield acts as the central counterparty, shielding
-                        identities via RBAC.
-                      </span>
+                      <strong>Central Clearing Model</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>AurumShield acts as the central counterparty, shielding identities via RBAC.</span>
                     </td>
                     <td>
-                      <span className="plat-status-success">
-                        ✓ Architectural Privacy
-                      </span>
-                      <br />
+                      <span className="plat-status-success">✓ Architectural Privacy</span><br />
                       Identities shielded by design, not just policy.
                     </td>
                   </tr>
                   <tr>
                     <td>
-                      <strong>Regulatory Compliance</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-faint)",
-                        }}
-                      >
-                        &quot;Compliance-ready documentation&quot;
-                      </span>
+                      <strong>Regulatory Compliance</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>&quot;Compliance-ready documentation&quot;</span>
                     </td>
                     <td>
-                      <strong>Append-Only Audit Ledger</strong>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        Immutable event stream and automated Supervisory Case
-                        Dossiers.
-                      </span>
+                      <strong>Append-Only Audit Ledger</strong><br />
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Immutable event stream and automated Supervisory Case Dossiers.</span>
                     </td>
                     <td>
-                      <span className="plat-status-success">
-                        ✓ Audit Readiness
-                      </span>
-                      <br />
+                      <span className="plat-status-success">✓ Audit Readiness</span><br />
                       Zero-overhead reporting for regulatory scrutiny.
                     </td>
                   </tr>
@@ -1146,102 +1063,37 @@ export default function PlatformCapabilitiesPage() {
             <h2>15. Interactive Demo System</h2>
             <p>
               AurumShield includes a <strong>role-based guided tour system</strong> for
-              stakeholder demonstrations. Each tour walks the viewer through the
-              platform from a specific institutional perspective.
+              stakeholder demonstrations. Each tour walks the viewer through the platform
+              from a specific institutional perspective.
             </p>
             <div className="plat-engine-grid">
               <div className="plat-engine-box">
                 <strong>Buyer Tour</strong>
-                <span>Marketplace → Reserve → Order → Settle → Certificate</span>
+                <span>Marketplace → Reserve → Order → Verify → Settle → Certificate</span>
               </div>
               <div className="plat-engine-box">
                 <strong>Seller Tour</strong>
-                <span>Listings → Evidence → Publish → Settlement</span>
-              </div>
-              <div className="plat-engine-box">
-                <strong>Ops Admin Tour</strong>
-                <span>Dashboard → Capital → Settlements → Audit → Supervisory</span>
-              </div>
-              <div className="plat-engine-box">
-                <strong>Compliance Tour</strong>
-                <span>Dashboard → Capital → Controls → Supervisory → Audit</span>
-              </div>
-              <div className="plat-engine-box">
-                <strong>Treasury Tour</strong>
-                <span>Dashboard → Intraday → Controls → Settlements → Audit</span>
+                <span>Listings → Evidence → Publish → Settlement → Certificate</span>
               </div>
               <div className="plat-engine-box">
                 <strong>Admin Tour</strong>
-                <span>Dashboard → Roles → Policy → Audit → Capital</span>
+                <span>Dashboard → Pricing → Capital Controls → Settlements → Audit</span>
               </div>
             </div>
-            <h3>Tour Engine Architecture</h3>
-            <p>
-              The tour system is powered by a <strong>state machine</strong> with
-              localStorage persistence. Steps define target routes, UI element
-              highlights, and narrative content. The engine handles automatic
-              route navigation, overlay rendering, and step progression.
+            <p style={{ marginTop: "1rem" }}>
+              Tours are powered by a state machine with step-level route navigation,
+              UI element highlighting, and structured narrative content. Each tour
+              enforces a minimum 60% click-gating ratio to ensure active engagement
+              rather than passive viewing.
             </p>
-            <div className="plat-flow">
-              Demo Login → Role Selection → startTour(role) → Step Navigation → Route Sync → Overlay Render → Complete
-            </div>
           </section>
 
-          {/* ─── API Stats ─── */}
-          <hr
-            style={{
-              border: 0,
-              borderTop: "1px solid var(--border)",
-              margin: "4rem 0",
-            }}
-          />
-          <section id="api-stats" className="plat-section">
-            <h3>System API Surface</h3>
-            <div className="plat-engine-grid">
-              <div className="plat-engine-box">
-                <strong>Marketplace</strong>
-                <span>14 Endpoints</span>
-              </div>
-              <div className="plat-engine-box">
-                <strong>Settlements</strong>
-                <span>8 Endpoints</span>
-              </div>
-              <div className="plat-engine-box">
-                <strong>Capital &amp; Risk</strong>
-                <span>8 Endpoints</span>
-              </div>
-              <div className="plat-engine-box">
-                <strong>Fees &amp; Pricing</strong>
-                <span>4 Endpoints</span>
-              </div>
-              <div className="plat-engine-box">
-                <strong>Audit &amp; Certs</strong>
-                <span>5 Endpoints</span>
-              </div>
-              <div className="plat-engine-box">
-                <strong>Demo &amp; Tours</strong>
-                <span>3 Endpoints</span>
-              </div>
-            </div>
-            <p
-              style={{
-                textAlign: "right",
-                marginTop: "1rem",
-                fontSize: "0.875rem",
-              }}
-            >
-              <strong>Total: 42 API Endpoints</strong>
-            </p>
-          </section>
         </main>
       </div>
 
       {/* ─── Footer ─── */}
       <footer className="plat-footer">
-        <p>
-          AurumShield — Sovereign Clearing Infrastructure for Institutional
-          Precious Metals
-        </p>
+        <p>AurumShield — Institutional Clearing Infrastructure for Physical Gold Transactions</p>
         <p>© 2026 AurumShield. All rights reserved.</p>
       </footer>
     </div>

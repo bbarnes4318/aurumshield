@@ -16,7 +16,7 @@ import {
   ExternalLink,
   X,
 } from "lucide-react";
-import Image from "next/image";
+import { AppLogo } from "@/components/app-logo";
 import { cn } from "@/lib/utils";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { useAuth } from "@/providers/auth-provider";
@@ -544,13 +544,7 @@ function ReceiptContent() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="mb-2">
-                  <Image
-                    src="/arum-logo-white.png"
-                    alt="AurumShield"
-                    width={280}
-                    height={64}
-                    className="h-10 w-auto"
-                  />
+                  <AppLogo size="document" variant="white" />
                 </div>
                 <h1 className="text-lg font-bold tracking-tight text-text" style={{ fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace" }}>
                   CLEARING RECEIPT

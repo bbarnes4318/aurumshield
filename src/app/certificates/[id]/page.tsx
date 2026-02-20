@@ -10,7 +10,7 @@ import {
   Check,
   Lock,
 } from "lucide-react";
-import Image from "next/image";
+import { AppLogo } from "@/components/app-logo";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { useAuth } from "@/providers/auth-provider";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
@@ -194,13 +194,7 @@ function CertificateContent() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <Image
-                    src="/arum-logo-navy.png"
-                    alt="AurumShield"
-                    width={280}
-                    height={64}
-                    className="h-10 w-auto"
-                  />
+                  <AppLogo size="document" variant="navy" />
                 </div>
                 <h1 className="text-lg font-semibold text-text tracking-wide">
                   Clearing Certificate

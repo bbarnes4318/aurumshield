@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AppLogoImg } from "@/components/app-logo";
 
 /* ---------- Section metadata for sidebar nav ---------- */
 interface Section {
@@ -138,14 +139,12 @@ export default function DemoWalkthroughPage() {
           height: 100%;
         }
         .wt-sidebar-brand {
-          height: 64px;
           display: flex;
           align-items: center;
-          padding: 0 1.5rem;
+          padding: 1rem 1.5rem;
           border-bottom: 1px solid var(--border);
           flex-shrink: 0;
         }
-        .wt-sidebar-brand img { height: 40px; width: auto; }
         .wt-sidebar-nav {
           flex: 1;
           overflow-y: auto;
@@ -459,8 +458,7 @@ export default function DemoWalkthroughPage() {
       {/* ─── Sidebar ─── */}
       <aside className="wt-sidebar">
         <div className="wt-sidebar-brand">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/arum-logo-white.png" alt="AurumShield" />
+          <AppLogoImg size="presentation" variant="white" />
         </div>
 
         <nav className="wt-sidebar-nav">

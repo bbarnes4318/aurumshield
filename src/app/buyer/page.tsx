@@ -5,12 +5,13 @@
 
    Dedicated buy-side surface showing:
    - Active transaction tile (latest in-flight settlement)
-   - Counterparty verification panel
-   - Indemnification coverage
    - Portfolio summary (reservations, orders, settlements)
+   - Placeholder slots for Phase 3 visual components:
+     • CounterpartyVerificationPanel
+     • IndemnificationPolicyCard
+     • CapitalAllocationSequence
    ================================================================ */
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ShoppingCart,
@@ -22,16 +23,13 @@ import {
 } from "lucide-react";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { useAuth } from "@/providers/auth-provider";
-import { useDemo } from "@/providers/demo-provider";
 import {
   useMyOrders,
   useMyReservations,
   useSettlements,
 } from "@/hooks/use-mock-queries";
-import { CounterpartyVerificationPanel } from "@/components/demo/CounterpartyVerificationPanel";
-import { IndemnificationPolicyCard } from "@/components/demo/IndemnificationPolicyCard";
-import { SupportBanner } from "@/components/demo/SupportBanner";
-
+import { DEMO_IDS } from "@/lib/demo-seeder";
+import { PageHeader } from "@/components/ui/page-header";
 
 /* ---------- Status chip config ---------- */
 const STATUS_STYLE: Record<string, string> = {
@@ -45,251 +43,254 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 function BuyerContent() {
-  const router = useRouter();
   const { user } = useAuth();
-  const { isDemo } = useDemo();
-  const userId = user?.id ?? "demo-buyer";
+  const userId = user?.id ?? DEMO_IDS.buyer;
 
-  const ordersQ = useMyOrders(userId);
-  const reservationsQ = useMyReservations(userId);
-  const settlementsQ = useSettlements();
+  /* ---------- Data queries ---------- */
+  const { data: orders = [] } = useMyOrders(userId);
+  const { data: reservations = [] } = useMyReservations(userId);
+  const { data: settlements = [] } = useSettlements();
 
-  const orders = ordersQ.data ?? [];
-  const reservations = reservationsQ.data ?? [];
-  const allSettlements = settlementsQ.data ?? [];
+  // Filter settlements relevant to THIS buyer
+  const mySettlements = settlements.filter((s) => s.buyerUserId === userId);
 
-  // Filter settlements relevant to this buyer
-  const mySettlements = allSettlements.filter(
-    (s) => s.buyerUserId === userId,
+  // Active settlement: first non-SETTLED, non-CANCELLED
+  const activeSettlement = mySettlements.find(
+    (s) => s.status !== "SETTLED" && s.status !== "CANCELLED" && s.status !== "FAILED",
   );
 
-  // DETERMINISTIC: In demo mode, anchor to specific settlement IDs
-  // stl-002 = active in-flight settlement, stl-001 = settled (certificate ready)
-  const activeSettlement = isDemo
-    ? mySettlements.find((s) => s.id === "stl-002") ??
-      mySettlements.find(
-        (s) =>
-          s.status !== "SETTLED" &&
-          s.status !== "FAILED" &&
-          s.status !== "CANCELLED",
-      )
-    : mySettlements.find(
-        (s) =>
-          s.status !== "SETTLED" &&
-          s.status !== "FAILED" &&
-          s.status !== "CANCELLED",
-      );
+  // Completed settlement: first SETTLED
+  const completedSettlement = mySettlements.find((s) => s.status === "SETTLED");
 
-  // DETERMINISTIC: In demo mode, anchor to stl-001 for certificate
-  const settledSettlement = isDemo
-    ? mySettlements.find((s) => s.id === "stl-001") ??
-      mySettlements.find((s) => s.status === "SETTLED")
-    : mySettlements.find((s) => s.status === "SETTLED");
-
+  /* ---------- Summary stats ---------- */
+  const activeReservations = reservations.filter((r) => r.state === "ACTIVE");
+  const pendingOrders = orders.filter(
+    (o) => o.status === "draft" || o.status === "pending_verification" || o.status === "reserved" || o.status === "settlement_pending",
+  );
+  const settledCount = mySettlements.filter((s) => s.status === "SETTLED").length;
 
   return (
     <>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-border bg-surface-2">
-            <ShoppingCart className="h-5 w-5 text-text-muted" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-text">
-              Transaction Console
-            </h1>
-            <p className="text-xs text-text-faint">
-              Buy-side clearing operations
-            </p>
-          </div>
-        </div>
-        {isDemo && <SupportBanner compact />}
-      </div>
+      <PageHeader
+        title="Transaction Console"
+        description="Buy-side overview — active transactions, portfolio summary, and settlement status"
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ═══ Active Transaction Tile ═══ */}
-        <div
-          className="card-base border border-border p-5 space-y-4"
-          data-tour="buyer-active-transaction"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-text">
-              Active Transaction
-            </h2>
-            {activeSettlement && (
-              <span
-                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                  STATUS_STYLE[activeSettlement.status] ??
-                  STATUS_STYLE.DRAFT
-                }`}
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                {activeSettlement.status.replace(/_/g, " ")}
-              </span>
-            )}
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
 
+        {/* ── Column 1: Active Transaction ── */}
+        <div className="lg:col-span-2 space-y-6">
+
+          {/* Active Settlement Tile */}
           {activeSettlement ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-text-faint">
-                    Settlement
-                  </p>
-                  <p className="text-sm font-mono text-text mt-0.5">
-                    {activeSettlement.id}
-                  </p>
+            <Link
+              href={`/settlements/${activeSettlement.id}`}
+              className="block card-base border border-border p-5 hover:border-gold/40 transition-colors group"
+              data-tour="buyer-active-transaction"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Landmark className="h-4 w-4 text-gold" />
+                  <span className="text-sm font-semibold text-text">
+                    Active Settlement
+                  </span>
                 </div>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                    STATUS_STYLE[activeSettlement.status] ?? STATUS_STYLE.DRAFT
+                  }`}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  {activeSettlement.status.replace(/_/g, " ")}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-text-faint">
-                    Notional
-                  </p>
-                  <p className="text-sm font-mono tabular-nums text-text mt-0.5">
-                    $
-                    {activeSettlement.notionalUsd.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-text-faint">
-                    Weight
-                  </p>
-                  <p className="text-sm font-mono tabular-nums text-text mt-0.5">
+                  <p className="text-[10px] uppercase tracking-wide text-text-faint mb-0.5">Weight</p>
+                  <p className="font-mono tabular-nums text-text">
                     {activeSettlement.weightOz} oz
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-text-faint">
-                    Activation
+                  <p className="text-[10px] uppercase tracking-wide text-text-faint mb-0.5">Price</p>
+                  <p className="font-mono tabular-nums text-text">
+                    ${activeSettlement.pricePerOzLocked.toLocaleString("en-US", { minimumFractionDigits: 2 })}/oz
                   </p>
-                  <p className="text-sm text-text mt-0.5">
-                    <span
-                      className={`inline-flex items-center gap-1 text-xs font-medium ${
-                        activeSettlement.activationStatus === "activated"
-                          ? "text-success"
-                          : "text-warning"
-                      }`}
-                    >
-                      {activeSettlement.activationStatus === "activated" ? (
-                        <CheckCircle2 className="h-3 w-3" />
-                      ) : (
-                        <Clock className="h-3 w-3" />
-                      )}
-                      {activeSettlement.activationStatus.replace(/_/g, " ")}
-                    </span>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-text-faint mb-0.5">Notional</p>
+                  <p className="font-mono tabular-nums text-text">
+                    ${activeSettlement.notionalUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-text-faint mb-0.5">Opened</p>
+                  <p className="font-mono tabular-nums text-text text-xs">
+                    {new Date(activeSettlement.openedAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </p>
                 </div>
               </div>
-
-              {/* Activate Clearing CTA */}
-              {activeSettlement.activationStatus !== "activated" && (
-                <Link
-                  href={`/settlements/${activeSettlement.id}/activation?demo=true`}
-                  data-tour="activation-pay-cta"
-                  className="flex items-center justify-center gap-2 w-full rounded-sm border border-border bg-surface-2 px-3 py-2.5 text-xs font-semibold text-text hover:bg-surface-3 transition-colors"
-                >
-                  <Landmark className="h-3.5 w-3.5" />
-                  Activate Clearing
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              )}
-              {activeSettlement.activationStatus === "activated" && (
-                <Link
-                  href={`/settlements/${activeSettlement.id}?demo=true`}
-                  className="flex items-center justify-center gap-2 w-full rounded-sm border border-success/30 bg-success/10 px-3 py-2 text-xs font-medium text-success hover:bg-success/20 transition-colors"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  View Settlement Detail
-                </Link>
-              )}
-            </div>
-          ) : settledSettlement ? (
-            <div className="space-y-3">
-              <div className="rounded-sm bg-success/5 border border-success/20 px-3 py-2">
-                <p className="text-xs font-medium text-success">
-                  Most recent settlement completed
-                </p>
-                <p className="text-[10px] font-mono text-text-muted mt-1">
-                  {settledSettlement.id}
-                </p>
+              <div className="flex justify-end mt-3">
+                <span className="text-xs text-gold flex items-center gap-1 group-hover:gap-2 transition-all">
+                  View settlement <ArrowRight className="h-3 w-3" />
+                </span>
               </div>
+            </Link>
+          ) : (
+            <div className="card-base border border-border p-5 text-center">
+              <Landmark className="h-8 w-8 text-text-faint/40 mx-auto mb-2" />
+              <p className="text-sm text-text-faint">No active settlements</p>
               <Link
-                href={`/settlements/${settledSettlement.id}?demo=true`}
-                className="flex items-center justify-center gap-2 w-full rounded-sm border border-border bg-surface-2 px-3 py-2 text-xs font-medium text-text-muted hover:text-text hover:bg-surface-3 transition-colors"
+                href="/marketplace"
+                className="text-xs text-gold hover:underline mt-2 inline-flex items-center gap-1"
               >
-                <FileText className="h-3 w-3" />
-                View Settlement
+                Browse marketplace <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
-          ) : (
-            <p className="text-xs text-text-faint">
-              No active transactions. Browse the marketplace to begin.
-            </p>
           )}
+
+          {/* Completed Settlement (Path A) */}
+          {completedSettlement && (
+            <Link
+              href={`/settlements/${completedSettlement.id}`}
+              className="block card-base border border-success/20 p-5 hover:border-success/40 transition-colors group"
+              data-tour="buyer-completed-settlement"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <span className="text-sm font-semibold text-text">
+                    Last Completed Settlement
+                  </span>
+                </div>
+                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-success/10 text-success border-success/20">
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  SETTLED
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-text-faint mb-0.5">Weight</p>
+                  <p className="font-mono tabular-nums text-text">
+                    {completedSettlement.weightOz} oz
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-text-faint mb-0.5">Notional</p>
+                  <p className="font-mono tabular-nums text-text">
+                    ${completedSettlement.notionalUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-text-faint mb-0.5">Settled</p>
+                  <p className="font-mono tabular-nums text-text text-xs">
+                    {new Date(completedSettlement.updatedAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end mt-3">
+                <span className="text-xs text-success flex items-center gap-1 group-hover:gap-2 transition-all">
+                  View certificate <ArrowRight className="h-3 w-3" />
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {/* ── Phase 3 Slot: CounterpartyVerificationPanel ── */}
+          {/* TODO: Phase 3 will insert <CounterpartyVerificationPanel /> here */}
+
+          {/* ── Phase 3 Slot: CapitalAllocationSequence ── */}
+          {/* TODO: Phase 3 will insert <CapitalAllocationSequence /> here */}
         </div>
 
-        {/* ═══ Counterparty Verification ═══ */}
-        <CounterpartyVerificationPanel
-          buyerOrg="Sovereign Acquisition Corp."
-          sellerOrg="Helvetia Precious Metals AG"
-          onOpenReport={() =>
-            router.push(`/verification/status/demo-buyer?demo=true`)
-          }
-        />
+        {/* ── Column 2: Portfolio Summary ── */}
+        <div className="space-y-6">
 
-        {/* ═══ Indemnification Coverage ═══ */}
-        <IndemnificationPolicyCard
-          active={
-            activeSettlement?.activationStatus === "activated" ||
-            !!settledSettlement
-          }
-        />
+          {/* Stats cards */}
+          <div className="space-y-3">
+            <Link
+              href="/reservations"
+              className="card-base border border-border p-4 flex items-center gap-3 hover:border-gold/30 transition-colors"
+              data-tour="buyer-reservations"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-warning/10">
+                <Clock className="h-4 w-4 text-warning" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-text-faint">Active Reservations</p>
+                <p className="text-lg font-semibold tabular-nums text-text">{activeReservations.length}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-text-faint" />
+            </Link>
 
-        {/* ═══ Portfolio Summary ═══ */}
-        <div
-          className="card-base border border-border p-5 space-y-4"
-          data-tour="buyer-portfolio"
-        >
-          <h2 className="text-sm font-semibold text-text">
-            Portfolio Summary
-          </h2>
-          <div className="grid grid-cols-3 gap-4">
             <Link
-              href="/reservations?demo=true"
-              className="rounded-sm border border-border bg-surface-2 p-3 hover:bg-surface-3 transition-colors text-center"
+              href="/orders"
+              className="card-base border border-border p-4 flex items-center gap-3 hover:border-gold/30 transition-colors"
+              data-tour="buyer-orders"
             >
-              <p className="text-lg font-semibold font-mono tabular-nums text-text">
-                {reservations.length}
-              </p>
-              <p className="text-[10px] uppercase tracking-wider text-text-faint mt-1">
-                Reservations
-              </p>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-info/10">
+                <ShoppingCart className="h-4 w-4 text-info" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-text-faint">Open Orders</p>
+                <p className="text-lg font-semibold tabular-nums text-text">{pendingOrders.length}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-text-faint" />
             </Link>
-            <Link
-              href="/orders?demo=true"
-              className="rounded-sm border border-border bg-surface-2 p-3 hover:bg-surface-3 transition-colors text-center"
-            >
-              <p className="text-lg font-semibold font-mono tabular-nums text-text">
-                {orders.length}
-              </p>
-              <p className="text-[10px] uppercase tracking-wider text-text-faint mt-1">
-                Orders
-              </p>
-            </Link>
-            <Link
-              href="/settlements?demo=true"
-              className="rounded-sm border border-border bg-surface-2 p-3 hover:bg-surface-3 transition-colors text-center"
-            >
-              <p className="text-lg font-semibold font-mono tabular-nums text-text">
-                {mySettlements.length}
-              </p>
-              <p className="text-[10px] uppercase tracking-wider text-text-faint mt-1">
-                Settlements
-              </p>
-            </Link>
+
+            <div className="card-base border border-border p-4 flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-success/10">
+                <CheckCircle2 className="h-4 w-4 text-success" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-text-faint">Settled</p>
+                <p className="text-lg font-semibold tabular-nums text-text">{settledCount}</p>
+              </div>
+            </div>
           </div>
+
+          {/* Recent orders list */}
+          <div className="card-base border border-border p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="h-4 w-4 text-text-muted" />
+              <h3 className="text-sm font-semibold text-text">Recent Orders</h3>
+            </div>
+            {orders.length === 0 ? (
+              <p className="text-xs text-text-faint">No orders yet</p>
+            ) : (
+              <div className="space-y-2">
+                {orders.slice(0, 5).map((order) => (
+                  <Link
+                    key={order.id}
+                    href={`/orders/${order.id}`}
+                    className="flex items-center justify-between py-2 px-2 rounded-sm hover:bg-surface-2 transition-colors"
+                  >
+                    <div>
+                      <p className="text-xs font-medium text-text">
+                        {order.weightOz} oz @ ${order.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-[10px] text-text-faint font-mono">
+                        {order.id}
+                      </p>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wide text-text-faint">
+                      {order.status}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Phase 3 Slot: IndemnificationPolicyCard ── */}
+          {/* TODO: Phase 3 will insert <IndemnificationPolicyCard /> here */}
         </div>
       </div>
     </>
