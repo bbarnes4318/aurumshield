@@ -32,7 +32,8 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import { useUser, useOrganization } from "@clerk/nextjs";
+// TODO: Uncomment when @clerk/nextjs is installed and provisioned
+// import { useUser, useOrganization } from "@clerk/nextjs";
 import type { User, Org, UserRole } from "@/lib/mock-data";
 import {
   getSession,
@@ -155,17 +156,18 @@ function ensureInit() {
    ================================================================ */
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const clerkEnabled = isClerkConfigured();
-
-  if (clerkEnabled) {
-    return <ClerkAuthAdapter>{children}</ClerkAuthAdapter>;
-  }
+  // TODO: Restore Clerk adapter when @clerk/nextjs is installed
+  // const clerkEnabled = isClerkConfigured();
+  // if (clerkEnabled) {
+  //   return <ClerkAuthAdapter>{children}</ClerkAuthAdapter>;
+  // }
 
   return <MockAuthProvider>{children}</MockAuthProvider>;
 }
 
 /* ---------- Clerk Auth Adapter ---------- */
-
+// TODO: Uncomment when @clerk/nextjs is installed and provisioned
+/*
 function ClerkAuthAdapter({ children }: { children: ReactNode }) {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const { organization, membership } = useOrganization();
@@ -280,6 +282,7 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
+*/
 
 /* ---------- Mock Auth Provider (Demo / Clerk-not-configured) ---------- */
 

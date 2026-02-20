@@ -1,24 +1,25 @@
 /* ================================================================
-   CLERK MIDDLEWARE — AurumShield
+   MIDDLEWARE — AurumShield
    ================================================================
-   Uses clerkMiddleware() from @clerk/nextjs/server.
-   Placed in src/middleware.ts per Next.js App Router conventions.
+   Minimal Next.js middleware. Does NOT use Clerk (not installed).
+   Auth is handled at the component level via RequireAuth wrappers
+   and the mock auth system in auth-provider.tsx.
 
-   Public routes (login, signup, platform, demo) are not protected
-   by default — clerkMiddleware() allows unauthenticated access
-   unless explicitly restricted. Route protection is handled at the
-   component level via RequireAuth / RequireRole wrappers.
+   This middleware is a no-op pass-through that ensures all routes
+   function correctly, including the /health endpoint used by
+   ECS health checks.
    ================================================================ */
 
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default clerkMiddleware();
+export function middleware(_request: NextRequest) {
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
-  ],
+  // Only match routes that actually need middleware processing.
+  // Currently none — auth is client-side. This avoids intercepting
+  // health checks, static files, and API routes unnecessarily.
+  matcher: [],
 };

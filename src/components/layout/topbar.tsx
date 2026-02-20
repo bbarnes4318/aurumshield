@@ -18,7 +18,8 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { useAuth } from "@/providers/auth-provider";
-import { UserButton } from "@clerk/nextjs";
+// TODO: Uncomment when @clerk/nextjs is installed
+// import { UserButton } from "@clerk/nextjs";
 
 /** Check if Clerk is configured with real (non-placeholder) keys */
 const CLERK_ENABLED =
@@ -48,8 +49,8 @@ export function Topbar({ collapsed, onToggleSidebar }: TopbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Is this user authenticated via Clerk (vs mock/demo)?
-  const isClerkUser = CLERK_ENABLED && user?.id?.startsWith("user_");
+  // TODO: Restore when @clerk/nextjs is installed
+  const isClerkUser = false; // CLERK_ENABLED && user?.id?.startsWith("user_");
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -112,7 +113,8 @@ export function Topbar({ collapsed, onToggleSidebar }: TopbarProps) {
           </button>
         )}
 
-        {/* Profile — Clerk UserButton for Clerk users, custom dropdown otherwise */}
+        {/* Profile — custom dropdown (Clerk UserButton disabled until @clerk/nextjs is installed) */}
+        {/* TODO: Restore Clerk UserButton when installed
         {isClerkUser ? (
           <UserButton
             afterSignOutUrl="/login"
@@ -123,7 +125,8 @@ export function Topbar({ collapsed, onToggleSidebar }: TopbarProps) {
               },
             }}
           />
-        ) : (
+        ) : ( */}
+        {(
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((o) => !o)}

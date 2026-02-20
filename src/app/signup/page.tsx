@@ -16,7 +16,8 @@ import { z } from "zod";
 import { UserPlus, AlertCircle } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useAuth } from "@/providers/auth-provider";
-import { SignUp } from "@clerk/nextjs";
+// TODO: Uncomment when @clerk/nextjs is installed
+// import { SignUp } from "@clerk/nextjs";
 
 /** Check if Clerk is configured at build time */
 const CLERK_ENABLED =
@@ -98,6 +99,7 @@ export default function SignupPage() {
         </div>
 
         {/* ─── Clerk Sign-Up (when configured) ─── */}
+        {/* TODO: Uncomment when @clerk/nextjs is installed
         {CLERK_ENABLED && (
           <div className="mb-6 flex justify-center">
             <SignUp
@@ -118,6 +120,7 @@ export default function SignupPage() {
             />
           </div>
         )}
+        */}
 
         {/* ─── Mock Signup Form (when Clerk not configured) ─── */}
         {!CLERK_ENABLED && (

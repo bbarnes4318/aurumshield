@@ -22,7 +22,8 @@ import { z } from "zod";
 import { LogIn, AlertCircle } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useAuth } from "@/providers/auth-provider";
-import { SignIn } from "@clerk/nextjs";
+// TODO: Uncomment when @clerk/nextjs is installed
+// import { SignIn } from "@clerk/nextjs";
 
 /** Check if Clerk is configured at build time */
 const CLERK_ENABLED =
@@ -85,6 +86,7 @@ function LoginContent() {
         </div>
 
         {/* ─── Clerk Sign-In (when configured) ─── */}
+        {/* TODO: Uncomment when @clerk/nextjs is installed
         {CLERK_ENABLED && (
           <div className="mb-6 flex justify-center">
             <SignIn
@@ -105,6 +107,7 @@ function LoginContent() {
             />
           </div>
         )}
+        */}
 
         {/* ─── Demo / Mock Login Form ─── */}
         {!CLERK_ENABLED && (
