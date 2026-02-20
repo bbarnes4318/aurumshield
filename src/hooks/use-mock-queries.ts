@@ -439,6 +439,17 @@ import {
   apiApplySettlementAction,
   apiExportSettlementPacket,
 } from "@/lib/api";
+import { notifyPartiesOfSettlement } from "@/actions/notifications";
+
+/* ---------- Placeholder contact data for demo users ---------- */
+const DEMO_CONTACTS: Record<string, { email: string; phone: string }> = {
+  "user-1": { email: "buyer@aurumshield.vip", phone: "+15551000001" },
+  "user-2": { email: "ops@aurumshield.vip", phone: "+15551000002" },
+  "user-3": { email: "seller@aurumshield.vip", phone: "+15551000003" },
+  "user-4": { email: "compliance@aurumshield.vip", phone: "+15551000004" },
+  "user-5": { email: "treasury@aurumshield.vip", phone: "+15551000005" },
+};
+const DEFAULT_CONTACT = { email: "unknown@aurumshield.vip", phone: "+15550000000" };
 
 export function useSettlements() {
   return useQuery<SettlementCase[]>({
@@ -500,7 +511,7 @@ export function useApplySettlementAction() {
         now: new Date().toISOString(),
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["settlements"] });
       queryClient.invalidateQueries({ queryKey: ["settlement"] });
       queryClient.invalidateQueries({ queryKey: ["settlement-ledger"] });
@@ -510,6 +521,23 @@ export function useApplySettlementAction() {
       queryClient.invalidateQueries({ queryKey: ["certificate"] });
       queryClient.invalidateQueries({ queryKey: ["certificate-by-settlement"] });
       queryClient.invalidateQueries({ queryKey: ["governance-audit-events"] });
+
+      // ── Notify buyer & seller when settlement reaches SETTLED ──
+      if (data.settlement.status === "SETTLED") {
+        const buyer = DEMO_CONTACTS[data.settlement.buyerUserId] ?? DEFAULT_CONTACT;
+        const seller = DEMO_CONTACTS[data.settlement.sellerUserId] ?? DEFAULT_CONTACT;
+
+        // Fire-and-forget — server action runs on the server, no secrets exposed
+        notifyPartiesOfSettlement(
+          buyer.email,
+          seller.email,
+          buyer.phone,
+          seller.phone,
+          data.settlement.id,
+        ).catch((err) => {
+          console.error("[AurumShield] Settlement notification failed:", err);
+        });
+      }
     },
   });
 }
