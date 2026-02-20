@@ -440,6 +440,7 @@ import {
   apiExportSettlementPacket,
 } from "@/lib/api";
 import { notifyPartiesOfSettlement } from "@/actions/notifications";
+import { triggerSettlementPayouts } from "@/actions/banking";
 
 /* ---------- Placeholder contact data for demo users ---------- */
 const DEMO_CONTACTS: Record<string, { email: string; phone: string }> = {
@@ -450,6 +451,14 @@ const DEMO_CONTACTS: Record<string, { email: string; phone: string }> = {
   "user-5": { email: "treasury@aurumshield.vip", phone: "+15551000005" },
 };
 const DEFAULT_CONTACT = { email: "unknown@aurumshield.vip", phone: "+15550000000" };
+
+/* ---------- Demo banking constants (cents) ---------- */
+/** Placeholder Modern Treasury external account ID for demo sellers */
+const DEMO_SELLER_EXTERNAL_ACCOUNT_ID = "demo-ext-acct-seller-001";
+/** Demo notional settlement value: $5,000.00 = 500_000 cents */
+const DEMO_SETTLEMENT_AMOUNT_CENTS = 500_000_00;
+/** Demo platform fee (2.5%): $125.00 = 12_500 cents */
+const DEMO_PLATFORM_FEE_CENTS = 12_500_00;
 
 export function useSettlements() {
   return useQuery<SettlementCase[]>({
@@ -536,6 +545,20 @@ export function useApplySettlementAction() {
           data.settlement.id,
         ).catch((err) => {
           console.error("[AurumShield] Settlement notification failed:", err);
+        });
+
+        // ── Trigger Modern Treasury outbound payouts ──
+        // Fire-and-forget — server action, no secrets exposed to client
+        // TODO: Replace demo constants with real settlement amounts / seller
+        //       external account IDs from the settlement data model once
+        //       the database is provisioned.
+        triggerSettlementPayouts(
+          data.settlement.id,
+          DEMO_SELLER_EXTERNAL_ACCOUNT_ID,
+          DEMO_SETTLEMENT_AMOUNT_CENTS,
+          DEMO_PLATFORM_FEE_CENTS,
+        ).catch((err) => {
+          console.error("[AurumShield] Settlement banking payout failed:", err);
         });
       }
     },
