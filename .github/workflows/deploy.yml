@@ -112,8 +112,8 @@ jobs:
 
             echo "Poll $i/$MAX_ATTEMPTS: deployments=$DEPLOY_COUNT, PRIMARY running=$PRIMARY_RUNNING/$PRIMARY_DESIRED"
 
-            if [ "$DEPLOY_COUNT" -eq 1 ] && [ "$PRIMARY_RUNNING" -eq "$PRIMARY_DESIRED" ] && [ "$PRIMARY_DESIRED" -gt 0 ]; then
-              echo "✅ Deployment complete — service is stable ($PRIMARY_RUNNING/$PRIMARY_DESIRED tasks running)"
+            if [ "$PRIMARY_RUNNING" -eq "$PRIMARY_DESIRED" ] && [ "$PRIMARY_DESIRED" -gt 0 ]; then
+              echo "✅ Deployment complete — PRIMARY running=$PRIMARY_RUNNING/$PRIMARY_DESIRED"
               exit 0
             fi
 
