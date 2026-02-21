@@ -46,7 +46,7 @@ export function MetricCard({
   return (
     <div className={cn("card-base p-5", className)} aria-label={`${label}: ${value}`}>
       <p className="typo-label mb-1">{label}</p>
-      <p className="typo-h2 font-bold tabular-nums mb-2">{value}</p>
+      <p className="typo-h2 font-bold tabular-nums tracking-tight mb-2">{value}</p>
       <div className="flex items-center gap-2">
         {showChange && (
           <span

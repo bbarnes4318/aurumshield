@@ -22,10 +22,20 @@ interface DataTableProps<TData> {
   striped?: boolean;
   /** Enable hover state on rows (use for interactive/clickable rows) */
   interactiveRows?: boolean;
+  /** Callback fired when a row is clicked — receives the raw row data */
+  onRowClick?: (row: TData) => void;
   /** Contextual message when data is empty */
   emptyMessage?: string;
   /** Action node to show in empty state (e.g. "Reset filters" button) */
   emptyAction?: React.ReactNode;
+  /** Branded empty-state: custom icon rendered above the title */
+  emptyStateIcon?: React.ReactNode;
+  /** Branded empty-state: headline text */
+  emptyStateTitle?: string;
+  /** Branded empty-state: supporting description below the title */
+  emptyStateDescription?: string;
+  /** Branded empty-state: action CTA (e.g. a button or link) */
+  emptyStateAction?: React.ReactNode;
 }
 
 export function DataTable<TData>({
@@ -35,8 +45,13 @@ export function DataTable<TData>({
   dense = false,
   striped = true,
   interactiveRows = true,
+  onRowClick,
   emptyMessage = "No records match the current view.",
   emptyAction,
+  emptyStateIcon,
+  emptyStateTitle,
+  emptyStateDescription,
+  emptyStateAction,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -51,6 +66,9 @@ export function DataTable<TData>({
 
   const cellPad = dense ? "px-3 py-1.5" : "px-4 py-3";
   const headPad = dense ? "px-3 py-2" : "px-4 py-3";
+
+  /* Determine whether the caller opted into the branded empty-state API */
+  const hasBrandedEmpty = !!(emptyStateTitle || emptyStateDescription || emptyStateIcon || emptyStateAction);
 
   return (
     <div className={cn("card-base overflow-hidden", className)}>
@@ -107,22 +125,40 @@ export function DataTable<TData>({
             {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="py-16 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-2">
-                      <Inbox className="h-5 w-5 text-text-faint" aria-hidden="true" />
+                  {hasBrandedEmpty ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      {emptyStateIcon && (
+                        <div className="text-gray-500 opacity-80">{emptyStateIcon}</div>
+                      )}
+                      {emptyStateTitle && (
+                        <h3 className="mt-4 text-lg font-medium text-white">{emptyStateTitle}</h3>
+                      )}
+                      {emptyStateDescription && (
+                        <p className="mt-1 max-w-sm text-sm text-gray-400">{emptyStateDescription}</p>
+                      )}
+                      {emptyStateAction && <div className="mt-5">{emptyStateAction}</div>}
                     </div>
-                    <p className="text-sm text-text-muted">{emptyMessage}</p>
-                    {emptyAction && <div className="mt-2">{emptyAction}</div>}
-                  </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-2">
+                        <Inbox className="h-5 w-5 text-text-faint" aria-hidden="true" />
+                      </div>
+                      <p className="text-sm text-text-muted">{emptyMessage}</p>
+                      {emptyAction && <div className="mt-2">{emptyAction}</div>}
+                    </div>
+                  )}
                 </td>
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  onClick={() => onRowClick && onRowClick(row.original)}
                   className={cn(
                     "border-b border-border transition-colors last:border-b-0",
-                    interactiveRows && "hover:bg-surface-2/50"
+                    interactiveRows && "hover:bg-surface-2/50",
+                    onRowClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (

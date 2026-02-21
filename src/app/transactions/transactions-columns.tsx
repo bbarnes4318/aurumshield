@@ -58,11 +58,15 @@ function TypeBadge({ type }: { type: string }) {
 /* ================================================================
    FORMAT HELPERS
    ================================================================ */
-export function fmtAmount(amount: number, currency: string): string {
-  if (amount >= 1e9) return `${currency} ${(amount / 1e9).toFixed(2)}B`;
-  if (amount >= 1e6) return `${currency} ${(amount / 1e6).toFixed(1)}M`;
-  if (amount >= 1e3) return `${currency} ${(amount / 1e3).toFixed(0)}K`;
-  return `${currency} ${amount.toLocaleString("en-US")}`;
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function fmtAmount(amount: number): string {
+  return currencyFormatter.format(amount);
 }
 
 /* ================================================================
@@ -146,11 +150,11 @@ export function getColumns(
     // Amount
     {
       accessorKey: "amount",
-      header: "Amount",
+      header: () => <div className="text-right">Amount</div>,
       cell: ({ row }) => (
-        <span className="tabular-nums font-medium text-text">
-          {fmtAmount(row.getValue("amount") as number, row.original.currency)}
-        </span>
+        <div className="text-right font-medium tabular-nums">
+          {fmtAmount(row.getValue("amount") as number)}
+        </div>
       ),
       enableSorting: true,
     },

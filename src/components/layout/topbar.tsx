@@ -12,6 +12,7 @@ import {
   UserCircle,
   Fingerprint,
   ChevronDown,
+  Menu,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useRef } from "react";
@@ -39,9 +40,10 @@ const VS_COLORS: Record<string, string> = {
 interface TopbarProps {
   collapsed: boolean;
   onToggleSidebar: () => void;
+  onOpenMobileMenu?: () => void;
 }
 
-export function Topbar({ collapsed, onToggleSidebar }: TopbarProps) {
+export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarProps) {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -74,9 +76,19 @@ export function Topbar({ collapsed, onToggleSidebar }: TopbarProps) {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface-1 px-4">
       <div className="flex items-center gap-3">
+        {/* Mobile hamburger — visible below md */}
+        <button
+          onClick={onOpenMobileMenu}
+          className="block md:hidden rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+          aria-label="Open navigation menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        {/* Desktop sidebar collapse toggle — hidden below md */}
         <button
           onClick={onToggleSidebar}
-          className="rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+          className="hidden md:block rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}

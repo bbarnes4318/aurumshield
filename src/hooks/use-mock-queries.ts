@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   mockFetch,
   getListings,
@@ -531,6 +532,10 @@ export function useApplySettlementAction() {
       queryClient.invalidateQueries({ queryKey: ["certificate-by-settlement"] });
       queryClient.invalidateQueries({ queryKey: ["governance-audit-events"] });
 
+      toast.success("Action Executed", {
+        description: "The settlement state has been successfully updated.",
+      });
+
       // ── Notify buyer & seller when settlement reaches SETTLED ──
       if (data.settlement.status === "SETTLED") {
         const buyer = DEMO_CONTACTS[data.settlement.buyerUserId] ?? DEFAULT_CONTACT;
@@ -561,6 +566,12 @@ export function useApplySettlementAction() {
           console.error("[AurumShield] Settlement banking payout failed:", err);
         });
       }
+    },
+    onError: () => {
+      toast.error("Execution Failed", {
+        description:
+          "There was an error processing this action. Please try again or contact support.",
+      });
     },
   });
 }

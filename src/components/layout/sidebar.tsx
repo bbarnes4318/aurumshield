@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useCallback, useEffect } from "react";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -30,6 +31,7 @@ import {
   Presentation,
   Briefcase,
   Package,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -139,22 +141,90 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+/* ================================================================
+   Shared nav renderer — used by both Sidebar and MobileDrawer
+   ================================================================ */
+
+function SidebarNav({
+  collapsed,
+  onLinkClick,
+}: {
+  collapsed: boolean;
+  onLinkClick?: () => void;
+}) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { isDemo } = useDemo();
   const userRole = user?.role ?? "buyer";
 
-  // Prepend demo nav group when demo mode is active
   const demoGroup: NavGroup[] = isDemo
     ? [{ title: "Demo", items: [{ label: "Guided Walkthrough", href: "/demo", icon: Presentation }] }]
     : [];
   const allGroups = [...demoGroup, ...NAV_GROUPS];
 
   return (
+    <nav className="flex-1 overflow-y-auto py-2 px-1.5" aria-label="Main navigation">
+      {allGroups.map((group) => {
+        const visibleItems = group.items.filter((item) => {
+          if (isDemo && item.dataTour) return true;
+          if (item.roles && !item.roles.includes(userRole as UserRole)) return false;
+          if (item.adminOnly && userRole !== "admin") return false;
+          if (item.sellerOnly && userRole !== "seller" && userRole !== "admin") return false;
+          return true;
+        });
+        if (visibleItems.length === 0) return null;
+
+        return (
+          <div key={group.title} className="mb-3">
+            {!collapsed && (
+              <p className="mb-1 px-2 text-[10px] uppercase tracking-widest text-text-faint font-semibold select-none">
+                {group.title}
+              </p>
+            )}
+            <ul className="space-y-0.5">
+              {visibleItems.map((item) => {
+                const Icon = item.icon;
+                const linkHref = isDemo ? `${item.href}?demo=true` : item.href;
+                const isActive =
+                  pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={linkHref}
+                      data-tour={item.dataTour}
+                      onClick={onLinkClick}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-sm transition-colors",
+                        isActive
+                          ? "bg-gold/10 text-gold font-medium"
+                          : "text-text-muted hover:bg-surface-2 hover:text-text",
+                        collapsed && "justify-center px-0"
+                      )}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+/* ================================================================
+   Desktop Sidebar
+   ================================================================ */
+
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  return (
     <aside
       className={cn(
-        "flex h-screen shrink-0 flex-col border-r border-border bg-surface-1 transition-all duration-200",
+        "hidden md:flex h-screen shrink-0 flex-col border-r border-border bg-surface-1 transition-all duration-200",
         collapsed ? "w-[52px]" : "w-56"
       )}
     >
@@ -169,58 +239,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2 px-1.5" aria-label="Main navigation">
-        {allGroups.map((group) => {
-          // Filter items by role
-          const visibleItems = group.items.filter((item) => {
-            // In demo mode, always show items that are tour-targeted
-            if (isDemo && item.dataTour) return true;
-            if (item.roles && !item.roles.includes(userRole as UserRole)) return false;
-            if (item.adminOnly && userRole !== "admin") return false;
-            if (item.sellerOnly && userRole !== "seller" && userRole !== "admin") return false;
-            return true;
-          });
-          if (visibleItems.length === 0) return null;
-
-          return (
-            <div key={group.title} className="mb-3">
-              {!collapsed && (
-                <p className="mb-1 px-2 text-[10px] uppercase tracking-widest text-text-faint font-semibold select-none">
-                  {group.title}
-                </p>
-              )}
-              <ul className="space-y-0.5">
-                {visibleItems.map((item) => {
-                  const Icon = item.icon;
-                  const linkHref = isDemo ? `${item.href}?demo=true` : item.href;
-                  const isActive =
-                    pathname === item.href || pathname.startsWith(item.href + "/");
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={linkHref}
-                        data-tour={item.dataTour}
-                        className={cn(
-                          "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-sm transition-colors",
-                          isActive
-                            ? "bg-gold/10 text-gold font-medium"
-                            : "text-text-muted hover:bg-surface-2 hover:text-text",
-                          collapsed && "justify-center px-0"
-                        )}
-                        aria-current={isActive ? "page" : undefined}
-                      >
-                        <Icon className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span className="truncate">{item.label}</span>}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-        })}
-      </nav>
+      <SidebarNav collapsed={collapsed} />
 
       {/* Collapse toggle */}
       <div className="border-t border-border p-2">
@@ -233,5 +252,79 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </button>
       </div>
     </aside>
+  );
+}
+
+/* ================================================================
+   Mobile Drawer — slide-out panel for small viewports
+   ================================================================ */
+
+interface MobileDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [isOpen, onClose]);
+
+  // Prevent body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
+  const handleLinkClick = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 bg-black/80 transition-opacity duration-200 md:hidden",
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Drawer panel */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-surface-1 shadow-xl transition-transform duration-200 ease-in-out md:hidden",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile navigation"
+      >
+        {/* Brand + close */}
+        <div className="flex items-center justify-between border-b border-border px-4 py-4">
+          <AppLogo size="sidebar" variant="white" priority />
+          <button
+            onClick={onClose}
+            className="rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+            aria-label="Close navigation menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <SidebarNav collapsed={false} onLinkClick={handleLinkClick} />
+      </aside>
+    </>
   );
 }

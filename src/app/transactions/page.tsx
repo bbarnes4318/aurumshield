@@ -10,7 +10,7 @@ import {
   type RowSelectionState,
 } from "@tanstack/react-table";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { FilterBar, type FilterConfig } from "@/components/ui/filter-bar";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/state-views";
@@ -19,7 +19,7 @@ import type { Transaction, TransactionStatus, TransactionType } from "@/lib/mock
 import type { RiskLevel } from "@/components/ui/risk-badge";
 import { Plus, Ban, RotateCcw, Download, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getColumns, fmtAmount } from "./transactions-columns";
+import { getColumns } from "./transactions-columns";
 import { StatsStrip } from "./transactions-stats-strip";
 
 /* ================================================================
@@ -209,6 +209,7 @@ function ariaSortValue(
    MAIN CONTENT
    ================================================================ */
 function TransactionsContent() {
+  const router = useRouter();
   const txQ = useTransactions();
   const cpQ = useCounterparties();
   const searchParams = useSearchParams();
@@ -327,8 +328,17 @@ function TransactionsContent() {
       {/* Table */}
       {filtered.length === 0 ? (
         <EmptyState
-          title="No transactions"
-          message="No transactions match the current filters."
+          title="No Active Transactions"
+          message="Initiate a new physical gold trade to see it tracked on the ledger."
+          action={
+            <Link
+              href="/transactions/new"
+              className="inline-flex items-center gap-2 rounded-[var(--radius-input)] bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed"
+            >
+              <Plus className="h-4 w-4" />
+              New Transaction
+            </Link>
+          }
         />
       ) : (
         <div className="card-base overflow-hidden">
@@ -406,8 +416,9 @@ function TransactionsContent() {
                 {table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
+                    onClick={() => router.push(`/transactions/${row.original.id}`)}
                     className={cn(
-                      "border-b border-border/60 transition-colors last:border-b-0",
+                      "border-b border-border/60 transition-colors last:border-b-0 cursor-pointer",
                       row.getIsSelected()
                         ? "bg-gold/[0.04]"
                         : "hover:bg-surface-2/50"

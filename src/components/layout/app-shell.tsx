@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Sidebar } from "@/components/layout/sidebar";
+import { Sidebar, MobileDrawer } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { DemoScriptOverlay } from "@/components/demo/demo-script-overlay";
@@ -21,6 +21,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const isPublic = PUBLIC_ROUTES.includes(pathname);
   const { isDemo, presentationMode, scenarioName } = useDemo();
@@ -61,7 +62,11 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         )}
 
-        <Topbar collapsed={collapsed} onToggleSidebar={() => setCollapsed((c) => !c)} />
+        <Topbar
+          collapsed={collapsed}
+          onToggleSidebar={() => setCollapsed((c) => !c)}
+          onOpenMobileMenu={() => setMobileMenuOpen(true)}
+        />
 
         <main
           id="main-content"
@@ -72,6 +77,9 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       <CommandPalette />
+
+      {/* Mobile navigation drawer */}
+      <MobileDrawer isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
 
       {/* DemoScriptOverlay is hidden when tour is active (overlay collision prevention) */}
       {!isTourActive && <DemoScriptOverlay />}

@@ -19,7 +19,8 @@
    ================================================================ */
 
 import { useState } from "react";
-import { ShieldCheck, AlertCircle, Loader2, Fingerprint } from "lucide-react";
+import { ShieldCheck, AlertCircle, Fingerprint } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /* ---------- Props ---------- */
 
@@ -175,24 +176,16 @@ export function BankDetailsForm({ onSuccess }: BankDetailsFormProps) {
       </div>
 
       {/* Verify Button */}
-      <button
+      <Button
         type="button"
-        disabled={isVerifying}
+        isLoading={isVerifying}
+        loadingText="Verifying with your bank…"
         onClick={handleVerify}
-        className="w-full flex items-center justify-center gap-2 rounded-[var(--radius-input)] bg-gold px-4 py-3 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="w-full py-3"
       >
-        {isVerifying ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Verifying with your bank…
-          </>
-        ) : (
-          <>
-            <Fingerprint className="h-4 w-4" />
-            Verify Institutional Bank Account
-          </>
-        )}
-      </button>
+        <Fingerprint className="h-4 w-4" />
+        Verify Institutional Bank Account
+      </Button>
 
       {/* Trust badges */}
       <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-text-faint">

@@ -9,6 +9,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { DemoProvider } from "@/providers/demo-provider";
 import { TourProvider } from "@/demo/tour-engine/TourProvider";
 import { AppShell } from "@/components/layout/app-shell";
+import { Toaster } from "sonner";
 
 /* ----------------------------------------------------------------
    FONTS — next/font (self-hosted, no external requests)
@@ -57,10 +58,11 @@ export default function RootLayout({
             <QueryProvider>
               <AuthProvider>
                 <Suspense fallback={null}>
-                <DemoProvider>
+                  <DemoProvider>
                     <TourProvider>
                       <AppShell>{children}</AppShell>
                     </TourProvider>
+                    <Toaster theme="dark" position="bottom-right" richColors />
                   </DemoProvider>
                 </Suspense>
               </AuthProvider>
