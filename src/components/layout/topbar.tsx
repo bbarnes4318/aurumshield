@@ -111,7 +111,7 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-gold" />
+          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-info" />
         </button>
 
         {/* Theme toggle */}
@@ -150,7 +150,7 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
             aria-haspopup="menu"
             id="profile-trigger"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/20 text-gold text-xs font-semibold">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-3 text-text-muted text-xs font-semibold">
               {user?.name?.charAt(0)?.toUpperCase() ?? "?"}
             </div>
             <div className="hidden sm:flex flex-col items-start">

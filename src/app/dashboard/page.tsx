@@ -175,20 +175,20 @@ function CapitalCell({
   };
 
   return (
-    <div className={cn("card-base px-5 py-4", className)}>
-      <div className="mb-1 flex items-center gap-1.5">
+    <div className={cn("card-base px-6 py-5", className)}>
+      <div className="mb-1.5 flex items-center gap-1.5">
         <p className="typo-label">{label}</p>
         <InfoTooltip content={tooltip} />
       </div>
       <p
         className={cn(
-          "text-xl font-semibold tabular-nums tracking-tight",
+          "text-[1.375rem] font-semibold tabular-nums tracking-tight",
           highlight ? highlightColor[highlight] : "text-text"
         )}
       >
         {value}
       </p>
-      {sub && <p className="mt-1 text-[11px] tabular-nums text-text-faint">{sub}</p>}
+      {sub && <p className="mt-1 text-[10px] tabular-nums text-text-faint/70">{sub}</p>}
     </div>
   );
 }
@@ -670,15 +670,15 @@ export default function DashboardPage() {
         description="AurumShield capital adequacy, risk distribution, and evidence integrity monitor."
         actions={
           <div className="flex items-center gap-3">
-            {/* Scenario toggle */}
-            <div className="flex items-center gap-2 rounded-[var(--radius-input)] border border-border bg-surface-2 p-0.5">
+            {/* Scenario toggle — restrained system-version pills */}
+            <div className="flex items-center gap-1 rounded-[var(--radius-sm)] border border-border bg-surface-2 p-0.5">
               <button
                 onClick={() => setScenario("phase1")}
                 className={cn(
-                  "rounded-[calc(var(--radius-input)-2px)] px-3 py-1.5 text-xs font-medium transition-colors",
+                  "rounded-[calc(var(--radius-sm)-2px)] px-3 py-1 text-[11px] font-medium transition-colors duration-100",
                   scenario === "phase1"
-                    ? "bg-gold text-bg"
-                    : "text-text-muted hover:text-text"
+                    ? "border border-gold-muted/40 bg-gold-muted/8 text-gold-muted"
+                    : "text-text-faint hover:text-text-muted"
                 )}
               >
                 Phase 1
@@ -686,19 +686,20 @@ export default function DashboardPage() {
               <button
                 onClick={() => setScenario("scaleUp")}
                 className={cn(
-                  "rounded-[calc(var(--radius-input)-2px)] px-3 py-1.5 text-xs font-medium transition-colors",
+                  "rounded-[calc(var(--radius-sm)-2px)] px-3 py-1 text-[11px] font-medium transition-colors duration-100",
                   scenario === "scaleUp"
-                    ? "bg-gold text-bg"
-                    : "text-text-muted hover:text-text"
+                    ? "border border-gold-muted/40 bg-gold-muted/8 text-gold-muted"
+                    : "text-text-faint hover:text-text-muted"
                 )}
               >
                 Scale-Up
               </button>
             </div>
 
+            {/* Export — institutional outlined button */}
             <button
               onClick={() => window.print()}
-              className="flex items-center gap-2 rounded-[var(--radius-input)] bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed"
+              className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-5 py-2 text-sm font-medium text-text-muted transition-colors duration-100 hover:bg-surface-3 hover:text-text"
             >
               <Download className="h-4 w-4" />
               Export

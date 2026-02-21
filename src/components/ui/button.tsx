@@ -9,12 +9,15 @@ import { Loader2 } from "lucide-react";
    ================================================================ */
 
 const variantStyles = {
-  /** Primary gold CTA */
+  /** Primary institutional action — neutral slate fill */
   primary:
-    "bg-gold text-bg hover:bg-gold-hover active:bg-gold-pressed focus-visible:ring-gold/50",
-  /** Subtle surface button */
+    "bg-surface-3 text-text hover:bg-surface-3/80 active:bg-surface-3/60 focus-visible:ring-text/20",
+  /** Subtle surface button — outlined */
   secondary:
     "border border-border bg-surface-2 text-text-muted hover:bg-surface-3 hover:text-text",
+  /** Financial emphasis — gold-muted for capital / monetary actions */
+  "gold-muted":
+    "border border-gold-muted/40 text-gold-muted bg-transparent hover:bg-gold-muted/10 active:bg-gold-muted/15 focus-visible:ring-gold-muted/30",
   /** Destructive / danger */
   danger:
     "bg-danger/10 text-danger hover:bg-danger/20 active:bg-danger/30 focus-visible:ring-danger/50",
@@ -26,10 +29,10 @@ const variantStyles = {
 } as const;
 
 const sizeStyles = {
-  sm: "h-8 gap-1.5 rounded-[var(--radius-input)] px-3 text-xs",
-  md: "h-9 gap-2 rounded-[var(--radius-input)] px-4 text-sm",
-  lg: "h-10 gap-2 rounded-[var(--radius-input)] px-5 text-sm",
-  icon: "h-9 w-9 rounded-[var(--radius-input)]",
+  sm: "h-8 gap-1.5 rounded-[var(--radius-sm)] px-3 text-xs",
+  md: "h-9 gap-2 rounded-[var(--radius-sm)] px-4 text-sm",
+  lg: "h-10 gap-2 rounded-[var(--radius-sm)] px-5 text-sm",
+  icon: "h-9 w-9 rounded-[var(--radius-sm)]",
 } as const;
 
 /* ================================================================
@@ -71,7 +74,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center font-medium transition-colors",
+          "inline-flex items-center justify-center font-medium transition-colors duration-100",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
           "disabled:pointer-events-none disabled:opacity-50",
           variantStyles[variant],

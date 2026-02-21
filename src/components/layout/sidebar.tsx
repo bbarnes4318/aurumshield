@@ -194,15 +194,15 @@ function SidebarNav({
                       data-tour={item.dataTour}
                       onClick={onLinkClick}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-sm transition-colors",
+                        "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-sm transition-colors duration-[120ms]",
                         isActive
-                          ? "bg-gold/10 text-gold font-medium"
-                          : "text-text-muted hover:bg-surface-2 hover:text-text",
+                          ? "bg-active-bg text-active-text font-medium"
+                          : "text-text-muted hover:bg-surface-2/60 hover:text-text",
                         collapsed && "justify-center px-0"
                       )}
                       aria-current={isActive ? "page" : undefined}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "opacity-90" : "opacity-70")} />
                       {!collapsed && <span className="truncate">{item.label}</span>}
                     </Link>
                   </li>
@@ -231,7 +231,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Brand — rigid h-20 to match topbar */}
       <div className="flex h-20 shrink-0 items-center justify-center border-b border-border px-4">
         {collapsed ? (
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gold text-bg text-sm font-bold">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gold-muted text-bg text-sm font-bold">
             Au
           </span>
         ) : (

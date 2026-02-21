@@ -44,9 +44,9 @@ export function MetricCard({
   const showChange = change !== 0;
 
   return (
-    <div className={cn("card-base p-5", className)} aria-label={`${label}: ${value}`}>
-      <p className="typo-label mb-1">{label}</p>
-      <p className="typo-h2 font-bold tabular-nums tracking-tight mb-2">{value}</p>
+    <div className={cn("card-base p-6", className)} aria-label={`${label}: ${value}`}>
+      <p className="typo-label mb-1.5">{label}</p>
+      <p className="text-2xl font-bold tabular-nums tracking-tight mb-2">{value}</p>
       <div className="flex items-center gap-2">
         {showChange && (
           <span
@@ -60,7 +60,7 @@ export function MetricCard({
             {t.prefix}{Math.abs(change).toFixed(1)}%
           </span>
         )}
-        <span className="text-xs text-text-faint">{period}</span>
+        <span className="text-[10px] text-text-faint/70">{period}</span>
       </div>
     </div>
   );

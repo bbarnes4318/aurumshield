@@ -48,16 +48,16 @@ export function DashboardPanel({
       )}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-border px-5 py-3">
+      <div className="flex items-center gap-2 border-b border-border px-6 py-3">
         <h3 className="typo-label">{title}</h3>
         <InfoTooltip content={tooltip} side="right" />
       </div>
 
       {/* Body */}
-      <div className="flex-1 px-5 py-4">{children}</div>
+      <div className="flex-1 px-6 py-5">{children}</div>
 
       {/* Footer — timestamp */}
-      <div className="border-t border-border px-5 py-2">
+      <div className="border-t border-border px-6 py-2">
         <p className="text-[10px] tabular-nums text-text-faint">
           As of {formattedTime}
         </p>

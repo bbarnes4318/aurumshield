@@ -22,15 +22,18 @@
   --gold: #c6a86b;
   --gold-hover: #d3b77d;
   --gold-pressed: #b99657;
+  --gold-muted: #9f8a4c;
+  --active-bg: #1a2540;
+  --active-text: #c8d4e4;
   --success: #3fae7a;
   --warning: #d0a85c;
   --danger: #d16a5d;
   --info: #5a8ccb;
   --focus-ring: #7fa6ff;
 
-  --radius-sm: 10px;
-  --radius: 14px;
-  --radius-input: 12px;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-input: 6px;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.25);
@@ -53,6 +56,9 @@
   --gold: #8a6e3a;
   --gold-hover: #7a6030;
   --gold-pressed: #6a5228;
+  --gold-muted: #7a6a3a;
+  --active-bg: #e8e4dc;
+  --active-text: #2d3748;
   --success: #2e8b5e;
   --warning: #b8942f;
   --danger: #c0503e;
@@ -80,6 +86,9 @@
   --color-gold: var(--gold);
   --color-gold-hover: var(--gold-hover);
   --color-gold-pressed: var(--gold-pressed);
+  --color-gold-muted: var(--gold-muted);
+  --color-active-bg: var(--active-bg);
+  --color-active-text: var(--active-text);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
@@ -87,10 +96,10 @@
   --color-focus-ring: var(--focus-ring);
 
   /* Radii */
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 14px;
-  --radius-input: 12px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 10px;
+  --radius-input: 6px;
 
   /* Fonts */
   --font-sans: var(--font-ibm-plex-sans);
@@ -121,10 +130,10 @@ body {
 /* Heading 1 — Serif, 30px/36px, tight tracking */
 .typo-h1 {
   font-family: var(--font-serif), ui-serif, Georgia, serif;
-  font-size: 1.875rem;
-  line-height: 2.25rem;
+  font-size: 1.625rem;
+  line-height: 2rem;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
   color: var(--text);
 }
 
@@ -162,8 +171,8 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.6875rem;
   line-height: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -233,7 +242,7 @@ table th {
   background-color: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.12s ease;
 }
 
 /* Only interactive cards get hover shadow */
