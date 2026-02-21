@@ -116,8 +116,13 @@ resource "aws_ecs_service" "app" {
   desired_count   = 2
   launch_type     = "FARGATE"
 
-  deployment_minimum_healthy_percent = 100
+  deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
 
   network_configuration {
     subnets          = [aws_subnet.private_a.id, aws_subnet.private_b.id]
@@ -132,6 +137,11 @@ resource "aws_ecs_service" "app" {
   }
 
   depends_on = [aws_lb_listener.https]
+
+  # CI/CD updates task_definition independently via update-service
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 
   tags = {
     Name = "${var.project_name}-app-service"

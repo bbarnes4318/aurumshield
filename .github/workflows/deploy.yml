@@ -95,9 +95,9 @@ jobs:
 
       - name: Wait for deployment to stabilize
         run: |
-          echo "Waiting for ECS service to stabilize (up to 15 minutes)..."
-          MAX_ATTEMPTS=60
-          POLL_INTERVAL=15
+          echo "Waiting for ECS deployment to stabilize (up to 15 minutes)..."
+          MAX_ATTEMPTS=90
+          POLL_INTERVAL=10
           for i in $(seq 1 $MAX_ATTEMPTS); do
             DEPLOYMENTS=$(aws ecs describe-services \
               --cluster $ECS_CLUSTER \
@@ -107,19 +107,28 @@ jobs:
               --output json)
 
             DEPLOY_COUNT=$(echo "$DEPLOYMENTS" | jq 'length')
+            PRIMARY_STATUS=$(echo "$DEPLOYMENTS" | jq -r '[.[] | select(.status == "PRIMARY")][0].rolloutState // "UNKNOWN"')
             PRIMARY_RUNNING=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status == "PRIMARY")][0].runningCount // 0')
             PRIMARY_DESIRED=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status == "PRIMARY")][0].desiredCount // 0')
 
-            echo "Poll $i/$MAX_ATTEMPTS: deployments=$DEPLOY_COUNT, PRIMARY running=$PRIMARY_RUNNING/$PRIMARY_DESIRED"
+            echo "Poll $i/$MAX_ATTEMPTS: deployments=$DEPLOY_COUNT, PRIMARY rollout=$PRIMARY_STATUS, running=$PRIMARY_RUNNING/$PRIMARY_DESIRED"
 
-            if [ "$DEPLOY_COUNT" -eq 1 ] && [ "$PRIMARY_RUNNING" -eq "$PRIMARY_DESIRED" ] && [ "$PRIMARY_DESIRED" -gt 0 ]; then
-              echo "✅ Deployment complete — service is stable ($PRIMARY_RUNNING/$PRIMARY_DESIRED tasks running)"
+            # Success: PRIMARY deployment completed
+            if [ "$PRIMARY_STATUS" = "COMPLETED" ]; then
+              echo "✅ Deployment complete — rollout COMPLETED ($PRIMARY_RUNNING/$PRIMARY_DESIRED tasks running)"
               exit 0
+            fi
+
+            # Failure: Circuit breaker triggered rollback
+            if [ "$PRIMARY_STATUS" = "FAILED" ]; then
+              echo "❌ Deployment FAILED — circuit breaker triggered rollback"
+              aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION --query 'services[0].events[:5].[createdAt,message]' --output table
+              exit 1
             fi
 
             sleep $POLL_INTERVAL
           done
 
           echo "❌ Deployment did not stabilize within $(( MAX_ATTEMPTS * POLL_INTERVAL / 60 )) minutes"
-          aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION --query 'services[0].events[:5]' --output table
+          aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION --query 'services[0].events[:5].[createdAt,message]' --output table
           exit 1
