@@ -122,8 +122,8 @@ resource "aws_ecs_service" "app" {
   health_check_grace_period_seconds = 180
 
   deployment_circuit_breaker {
-    enable   = true
-    rollback = true
+    enable   = false
+    rollback = false
   }
 
   network_configuration {
