@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppLogoImg } from "@/components/app-logo";
+import { AppLogo } from "@/components/app-logo";
 
 /* ---------- Section metadata for sidebar nav ---------- */
 interface Section {
@@ -458,7 +458,7 @@ export default function DemoWalkthroughPage() {
       {/* ─── Sidebar ─── */}
       <aside className="wt-sidebar">
         <div className="wt-sidebar-brand">
-          <AppLogoImg size="presentation" variant="white" />
+          <AppLogo className="h-14 w-auto" variant="dark" />
         </div>
 
         <nav className="wt-sidebar-nav">

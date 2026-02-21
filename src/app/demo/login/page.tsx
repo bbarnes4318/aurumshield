@@ -57,7 +57,7 @@ export default function DemoLoginPage() {
         {/* Header */}
         <div className="text-center">
           <div className="mb-4 flex items-center justify-center">
-            <AppLogo size="presentation" variant="white" priority />
+            <AppLogo className="h-14 w-auto" variant="dark" />
           </div>
           <h1 className="typo-h2 mb-2">Institutional Demonstration Mode</h1>
           <p className="text-sm text-text-muted">

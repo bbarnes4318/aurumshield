@@ -70,7 +70,7 @@ export function AppShell({ children }: AppShellProps) {
 
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto px-6 py-5 lg:px-10"
+          className="flex-1 overflow-y-auto px-6 pt-20 pb-5 lg:px-10"
         >
           {children}
         </main>

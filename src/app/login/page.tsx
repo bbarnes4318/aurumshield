@@ -78,7 +78,7 @@ function LoginContent() {
         {/* Brand */}
         <div className="mb-8 flex flex-col items-center">
           <div className="mb-4">
-            <AppLogo size="normal" variant="white" priority />
+            <AppLogo className="h-12 w-auto" variant="dark" />
           </div>
           <p className="mt-1 text-sm text-text-faint">
             Sovereign Financial Infrastructure

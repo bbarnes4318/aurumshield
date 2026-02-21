@@ -194,7 +194,7 @@ function CertificateContent() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <AppLogo size="document" variant="navy" />
+                  <AppLogo className="h-10 w-auto" variant="light" />
                 </div>
                 <h1 className="text-lg font-semibold text-text tracking-wide">
                   Clearing Certificate

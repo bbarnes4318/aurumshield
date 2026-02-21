@@ -544,7 +544,7 @@ function ReceiptContent() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="mb-2">
-                  <AppLogo size="document" variant="white" />
+                  <AppLogo className="h-10 w-auto" variant="dark" />
                 </div>
                 <h1 className="text-lg font-bold tracking-tight text-text" style={{ fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace" }}>
                   CLEARING RECEIPT

@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
         {/* Brand */}
         <div className="mb-8 flex flex-col items-center">
           <div className="mb-4">
-            <AppLogo size="normal" variant="white" priority />
+            <AppLogo className="h-12 w-auto" variant="dark" />
           </div>
           <h1 className="text-xl font-semibold text-text tracking-tight">Reset Password</h1>
           <p className="mt-1 text-sm text-text-faint">AurumShield Identity Perimeter</p>

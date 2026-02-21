@@ -228,14 +228,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         collapsed ? "w-[52px]" : "w-56"
       )}
     >
-      {/* Brand */}
-      <div className="flex items-center border-b border-border px-4 py-4">
+      {/* Brand — rigid h-20 to match topbar */}
+      <div className="flex h-20 shrink-0 items-center justify-center border-b border-border px-4">
         {collapsed ? (
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gold text-bg text-sm font-bold">
             Au
           </span>
         ) : (
-          <AppLogo size="sidebar" variant="white" priority />
+          <AppLogo className="h-10 w-auto" variant="dark" />
         )}
       </div>
 
@@ -311,9 +311,9 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         aria-modal="true"
         aria-label="Mobile navigation"
       >
-        {/* Brand + close */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-4">
-          <AppLogo size="sidebar" variant="white" priority />
+        {/* Brand + close — rigid h-20 to match topbar */}
+        <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-4">
+          <AppLogo className="h-10 w-auto" variant="dark" />
           <button
             onClick={onClose}
             className="rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"

@@ -1,6 +1,6 @@
 "use client";
 
-import { AppLogoImg } from "@/components/app-logo";
+import { AppLogo } from "@/components/app-logo";
 
 /* ================================================================
    PLATFORM CAPABILITIES — Investor-Grade Technical Overview
@@ -290,7 +290,7 @@ export default function PlatformCapabilitiesPage() {
       <header className="plat-header">
         <div className="plat-header-inner">
           <div className="plat-logo">
-            <AppLogoImg size="sidebar" variant="white" />
+            <AppLogo className="h-8 w-auto" variant="dark" />
           </div>
           <div className="plat-meta">
             <span className="plat-badge">Confidential</span>

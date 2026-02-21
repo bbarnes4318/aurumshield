@@ -75,7 +75,7 @@ function ReceiptViewerContent() {
         <div className="border-b border-gold/20 bg-gold/5 px-6 py-3 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <AppLogo size="document" variant="navy" />
+              <AppLogo className="h-10 w-auto" variant="light" />
             </div>
             <p className="text-[10px] text-text-faint mt-0.5">Generated from audit governance console — read-only</p>
           </div>
