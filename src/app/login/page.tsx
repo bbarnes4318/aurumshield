@@ -66,7 +66,7 @@ function LoginContent() {
     const result = login(data.email);
     if (result.success) {
       const next = searchParams.get("next");
-      router.replace(next ? decodeURIComponent(next) : "/dashboard");
+      router.replace(next ? decodeURIComponent(next) : "/platform");
     } else {
       setServerError(result.error ?? "Authentication failed.");
     }
@@ -91,6 +91,7 @@ function LoginContent() {
           <div className="mb-6 flex justify-center">
             <SignIn
               routing="hash"
+              forceRedirectUrl="/platform"
               appearance={{
                 elements: {
                   rootBox: "w-full",
@@ -242,7 +243,7 @@ function DemoQuickLogin() {
     setError(null);
     const result = login(email);
     if (result.success) {
-      router.replace("/dashboard");
+      router.replace("/platform");
     } else {
       setError(result.error ?? "Demo login failed.");
     }

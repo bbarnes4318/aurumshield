@@ -76,7 +76,7 @@ export default function SignupPage() {
       jurisdiction: data.jurisdiction,
     });
     if (result.success) {
-      router.replace("/dashboard");
+      router.replace("/platform");
     } else {
       setServerError(result.error ?? "Registration failed.");
     }

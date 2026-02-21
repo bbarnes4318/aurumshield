@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DashboardPanel } from "@/components/ui/dashboard-panel";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ErrorState } from "@/components/ui/state-views";
+import { RequireRole } from "@/components/auth/require-role";
 import { useDashboardData, useCapitalControls, useIntradayCapital } from "@/hooks/use-mock-queries";
 import Link from "next/link";
 import type {
@@ -661,6 +662,7 @@ export default function DashboardPage() {
   const cap = d.capital;
 
   return (
+    <RequireRole allowedRoles={["admin", "compliance", "treasury", "vault_ops"]}>
     <>
       {/* Header */}
       <PageHeader
@@ -795,5 +797,6 @@ export default function DashboardPage() {
         </div>
       </section>
     </>
+    </RequireRole>
   );
 }
