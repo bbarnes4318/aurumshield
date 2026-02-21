@@ -7,10 +7,8 @@ import {
   Store,
   Shield,
   Award,
-  Clock,
   ChevronRight,
   CheckCircle2,
-  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -19,6 +17,7 @@ import {
   TransactionProgressSidebar,
   deriveCurrentPhase,
   type BuyerLifecyclePhase,
+  type PhaseAction,
 } from "@/components/buyer/TransactionProgressSidebar";
 import {
   useMyOrders,
@@ -86,34 +85,28 @@ function ActiveTransactionCard({
   );
   const timestamps = deriveTimestamps(order, settlement, ledger);
 
-  // CTA labels based on current phase
-  const ctaMeta = useMemo(() => {
-    switch (phase) {
-      case 1:
-        return {
-          label: "Proceed to Verification",
-          href: `/orders/${order.id}`,
-        };
-      case 2:
-        return { label: "Complete Verification", href: "/verification" };
-      case 3:
-        return settlement
-          ? {
-              label: "View Settlement",
-              href: `/settlements/${settlement.id}`,
-            }
-          : { label: "View Order", href: `/orders/${order.id}` };
-      case 4:
-        return settlement
-          ? {
-              label: "View Certificate",
-              href: `/settlements/${settlement.id}`,
-            }
-          : { label: "View Order", href: `/orders/${order.id}` };
-      default:
-        return { label: "View Order", href: `/orders/${order.id}` };
+  // Phase-specific CTA routing
+  const phaseActions = useMemo((): Partial<Record<BuyerLifecyclePhase, PhaseAction>> => {
+    const actions: Partial<Record<BuyerLifecyclePhase, PhaseAction>> = {
+      1: { label: "View Order", href: `/orders/${order.id}` },
+      2: { label: "Complete Verification", href: "/verification", primary: true },
+    };
+    if (settlement) {
+      actions[3] = {
+        label: "Activate Payment",
+        href: `/settlements/${settlement.id}/activation`,
+        primary: true,
+      };
+      actions[4] = {
+        label: "View Certificate",
+        href: `/settlements/${settlement.id}`,
+      };
+    } else {
+      actions[3] = { label: "View Order", href: `/orders/${order.id}` };
+      actions[4] = { label: "View Order", href: `/orders/${order.id}` };
     }
-  }, [phase, order.id, settlement]);
+    return actions;
+  }, [order.id, settlement]);
 
   return (
     <div
@@ -157,8 +150,7 @@ function ActiveTransactionCard({
         <TransactionProgressSidebar
           currentPhase={phase}
           timestamps={timestamps}
-          ctaLabel={ctaMeta.label}
-          ctaHref={ctaMeta.href}
+          phaseActions={phaseActions}
         />
 
         {/* Transaction Details */}

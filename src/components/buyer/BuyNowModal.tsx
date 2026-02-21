@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   Loader2,
   X,
+  Timer,
+  RotateCcw,
 } from "lucide-react";
 import { useAtomicBuy, type AtomicBuyStep } from "@/hooks/use-atomic-buy";
 import type { Listing, InventoryPosition } from "@/lib/mock-data";
@@ -90,6 +92,82 @@ function StepIndicator({ step }: { step: AtomicBuyStep }) {
 }
 
 /* ================================================================
+   Lock Countdown Timer — 10-minute deterministic lock
+   ================================================================ */
+
+const LOCK_DURATION_MS = 10 * 60 * 1000; // 10 minutes
+const WARN_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
+const CRITICAL_THRESHOLD_MS = 30 * 1000;  // 30 seconds
+
+function LockCountdown({ startedAt }: { startedAt: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const elapsed = now - startedAt;
+  const remaining = Math.max(0, LOCK_DURATION_MS - elapsed);
+  const minutes = Math.floor(remaining / 60_000);
+  const seconds = Math.floor((remaining % 60_000) / 1000);
+  const progress = Math.max(0, Math.min(1, remaining / LOCK_DURATION_MS));
+
+  const isWarn = remaining <= WARN_THRESHOLD_MS && remaining > CRITICAL_THRESHOLD_MS;
+  const isCritical = remaining <= CRITICAL_THRESHOLD_MS;
+  const isExpired = remaining <= 0;
+
+  if (isExpired) {
+    return (
+      <div className="flex items-center gap-2 rounded-sm border border-danger/30 bg-danger/5 px-3 py-2 text-xs font-medium text-danger">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        <span>Price lock expired — please start a new order</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2.5 rounded-sm border px-3 py-2 text-xs font-medium tabular-nums transition-colors",
+        isCritical && "border-danger/30 bg-danger/5 text-danger animate-pulse",
+        isWarn && "border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400",
+        !isWarn && !isCritical && "border-border bg-surface-2 text-text-muted",
+      )}
+    >
+      <Timer className={cn("h-3.5 w-3.5", isCritical && "animate-bounce")} />
+      <span>
+        Price locked for{" "}
+        <span className="font-semibold">
+          {minutes}:{seconds.toString().padStart(2, "0")}
+        </span>
+      </span>
+      {/* Mini progress ring */}
+      <svg className="ml-auto h-4 w-4 -rotate-90" viewBox="0 0 20 20">
+        <circle
+          cx="10" cy="10" r="8"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          opacity={0.15}
+        />
+        <circle
+          cx="10" cy="10" r="8"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeDasharray={`${progress * 50.27} 50.27`}
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/* ================================================================
    BuyNowModal Component
    ================================================================ */
 
@@ -105,6 +183,8 @@ export function BuyNowModal({ listing, inventory, onClose }: BuyNowModalProps) {
   const router = useRouter();
   const atomicBuy = useAtomicBuy();
   const available = inventory?.availableWeightOz ?? 0;
+  /** Timestamp when the modal opened — used for countdown */
+  const [lockStartedAt] = useState(() => Date.now());
 
   const form = useForm<BuyFormData>({
     resolver: zodResolver(buySchema),
@@ -119,14 +199,14 @@ export function BuyNowModal({ listing, inventory, onClose }: BuyNowModalProps) {
       : 0;
   const exceedsAvailable = weightVal > available;
 
-  // Close on Escape
+  // Close on Escape (but not during pending or error state)
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !atomicBuy.isPending) onClose();
+      if (e.key === "Escape" && !atomicBuy.isPending && atomicBuy.step !== "error") onClose();
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose, atomicBuy.isPending]);
+  }, [onClose, atomicBuy.isPending, atomicBuy.step]);
 
   const onSubmit = useCallback(
     async (data: BuyFormData) => {
@@ -160,11 +240,18 @@ export function BuyNowModal({ listing, inventory, onClose }: BuyNowModalProps) {
 
   const isPending = atomicBuy.isPending;
   const isDone = atomicBuy.step === "done";
+  const isError = atomicBuy.step === "error";
+
+  /** Reset error state and allow retry without closing the modal */
+  const handleRetry = useCallback(() => {
+    atomicBuy.reset();
+    form.clearErrors();
+  }, [atomicBuy, form]);
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm"
-      onClick={isPending || isDone ? undefined : onClose}
+      onClick={isPending || isDone || isError ? undefined : onClose}
     >
       <div
         className="w-full max-w-md rounded-[var(--radius)] border border-border bg-surface-1 shadow-xl"
@@ -280,12 +367,35 @@ export function BuyNowModal({ listing, inventory, onClose }: BuyNowModalProps) {
             </div>
           </div>
 
+          {/* Lock countdown timer — visible before submission and during processing */}
+          {!isDone && <LockCountdown startedAt={lockStartedAt} />}
+
           {/* Step indicator */}
           <StepIndicator step={atomicBuy.step} />
 
-          {/* Error detail */}
-          {atomicBuy.error && (
-            <p className="text-xs text-danger">{atomicBuy.error}</p>
+          {/* Error detail with retry CTA */}
+          {isError && atomicBuy.error && (
+            <div className="rounded-sm border border-danger/30 bg-danger/5 px-4 py-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-danger mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-danger">
+                    Transaction Failed
+                  </p>
+                  <p className="text-xs text-danger/80 mt-0.5">
+                    {atomicBuy.error}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="flex items-center gap-1.5 rounded-sm border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/20"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Try Again
+              </button>
+            </div>
           )}
 
           <p className="text-[11px] text-text-faint">

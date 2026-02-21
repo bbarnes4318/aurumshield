@@ -93,6 +93,25 @@ export function deriveCurrentPhase(
 }
 
 /* ================================================================
+   Phase Action Map — per-phase CTA definitions
+   ================================================================ */
+
+export interface PhaseAction {
+  label: string;
+  href: string;
+  /** Use primary (filled gold) styling instead of subtle outline */
+  primary?: boolean;
+}
+
+/** Default phase actions when no parent override is provided */
+const DEFAULT_PHASE_ACTIONS: Record<BuyerLifecyclePhase, PhaseAction> = {
+  1: { label: "View Order", href: "#" },
+  2: { label: "Complete Verification", href: "/verification", primary: true },
+  3: { label: "Activate Payment", href: "#", primary: true },
+  4: { label: "View Certificate", href: "#" },
+};
+
+/* ================================================================
    Component Props
    ================================================================ */
 
@@ -101,9 +120,11 @@ interface TransactionProgressSidebarProps {
   currentPhase: BuyerLifecyclePhase;
   /** Timestamp strings for each completed phase (index 0 = phase 1) */
   timestamps?: (string | null)[];
-  /** Optional CTA at the current step */
+  /** Override CTA for the current step (legacy single-CTA mode) */
   ctaLabel?: string;
   ctaHref?: string;
+  /** Phase-specific CTA overrides (takes precedence over ctaLabel/ctaHref) */
+  phaseActions?: Partial<Record<BuyerLifecyclePhase, PhaseAction>>;
   /** Compact mode for embedding in cards */
   compact?: boolean;
   className?: string;
@@ -118,6 +139,7 @@ export function TransactionProgressSidebar({
   timestamps = [],
   ctaLabel,
   ctaHref,
+  phaseActions,
   compact = false,
   className,
 }: TransactionProgressSidebarProps) {
@@ -209,22 +231,32 @@ export function TransactionProgressSidebar({
                   })}
                 </p>
               )}
-              {/* CTA on current step */}
-              {isCurrent && ctaLabel && ctaHref && (
-                <Link
-                  href={ctaHref}
-                  className={cn(
-                    "mt-2 inline-flex items-center gap-1 rounded-[var(--radius-input)]",
-                    "border border-gold/30 bg-gold/5 px-3 py-1",
-                    "text-xs font-medium text-gold transition-colors",
-                    "hover:bg-gold/10 hover:border-gold/50",
-                  )}
-                  data-tour="lifecycle-cta"
-                >
-                  {ctaLabel}
-                  <ChevronRight className="h-3 w-3" />
-                </Link>
-              )}
+              {/* CTA on current step — phase-aware */}
+              {isCurrent && (() => {
+                // Resolve CTA: phaseActions override > legacy ctaLabel/ctaHref > defaults
+                const resolved =
+                  phaseActions?.[step.phase] ??
+                  (ctaLabel && ctaHref
+                    ? { label: ctaLabel, href: ctaHref, primary: step.phase === 2 || step.phase === 3 }
+                    : DEFAULT_PHASE_ACTIONS[step.phase]);
+                if (!resolved || resolved.href === "#") return null;
+                const isPrimary = resolved.primary;
+                return (
+                  <Link
+                    href={resolved.href}
+                    className={cn(
+                      "mt-2 inline-flex items-center gap-1 rounded-[var(--radius-input)] px-3 py-1.5 text-xs font-medium transition-colors",
+                      isPrimary
+                        ? "bg-gold text-bg hover:bg-gold-hover shadow-sm"
+                        : "border border-gold/30 bg-gold/5 text-gold hover:bg-gold/10 hover:border-gold/50",
+                    )}
+                    data-tour="lifecycle-cta"
+                  >
+                    {resolved.label}
+                    <ChevronRight className="h-3 w-3" />
+                  </Link>
+                );
+              })()}
             </div>
           </div>
         );
