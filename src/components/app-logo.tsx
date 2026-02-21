@@ -3,40 +3,47 @@
 /* ================================================================
    AppLogo — Single source of truth for logo rendering
    ================================================================
-   Size tiers (enforced via inline style, immune to Tailwind overrides):
-     sidebar:      160px height  (sidebar brand row)
-     normal:       180px height  (login, signup, forgot-password)
-     presentation: 200px height  (demo login, walkthrough, projection)
-     document:     140px height  (certificates, receipts, audit)
+   CRITICAL FIX: The logo image is 2000×2000 (square) but the actual
+   wordmark/shield content only occupies ~20% of the vertical space.
+   Previous height-based sizing made the visible text tiny (e.g., a
+   160px height on a square image gave ~30px visible text).
+
+   Now sizes by WIDTH so the logo fills its container horizontally,
+   and the browser auto-calculates the proportional height.
+
+   Width tiers:
+     sidebar:      180px  (sidebar brand row, ~224px container)
+     normal:       320px  (login, signup, forgot-password)
+     presentation: 400px  (demo login, walkthrough, projection)
+     document:     240px  (certificates, receipts, audit)
 
    Usage:
-     <AppLogo />                          → normal (white, 180px)
-     <AppLogo variant="navy" />           → normal (navy, 180px)
-     <AppLogo size="presentation" />      → presentation (white, 200px)
-     <AppLogo size="document" />          → document (navy, 140px)
-     <AppLogo size="sidebar" />           → sidebar (white, 160px)
+     <AppLogo />                          → normal (white, 320px)
+     <AppLogo variant="navy" />           → normal (navy, 320px)
+     <AppLogo size="presentation" />      → presentation (white, 400px)
+     <AppLogo size="document" />          → document (navy, 240px)
+     <AppLogo size="sidebar" />           → sidebar (white, 180px)
    ================================================================ */
 
-import { useEffect, useRef } from "react";
 import Image from "next/image";
 
-/** Enforced heights — the one-and-only source of truth. */
+/** Enforced widths — the one-and-only source of truth. */
 const SIZE_MAP = {
-  sidebar: 160,
-  normal: 180,
-  presentation: 200,
-  document: 140,
+  sidebar: 180,
+  normal: 320,
+  presentation: 400,
+  document: 240,
 } as const;
 
 export type LogoSize = keyof typeof SIZE_MAP;
 export type LogoVariant = "white" | "navy";
 
 interface AppLogoProps {
-  /** Size tier. Defaults to "normal" (180px). */
+  /** Size tier. Defaults to "normal" (320px wide). */
   size?: LogoSize;
   /** Color variant. Defaults to "white". */
   variant?: LogoVariant;
-  /** Optional extra className (use sparingly — cannot override height). */
+  /** Optional extra className (use sparingly — cannot override width). */
   className?: string;
   /** Priority loading hint for next/image. */
   priority?: boolean;
@@ -48,9 +55,9 @@ const SRC_MAP: Record<LogoVariant, string> = {
 };
 
 /**
- * Renders the AurumShield logo at an enforced height.
- * Height is applied via inline `style` so Tailwind utility classes
- * (h-6, h-8, h-10, etc.) cannot override it.
+ * Renders the AurumShield logo at an enforced width.
+ * Width is applied via inline `style` so Tailwind utility classes
+ * (w-6, w-8, etc.) cannot override it.
  */
 export function AppLogo({
   size = "normal",
@@ -58,50 +65,21 @@ export function AppLogo({
   className,
   priority = false,
 }: AppLogoProps) {
-  const heightPx = SIZE_MAP[size];
-  const ref = useRef<HTMLImageElement>(null);
-
-  // ── Dev-mode sanity check ──
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "development") return;
-    if (typeof window === "undefined") return;
-
-    const isDemoMode =
-      process.env.NEXT_PUBLIC_DEMO_MODE === "true" ||
-      window.location.search.includes("debug=true");
-
-    if (!isDemoMode) return;
-
-    const timer = setTimeout(() => {
-      const el = ref.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      if (rect.height < 44) {
-        console.warn(
-          `[AppLogo Sanity] Logo rendered at ${rect.height.toFixed(1)}px — below 44px threshold. ` +
-            `Expected ${heightPx}px. Check parent for overflow/max-h constraints.`,
-          { element: el, rect }
-        );
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [heightPx]);
+  const widthPx = SIZE_MAP[size];
 
   return (
     <Image
-      ref={ref}
       src={SRC_MAP[variant]}
       alt="AurumShield"
-      width={800}
-      height={200}
+      width={2000}
+      height={2000}
       className={className}
       priority={priority}
       style={{
-        height: `${heightPx}px`,
-        width: "auto",
-        minHeight: `${heightPx}px`,
-        maxHeight: `${heightPx}px`,
+        width: `${widthPx}px`,
+        height: "auto",
+        minWidth: `${widthPx}px`,
+        maxWidth: "100%",
         display: "block",
       }}
     />
@@ -118,46 +96,19 @@ export function AppLogoImg({
   variant = "white",
   className,
 }: Omit<AppLogoProps, "priority">) {
-  const heightPx = SIZE_MAP[size];
-  const ref = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "development") return;
-    if (typeof window === "undefined") return;
-
-    const isDemoMode =
-      process.env.NEXT_PUBLIC_DEMO_MODE === "true" ||
-      window.location.search.includes("debug=true");
-
-    if (!isDemoMode) return;
-
-    const timer = setTimeout(() => {
-      const el = ref.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      if (rect.height < 44) {
-        console.warn(
-          `[AppLogoImg Sanity] Logo rendered at ${rect.height.toFixed(1)}px — below 44px threshold.`,
-          { element: el, rect }
-        );
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [heightPx]);
+  const widthPx = SIZE_MAP[size];
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      ref={ref}
       src={SRC_MAP[variant]}
       alt="AurumShield"
       className={className}
       style={{
-        height: `${heightPx}px`,
-        width: "auto",
-        minHeight: `${heightPx}px`,
-        maxHeight: `${heightPx}px`,
+        width: `${widthPx}px`,
+        height: "auto",
+        minWidth: `${widthPx}px`,
+        maxWidth: "100%",
         display: "block",
       }}
     />
