@@ -82,8 +82,8 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Trading",
     items: [
       { label: "Marketplace", href: "/marketplace", icon: Store, dataTour: "sidebar-marketplace" },
-      { label: "Reservations", href: "/reservations", icon: Clock, dataTour: "sidebar-reservations" },
-      { label: "Orders", href: "/orders", icon: ShoppingCart, dataTour: "sidebar-orders" },
+      { label: "Reservations", href: "/reservations", icon: Clock, roles: ["admin", "compliance", "vault_ops"], dataTour: "sidebar-reservations" },
+      { label: "Orders", href: "/orders", icon: ShoppingCart, roles: ["admin", "compliance", "vault_ops"], dataTour: "sidebar-orders" },
     ],
   },
   {

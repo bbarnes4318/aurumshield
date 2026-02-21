@@ -1,9 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { type ColumnDef } from "@tanstack/react-table";
@@ -12,10 +9,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { FilterBar, useFilterValues, type FilterConfig } from "@/components/ui/filter-bar";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
-import { useListings, useMyReservations, useCreateReservation } from "@/hooks/use-mock-queries";
+import { useListings, useMyReservations } from "@/hooks/use-mock-queries";
 import { runReservationExpirySweep } from "@/lib/api";
-import type { Listing, InventoryPosition, Reservation } from "@/lib/mock-data";
+import type { Listing, Reservation } from "@/lib/mock-data";
 import { loadMarketplaceState } from "@/lib/marketplace-store";
+import { BuyNowModal } from "@/components/buyer/BuyNowModal";
 
 /* ================================================================ */
 const MOCK_USER_ID = "user-1";
@@ -86,141 +84,7 @@ const FILTERS: FilterConfig[] = [
   ]},
 ];
 
-/* ---------- Reserve Modal Schema ---------- */
-const reserveSchema = z.object({
-  weightOz: z.number({ error: "Enter a valid weight" }).positive("Weight must be positive"),
-});
-type ReserveFormData = z.infer<typeof reserveSchema>;
-
-/* ---------- Reserve Modal ---------- */
-function ReserveModal({
-  listing,
-  inventory,
-  onClose,
-}: {
-  listing: Listing;
-  inventory: InventoryPosition | undefined;
-  onClose: () => void;
-}) {
-  const createMut = useCreateReservation();
-  const available = inventory?.availableWeightOz ?? 0;
-
-  const form = useForm<ReserveFormData>({
-    resolver: zodResolver(reserveSchema),
-    defaultValues: { weightOz: 0 },
-    mode: "onTouched",
-  });
-
-  const weightVal = form.watch("weightOz");
-  const total = (Number.isFinite(weightVal) && weightVal > 0) ? weightVal * listing.pricePerOz : 0;
-  const exceedsAvailable = weightVal > available;
-
-  const onSubmit = useCallback(async (data: ReserveFormData) => {
-    if (data.weightOz > available) {
-      form.setError("weightOz", { message: `Exceeds available ${available} oz` });
-      return;
-    }
-    try {
-      await createMut.mutateAsync({
-        listingId: listing.id,
-        userId: MOCK_USER_ID,
-        weightOz: data.weightOz,
-      });
-      onClose();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Reservation failed";
-      form.setError("weightOz", { message });
-    }
-  }, [available, createMut, listing.id, onClose, form]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80" onClick={onClose}>
-      <div
-        className="w-full max-w-md rounded-[var(--radius)] border border-border bg-surface-1 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="border-b border-border px-6 py-4">
-          <h2 className="text-base font-semibold text-text">Reserve Inventory</h2>
-          <p className="mt-1 text-xs text-text-faint">10-minute deterministic lock on listing inventory.</p>
-        </div>
-
-        <div className="px-6 py-5 space-y-4">
-          <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-text-faint">Reference</span>
-              <span className="font-mono text-text">{listing.id}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-faint">Title</span>
-              <span className="text-text">{listing.title}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-faint">Available</span>
-              <span className="tabular-nums text-text">{available} oz</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-faint">Price / oz</span>
-              <span className="tabular-nums text-text">${listing.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-            </div>
-          </div>
-
-          <form onSubmit={form.handleSubmit(onSubmit)} id="reserve-form">
-            <label className="typo-label mb-1.5 block" htmlFor="reserve-weight">Weight (oz)</label>
-            <input
-              id="reserve-weight"
-              type="number"
-              step="any"
-              {...form.register("weightOz")}
-              className={cn(
-                "w-full rounded-[var(--radius-input)] border border-border bg-surface-2 px-3 py-2 text-sm tabular-nums text-text",
-                "placeholder:text-text-faint focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent transition-colors",
-                exceedsAvailable && "border-danger"
-              )}
-              placeholder="Enter weight in troy ounces"
-            />
-            {form.formState.errors.weightOz && (
-              <p className="mt-1 text-xs text-danger">{form.formState.errors.weightOz.message}</p>
-            )}
-            {exceedsAvailable && !form.formState.errors.weightOz && (
-              <p className="mt-1 text-xs text-danger">Exceeds available {available} oz — deterministic rejection.</p>
-            )}
-          </form>
-
-          <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-text-faint">Calculated Total</span>
-              <span className="font-semibold tabular-nums text-text">
-                ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-[11px] text-text-faint">
-            Reservation expires in 10 minutes. Inventory is locked deterministically — no partial fills, no race conditions.
-          </p>
-        </div>
-
-        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-[var(--radius-input)] border border-border px-4 py-2 text-sm text-text-muted transition-colors hover:bg-surface-2"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="reserve-form"
-            disabled={createMut.isPending || exceedsAvailable || !weightVal || weightVal <= 0}
-            className="rounded-[var(--radius-input)] bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {createMut.isPending ? "Reserving…" : "Confirm Reservation"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ---------- Reserve Modal removed — replaced by BuyNowModal ---------- */
 
 /* ================================================================
    MAIN PAGE
@@ -352,7 +216,7 @@ function MarketplaceContent() {
               data-tour="marketplace-reserve-cta"
               className="rounded-[var(--radius-input)] border border-gold/30 bg-gold/5 px-3 py-1 text-xs font-medium text-gold transition-colors hover:bg-gold/10"
             >
-              Reserve
+              Buy Now
             </button>
           );
         }
@@ -443,7 +307,7 @@ function MarketplaceContent() {
                       data-tour={isFirst ? "marketplace-reserve-cta" : undefined}
                       className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-gold/30 bg-gold/5 px-2 py-1.5 text-[11px] font-medium text-gold transition-colors hover:bg-gold/10"
                     >
-                      Reserve
+                      Buy Now
                     </button>
                   </div>
                 </div>
@@ -467,7 +331,7 @@ function MarketplaceContent() {
       </div>
 
       {reserveTarget && (
-        <ReserveModal
+        <BuyNowModal
           listing={reserveTarget}
           inventory={targetInventory}
           onClose={() => setReserveTarget(null)}
