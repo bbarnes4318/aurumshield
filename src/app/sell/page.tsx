@@ -1,82 +1,136 @@
 "use client";
 
-/* ================================================================
-   SELL — 4-Step Listing Wizard
-   ================================================================
-   Step 1: Asset Details   (form, purity, weight, title)
-   Step 2: Custody         (vault/hub selection)
-   Step 3: Evidence Pack   (create deterministic evidence stubs)
-   Step 4: Price & Review  (set price, view publish gate, publish)
-   ================================================================ */
-
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  Package,
+  FileStack,
+  Send,
+  Vault,
+} from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
-import { LoadingState } from "@/components/ui/state-views";
-import { RequireAuth } from "@/components/auth/require-auth";
+import { EvidencePackCard } from "@/components/seller/EvidencePackCard";
+import { PublishGatePanel } from "@/components/seller/PublishGatePanel";
 import { useAuth } from "@/providers/auth-provider";
-import { useHubs } from "@/hooks/use-mock-queries";
 import {
   useCreateDraftListing,
   useCreateListingEvidence,
   usePublishListing,
   usePublishGate,
+  useListingEvidenceItems,
+  useListing,
 } from "@/hooks/use-mock-queries";
-import type { Hub } from "@/lib/mock-data";
-import type { ListingEvidenceType } from "@/lib/mock-data";
-import { CheckCircle2, ChevronRight, AlertTriangle, Loader2, Package, Building2, ShieldCheck, DollarSign } from "lucide-react";
+import { mockHubs } from "@/lib/mock-data";
+import type { Listing, ListingEvidenceType, Purity } from "@/lib/mock-data";
 
-/* ---------- Zod Schemas ---------- */
-const assetSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters"),
-  form: z.enum(["bar", "coin"], { message: "Select a form" }),
-  purity: z.enum(["995", "999", "9999"], { message: "Select purity" }),
-  totalWeightOz: z.number({ message: "Enter a valid weight" }).positive("Weight must be positive"),
-});
-type AssetFormData = z.infer<typeof assetSchema>;
+/* ================================================================
+   SELLER GOLDEN PATH — 3-Step Listing Wizard
 
-const custodySchema = z.object({
-  vaultHubId: z.string().min(1, "Select a vault"),
-});
-type CustodyFormData = z.infer<typeof custodySchema>;
+   Step 1: Specifications (asset details + vault) → auto-saves draft
+   Step 2: Evidence Pack (upload 3 required documents w/ Textract)
+   Step 3: Verify & Publish (price, gate review, publish)
 
-const priceSchema = z.object({
-  pricePerOz: z.number({ message: "Enter a valid price" }).positive("Price must be positive"),
-});
-type PriceFormData = z.infer<typeof priceSchema>;
+   Auto-Save: Draft is created at end of Step 1 so the seller
+   won't lose work if they leave to find their Assay Report PDF.
+   ================================================================ */
 
-/* ---------- Step indicator ---------- */
+/* ---------- Constants ---------- */
+
 const STEPS = [
-  { label: "Asset", icon: Package },
-  { label: "Custody", icon: Building2 },
-  { label: "Evidence", icon: ShieldCheck },
-  { label: "Price & Review", icon: DollarSign },
+  { id: 1, label: "Specifications", icon: Package },
+  { id: 2, label: "Evidence Pack", icon: FileStack },
+  { id: 3, label: "Verify & Publish", icon: Send },
 ] as const;
 
-function StepIndicator({ current }: { current: number }) {
+const VAULT_OPTIONS = mockHubs
+  .filter((h) => h.status === "operational")
+  .map((h) => ({
+    id: h.id,
+    name: h.name,
+    country: h.country,
+  }));
+
+/* ---------- Zod Schema for Step 1 ---------- */
+
+const specSchema = z.object({
+  title: z
+    .string()
+    .min(5, "Title must be at least 5 characters")
+    .max(120, "Title must be 120 characters or less"),
+  form: z.enum(["bar", "coin"], {
+    message: "Select a form factor",
+  }),
+  purity: z.enum(["995", "999", "9999"], {
+    message: "Select a purity level",
+  }),
+  totalWeightOz: z
+    .number({ message: "Weight is required" })
+    .positive("Weight must be positive")
+    .max(10_000, "Max 10,000 oz per listing"),
+  vaultHubId: z.string().min(1, "Select a vault"),
+});
+
+type SpecFormData = z.infer<typeof specSchema>;
+
+/* ---------- Zod Schema for Step 3 (Price) ---------- */
+
+const priceSchema = z.object({
+  pricePerOz: z
+    .number({ message: "Price is required" })
+    .positive("Price must be positive")
+    .max(100_000, "Maximum $100,000 / oz"),
+});
+
+type PriceFormData = z.infer<typeof priceSchema>;
+
+/* ================================================================
+   STEP INDICATOR
+   ================================================================ */
+
+function StepIndicator({ currentStep }: { currentStep: number }) {
   return (
-    <div className="flex items-center gap-2 mb-8">
+    <div className="flex items-center gap-1">
       {STEPS.map((step, i) => {
         const Icon = step.icon;
-        const isActive = i === current;
-        const isDone = i < current;
+        const isActive = step.id === currentStep;
+        const isComplete = step.id < currentStep;
         return (
-          <div key={step.label} className="flex items-center gap-2">
-            <div className={cn(
-              "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-              isDone ? "bg-success/10 text-success" :
-              isActive ? "bg-gold/10 text-gold border border-gold/30" :
-              "bg-surface-2 text-text-faint"
-            )}>
-              {isDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+          <div key={step.id} className="flex items-center">
+            {i > 0 && (
+              <div
+                className={cn(
+                  "h-px w-8 mx-1",
+                  isComplete ? "bg-success" : "bg-border",
+                )}
+              />
+            )}
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                isComplete
+                  ? "border-success/20 bg-success/10 text-success"
+                  : isActive
+                    ? "border-gold/30 bg-gold/10 text-gold"
+                    : "border-border bg-surface-2 text-text-faint",
+              )}
+            >
+              {isComplete ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : (
+                <Icon className="h-3.5 w-3.5" />
+              )}
               <span className="hidden sm:inline">{step.label}</span>
-              <span className="sm:hidden">{i + 1}</span>
+              <span className="sm:hidden">{step.id}</span>
             </div>
-            {i < STEPS.length - 1 && <ChevronRight className="h-3.5 w-3.5 text-text-faint" />}
           </div>
         );
       })}
@@ -85,574 +139,657 @@ function StepIndicator({ current }: { current: number }) {
 }
 
 /* ================================================================
-   WIZARD CONTENT
+   STEP 1: SPECIFICATIONS
    ================================================================ */
 
-function WizardContent() {
+function StepSpecifications({
+  onNext,
+  defaultValues,
+  isCreating,
+}: {
+  onNext: (data: SpecFormData) => void;
+  defaultValues?: Partial<SpecFormData>;
+  isCreating: boolean;
+}) {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<SpecFormData>({
+    resolver: zodResolver(specSchema),
+    defaultValues: {
+      title: defaultValues?.title ?? "",
+      form: defaultValues?.form ?? undefined,
+      purity: defaultValues?.purity ?? undefined,
+      totalWeightOz: defaultValues?.totalWeightOz ?? undefined,
+      vaultHubId: defaultValues?.vaultHubId ?? "",
+    },
+  });
+
+  const selectedForm = watch("form");
+  const selectedPurity = watch("purity");
+  const selectedVault = watch("vaultHubId");
+
+  return (
+    <form onSubmit={handleSubmit(onNext)} className="space-y-6">
+      {/* Title */}
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-widest text-text-faint mb-2">
+          Listing Title
+        </label>
+        <input
+          type="text"
+          {...register("title")}
+          placeholder="e.g. LBMA Good Delivery Bar — 400 oz"
+          className={cn(
+            "w-full rounded-[var(--radius-input)] border bg-surface-2 px-4 py-2.5",
+            "text-sm text-text placeholder:text-text-faint/50",
+            "focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/20",
+            errors.title ? "border-danger/50" : "border-border",
+          )}
+        />
+        {errors.title && (
+          <p className="text-xs text-danger mt-1">{errors.title.message}</p>
+        )}
+      </div>
+
+      {/* Form Factor */}
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-widest text-text-faint mb-2">
+          Form Factor
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {(["bar", "coin"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setValue("form", f, { shouldValidate: true })}
+              className={cn(
+                "flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border px-4 py-3",
+                "text-sm font-medium transition-colors",
+                selectedForm === f
+                  ? "border-gold/50 bg-gold/10 text-gold"
+                  : "border-border bg-surface-2 text-text-muted hover:border-gold/20",
+              )}
+            >
+              <Package className="h-4 w-4" />
+              {f === "bar" ? "Bar" : "Coin"}
+            </button>
+          ))}
+        </div>
+        {errors.form && (
+          <p className="text-xs text-danger mt-1">{errors.form.message}</p>
+        )}
+      </div>
+
+      {/* Purity */}
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-widest text-text-faint mb-2">
+          Purity
+        </label>
+        <div className="grid grid-cols-3 gap-3">
+          {(["995", "999", "9999"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setValue("purity", p, { shouldValidate: true })}
+              className={cn(
+                "flex items-center justify-center rounded-[var(--radius-sm)] border px-4 py-3",
+                "text-sm font-medium tabular-nums transition-colors",
+                selectedPurity === p
+                  ? "border-gold/50 bg-gold/10 text-gold"
+                  : "border-border bg-surface-2 text-text-muted hover:border-gold/20",
+              )}
+            >
+              .{p}
+            </button>
+          ))}
+        </div>
+        {errors.purity && (
+          <p className="text-xs text-danger mt-1">{errors.purity.message}</p>
+        )}
+      </div>
+
+      {/* Weight */}
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-widest text-text-faint mb-2">
+          Total Weight (troy ounces)
+        </label>
+        <input
+          type="number"
+          step="any"
+          {...register("totalWeightOz", { valueAsNumber: true })}
+          placeholder="e.g. 400"
+          className={cn(
+            "w-full rounded-[var(--radius-input)] border bg-surface-2 px-4 py-2.5",
+            "text-sm text-text tabular-nums placeholder:text-text-faint/50",
+            "focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/20",
+            errors.totalWeightOz ? "border-danger/50" : "border-border",
+          )}
+        />
+        {errors.totalWeightOz && (
+          <p className="text-xs text-danger mt-1">
+            {errors.totalWeightOz.message}
+          </p>
+        )}
+      </div>
+
+      {/* Vault Selection */}
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-widest text-text-faint mb-2">
+          <Vault className="h-3.5 w-3.5 inline mr-1" />
+          Custody Vault
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {VAULT_OPTIONS.map((hub) => (
+            <button
+              key={hub.id}
+              type="button"
+              onClick={() =>
+                setValue("vaultHubId", hub.id, { shouldValidate: true })
+              }
+              className={cn(
+                "flex items-start gap-3 rounded-[var(--radius-sm)] border px-3 py-2.5 text-left transition-colors",
+                selectedVault === hub.id
+                  ? "border-gold/50 bg-gold/10"
+                  : "border-border bg-surface-2 hover:border-gold/20",
+              )}
+            >
+              <Vault
+                className={cn(
+                  "h-4 w-4 mt-0.5 shrink-0",
+                  selectedVault === hub.id
+                    ? "text-gold"
+                    : "text-text-faint",
+                )}
+              />
+              <div>
+                <p
+                  className={cn(
+                    "text-sm font-medium",
+                    selectedVault === hub.id
+                      ? "text-gold"
+                      : "text-text",
+                  )}
+                >
+                  {hub.name}
+                </p>
+                <p className="text-[11px] text-text-faint">{hub.country}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+        {errors.vaultHubId && (
+          <p className="text-xs text-danger mt-1">
+            {errors.vaultHubId.message}
+          </p>
+        )}
+      </div>
+
+      {/* Submit */}
+      <div className="flex justify-end pt-2">
+        <button
+          type="submit"
+          disabled={isCreating}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-[var(--radius-input)]",
+            "bg-gold px-6 py-2.5 text-sm font-medium text-bg",
+            "transition-colors hover:bg-gold-hover",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+          )}
+        >
+          {isCreating ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving Draft…
+            </>
+          ) : (
+            <>
+              Save & Continue
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/* ================================================================
+   STEP 2: EVIDENCE PACK
+   ================================================================ */
+
+function StepEvidence({
+  listing,
+  userId,
+  onBack,
+  onNext,
+}: {
+  listing: Listing;
+  userId: string;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const evidenceQ = useListingEvidenceItems(listing.id);
+  const createEvidence = useCreateListingEvidence();
+
+  const handleCreate = useCallback(
+    (type: ListingEvidenceType) => {
+      createEvidence.mutate(
+        { listingId: listing.id, evidenceType: type, userId },
+        {
+          onSuccess: () => {
+            toast.success(
+              `${type.replace(/_/g, " ").toLowerCase()} created`,
+            );
+          },
+          onError: (err: Error) => {
+            toast.error(`Failed: ${err.message}`);
+          },
+        },
+      );
+    },
+    [createEvidence, listing.id, userId],
+  );
+
+  const evidenceItems = evidenceQ.data ?? [];
+  const allPresent =
+    evidenceItems.filter((e) =>
+      ["ASSAY_REPORT", "CHAIN_OF_CUSTODY", "SELLER_ATTESTATION"].includes(
+        e.type,
+      ),
+    ).length >= 3;
+
+  return (
+    <div className="space-y-6">
+      {/* Listing Summary Header */}
+      <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-text">{listing.title}</p>
+            <p className="text-[11px] text-text-faint mt-0.5">
+              {listing.totalWeightOz} oz · .{listing.purity} ·{" "}
+              {listing.form} · {listing.vaultName}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/10 text-warning px-2 py-0.5 text-xs font-medium">
+            Draft
+          </span>
+        </div>
+      </div>
+
+      {/* Evidence Pack Card */}
+      <EvidencePackCard
+        evidenceItems={evidenceItems}
+        listingPurity={listing.purity as Purity}
+        listingWeightOz={listing.totalWeightOz}
+        onCreateEvidence={handleCreate}
+        isCreating={createEvidence.isPending}
+      />
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pt-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-[var(--radius-input)]",
+            "border border-border px-4 py-2 text-sm font-medium text-text-muted",
+            "transition-colors hover:border-gold/20 hover:text-text",
+          )}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!allPresent}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-[var(--radius-input)]",
+            "bg-gold px-6 py-2.5 text-sm font-medium text-bg",
+            "transition-colors hover:bg-gold-hover",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+          )}
+        >
+          Continue to Review
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {!allPresent && (
+        <p className="text-xs text-text-faint text-center">
+          Upload all 3 required evidence documents to continue.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
+   STEP 3: VERIFY & PUBLISH
+   ================================================================ */
+
+function StepPublish({
+  listing,
+  userId,
+  onBack,
+}: {
+  listing: Listing;
+  userId: string;
+  onBack: () => void;
+}) {
   const router = useRouter();
+  const gateQ = usePublishGate(listing.id, userId);
+  const evidenceQ = useListingEvidenceItems(listing.id);
+  const publishMutation = usePublishListing();
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<PriceFormData>({
+    resolver: zodResolver(priceSchema),
+    defaultValues: {
+      pricePerOz: listing.pricePerOz > 0 ? listing.pricePerOz : undefined,
+    },
+  });
+
+  const pricePerOz = watch("pricePerOz");
+  const notional =
+    pricePerOz && listing.totalWeightOz
+      ? pricePerOz * listing.totalWeightOz
+      : 0;
+
+  const handlePublish = useCallback(
+    (data: PriceFormData) => {
+      // TODO: Update price on draft before publishing if different
+      publishMutation.mutate(
+        { listingId: listing.id, userId },
+        {
+          onSuccess: (result) => {
+            if (result.gateResult.allowed) {
+              toast.success("Listing published to marketplace");
+              router.push("/seller");
+            } else {
+              toast.error("Publish blocked — review gate results below");
+            }
+          },
+          onError: (err: Error) => {
+            toast.error(`Publish failed: ${err.message}`);
+          },
+        },
+      );
+    },
+    [publishMutation, listing.id, userId, router],
+  );
+
+  return (
+    <form onSubmit={handleSubmit(handlePublish)} className="space-y-6">
+      {/* Listing Summary */}
+      <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+          <div>
+            <p className="text-[11px] text-text-faint uppercase">Title</p>
+            <p className="text-text font-medium truncate">{listing.title}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-text-faint uppercase">Weight</p>
+            <p className="text-text font-medium tabular-nums">
+              {listing.totalWeightOz} oz
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] text-text-faint uppercase">Purity</p>
+            <p className="text-text font-medium">.{listing.purity}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-text-faint uppercase">Vault</p>
+            <p className="text-text font-medium truncate">
+              {listing.vaultName}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Price */}
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-widest text-text-faint mb-2">
+          Price per Troy Ounce (USD)
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          {...register("pricePerOz", { valueAsNumber: true })}
+          placeholder="e.g. 2055.00"
+          className={cn(
+            "w-full rounded-[var(--radius-input)] border bg-surface-2 px-4 py-2.5",
+            "text-sm text-text tabular-nums placeholder:text-text-faint/50",
+            "focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/20",
+            errors.pricePerOz ? "border-danger/50" : "border-border",
+          )}
+        />
+        {errors.pricePerOz && (
+          <p className="text-xs text-danger mt-1">
+            {errors.pricePerOz.message}
+          </p>
+        )}
+        {notional > 0 && (
+          <p className="text-xs text-text-faint mt-1">
+            Total notional: $
+            {notional.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+          </p>
+        )}
+      </div>
+
+      {/* Evidence Pack Summary */}
+      <EvidencePackCard
+        evidenceItems={evidenceQ.data ?? []}
+        listingPurity={listing.purity as Purity}
+        listingWeightOz={listing.totalWeightOz}
+      />
+
+      {/* Publish Gate */}
+      <PublishGatePanel
+        gateResult={gateQ.data}
+        isLoading={gateQ.isLoading}
+      />
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pt-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-[var(--radius-input)]",
+            "border border-border px-4 py-2 text-sm font-medium text-text-muted",
+            "transition-colors hover:border-gold/20 hover:text-text",
+          )}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <button
+          type="submit"
+          disabled={
+            publishMutation.isPending || !gateQ.data?.allowed
+          }
+          className={cn(
+            "inline-flex items-center gap-2 rounded-[var(--radius-input)]",
+            "bg-gold px-6 py-2.5 text-sm font-medium text-bg",
+            "transition-colors hover:bg-gold-hover",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+          )}
+        >
+          {publishMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Publishing…
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4" />
+              Publish Listing
+            </>
+          )}
+        </button>
+      </div>
+
+      {gateQ.data && !gateQ.data.allowed && (
+        <p className="text-xs text-danger text-center">
+          Resolve all gate blockers above before publishing.
+        </p>
+      )}
+    </form>
+  );
+}
+
+/* ================================================================
+   MAIN WIZARD PAGE
+   ================================================================ */
+
+export default function SellPage() {
   const { user, org } = useAuth();
-  const hubsQ = useHubs();
-
-  const [step, setStep] = useState(0);
-  const [assetData, setAssetData] = useState<AssetFormData | null>(null);
-  const [custodyData, setCustodyData] = useState<CustodyFormData | null>(null);
-  const [draftListingId, setDraftListingId] = useState<string | null>(null);
-  const [evidenceCreated, setEvidenceCreated] = useState<Set<ListingEvidenceType>>(new Set());
-
-  const createDraftMut = useCreateDraftListing();
-  const createEvidenceMut = useCreateListingEvidence();
-  const publishMut = usePublishListing();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const userId = user?.id ?? "";
   const orgId = org?.id ?? "";
-  const sellerName = org?.legalName ?? user?.name ?? "Unknown";
+  const orgName = org?.legalName ?? "";
 
-  // Resolve vault info
-  const selectedHub: Hub | undefined = useMemo(() => {
-    if (!custodyData?.vaultHubId || !hubsQ.data) return undefined;
-    return hubsQ.data.find((h) => h.id === custodyData.vaultHubId);
-  }, [custodyData?.vaultHubId, hubsQ.data]);
+  // Support resuming a draft via ?listing=<id>
+  const resumeListingId = searchParams.get("listing");
+  const resumeListingQ = useListing(resumeListingId ?? "");
 
-  // Gate query (only when we have a listing)
-  const gateQ = usePublishGate(draftListingId ?? "", userId);
+  const [step, setStep] = useState<number>(resumeListingId ? 2 : 1);
+  const [draftListing, setDraftListing] = useState<Listing | null>(null);
+  const [specData, setSpecData] = useState<SpecFormData | null>(null);
 
-  /* ---------- Role Gate ---------- */
-  const userRole = user?.role ?? "buyer";
-  if (userRole !== "seller" && userRole !== "admin") {
+  // The active listing is either the resumed draft or the newly created one
+  const activeListing = draftListing ?? resumeListingQ.data ?? null;
+
+  // Create draft mutation
+  const createDraft = useCreateDraftListing();
+
+  /* ---------- Step 1 → Step 2 transition (auto-save draft) ---------- */
+
+  const handleSpecSubmit = useCallback(
+    (data: SpecFormData) => {
+      setSpecData(data);
+
+      const vault = VAULT_OPTIONS.find((v) => v.id === data.vaultHubId);
+
+      createDraft.mutate(
+        {
+          title: data.title,
+          form: data.form as "bar" | "coin",
+          purity: data.purity as Purity,
+          totalWeightOz: data.totalWeightOz,
+          pricePerOz: 0, // Price set in Step 3
+          vaultHubId: data.vaultHubId,
+          vaultName: vault?.name ?? "",
+          jurisdiction: vault?.country ?? "",
+          sellerUserId: userId,
+          sellerOrgId: orgId,
+          sellerName: orgName,
+        },
+        {
+          onSuccess: (listing: Listing) => {
+            setDraftListing(listing);
+            setStep(2);
+            toast.success("Draft saved — your progress is safe");
+          },
+          onError: (err: Error) => {
+            toast.error(`Failed to save draft: ${err.message}`);
+          },
+        },
+      );
+    },
+    [createDraft, userId, orgId, orgName],
+  );
+
+  /* ---------- Render ---------- */
+
+  if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <AlertTriangle className="h-8 w-8 text-warning mb-3" />
-        <h2 className="text-sm font-semibold text-text">Access Restricted</h2>
-        <p className="mt-1 text-sm text-text-muted max-w-sm">
-          Only seller or admin accounts may create listings. Log in with a seller account to access this feature.
+      <div className="card-base border border-border p-8 text-center">
+        <p className="text-sm text-text-muted">
+          Please log in as a seller to create listings.
         </p>
       </div>
     );
   }
 
-  /* ================================================================
-     STEP 1: Asset Details
-     ================================================================ */
-  if (step === 0) {
-    return (
-      <>
-        <StepIndicator current={0} />
-        <AssetStep onNext={(data) => { setAssetData(data); setStep(1); }} initial={assetData} />
-      </>
-    );
-  }
-
-  /* ================================================================
-     STEP 2: Custody (Vault Selection)
-     ================================================================ */
-  if (step === 1) {
-    return (
-      <>
-        <StepIndicator current={1} />
-        <CustodyStep
-          hubs={hubsQ.data ?? []}
-          loading={hubsQ.isLoading}
-          onNext={(data) => { setCustodyData(data); setStep(2); }}
-          onBack={() => setStep(0)}
-          initial={custodyData}
-        />
-      </>
-    );
-  }
-
-  /* ================================================================
-     STEP 3: Evidence Pack
-     ================================================================ */
-  if (step === 2) {
-    // Create draft listing if not yet created
-    const handleCreateDraft = async () => {
-      if (draftListingId || !assetData || !custodyData || !selectedHub) return;
-      const result = await createDraftMut.mutateAsync({
-        title: assetData.title,
-        form: assetData.form,
-        purity: assetData.purity,
-        totalWeightOz: assetData.totalWeightOz,
-        pricePerOz: 0, // Will be set in step 4
-        vaultHubId: custodyData.vaultHubId,
-        vaultName: selectedHub.name,
-        jurisdiction: selectedHub.country,
-        sellerUserId: userId,
-        sellerOrgId: orgId,
-        sellerName,
-      });
-      setDraftListingId(result.id);
-    };
-
-    const handleCreateEvidence = async (type: ListingEvidenceType) => {
-      if (!draftListingId) return;
-      await createEvidenceMut.mutateAsync({
-        listingId: draftListingId,
-        evidenceType: type,
-        userId,
-      });
-      setEvidenceCreated((prev) => new Set(prev).add(type));
-    };
-
-    return (
-      <>
-        <StepIndicator current={2} />
-        <EvidenceStep
-          draftListingId={draftListingId}
-          onCreateDraft={handleCreateDraft}
-          onCreateEvidence={handleCreateEvidence}
-          evidenceCreated={evidenceCreated}
-          isCreatingDraft={createDraftMut.isPending}
-          isCreatingEvidence={createEvidenceMut.isPending}
-          onNext={() => setStep(3)}
-          onBack={() => setStep(1)}
-        />
-      </>
-    );
-  }
-
-  /* ================================================================
-     STEP 4: Price & Review
-     ================================================================ */
-  if (step === 3) {
-    const handlePublish = async (pricePerOz: number) => {
-      if (!draftListingId) return;
-      // First update price on the draft
-      const { apiUpdateDraftListing } = await import("@/lib/api");
-      await apiUpdateDraftListing(draftListingId, { pricePerOz });
-      // Then publish
-      const result = await publishMut.mutateAsync({
-        listingId: draftListingId,
-        userId,
-      });
-      if (result.gateResult.allowed) {
-        router.push(`/sell/listings/${draftListingId}`);
-      }
-    };
-
-    return (
-      <>
-        <StepIndicator current={3} />
-        <PriceReviewStep
-          assetData={assetData!}
-          custodyData={custodyData!}
-          hub={selectedHub}
-          draftListingId={draftListingId}
-          gateResult={gateQ.data ?? null}
-          isGateLoading={gateQ.isLoading}
-          onPublish={handlePublish}
-          isPublishing={publishMut.isPending}
-          publishResult={publishMut.data ?? null}
-          onBack={() => setStep(2)}
-        />
-      </>
-    );
-  }
-
-  return null;
-}
-
-/* ================================================================
-   STEP COMPONENTS
-   ================================================================ */
-
-function AssetStep({ onNext, initial }: { onNext: (data: AssetFormData) => void; initial: AssetFormData | null }) {
-  const form = useForm<AssetFormData>({
-    resolver: zodResolver(assetSchema),
-    defaultValues: initial ?? { title: "", form: undefined, purity: undefined, totalWeightOz: 0 },
-    mode: "onTouched",
-  });
-
   return (
-    <div className="max-w-lg">
-      <h2 className="typo-h3 mb-1">Asset Details</h2>
-      <p className="text-sm text-text-muted mb-6">Specify the gold form, purity, weight, and listing title.</p>
-
-      <form onSubmit={form.handleSubmit(onNext)} className="space-y-5">
-        {/* Title */}
-        <div>
-          <label className="typo-label mb-1.5 block" htmlFor="asset-title">Listing Title</label>
-          <input
-            id="asset-title"
-            {...form.register("title")}
-            className="w-full rounded-[var(--radius-input)] border border-border bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-faint focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent transition-colors"
-            placeholder="e.g. LBMA Good Delivery Bar — 400 oz"
-          />
-          {form.formState.errors.title && <p className="mt-1 text-xs text-danger">{form.formState.errors.title.message}</p>}
-        </div>
-
-        {/* Form */}
-        <div>
-          <label className="typo-label mb-1.5 block">Gold Form</label>
-          <div className="flex gap-3">
-            {(["bar", "coin"] as const).map((f) => (
-              <label key={f} className={cn(
-                "flex items-center gap-2 rounded-[var(--radius-input)] border px-4 py-2 cursor-pointer transition-colors text-sm",
-                form.watch("form") === f ? "border-gold bg-gold/5 text-gold" : "border-border text-text-muted hover:bg-surface-2"
-              )}>
-                <input type="radio" value={f} {...form.register("form")} className="sr-only" />
-                <span className="capitalize">{f}</span>
-              </label>
-            ))}
-          </div>
-          {form.formState.errors.form && <p className="mt-1 text-xs text-danger">{form.formState.errors.form.message}</p>}
-        </div>
-
-        {/* Purity */}
-        <div>
-          <label className="typo-label mb-1.5 block">Purity</label>
-          <div className="flex gap-3">
-            {(["995", "999", "9999"] as const).map((p) => (
-              <label key={p} className={cn(
-                "flex items-center gap-2 rounded-[var(--radius-input)] border px-4 py-2 cursor-pointer transition-colors text-sm tabular-nums",
-                form.watch("purity") === p ? "border-gold bg-gold/5 text-gold" : "border-border text-text-muted hover:bg-surface-2"
-              )}>
-                <input type="radio" value={p} {...form.register("purity")} className="sr-only" />
-                <span>.{p}</span>
-              </label>
-            ))}
-          </div>
-          {form.formState.errors.purity && <p className="mt-1 text-xs text-danger">{form.formState.errors.purity.message}</p>}
-        </div>
-
-        {/* Weight */}
-        <div>
-          <label className="typo-label mb-1.5 block" htmlFor="asset-weight">Total Weight (oz)</label>
-          <input
-            id="asset-weight"
-            type="number"
-            step="any"
-            {...form.register("totalWeightOz", { valueAsNumber: true })}
-            className="w-full rounded-[var(--radius-input)] border border-border bg-surface-2 px-3 py-2 text-sm tabular-nums text-text placeholder:text-text-faint focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent transition-colors"
-            placeholder="Enter weight in troy ounces"
-          />
-          {form.formState.errors.totalWeightOz && <p className="mt-1 text-xs text-danger">{form.formState.errors.totalWeightOz.message}</p>}
-        </div>
-
-        <button
-          type="submit"
-          className="rounded-[var(--radius-input)] bg-gold px-5 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed"
-        >
-          Next: Custody →
-        </button>
-      </form>
-    </div>
-  );
-}
-
-function CustodyStep({
-  hubs, loading, onNext, onBack, initial,
-}: {
-  hubs: Hub[];
-  loading: boolean;
-  onNext: (data: CustodyFormData) => void;
-  onBack: () => void;
-  initial: CustodyFormData | null;
-}) {
-  const form = useForm<CustodyFormData>({
-    resolver: zodResolver(custodySchema),
-    defaultValues: initial ?? { vaultHubId: "" },
-    mode: "onTouched",
-  });
-
-  if (loading) return <LoadingState message="Loading custody hubs…" />;
-
-  const custodyHubs = hubs.filter((h) => h.type === "custody" || h.type === "clearing");
-
-  return (
-    <div className="max-w-lg">
-      <h2 className="typo-h3 mb-1">Custody Selection</h2>
-      <p className="text-sm text-text-muted mb-6">Select the vault or clearing hub where the gold is held.</p>
-
-      <form onSubmit={form.handleSubmit(onNext)} className="space-y-5">
-        <div className="space-y-2">
-          {custodyHubs.map((hub) => (
-            <label
-              key={hub.id}
-              className={cn(
-                "flex items-start gap-3 rounded-[var(--radius)] border px-4 py-3 cursor-pointer transition-all",
-                form.watch("vaultHubId") === hub.id
-                  ? "border-gold bg-gold/5"
-                  : "border-border hover:bg-surface-2"
-              )}
-            >
-              <input type="radio" value={hub.id} {...form.register("vaultHubId")} className="sr-only" />
-              <div className={cn(
-                "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
-                form.watch("vaultHubId") === hub.id ? "border-gold bg-gold" : "border-border"
-              )}>
-                {form.watch("vaultHubId") === hub.id && <span className="h-2 w-2 rounded-full bg-bg" />}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-text">{hub.name}</p>
-                <p className="text-xs text-text-faint">{hub.location} · {hub.type} · {hub.status}</p>
-              </div>
-            </label>
-          ))}
-        </div>
-        {form.formState.errors.vaultHubId && <p className="mt-1 text-xs text-danger">{form.formState.errors.vaultHubId.message}</p>}
-
-        <div className="flex gap-3">
-          <button type="button" onClick={onBack} className="rounded-[var(--radius-input)] border border-border px-4 py-2 text-sm text-text-muted transition-colors hover:bg-surface-2">
-            ← Back
-          </button>
-          <button type="submit" className="rounded-[var(--radius-input)] bg-gold px-5 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover">
-            Next: Evidence →
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-const EVIDENCE_TYPES: { type: ListingEvidenceType; label: string; description: string }[] = [
-  { type: "ASSAY_REPORT", label: "Certified Assay Report", description: "Independent laboratory assay certificate confirming purity and weight." },
-  { type: "CHAIN_OF_CUSTODY", label: "Chain of Custody Certificate", description: "Documented custody chain from refiner to current vault." },
-  { type: "SELLER_ATTESTATION", label: "Seller Attestation Declaration", description: "Seller declaration of title, ownership, and encumbrance status." },
-];
-
-function EvidenceStep({
-  draftListingId, onCreateDraft, onCreateEvidence, evidenceCreated,
-  isCreatingDraft, isCreatingEvidence, onNext, onBack,
-}: {
-  draftListingId: string | null;
-  onCreateDraft: () => Promise<void>;
-  onCreateEvidence: (type: ListingEvidenceType) => Promise<void>;
-  evidenceCreated: Set<ListingEvidenceType>;
-  isCreatingDraft: boolean;
-  isCreatingEvidence: boolean;
-  onNext: () => void;
-  onBack: () => void;
-}) {
-  const allCreated = EVIDENCE_TYPES.every((e) => evidenceCreated.has(e.type));
-
-  return (
-    <div className="max-w-lg">
-      <h2 className="typo-h3 mb-1">Evidence Pack</h2>
-      <p className="text-sm text-text-muted mb-6">
-        Create deterministic evidence stubs for the publish gate. All three types are required.
-      </p>
-
-      {/* Step 1: Create draft listing first */}
-      {!draftListingId && (
-        <div className="rounded-[var(--radius)] border border-border bg-surface-1 p-5 mb-4">
-          <p className="text-sm text-text mb-3">
-            Before creating evidence, we need to save your listing as a draft.
-          </p>
+    <>
+      <PageHeader
+        title="New Listing"
+        description="Three steps to publish your gold to the marketplace"
+        actions={
           <button
-            onClick={onCreateDraft}
-            disabled={isCreatingDraft}
-            className="rounded-[var(--radius-input)] bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover disabled:opacity-50"
-          >
-            {isCreatingDraft ? (
-              <span className="flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving Draft…</span>
-            ) : "Save Draft Listing"}
-          </button>
-        </div>
-      )}
-
-      {/* Step 2: Create evidence items */}
-      {draftListingId && (
-        <div className="space-y-3 mb-6">
-          {EVIDENCE_TYPES.map((ev) => {
-            const created = evidenceCreated.has(ev.type);
-            return (
-              <div key={ev.type} className={cn(
-                "rounded-[var(--radius)] border px-4 py-3 transition-all",
-                created ? "border-success/30 bg-success/5" : "border-border bg-surface-1"
-              )}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-text">{ev.label}</p>
-                    <p className="text-xs text-text-faint mt-0.5">{ev.description}</p>
-                  </div>
-                  {created ? (
-                    <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
-                  ) : (
-                    <button
-                      onClick={() => onCreateEvidence(ev.type)}
-                      disabled={isCreatingEvidence}
-                      className="shrink-0 rounded-[var(--radius-input)] border border-gold/30 bg-gold/5 px-3 py-1 text-xs font-medium text-gold transition-colors hover:bg-gold/10 disabled:opacity-50"
-                    >
-                      {isCreatingEvidence ? "…" : "Create"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="flex gap-3">
-        <button type="button" onClick={onBack} className="rounded-[var(--radius-input)] border border-border px-4 py-2 text-sm text-text-muted transition-colors hover:bg-surface-2">
-          ← Back
-        </button>
-        <button
-          onClick={onNext}
-          disabled={!draftListingId}
-          className="rounded-[var(--radius-input)] bg-gold px-5 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover disabled:opacity-50"
-        >
-          Next: Price & Review →
-          {allCreated && <span className="ml-1">✓</span>}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function PriceReviewStep({
-  assetData, custodyData, hub, draftListingId,
-  gateResult, isGateLoading, onPublish, isPublishing, publishResult, onBack,
-}: {
-  assetData: AssetFormData;
-  custodyData: CustodyFormData;
-  hub: Hub | undefined;
-  draftListingId: string | null;
-  gateResult: import("@/lib/marketplace-engine").GateResult | null;
-  isGateLoading: boolean;
-  onPublish: (pricePerOz: number) => Promise<void>;
-  isPublishing: boolean;
-  publishResult: { listing: import("@/lib/mock-data").Listing; gateResult: import("@/lib/marketplace-engine").GateResult } | null;
-  onBack: () => void;
-}) {
-  const form = useForm<PriceFormData>({
-    resolver: zodResolver(priceSchema),
-    defaultValues: { pricePerOz: 0 },
-    mode: "onTouched",
-  });
-
-  const priceVal = form.watch("pricePerOz");
-  const totalValue = (Number.isFinite(priceVal) && priceVal > 0)
-    ? priceVal * assetData.totalWeightOz
-    : 0;
-
-  const canPublish = gateResult?.allowed === true && priceVal > 0;
-  const publishFailed = publishResult && !publishResult.gateResult.allowed;
-
-  const handleSubmit = async (data: PriceFormData) => {
-    await onPublish(data.pricePerOz);
-  };
-
-  return (
-    <div className="max-w-2xl">
-      <h2 className="typo-h3 mb-1">Price & Review</h2>
-      <p className="text-sm text-text-muted mb-6">Set the price per ounce and review the publish gate status before publishing.</p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left: Review summary */}
-        <div className="rounded-[var(--radius)] border border-border bg-surface-1 p-5 space-y-4">
-          <h3 className="typo-label">Listing Summary</h3>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between"><dt className="text-text-faint">Title</dt><dd className="text-text text-right max-w-[220px] truncate">{assetData.title}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Form</dt><dd className="text-text capitalize">{assetData.form}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Purity</dt><dd className="tabular-nums text-text">.{assetData.purity}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Weight</dt><dd className="tabular-nums text-text">{assetData.totalWeightOz} oz</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Vault</dt><dd className="text-text">{hub?.name ?? custodyData.vaultHubId}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Draft ID</dt><dd className="font-mono text-xs text-text">{draftListingId ?? "—"}</dd></div>
-          </dl>
-        </div>
-
-        {/* Right: Price + Gate */}
-        <div className="space-y-4">
-          <form onSubmit={form.handleSubmit(handleSubmit)} id="price-form" className="rounded-[var(--radius)] border border-border bg-surface-1 p-5 space-y-4">
-            <h3 className="typo-label">Price</h3>
-            <div>
-              <label className="typo-label mb-1.5 block" htmlFor="price-per-oz">Price per Troy Ounce ($)</label>
-              <input
-                id="price-per-oz"
-                type="number"
-                step="0.01"
-                {...form.register("pricePerOz", { valueAsNumber: true })}
-                className="w-full rounded-[var(--radius-input)] border border-border bg-surface-2 px-3 py-2 text-sm tabular-nums text-text placeholder:text-text-faint focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent"
-                placeholder="e.g. 2050.00"
-              />
-              {form.formState.errors.pricePerOz && <p className="mt-1 text-xs text-danger">{form.formState.errors.pricePerOz.message}</p>}
-            </div>
-            <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-text-faint">Total Value</span>
-                <span className="font-semibold tabular-nums text-text">${totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-          </form>
-
-          {/* Publish Gate */}
-          <div className="rounded-[var(--radius)] border border-border bg-surface-1 p-5">
-            <h3 className="typo-label mb-3">Publish Gate</h3>
-            {isGateLoading ? (
-              <div className="flex items-center gap-2 text-xs text-text-faint"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Evaluating gate…</div>
-            ) : gateResult ? (
-              <div className="space-y-2">
-                <div className={cn(
-                  "flex items-center gap-2 text-sm font-medium",
-                  gateResult.allowed ? "text-success" : "text-danger"
-                )}>
-                  {gateResult.allowed ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                  {gateResult.allowed ? "All checks passed — ready to publish" : `${gateResult.blockers.length} blocker(s) found`}
-                </div>
-                {gateResult.blockers.length > 0 && (
-                  <ul className="space-y-1.5 mt-2">
-                    {gateResult.blockers.map((b, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs">
-                        <span className="shrink-0 rounded px-1 py-0.5 text-[10px] font-bold text-danger bg-danger/10">BLOCK</span>
-                        <span className="text-text-muted">{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-text-faint">Gate will evaluate when listing draft is saved.</p>
+            type="button"
+            onClick={() => router.push("/seller")}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-[var(--radius-input)]",
+              "border border-border px-4 py-2 text-sm font-medium text-text-muted",
+              "transition-colors hover:border-gold/20 hover:text-text",
             )}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </button>
+        }
+      />
+
+      {/* Step Indicator */}
+      <div className="mt-4 mb-6 flex justify-center">
+        <StepIndicator currentStep={step} />
+      </div>
+
+      {/* Step Content */}
+      <div className="max-w-2xl mx-auto">
+        {step === 1 && (
+          <div className="card-base border border-border p-6">
+            <StepSpecifications
+              onNext={handleSpecSubmit}
+              defaultValues={specData ?? undefined}
+              isCreating={createDraft.isPending}
+            />
           </div>
+        )}
 
-          {/* Publish result error */}
-          {publishFailed && publishResult && (
-            <div className="rounded-[var(--radius-sm)] border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-              Publish blocked: {publishResult.gateResult.blockers.join(" | ")}
-            </div>
-          )}
-        </div>
+        {step === 2 && activeListing && (
+          <div className="card-base border border-border p-6">
+            <StepEvidence
+              listing={activeListing}
+              userId={userId}
+              onBack={() => setStep(1)}
+              onNext={() => setStep(3)}
+            />
+          </div>
+        )}
+
+        {step === 3 && activeListing && (
+          <div className="card-base border border-border p-6">
+            <StepPublish
+              listing={activeListing}
+              userId={userId}
+              onBack={() => setStep(2)}
+            />
+          </div>
+        )}
+
+        {/* Loading state for resumed listing */}
+        {step >= 2 && !activeListing && resumeListingId && (
+          <div className="card-base border border-border p-8 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-gold mx-auto mb-2" />
+            <p className="text-sm text-text-muted">Loading draft listing…</p>
+          </div>
+        )}
       </div>
-
-      <div className="flex gap-3 mt-6">
-        <button type="button" onClick={onBack} className="rounded-[var(--radius-input)] border border-border px-4 py-2 text-sm text-text-muted transition-colors hover:bg-surface-2">
-          ← Back
-        </button>
-        <button
-          type="submit"
-          form="price-form"
-          disabled={isPublishing || !canPublish}
-          className={cn(
-            "rounded-[var(--radius-input)] px-5 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-            canPublish ? "bg-gold text-bg hover:bg-gold-hover" : "bg-surface-3 text-text-faint"
-          )}
-        >
-          {isPublishing ? (
-            <span className="flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Publishing…</span>
-          ) : "Publish Listing"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ================================================================
-   PAGE
-   ================================================================ */
-
-export default function SellPage() {
-  return (
-    <RequireAuth>
-      <Suspense fallback={<LoadingState message="Loading wizard…" />}>
-        <PageHeader
-          title="Create Listing"
-          description="Step-by-step listing wizard — asset, custody, evidence, pricing"
-        />
-        <div className="mt-6">
-          <WizardContent />
-        </div>
-      </Suspense>
-    </RequireAuth>
+    </>
   );
 }

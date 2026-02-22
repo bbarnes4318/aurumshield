@@ -321,6 +321,7 @@ function seedVerificationCase(userId: string): void {
         detail: "All steps passed — identity perimeter verified.",
       },
     ],
+    processedWebhookIds: [],
   };
   saveVerificationCase(verifiedCase);
 }

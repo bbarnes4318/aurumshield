@@ -2627,6 +2627,7 @@ export type VerificationTrack = "INDIVIDUAL_KYC" | "BUSINESS_KYB";
 export type VerificationStepStatus =
   | "LOCKED"
   | "PENDING"
+  | "PROCESSING"
   | "SUBMITTED"
   | "PASSED"
   | "FAILED";
@@ -2678,6 +2679,8 @@ export interface VerificationCase {
     action: string;
     detail: string;
   }[];
+  /** Webhook IDs already processed — prevents duplicate processing. */
+  processedWebhookIds: string[];
 }
 
 /* ---------- Auth Fixtures ---------- */

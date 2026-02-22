@@ -3,11 +3,12 @@
 import { cn } from "@/lib/utils";
 import type { VerificationStep } from "@/lib/mock-data";
 import Link from "next/link";
-import { Lock, Clock, Send, CheckCircle2, XCircle } from "lucide-react";
+import { Lock, Clock, Send, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 const STEP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   LOCKED: Lock,
   PENDING: Clock,
+  PROCESSING: Loader2,
   SUBMITTED: Send,
   PASSED: CheckCircle2,
   FAILED: XCircle,
@@ -16,6 +17,7 @@ const STEP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 const STEP_COLORS: Record<string, { icon: string; bg: string; border: string }> = {
   LOCKED: { icon: "text-text-faint", bg: "bg-surface-3", border: "border-border" },
   PENDING: { icon: "text-info", bg: "bg-info/10", border: "border-info/30" },
+  PROCESSING: { icon: "text-gold", bg: "bg-gold/10", border: "border-gold/30" },
   SUBMITTED: { icon: "text-warning", bg: "bg-warning/10", border: "border-warning/30" },
   PASSED: { icon: "text-success", bg: "bg-success/10", border: "border-success/30" },
   FAILED: { icon: "text-danger", bg: "bg-danger/10", border: "border-danger/30" },
@@ -54,7 +56,7 @@ export function StepLadder({ steps, currentStepId, className }: StepLadderProps)
               {/* Step number + icon */}
               <div className="flex flex-col items-center gap-1 pt-0.5">
                 <div className={cn("flex h-7 w-7 items-center justify-center rounded-full border", colors.bg, colors.border)}>
-                  <Icon className={cn("h-3.5 w-3.5", colors.icon)} />
+                  <Icon className={cn("h-3.5 w-3.5", colors.icon, step.status === "PROCESSING" && "animate-spin")} />
                 </div>
                 {i < steps.length - 1 && (
                   <div className={cn("w-px h-4", step.status === "PASSED" ? "bg-success/30" : "bg-border")} />

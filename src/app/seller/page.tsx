@@ -1,287 +1,379 @@
 "use client";
 
-/* ================================================================
-   SELLER HOME — Listing & Settlement Console
-
-   Dedicated sell-side surface showing:
-   - Listings view (with thumbnail & publish status)
-   - Incoming reservations
-   - Settlement participation overview
-   - Placeholder slots for Phase 3 visual components:
-     • SettlementRailsVisualization
-     • SupportBanner
-   ================================================================ */
-
+import { useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
-  Store,
+  Plus,
   Package,
+  ChevronRight,
   CheckCircle2,
-  ArrowRight,
-  Eye,
-  ShieldCheck,
-  Landmark,
   Clock,
+  Ban,
+  BarChart3,
 } from "lucide-react";
-import { RequireAuth } from "@/components/auth/require-auth";
+import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
+import { LoadingState, ErrorState } from "@/components/ui/state-views";
+import { ListingReadinessRail } from "@/components/seller/ListingReadinessRail";
 import { useAuth } from "@/providers/auth-provider";
 import {
   useMyListings,
   useSettlements,
 } from "@/hooks/use-mock-queries";
-import { DEMO_IDS } from "@/lib/demo-seeder";
-import { PageHeader } from "@/components/ui/page-header";
+import type { Listing, SettlementCase } from "@/lib/mock-data";
 
-/* ---------- Status chips ---------- */
-const LISTING_STATUS: Record<string, { label: string; style: string }> = {
+/* ================================================================
+   SELLER MISSION CONTROL
+   Two-column layout: Published listings + settlements in main column,
+   Listing Readiness Rail for drafts in the right column.
+   ================================================================ */
+
+/* ---------- Status Configuration ---------- */
+
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: typeof CheckCircle2 }
+> = {
   available: {
     label: "Published",
-    style: "bg-success/10 text-success border-success/20",
-  },
-  draft: {
-    label: "Draft",
-    style: "bg-surface-3 text-text-faint border-border",
-  },
-  sold: {
-    label: "Sold",
-    style: "bg-gold/10 text-gold border-gold/20",
+    color: "border-success/20 bg-success/10 text-success",
+    icon: CheckCircle2,
   },
   reserved: {
     label: "Reserved",
-    style: "bg-warning/10 text-warning border-warning/20",
+    color: "border-gold/20 bg-gold/10 text-gold",
+    icon: Clock,
+  },
+  allocated: {
+    label: "Allocated",
+    color: "border-info/20 bg-info/10 text-info",
+    icon: Package,
+  },
+  sold: {
+    label: "Sold",
+    color: "border-text-faint/20 bg-text-faint/10 text-text-faint",
+    icon: CheckCircle2,
   },
   suspended: {
     label: "Suspended",
-    style: "bg-danger/10 text-danger border-danger/20",
+    color: "border-danger/20 bg-danger/10 text-danger",
+    icon: Ban,
+  },
+  draft: {
+    label: "Draft",
+    color: "border-warning/20 bg-warning/10 text-warning",
+    icon: Clock,
   },
 };
 
-const SETTLEMENT_STATUS: Record<string, string> = {
-  SETTLED: "bg-success/10 text-success border-success/20",
-  AUTHORIZED: "bg-info/10 text-info border-info/20",
-  ESCROW_OPEN: "bg-info/10 text-info border-info/20",
-  AWAITING_FUNDS: "bg-warning/10 text-warning border-warning/20",
-  DRAFT: "bg-surface-3 text-text-faint border-border",
-};
+/* ---------- Summary Cards ---------- */
 
-/** Deterministic gold image assignment for listings */
-function getListingImage(index: number): string {
-  return `/${(index % 5) + 1}.png`;
+function SummaryCards({
+  published,
+  drafts,
+  activeSettlements,
+  totalValue,
+}: {
+  published: number;
+  drafts: number;
+  activeSettlements: number;
+  totalValue: number;
+}) {
+  const cards = [
+    {
+      label: "Published Listings",
+      value: published.toString(),
+      accent: "text-success",
+    },
+    {
+      label: "Drafts Pending",
+      value: drafts.toString(),
+      accent: "text-warning",
+    },
+    {
+      label: "Active Settlements",
+      value: activeSettlements.toString(),
+      accent: "text-gold",
+    },
+    {
+      label: "Total Listed Value",
+      value: `$${totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}`,
+      accent: "text-text",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {cards.map((card) => (
+        <div
+          key={card.label}
+          className="card-base border border-border p-4"
+        >
+          <p className="text-[11px] font-medium uppercase tracking-widest text-text-faint">
+            {card.label}
+          </p>
+          <p className={cn("text-xl font-semibold tabular-nums mt-1", card.accent)}>
+            {card.value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function SellerContent() {
+/* ---------- Published Listing Card ---------- */
+
+function PublishedListingCard({ listing }: { listing: Listing }) {
+  const config = STATUS_CONFIG[listing.status] ?? STATUS_CONFIG.draft;
+  const Icon = config.icon;
+
+  return (
+    <Link
+      href={`/sell/listings/${listing.id}`}
+      className="block card-base border border-border p-4 hover:border-gold/20 transition-colors group"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold/10 text-gold shrink-0">
+            <Package className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-text truncate">
+              {listing.title}
+            </p>
+            <p className="text-[11px] text-text-faint mt-0.5">
+              {listing.totalWeightOz} oz · .{listing.purity} · $
+              {listing.pricePerOz.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+              })}
+              /oz
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 ml-3">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+              config.color,
+            )}
+          >
+            <Icon className="h-3 w-3" />
+            {config.label}
+          </span>
+          <ChevronRight className="h-4 w-4 text-text-faint group-hover:text-gold transition-colors" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+/* ---------- Settlement Activity Card ---------- */
+
+function SettlementCard({ settlement }: { settlement: SettlementCase }) {
+  const isSettled = settlement.status === "SETTLED";
+  return (
+    <Link
+      href={`/settlements/${settlement.id}`}
+      className="block card-base border border-border p-3 hover:border-gold/20 transition-colors group"
+    >
+      <div className="flex items-center justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-text truncate">
+            {settlement.id}
+          </p>
+          <p className="text-[11px] text-text-faint mt-0.5">
+            {settlement.weightOz} oz · $
+            {settlement.notionalUsd.toLocaleString("en-US", {
+              maximumFractionDigits: 0,
+            })}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+              isSettled
+                ? "border-success/20 bg-success/10 text-success"
+                : "border-gold/20 bg-gold/10 text-gold",
+            )}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            {settlement.status.replace(/_/g, " ")}
+          </span>
+          <ChevronRight className="h-4 w-4 text-text-faint group-hover:text-gold transition-colors" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+/* ---------- Empty State ---------- */
+
+function EmptyListings() {
+  return (
+    <div className="card-base border border-border p-8 text-center space-y-4">
+      <div className="flex justify-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gold/10">
+          <Package className="h-7 w-7 text-gold" />
+        </div>
+      </div>
+      <div>
+        <h3 className="text-base font-semibold text-text">
+          No listings yet
+        </h3>
+        <p className="text-sm text-text-muted mt-1 max-w-sm mx-auto">
+          Create your first gold listing. Three steps to publication: specify
+          your asset, upload evidence, and publish.
+        </p>
+      </div>
+      <Link
+        href="/sell"
+        className={cn(
+          "inline-flex items-center gap-2 rounded-[var(--radius-input)]",
+          "bg-gold px-5 py-2.5 text-sm font-medium text-bg",
+          "transition-colors hover:bg-gold-hover",
+        )}
+      >
+        <Plus className="h-4 w-4" />
+        Create Listing
+      </Link>
+    </div>
+  );
+}
+
+/* ================================================================
+   MAIN COMPONENT
+   ================================================================ */
+
+export default function SellerPage() {
   const { user } = useAuth();
-  const userId = user?.id ?? DEMO_IDS.seller;
+  const userId = user?.id ?? "";
+  const listingsQ = useMyListings(userId);
+  const settlementsQ = useSettlements();
 
-  /* ---------- Data queries ---------- */
-  const { data: listings = [] } = useMyListings(userId);
-  const { data: settlements = [] } = useSettlements();
+  const isLoading = listingsQ.isLoading || settlementsQ.isLoading;
 
-  // Filter settlements relevant to THIS seller
-  const mySettlements = settlements.filter((s) => s.sellerUserId === userId);
+  // Partition listings into draft and published
+  const { draftListings, publishedListings, totalValue } = useMemo(() => {
+    if (!listingsQ.data)
+      return { draftListings: [], publishedListings: [], totalValue: 0 };
 
-  // Active settlement count
-  const activeSettlementCount = mySettlements.filter(
-    (s) => s.status !== "SETTLED" && s.status !== "CANCELLED" && s.status !== "FAILED",
-  ).length;
+    const drafts: Listing[] = [];
+    const published: Listing[] = [];
+    let value = 0;
 
-  const settledCount = mySettlements.filter((s) => s.status === "SETTLED").length;
-  const publishedCount = listings.filter((l) => l.status === "available").length;
+    for (const l of listingsQ.data) {
+      if (l.status === "draft") {
+        drafts.push(l);
+      } else {
+        published.push(l);
+        value += l.pricePerOz * l.totalWeightOz;
+      }
+    }
+
+    return {
+      draftListings: drafts,
+      publishedListings: published,
+      totalValue: value,
+    };
+  }, [listingsQ.data]);
+
+  // Filter settlements for this seller
+  const sellerSettlements = useMemo(() => {
+    if (!settlementsQ.data) return [];
+    return settlementsQ.data.filter(
+      (s: SettlementCase) => s.sellerUserId === userId,
+    );
+  }, [settlementsQ.data, userId]);
+
+  const activeSettlements = useMemo(
+    () => sellerSettlements.filter((s) => s.status !== "SETTLED"),
+    [sellerSettlements],
+  );
+
+  if (isLoading) return <LoadingState message="Loading seller console…" />;
+  if (listingsQ.isError)
+    return (
+      <ErrorState
+        message="Failed to load listings."
+        onRetry={() => listingsQ.refetch()}
+      />
+    );
 
   return (
     <>
       <PageHeader
-        title="Listing & Settlement Console"
-        description="Sell-side overview — manage listings, track incoming reservations, and monitor settlement activity"
+        title="Seller Mission Control"
+        description="Manage listings, track readiness, and monitor settlements"
+        actions={
+          <Link
+            href="/sell"
+            className={cn(
+              "inline-flex items-center gap-2 rounded-[var(--radius-input)]",
+              "bg-gold px-4 py-2 text-sm font-medium text-bg",
+              "transition-colors hover:bg-gold-hover",
+            )}
+          >
+            <Plus className="h-4 w-4" />
+            New Listing
+          </Link>
+        }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
+      {/* Summary Cards */}
+      <div className="mt-4">
+        <SummaryCards
+          published={publishedListings.length}
+          drafts={draftListings.length}
+          activeSettlements={activeSettlements.length}
+          totalValue={totalValue}
+        />
+      </div>
 
-        {/* ── Column 1: Listings ── */}
-        <div className="lg:col-span-2 space-y-6">
-
-          {/* Listings Grid */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Store className="h-4 w-4 text-text-muted" />
-                <h3 className="text-sm font-semibold text-text">My Listings</h3>
-              </div>
-              <Link
-                href="/sell"
-                className="text-xs text-gold hover:underline flex items-center gap-1"
-              >
-                Create new <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-
-            {listings.length === 0 ? (
-              <div className="card-base border border-border p-8 text-center">
-                <Package className="h-8 w-8 text-text-faint/40 mx-auto mb-2" />
-                <p className="text-sm text-text-faint">No listings yet</p>
-                <Link
-                  href="/sell"
-                  className="text-xs text-gold hover:underline mt-2 inline-flex items-center gap-1"
-                >
-                  Create your first listing <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {listings.map((listing, i) => {
-                  const statusInfo = LISTING_STATUS[listing.status] ?? LISTING_STATUS.draft;
-                  return (
-                    <Link
-                      key={listing.id}
-                      href={`/sell/listings/${listing.id}`}
-                      className="card-base border border-border p-4 flex gap-4 hover:border-gold/30 transition-colors group"
-                      data-tour={i === 0 ? "seller-listing-card" : undefined}
-                    >
-                      {/* Thumbnail */}
-                      <div className="relative h-20 w-20 shrink-0 rounded-sm overflow-hidden bg-surface-2">
-                        <Image
-                          src={getListingImage(i)}
-                          alt={listing.title}
-                          fill
-                          className="object-cover"
-                          sizes="80px"
-                        />
-                      </div>
-
-                      {/* Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="text-sm font-medium text-text truncate pr-2">
-                            {listing.title}
-                          </h4>
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${statusInfo.style}`}
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                            {statusInfo.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-text-faint">
-                          <span>{listing.totalWeightOz} oz</span>
-                          <span className="font-mono tabular-nums">
-                            ${listing.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 })}/oz
-                          </span>
-                          <span>{listing.jurisdiction}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className="flex items-center gap-1 text-[10px] text-text-faint">
-                            <Eye className="h-3 w-3" />
-                            <span>Views: —</span>
-                          </div>
-                          {listing.evidenceIds && listing.evidenceIds.length > 0 && (
-                            <div className="flex items-center gap-1 text-[10px] text-success">
-                              <ShieldCheck className="h-3 w-3" />
-                              <span>{listing.evidenceIds.length} evidence</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* ── Phase 3 Slot: SettlementRailsVisualization ── */}
-          {/* TODO: Phase 3 will insert <SettlementRailsVisualization /> here */}
-        </div>
-
-        {/* ── Column 2: Summary & Settlements ── */}
+      {/* Two-Column Layout: Main + Readiness Rail */}
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+        {/* Main Column */}
         <div className="space-y-6">
-
-          {/* Summary cards */}
-          <div className="space-y-3">
-            <Link
-              href="/sell/listings"
-              className="card-base border border-border p-4 flex items-center gap-3 hover:border-gold/30 transition-colors"
-              data-tour="seller-published-count"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-success/10">
-                <Store className="h-4 w-4 text-success" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-text-faint">Published Listings</p>
-                <p className="text-lg font-semibold tabular-nums text-text">{publishedCount}</p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-text-faint" />
-            </Link>
-
-            <div className="card-base border border-border p-4 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-info/10">
-                <Clock className="h-4 w-4 text-info" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-text-faint">Active Settlements</p>
-                <p className="text-lg font-semibold tabular-nums text-text">{activeSettlementCount}</p>
-              </div>
-            </div>
-
-            <div className="card-base border border-border p-4 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-success/10">
-                <CheckCircle2 className="h-4 w-4 text-success" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-text-faint">Settled</p>
-                <p className="text-lg font-semibold tabular-nums text-text">{settledCount}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Settlement Activity */}
-          <div className="card-base border border-border p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Landmark className="h-4 w-4 text-text-muted" />
-              <h3 className="text-sm font-semibold text-text">Settlement Activity</h3>
-            </div>
-            {mySettlements.length === 0 ? (
-              <p className="text-xs text-text-faint">No settlements yet</p>
-            ) : (
+          {/* Published Listings */}
+          <section>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint mb-3 flex items-center gap-2">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Published Listings
+            </h2>
+            {publishedListings.length > 0 ? (
               <div className="space-y-2">
-                {mySettlements.slice(0, 5).map((s) => (
-                  <Link
-                    key={s.id}
-                    href={`/settlements/${s.id}`}
-                    className="flex items-center justify-between py-2 px-2 rounded-sm hover:bg-surface-2 transition-colors"
-                  >
-                    <div>
-                      <p className="text-xs font-medium text-text">
-                        {s.weightOz} oz — ${s.notionalUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[10px] text-text-faint font-mono">{s.id}</p>
-                    </div>
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                        SETTLEMENT_STATUS[s.status] ?? SETTLEMENT_STATUS.DRAFT
-                      }`}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                      {s.status.replace(/_/g, " ")}
-                    </span>
-                  </Link>
+                {publishedListings.map((listing) => (
+                  <PublishedListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
+            ) : (
+              <EmptyListings />
             )}
-          </div>
+          </section>
 
-          {/* ── Phase 3 Slot: SupportBanner ── */}
-          {/* TODO: Phase 3 will insert <SupportBanner /> here */}
+          {/* Settlement Activity */}
+          {sellerSettlements.length > 0 && (
+            <section>
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint mb-3">
+                Settlement Activity
+              </h2>
+              <div className="space-y-2">
+                {sellerSettlements.map((settlement) => (
+                  <SettlementCard key={settlement.id} settlement={settlement} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
+
+        {/* Right Column: Listing Readiness Rail */}
+        <aside>
+          <ListingReadinessRail
+            draftListings={draftListings}
+            userId={userId}
+          />
+        </aside>
       </div>
     </>
-  );
-}
-
-export default function SellerPage() {
-  return (
-    <RequireAuth>
-      <SellerContent />
-    </RequireAuth>
   );
 }

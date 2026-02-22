@@ -2,9 +2,15 @@
    VERIFICATION ENGINE — Deterministic Identity Perimeter
    ================================================================
    States: NOT_STARTED → IN_PROGRESS → NEEDS_REVIEW → VERIFIED → REJECTED
+   Step States: LOCKED → PENDING → PROCESSING → PASSED / FAILED
    Tracks: INDIVIDUAL_KYC (4 steps) | BUSINESS_KYB (8 steps)
    All outcomes deterministic — derived from userId/orgId, no randomness.
    localStorage key: aurumshield:verification:<userId>
+
+   Async Architecture:
+   - submitStep() now transitions steps to PROCESSING (except email_phone)
+   - processProviderWebhook() resolves PROCESSING → PASSED/FAILED
+   - Idempotency enforced via processedWebhookIds
    ================================================================ */
 
 import type {
@@ -34,7 +40,12 @@ export function loadVerificationCase(userId: string): VerificationCase | null {
   if (!isBrowser()) return null;
   const raw = localStorage.getItem(storageKey(userId));
   if (!raw) return null;
-  try { return JSON.parse(raw) as VerificationCase; } catch { return null; }
+  try {
+    const parsed = JSON.parse(raw) as VerificationCase;
+    // Migration: ensure processedWebhookIds exists for pre-async cases
+    if (!parsed.processedWebhookIds) parsed.processedWebhookIds = [];
+    return parsed;
+  } catch { return null; }
 }
 
 export function saveVerificationCase(vc: VerificationCase): void {
@@ -107,6 +118,35 @@ function getStepDefs(track: VerificationTrack): { id: string; title: string }[] 
     : [...KYC_STEPS];
 }
 
+/* ---------- Async Step Detection ---------- */
+
+/** Steps that require third-party provider processing (async). email_phone is instant. */
+const ASYNC_STEPS = new Set([
+  "id_document",
+  "selfie_liveness",
+  "sanctions_pep",
+  "business_registration",
+  "ubo_capture",
+  "proof_of_address",
+  "source_of_funds",
+]);
+
+export function isAsyncStep(stepId: string): boolean {
+  return ASYNC_STEPS.has(stepId);
+}
+
+/* ---------- Provider Mapping (cosmetic for UI) ---------- */
+
+export const STEP_PROVIDER_MAP: Record<string, { name: string; label: string }> = {
+  id_document: { name: "Persona", label: "Government ID Verification" },
+  selfie_liveness: { name: "Onfido", label: "Biometric Liveness Check" },
+  sanctions_pep: { name: "Dow Jones", label: "Sanctions & PEP Screening" },
+  business_registration: { name: "Middesk", label: "Business Registry Verification" },
+  ubo_capture: { name: "Persona", label: "Beneficial Owner Verification" },
+  proof_of_address: { name: "Diro", label: "Address Document Verification" },
+  source_of_funds: { name: "ComplyAdvantage", label: "Source of Funds Analysis" },
+};
+
 /* ---------- Deterministic Outcome Rules ---------- */
 
 function lastDigit(s: string): number {
@@ -131,7 +171,6 @@ export function determineLivenessOutcome(userId: string): { status: Verification
 
 /** Deterministic UBO result — company must have ≥1 UBO declared. */
 export function determineUBOOutcome(orgType: "individual" | "company"): { status: VerificationStepStatus; reasonCode?: string; notes?: string } {
-  // In the mock, company orgs always have at least 1 UBO; we'll treat orgType="individual" as auto-pass
   if (orgType === "individual") return { status: "PASSED", notes: "Individual track — UBO declaration not required." };
   return { status: "PASSED", notes: "UBO declaration received — 2 beneficial owners identified." };
 }
@@ -158,6 +197,8 @@ export function computeCaseStatus(steps: VerificationStep[]): VerificationStatus
 /* ---------- Find Next Required Step ---------- */
 
 function findNextRequiredStepId(steps: VerificationStep[]): string | null {
+  // A PROCESSING step blocks progression — must resolve before moving on
+  if (steps.some((s) => s.status === "PROCESSING")) return null;
   const next = steps.find((s) => s.status === "PENDING" || s.status === "LOCKED");
   return next?.id ?? null;
 }
@@ -198,20 +239,27 @@ export function initCase(
       action: "CASE_INITIATED",
       detail: `Verification case opened — track: ${track}`,
     }],
+    processedWebhookIds: [],
   };
   saveVerificationCase(vc);
   return vc;
 }
 
-/** Submit a step with mock payload. Deterministic outcomes applied. */
+/**
+ * Submit a step. For async steps, transitions to PROCESSING.
+ * For email_phone (sync), resolves instantly to PASSED.
+ */
 export function submitStep(
   existingCase: VerificationCase,
   stepId: string,
-  orgId: string,
-  orgType: "individual" | "company",
+  _orgId: string,
+  _orgType: "individual" | "company",
 ): VerificationCase {
   const now = new Date().toISOString();
   const vc = structuredClone(existingCase);
+  // Migration guard
+  if (!vc.processedWebhookIds) vc.processedWebhookIds = [];
+
   const stepIdx = vc.steps.findIndex((s) => s.id === stepId);
   if (stepIdx === -1) return vc;
 
@@ -226,29 +274,114 @@ export function submitStep(
     vc.evidenceIds.push(evidence.id);
   }
 
-  // Deterministic outcome per step type
+  // ── Sync path: email_phone resolves instantly ──
+  if (!isAsyncStep(stepId)) {
+    step.status = "PASSED";
+    step.decidedAt = now;
+    step.decidedBy = "AUTO";
+
+    // Unlock next step
+    if (stepIdx + 1 < vc.steps.length) {
+      vc.steps[stepIdx + 1].status = "PENDING";
+    }
+
+    vc.audit.push({
+      at: now,
+      actor: vc.userId,
+      action: "STEP_SUBMITTED",
+      detail: `Step "${step.title}" submitted — outcome: PASSED (instant verification)`,
+    });
+  } else {
+    // ── Async path: transition to PROCESSING ──
+    step.status = "PROCESSING";
+
+    vc.audit.push({
+      at: now,
+      actor: vc.userId,
+      action: "STEP_SUBMITTED",
+      detail: `Step "${step.title}" submitted — awaiting provider verification`,
+    });
+  }
+
+  // Recompute case-level fields
+  vc.riskTier = computeRiskTier(vc.steps);
+  vc.status = computeCaseStatus(vc.steps);
+  vc.nextRequiredStepId = findNextRequiredStepId(vc.steps);
+  vc.updatedAt = now;
+
+  if (vc.status === "VERIFIED") {
+    vc.audit.push({ at: now, actor: "AUTO", action: "CASE_VERIFIED", detail: "All steps passed — identity perimeter verified." });
+  }
+
+  saveVerificationCase(vc);
+  return vc;
+}
+
+/**
+ * Process a provider webhook callback — transitions PROCESSING → PASSED/FAILED.
+ * Enforces idempotency via webhookId tracking.
+ *
+ * @returns The updated case, or null if the step is not in PROCESSING state.
+ */
+export function processProviderWebhook(
+  userId: string,
+  webhookId: string,
+  stepId: string,
+  orgId: string,
+  orgType: "individual" | "company",
+  providerOutcome?: "PASSED" | "FAILED",
+  providerNotes?: string,
+): { case: VerificationCase; alreadyProcessed: boolean } | null {
+  const vc = loadVerificationCase(userId);
+  if (!vc) return null;
+
+  // Migration guard
+  if (!vc.processedWebhookIds) vc.processedWebhookIds = [];
+
+  // ── Idempotency check ──
+  if (vc.processedWebhookIds.includes(webhookId)) {
+    return { case: vc, alreadyProcessed: true };
+  }
+
+  const stepIdx = vc.steps.findIndex((s) => s.id === stepId);
+  if (stepIdx === -1) return null;
+
+  const step = vc.steps[stepIdx];
+  if (step.status !== "PROCESSING") return null;
+
+  const now = new Date().toISOString();
+
+  // ── Determine outcome ──
   let outcome: { status: VerificationStepStatus; reasonCode?: string; notes?: string };
 
-  switch (stepId) {
-    case "sanctions_pep":
-      outcome = determineSanctionsOutcome(orgId);
-      vc.lastScreenedAt = now;
-      break;
-    case "selfie_liveness":
-      outcome = determineLivenessOutcome(vc.userId);
-      break;
-    case "ubo_capture":
-      outcome = determineUBOOutcome(orgType);
-      break;
-    default:
-      // email_phone, id_document, business_registration, proof_of_address, source_of_funds → auto-pass
-      outcome = { status: "PASSED" };
-      break;
+  if (providerOutcome) {
+    // Use explicit provider outcome
+    outcome = {
+      status: providerOutcome,
+      notes: providerNotes ?? `Provider returned ${providerOutcome}`,
+    };
+  } else {
+    // Use deterministic rules (same as original engine)
+    switch (stepId) {
+      case "sanctions_pep":
+        outcome = determineSanctionsOutcome(orgId);
+        vc.lastScreenedAt = now;
+        break;
+      case "selfie_liveness":
+        outcome = determineLivenessOutcome(userId);
+        break;
+      case "ubo_capture":
+        outcome = determineUBOOutcome(orgType);
+        break;
+      default:
+        outcome = { status: "PASSED" };
+        break;
+    }
   }
 
   step.status = outcome.status;
   step.decidedAt = outcome.status !== "SUBMITTED" ? now : null;
-  step.decidedBy = outcome.status !== "SUBMITTED" ? "AUTO" : null;
+  step.decidedBy = outcome.status !== "SUBMITTED" ? "PROVIDER_WEBHOOK" : null;
   if (outcome.reasonCode) step.reasonCode = outcome.reasonCode;
   if (outcome.notes) step.notes = outcome.notes;
 
@@ -256,6 +389,9 @@ export function submitStep(
   if (step.status === "PASSED" && stepIdx + 1 < vc.steps.length) {
     vc.steps[stepIdx + 1].status = "PENDING";
   }
+
+  // Track idempotency
+  vc.processedWebhookIds.push(webhookId);
 
   // Recompute case-level fields
   vc.riskTier = computeRiskTier(vc.steps);
@@ -265,9 +401,9 @@ export function submitStep(
 
   vc.audit.push({
     at: now,
-    actor: vc.userId,
-    action: "STEP_SUBMITTED",
-    detail: `Step "${step.title}" submitted — outcome: ${step.status}${step.reasonCode ? ` (${step.reasonCode})` : ""}`,
+    actor: "PROVIDER_WEBHOOK",
+    action: "WEBHOOK_PROCESSED",
+    detail: `Step "${step.title}" resolved by provider — outcome: ${step.status}${step.reasonCode ? ` (${step.reasonCode})` : ""} [webhookId=${webhookId}]`,
   });
 
   if (vc.status === "VERIFIED") {
@@ -279,7 +415,7 @@ export function submitStep(
   }
 
   saveVerificationCase(vc);
-  return vc;
+  return { case: vc, alreadyProcessed: false };
 }
 
 /** Get verification case for a user combined with the latest status. */

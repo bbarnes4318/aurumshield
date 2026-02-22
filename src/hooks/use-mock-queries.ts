@@ -398,6 +398,12 @@ export function useVerificationCase(userId: string | null) {
       return getVerificationCase(userId);
     },
     enabled: !!userId,
+    // Auto-poll every 2s when any step is in PROCESSING state
+    refetchInterval: (query) => {
+      const vc = query.state.data;
+      if (vc?.steps.some((s) => s.status === "PROCESSING")) return 2000;
+      return false;
+    },
   });
 }
 
@@ -421,6 +427,31 @@ export function useSubmitVerificationStep() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["verification-case", data.userId] });
+    },
+  });
+}
+
+/**
+ * Schedule a simulated provider webhook callback via the demo trigger API.
+ * Fires POST /api/internal/simulate-verification with configurable delay.
+ */
+export function useScheduleDemoWebhook() {
+  return useMutation<
+    { scheduled: boolean; webhookId?: string; delayMs?: number },
+    Error,
+    { userId: string; stepId: string; orgId: string; orgType: "individual" | "company"; delayMs?: number }
+  >({
+    mutationFn: async (input) => {
+      const res = await fetch("/api/internal/simulate-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errBody.error ?? `HTTP ${res.status}`);
+      }
+      return res.json();
     },
   });
 }
