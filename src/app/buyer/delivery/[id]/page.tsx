@@ -86,7 +86,7 @@ export default function DeliveryTrackingPage() {
   /* --- Loading State --- */
   if (shipmentQuery.isLoading) {
     return (
-      <div className="page-container py-8">
+      <div className="page-container py-5">
         <div className="flex items-center justify-center py-24">
           <Loader2 className="h-6 w-6 animate-spin text-gold" />
           <span className="ml-3 text-sm text-text-faint">
@@ -100,7 +100,7 @@ export default function DeliveryTrackingPage() {
   /* --- Error / Not Found State --- */
   if (!shipment) {
     return (
-      <div className="page-container py-8 section-gap">
+      <div className="page-container py-5 section-gap">
         <PageHeader
           title="Delivery Tracking"
           description="Shipment not found"
@@ -128,7 +128,7 @@ export default function DeliveryTrackingPage() {
   }
 
   return (
-    <div className="page-container py-8 section-gap">
+    <div className="page-container py-5 section-gap">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>

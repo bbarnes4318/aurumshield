@@ -226,12 +226,12 @@ table th {
 .section-gap {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem; /* 24px */
+  gap: 1.25rem; /* 20px */
 }
 
 @media (min-width: 768px) {
   .section-gap {
-    gap: 2rem; /* 32px */
+    gap: 1.5rem; /* 24px */
   }
 }
 

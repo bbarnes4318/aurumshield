@@ -137,7 +137,7 @@ function SkeletonPanel() {
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => <SkeletonPanel key={i} />)}
       </div>
@@ -175,14 +175,14 @@ function CapitalCell({
   };
 
   return (
-    <div className={cn("card-base px-6 py-5", className)}>
+    <div className={cn("card-base px-4 py-3.5", className)}>
       <div className="mb-1.5 flex items-center gap-1.5">
         <p className="typo-label">{label}</p>
         <InfoTooltip content={tooltip} />
       </div>
       <p
         className={cn(
-          "text-[1.375rem] font-semibold tabular-nums tracking-tight",
+          "text-2xl font-semibold tabular-nums tracking-tight",
           highlight ? highlightColor[highlight] : "text-text"
         )}
       >

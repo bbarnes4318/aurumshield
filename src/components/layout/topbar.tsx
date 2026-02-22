@@ -74,7 +74,7 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
   };
 
   return (
-    <header className="flex h-20 shrink-0 items-center justify-between border-b border-border bg-surface-1 px-4">
+    <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-surface-1 px-4">
       <div className="flex items-center gap-3">
         {/* Mobile hamburger — visible below md */}
         <button

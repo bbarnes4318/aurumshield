@@ -13,7 +13,14 @@ import { useDemo } from "@/providers/demo-provider";
 import { useTour } from "@/demo/tour-engine/TourProvider";
 
 /** Routes that render WITHOUT the app shell (sidebar/topbar) */
-const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/demo/login", "/platform", "/demo/walkthrough"];
+const PUBLIC_ROUTES = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/demo/login",
+  "/platform",
+  "/demo/walkthrough",
+];
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -26,7 +33,8 @@ export function AppShell({ children }: AppShellProps) {
   const isPublic = PUBLIC_ROUTES.includes(pathname);
   const { isDemo, presentationMode, scenarioName } = useDemo();
   const { state: tourState } = useTour();
-  const isTourActive = tourState.status === "active" || tourState.status === "paused";
+  const isTourActive =
+    tourState.status === "active" || tourState.status === "paused";
 
   // Public routes: no sidebar, no topbar — full-bleed layout
   if (isPublic) {
@@ -46,7 +54,10 @@ export function AppShell({ children }: AppShellProps) {
       {/* Sidebar: hidden in presentation mode ONLY if tour is NOT active.
           When tour is active, sidebar must remain accessible so click targets work. */}
       {!(presentationMode && !isTourActive) && (
-        <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+        <Sidebar
+          collapsed={collapsed}
+          onToggle={() => setCollapsed((c) => !c)}
+        />
       )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -56,9 +67,7 @@ export function AppShell({ children }: AppShellProps) {
             <span className="font-mono uppercase">
               AurumShield — Institutional Demonstration Environment
             </span>
-            <span className="font-mono text-amber-500/60">
-              {scenarioName}
-            </span>
+            <span className="font-mono text-amber-500/60">{scenarioName}</span>
           </div>
         )}
 
@@ -70,7 +79,7 @@ export function AppShell({ children }: AppShellProps) {
 
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto px-6 pt-20 pb-5 lg:px-10"
+          className="flex-1 overflow-y-auto px-5 pt-5 pb-5 lg:px-8"
         >
           {children}
         </main>
@@ -79,7 +88,10 @@ export function AppShell({ children }: AppShellProps) {
       <CommandPalette />
 
       {/* Mobile navigation drawer */}
-      <MobileDrawer isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <MobileDrawer
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       {/* DemoScriptOverlay is hidden when tour is active (overlay collision prevention) */}
       {!isTourActive && <DemoScriptOverlay />}
