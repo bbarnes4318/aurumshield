@@ -89,39 +89,56 @@ function ListingDetailContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         {/* ── Left: Asset Details ── */}
         <DashboardPanel title="Asset Specification" tooltip="Gold asset configuration for this listing" asOf={listing.createdAt}>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between"><dt className="text-text-faint">Form</dt><dd className="text-text capitalize">{listing.form}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Purity</dt><dd className="tabular-nums text-text">.{listing.purity}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Total Weight</dt><dd className="tabular-nums text-text">{listing.totalWeightOz.toLocaleString()} oz</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Price / oz</dt>
-              <dd className="tabular-nums text-text">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Form</p>
+              <p className="text-sm font-medium text-text capitalize">{listing.form}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Purity</p>
+              <p className="text-sm font-medium text-text tabular-nums">.{listing.purity}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Total Weight</p>
+              <p className="text-sm font-medium text-text tabular-nums">{listing.totalWeightOz.toLocaleString()} oz</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Price / oz</p>
+              <p className="text-sm font-medium text-text tabular-nums">
                 {listing.pricePerOz > 0
                   ? `$${listing.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
                   : "Not set"}
-              </dd>
+              </p>
             </div>
             {listing.pricePerOz > 0 && (
-              <div className="flex justify-between border-t border-border pt-2">
-                <dt className="text-text-faint">Total Value</dt>
-                <dd className="tabular-nums font-semibold text-text">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Total Value</p>
+                <p className="text-sm font-semibold text-text tabular-nums">
                   ${(listing.pricePerOz * listing.totalWeightOz).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </dd>
+                </p>
               </div>
             )}
-            <div className="border-t border-border pt-2 space-y-3">
-              <div className="flex justify-between"><dt className="text-text-faint">Vault</dt><dd className="text-text">{listing.vaultName}</dd></div>
-              <div className="flex justify-between"><dt className="text-text-faint">Jurisdiction</dt><dd className="text-text">{listing.jurisdiction}</dd></div>
-              <div className="flex justify-between"><dt className="text-text-faint">Seller</dt><dd className="text-text">{listing.sellerName}</dd></div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Vault</p>
+              <p className="text-sm font-medium text-text">{listing.vaultName}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Jurisdiction</p>
+              <p className="text-sm font-medium text-text">{listing.jurisdiction}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Seller</p>
+              <p className="text-sm font-medium text-text">{listing.sellerName}</p>
             </div>
             {listing.publishedAt && (
-              <div className="flex justify-between border-t border-border pt-2">
-                <dt className="text-text-faint">Published</dt>
-                <dd className="text-xs tabular-nums text-text">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Published</p>
+                <p className="text-sm font-medium text-text tabular-nums">
                   {new Date(listing.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </dd>
+                </p>
               </div>
             )}
-          </dl>
+          </div>
         </DashboardPanel>
 
         {/* ── Center: Evidence Pack + Inventory ── */}
@@ -162,34 +179,34 @@ function ListingDetailContent() {
           {/* Inventory Position (only if published) */}
           {inventory && listing.status !== "draft" && (
             <DashboardPanel title="Inventory Position" tooltip="Real-time inventory breakdown for this listing" asOf={inventory.updatedAt}>
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-text-faint">Total</dt>
-                  <dd className="tabular-nums text-text">{inventory.totalWeightOz} oz</dd>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Total</p>
+                  <p className="text-sm font-medium text-text tabular-nums">{inventory.totalWeightOz} oz</p>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-text-faint">Available</dt>
-                  <dd className="tabular-nums text-success">{inventory.availableWeightOz} oz</dd>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Available</p>
+                  <p className="text-sm font-medium text-success tabular-nums">{inventory.availableWeightOz} oz</p>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-text-faint">Reserved</dt>
-                  <dd className="tabular-nums text-warning">{inventory.reservedWeightOz} oz</dd>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Reserved</p>
+                  <p className="text-sm font-medium text-warning tabular-nums">{inventory.reservedWeightOz} oz</p>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-text-faint">Allocated</dt>
-                  <dd className="tabular-nums text-info">{inventory.allocatedWeightOz} oz</dd>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Allocated</p>
+                  <p className="text-sm font-medium text-info tabular-nums">{inventory.allocatedWeightOz} oz</p>
                 </div>
-                {/* Visual bar */}
-                <div className="h-2 w-full rounded-full bg-surface-3 overflow-hidden flex mt-1">
-                  {inventory.totalWeightOz > 0 && (
-                    <>
-                      <div className="bg-success h-full" style={{ width: `${(inventory.availableWeightOz / inventory.totalWeightOz) * 100}%` }} />
-                      <div className="bg-warning h-full" style={{ width: `${(inventory.reservedWeightOz / inventory.totalWeightOz) * 100}%` }} />
-                      <div className="bg-info h-full" style={{ width: `${(inventory.allocatedWeightOz / inventory.totalWeightOz) * 100}%` }} />
-                    </>
-                  )}
-                </div>
-              </dl>
+              </div>
+              {/* Visual bar */}
+              <div className="h-2 w-full rounded-full bg-surface-3 overflow-hidden flex mt-2">
+                {inventory.totalWeightOz > 0 && (
+                  <>
+                    <div className="bg-success h-full" style={{ width: `${(inventory.availableWeightOz / inventory.totalWeightOz) * 100}%` }} />
+                    <div className="bg-warning h-full" style={{ width: `${(inventory.reservedWeightOz / inventory.totalWeightOz) * 100}%` }} />
+                    <div className="bg-info h-full" style={{ width: `${(inventory.allocatedWeightOz / inventory.totalWeightOz) * 100}%` }} />
+                  </>
+                )}
+              </div>
             </DashboardPanel>
           )}
         </div>
@@ -278,22 +295,22 @@ function ListingDetailContent() {
           {/* Timestamps */}
           <div className="rounded-lg border border-border bg-surface-1 p-5">
             <h3 className="typo-label mb-3">Timeline</h3>
-            <dl className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <dt className="text-text-faint">Created</dt>
-                <dd className="tabular-nums text-text">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Created</p>
+                <p className="text-xs font-medium text-text tabular-nums">
                   {new Date(listing.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </dd>
+                </p>
               </div>
               {listing.publishedAt && (
-                <div className="flex justify-between">
-                  <dt className="text-text-faint">Published</dt>
-                  <dd className="tabular-nums text-text">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Published</p>
+                  <p className="text-xs font-medium text-text tabular-nums">
                     {new Date(listing.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </dd>
+                  </p>
                 </div>
               )}
-            </dl>
+            </div>
           </div>
         </aside>
       </div>

@@ -158,32 +158,31 @@ function ActiveTransactionCard({
           phaseActions={phaseActions}
         />
 
-        {/* Transaction Details */}
-        <div className="space-y-3">
-          <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-text-faint">Order ID</span>
-              <span className="font-mono text-xs text-text">{order.id}</span>
+        {/* Transaction Details — Dense Data Grid */}
+        <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-3">
+            {/* Order ID */}
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Order ID</p>
+              <p className="text-sm font-medium text-text font-mono tabular-nums truncate">{order.id}</p>
             </div>
-            <div className="flex justify-between">
-              <span className="text-text-faint">Listing</span>
-              <span className="font-mono text-xs text-text">
-                {order.listingId}
-              </span>
+            {/* Listing */}
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Listing</p>
+              <p className="text-sm font-medium text-text font-mono tabular-nums truncate">{order.listingId}</p>
             </div>
+            {/* Settlement */}
             {settlement && (
               <>
-                <div className="flex justify-between">
-                  <span className="text-text-faint">Settlement</span>
-                  <span className="font-mono text-xs text-text">
-                    {settlement.id}
-                  </span>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Settlement</p>
+                  <p className="text-sm font-medium text-text font-mono tabular-nums truncate">{settlement.id}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-text-faint">Status</span>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Status</p>
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium mt-0.5",
                       settlement.status === "SETTLED"
                         ? "border-success/20 bg-success/10 text-success"
                         : "border-gold/20 bg-gold/10 text-gold",
@@ -193,15 +192,16 @@ function ActiveTransactionCard({
                     {settlement.status.replace(/_/g, " ")}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-text-faint">Rail</span>
-                  <span className="text-text">{settlement.rail}</span>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Rail</p>
+                  <p className="text-sm font-medium text-text">{settlement.rail}</p>
                 </div>
               </>
             )}
-            <div className="flex justify-between">
-              <span className="text-text-faint">Created</span>
-              <span className="text-xs text-text-muted tabular-nums">
+            {/* Created */}
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Created</p>
+              <p className="text-sm font-medium text-text tabular-nums">
                 {new Date(order.createdAt).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -209,27 +209,26 @@ function ActiveTransactionCard({
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
-              </span>
+              </p>
             </div>
+            {/* Vault & Purity — inline into same grid */}
+            {listing && (
+              <>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Vault</p>
+                  <p className="text-sm font-medium text-text">{listing.vaultName}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Purity</p>
+                  <p className="text-sm font-medium text-text tabular-nums">.{listing.purity}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Form</p>
+                  <p className="text-sm font-medium text-text capitalize">{listing.form}</p>
+                </div>
+              </>
+            )}
           </div>
-
-          {/* Vault & Purity */}
-          {listing && (
-            <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 px-4 py-3 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-text-faint">Vault</span>
-                <span className="text-text">{listing.vaultName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-text-faint">Purity</span>
-                <span className="text-text">.{listing.purity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-text-faint">Form</span>
-                <span className="text-text capitalize">{listing.form}</span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -171,16 +171,40 @@ function ReservationDetailContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
         {/* Left: Listing Summary */}
         <DashboardPanel title="Listing Summary" tooltip="Gold listing detail from the institutional marketplace" asOf={listing?.createdAt ?? ""}>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between"><dt className="text-text-faint">Reference</dt><dd className="font-mono text-text">{listing?.id ?? "—"}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Title</dt><dd className="text-text">{listing?.title ?? "—"}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Form</dt><dd className="text-text capitalize">{listing?.form ?? "—"}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Purity</dt><dd className="tabular-nums text-text">.{listing?.purity ?? "—"}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Vault</dt><dd className="text-text">{listing?.vaultName ?? "—"}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Jurisdiction</dt><dd className="text-text">{listing?.jurisdiction ?? "—"}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Price / oz</dt><dd className="tabular-nums text-text">${listing?.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? "—"}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Seller</dt><dd className="text-text text-xs">{listing?.sellerName ?? "—"}</dd></div>
-          </dl>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Reference</p>
+              <p className="text-sm font-medium text-text font-mono tabular-nums truncate">{listing?.id ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Title</p>
+              <p className="text-sm font-medium text-text truncate">{listing?.title ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Form</p>
+              <p className="text-sm font-medium text-text capitalize">{listing?.form ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Purity</p>
+              <p className="text-sm font-medium text-text tabular-nums">.{listing?.purity ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Vault</p>
+              <p className="text-sm font-medium text-text">{listing?.vaultName ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Jurisdiction</p>
+              <p className="text-sm font-medium text-text">{listing?.jurisdiction ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Price / oz</p>
+              <p className="text-sm font-medium text-text tabular-nums">${listing?.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Seller</p>
+              <p className="text-sm font-medium text-text truncate">{listing?.sellerName ?? "—"}</p>
+            </div>
+          </div>
         </DashboardPanel>
 
         {/* Right: Reservation State + Policy + Convert */}
@@ -194,11 +218,20 @@ function ReservationDetailContent() {
                 </span>
                 {reservation.state === "ACTIVE" && <CountdownTimer expiresAt={reservation.expiresAt} />}
               </div>
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between"><dt className="text-text-faint">Weight</dt><dd className="tabular-nums text-text">{reservation.weightOz} oz</dd></div>
-                <div className="flex justify-between"><dt className="text-text-faint">Locked Price</dt><dd className="tabular-nums text-text">${reservation.pricePerOzLocked.toLocaleString("en-US", { minimumFractionDigits: 2 })}</dd></div>
-                <div className="flex justify-between"><dt className="text-text-faint">Notional</dt><dd className="tabular-nums font-semibold text-text">${notional.toLocaleString("en-US", { minimumFractionDigits: 2 })}</dd></div>
-              </dl>
+              <div className="grid grid-cols-3 gap-x-6 gap-y-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Weight</p>
+                  <p className="text-sm font-medium text-text tabular-nums">{reservation.weightOz} oz</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Locked Price</p>
+                  <p className="text-sm font-medium text-text tabular-nums">${reservation.pricePerOzLocked.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Notional</p>
+                  <p className="text-sm font-semibold text-text tabular-nums">${notional.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+                </div>
+              </div>
             </div>
           </DashboardPanel>
 

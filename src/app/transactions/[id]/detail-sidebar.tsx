@@ -82,17 +82,27 @@ export function DetailSidebar({ tx, cp, corridor, capital, evidence }: Props) {
               Capital impact locked — exposure no longer active ({tx.status}).
             </div>
           ) : (
-            <dl className="space-y-2 text-xs">
-              <div className="flex justify-between"><dt className="text-text-faint">Active Exposure</dt><dd className="tabular-nums text-text">{fmt(capVal.currentExposure)}</dd></div>
-              <div className="flex justify-between"><dt className="text-text-faint">ECR</dt><dd className="tabular-nums text-text">{capVal.currentECR.toFixed(2)}x → <span className={capVal.postTxnECR > 7 ? "text-danger font-semibold" : "text-text font-semibold"}>{capVal.postTxnECR.toFixed(2)}x</span></dd></div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
               <div>
-                <div className="flex justify-between mb-1"><dt className="text-text-faint">Hardstop</dt><dd className="tabular-nums text-text">{pct(capVal.currentHardstopUtil)} → <span className={capVal.postTxnHardstopUtil > 0.9 ? "text-danger font-semibold" : "font-semibold"}>{pct(capVal.postTxnHardstopUtil)}</span></dd></div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Active Exposure</p>
+                <p className="text-xs font-medium text-text tabular-nums">{fmt(capVal.currentExposure)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">ECR</p>
+                <p className="text-xs font-medium text-text tabular-nums">{capVal.currentECR.toFixed(2)}x → <span className={capVal.postTxnECR > 7 ? "text-danger font-semibold" : "text-text font-semibold"}>{capVal.postTxnECR.toFixed(2)}x</span></p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Hardstop</p>
+                <p className="text-xs font-medium text-text tabular-nums mb-1">{pct(capVal.currentHardstopUtil)} → <span className={capVal.postTxnHardstopUtil > 0.9 ? "text-danger font-semibold" : "font-semibold"}>{pct(capVal.postTxnHardstopUtil)}</span></p>
                 <div className="h-1.5 w-full rounded-full bg-surface-3 overflow-hidden">
                   <div className={cn("h-full rounded-full transition-all", capVal.postTxnHardstopUtil > 0.9 ? "bg-danger" : capVal.postTxnHardstopUtil > 0.75 ? "bg-warning" : "bg-success")} style={{ width: `${Math.min(100, capVal.postTxnHardstopUtil * 100)}%` }} />
                 </div>
               </div>
-              <div className="flex justify-between"><dt className="text-text-faint">Remaining Capacity</dt><dd className="tabular-nums text-text">{fmt(capVal.hardstopRemaining)}</dd></div>
-            </dl>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Remaining Capacity</p>
+                <p className="text-xs font-medium text-text tabular-nums">{fmt(capVal.hardstopRemaining)}</p>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -100,11 +110,18 @@ export function DetailSidebar({ tx, cp, corridor, capital, evidence }: Props) {
       {/* Verification Status */}
       <div className="p-4">
         <p className="typo-label mb-2">Verification</p>
-        <div className="space-y-1.5 text-xs">
-          <div className="flex justify-between"><span className="text-text-faint">KYC/AML</span><span className="text-success font-medium">Verified</span></div>
-          <div className="flex justify-between"><span className="text-text-faint">Sanctions</span><span className="text-success font-medium">Clear</span></div>
-          <div className="flex justify-between"><span className="text-text-faint">Settlement Auth</span>
-            <span className={cn("font-medium", isActive ? "text-warning" : isLocked ? "text-success" : "text-text-faint")}>{isActive ? "Pending" : isLocked ? "Completed" : "Awaiting"}</span>
+        <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">KYC/AML</p>
+            <p className="text-xs font-medium text-success">Verified</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Sanctions</p>
+            <p className="text-xs font-medium text-success">Clear</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Settlement Auth</p>
+            <p className={cn("text-xs font-medium", isActive ? "text-warning" : isLocked ? "text-success" : "text-text-faint")}>{isActive ? "Pending" : isLocked ? "Completed" : "Awaiting"}</p>
           </div>
         </div>
       </div>

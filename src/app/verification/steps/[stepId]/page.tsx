@@ -224,44 +224,44 @@ function StepDetailContent() {
               </div>
             </div>
 
-            <dl className="space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-text-faint">Step ID</dt>
-                <dd className="font-mono text-xs text-text">{step.id}</dd>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Step ID</p>
+                <p className="text-sm font-medium text-text font-mono tabular-nums">{step.id}</p>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-text-faint">Submitted At</dt>
-                <dd className="text-xs tabular-nums text-text">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Submitted At</p>
+                <p className="text-sm font-medium text-text tabular-nums">
                   {step.submittedAt
                     ? new Date(step.submittedAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
                     : "—"}
-                </dd>
+                </p>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-text-faint">Decided At</dt>
-                <dd className="text-xs tabular-nums text-text">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Decided At</p>
+                <p className="text-sm font-medium text-text tabular-nums">
                   {step.decidedAt
                     ? new Date(step.decidedAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
                     : "—"}
-                </dd>
+                </p>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-text-faint">Decided By</dt>
-                <dd className="font-mono text-xs text-text">{step.decidedBy ?? "—"}</dd>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Decided By</p>
+                <p className="text-sm font-medium text-text font-mono">{step.decidedBy ?? "—"}</p>
               </div>
               {step.reasonCode && (
-                <div className="flex justify-between">
-                  <dt className="text-text-faint">Reason Code</dt>
-                  <dd className="font-mono text-xs text-warning">{step.reasonCode}</dd>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Reason Code</p>
+                  <p className="text-sm font-medium text-warning font-mono">{step.reasonCode}</p>
                 </div>
               )}
               {step.notes && (
-                <div className="flex justify-between">
-                  <dt className="text-text-faint">Notes</dt>
-                  <dd className="text-xs text-text-muted max-w-[200px] text-right">{step.notes}</dd>
+                <div className="col-span-2">
+                  <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Notes</p>
+                  <p className="text-sm text-text-muted">{step.notes}</p>
                 </div>
               )}
-            </dl>
+            </div>
           </div>
         </DashboardPanel>
 
@@ -278,24 +278,24 @@ function StepDetailContent() {
                 </p>
                 <div className="rounded-lg border border-border bg-surface-2 px-4 py-3">
                   <p className="text-[10px] uppercase tracking-widest text-text-faint font-semibold mb-2">Screening Parameters</p>
-                  <dl className="text-xs space-y-1.5 text-text-muted">
-                    <div className="flex justify-between">
-                      <dt>User ID</dt>
-                      <dd className="font-mono text-text">{user?.id ?? "—"}</dd>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">User ID</p>
+                      <p className="text-xs font-medium text-text font-mono">{user?.id ?? "—"}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <dt>Org ID</dt>
-                      <dd className="font-mono text-text">{org?.id ?? "—"}</dd>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Org ID</p>
+                      <p className="text-xs font-medium text-text font-mono">{org?.id ?? "—"}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <dt>Org Type</dt>
-                      <dd className="capitalize text-text">{org?.type ?? "—"}</dd>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Org Type</p>
+                      <p className="text-xs font-medium text-text capitalize">{org?.type ?? "—"}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <dt>Track</dt>
-                      <dd className="font-mono text-text">{vc.track}</dd>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-text-faint mb-0.5">Track</p>
+                      <p className="text-xs font-medium text-text font-mono">{vc.track}</p>
                     </div>
-                  </dl>
+                  </div>
                 </div>
 
                 {submitMut.isError && (
