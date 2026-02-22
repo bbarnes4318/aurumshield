@@ -6,6 +6,7 @@ import {
   Fingerprint,
   Landmark,
   Award,
+  Truck,
   Check,
   Loader2,
   ChevronRight,
@@ -14,10 +15,10 @@ import Link from "next/link";
 import type { SettlementStatus, OrderStatus } from "@/lib/mock-data";
 
 /* ================================================================
-   Step Model — the 4-phase buyer lifecycle
+   Step Model — the 5-phase buyer lifecycle
    ================================================================ */
 
-export type BuyerLifecyclePhase = 1 | 2 | 3 | 4;
+export type BuyerLifecyclePhase = 1 | 2 | 3 | 4 | 5;
 
 interface LifecycleStep {
   phase: BuyerLifecyclePhase;
@@ -51,6 +52,12 @@ const LIFECYCLE_STEPS: LifecycleStep[] = [
     sublabel: "Certificate issued",
     icon: Award,
   },
+  {
+    phase: 5,
+    label: "Secure Delivery",
+    sublabel: "Brink's Global Services",
+    icon: Truck,
+  },
 ];
 
 /* ================================================================
@@ -61,7 +68,11 @@ export function deriveCurrentPhase(
   orderStatus?: OrderStatus,
   settlementStatus?: SettlementStatus | null,
   hasCertificate?: boolean,
+  hasDelivery?: boolean,
 ): BuyerLifecyclePhase {
+  // Phase 5: Settled with active delivery
+  if ((settlementStatus === "SETTLED" || hasCertificate) && hasDelivery) return 5;
+
   // Phase 4: SETTLED with certificate
   if (settlementStatus === "SETTLED" || hasCertificate) return 4;
 
@@ -109,6 +120,7 @@ const DEFAULT_PHASE_ACTIONS: Record<BuyerLifecyclePhase, PhaseAction> = {
   2: { label: "Complete Verification", href: "/verification", primary: true },
   3: { label: "Activate Payment", href: "#", primary: true },
   4: { label: "View Certificate", href: "#" },
+  5: { label: "Track Delivery", href: "#", primary: true },
 };
 
 /* ================================================================
@@ -116,7 +128,7 @@ const DEFAULT_PHASE_ACTIONS: Record<BuyerLifecyclePhase, PhaseAction> = {
    ================================================================ */
 
 interface TransactionProgressSidebarProps {
-  /** Current lifecycle phase (1–4) */
+  /** Current lifecycle phase (1–5) */
   currentPhase: BuyerLifecyclePhase;
   /** Timestamp strings for each completed phase (index 0 = phase 1) */
   timestamps?: (string | null)[];
@@ -127,6 +139,8 @@ interface TransactionProgressSidebarProps {
   phaseActions?: Partial<Record<BuyerLifecyclePhase, PhaseAction>>;
   /** Compact mode for embedding in cards */
   compact?: boolean;
+  /** Whether to show the delivery phase (Phase 5). Defaults to true. */
+  showDeliveryPhase?: boolean;
   className?: string;
 }
 
@@ -141,8 +155,13 @@ export function TransactionProgressSidebar({
   ctaHref,
   phaseActions,
   compact = false,
+  showDeliveryPhase = true,
   className,
 }: TransactionProgressSidebarProps) {
+  const steps = showDeliveryPhase
+    ? LIFECYCLE_STEPS
+    : LIFECYCLE_STEPS.filter((s) => s.phase <= 4);
+
   return (
     <div
       className={cn(
@@ -154,7 +173,7 @@ export function TransactionProgressSidebar({
       aria-label="Transaction lifecycle progress"
       data-tour="buyer-lifecycle-rail"
     >
-      {LIFECYCLE_STEPS.map((step, idx) => {
+      {steps.map((step, idx) => {
         const isCompleted = step.phase < currentPhase;
         const isCurrent = step.phase === currentPhase;
         const isPending = step.phase > currentPhase;
@@ -186,7 +205,7 @@ export function TransactionProgressSidebar({
                 )}
               </div>
               {/* Connector line (not on last item) */}
-              {idx < LIFECYCLE_STEPS.length - 1 && (
+              {idx < steps.length - 1 && (
                 <div
                   className={cn(
                     "w-0.5 flex-1 min-h-[28px] transition-colors duration-300",
@@ -237,7 +256,7 @@ export function TransactionProgressSidebar({
                 const resolved =
                   phaseActions?.[step.phase] ??
                   (ctaLabel && ctaHref
-                    ? { label: ctaLabel, href: ctaHref, primary: step.phase === 2 || step.phase === 3 }
+                    ? { label: ctaLabel, href: ctaHref, primary: step.phase === 2 || step.phase === 3 || step.phase === 5 }
                     : DEFAULT_PHASE_ACTIONS[step.phase]);
                 if (!resolved || resolved.href === "#") return null;
                 const isPrimary = resolved.primary;

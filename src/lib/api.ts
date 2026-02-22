@@ -1641,3 +1641,90 @@ export async function apiExportCapitalControlsPacket(): Promise<{
   return mockFetch({ exported: true, packet });
 }
 
+/* ================================================================
+   DELIVERY API — Brink's Global Services integration
+   Mock endpoints for rate quoting, preference saving,
+   and shipment tracking.
+   ================================================================ */
+
+import type {
+  DeliveryAddress,
+  DeliveryMethod,
+  DeliveryRateQuote,
+  Shipment,
+  DeliveryPreference,
+} from "./delivery/delivery-types";
+import {
+  fetchDeliveryRate as bgsFetchRate,
+  createShipment as bgsCreateShipment,
+} from "./delivery/brinks-service";
+import {
+  saveDeliveryPreference as storeSavePref,
+  getDeliveryPreference as storeGetPref,
+  getShipmentBySettlement,
+  saveShipment,
+  advanceShipment as storeAdvanceShipment,
+} from "./delivery/delivery-store";
+
+/** Fetch a BGS delivery rate quote for the given address + weight + notional. */
+export async function apiGetDeliveryRate(input: {
+  address: DeliveryAddress;
+  weightOz: number;
+  notionalUsd: number;
+}): Promise<DeliveryRateQuote> {
+  const quote = await bgsFetchRate(input.address, input.weightOz, input.notionalUsd);
+  return mockFetch(quote, { minDelay: 100, maxDelay: 200 });
+}
+
+/** Save the buyer's delivery preference for a settlement. */
+export async function apiSubmitDeliveryPreference(input: {
+  settlementId: string;
+  method: DeliveryMethod;
+  address?: DeliveryAddress;
+  rateQuote?: DeliveryRateQuote;
+}): Promise<DeliveryPreference> {
+  const pref = storeSavePref(input.settlementId, input.method, input.address, input.rateQuote);
+  return mockFetch(pref);
+}
+
+/** Get delivery preference for a settlement. */
+export async function apiGetDeliveryPreference(
+  settlementId: string,
+): Promise<DeliveryPreference | null> {
+  const pref = storeGetPref(settlementId);
+  return mockFetch(pref ?? null);
+}
+
+/** Get shipment for a settlement (if one exists). */
+export async function apiGetShipmentForSettlement(
+  settlementId: string,
+): Promise<Shipment | null> {
+  const shipment = getShipmentBySettlement(settlementId);
+  return mockFetch(shipment ?? null);
+}
+
+/** Create a shipment for a settled order. */
+export async function apiCreateShipment(input: {
+  settlementId: string;
+  orderId: string;
+  address: DeliveryAddress;
+  rateQuote: DeliveryRateQuote;
+}): Promise<Shipment> {
+  const shipment = await bgsCreateShipment(
+    input.settlementId,
+    input.orderId,
+    input.address,
+    input.rateQuote,
+  );
+  saveShipment(shipment);
+  return mockFetch(shipment);
+}
+
+/** Advance shipment to next status (demo helper). */
+export async function apiAdvanceShipment(
+  shipmentId: string,
+): Promise<Shipment | null> {
+  const advanced = storeAdvanceShipment(shipmentId);
+  return mockFetch(advanced ?? null);
+}
+

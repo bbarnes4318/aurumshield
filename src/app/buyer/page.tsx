@@ -101,6 +101,11 @@ function ActiveTransactionCard({
         label: "View Certificate",
         href: `/settlements/${settlement.id}`,
       };
+      actions[5] = {
+        label: "Track Delivery",
+        href: `/buyer/delivery/${settlement.id}`,
+        primary: true,
+      };
     } else {
       actions[3] = { label: "View Order", href: `/orders/${order.id}` };
       actions[4] = { label: "View Order", href: `/orders/${order.id}` };
