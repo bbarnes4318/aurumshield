@@ -1,345 +1,312 @@
 "use client";
 
+/* ================================================================
+   MARKETPLACE — Curated Gold Asset Discovery Feed
+   ================================================================
+   Phase 2 Buyer Dashboard: A luxury, card-based marketplace for
+   post-KYC buyers. No traditional order book — curated allocations
+   displayed in frosted glass cards with institutional typography.
+
+   Data maps to the inventory_listings PostgreSQL schema:
+     id, form, purity, total_weight_oz, premium_per_oz, vault_location
+   ================================================================ */
+
 import { useState, useMemo, useEffect, Suspense } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { type ColumnDef } from "@tanstack/react-table";
+import { Filter, Package, Weight, TrendingUp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/ui/page-header";
-import { DataTable } from "@/components/ui/data-table";
-import { FilterBar, useFilterValues, type FilterConfig } from "@/components/ui/filter-bar";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { useListings, useMyReservations } from "@/hooks/use-mock-queries";
 import { runReservationExpirySweep } from "@/lib/api";
-import type { Listing, Reservation } from "@/lib/mock-data";
-import { loadMarketplaceState } from "@/lib/marketplace-store";
-import { BuyNowModal } from "@/components/buyer/BuyNowModal";
+import type { Listing } from "@/lib/mock-data";
+import { CheckoutModalWrapper } from "@/components/checkout/CheckoutModalWrapper";
+import { AssetCard } from "@/components/marketplace/AssetCard";
 
 /* ================================================================ */
 const MOCK_USER_ID = "user-1";
 
-/** Map listing IDs to gold product images */
-const LISTING_IMAGES: Record<string, string> = {
-  "lst-001": "/1.png",
-  "lst-002": "/2.png",
-  "lst-003": "/3.png",
-  "lst-004": "/4.png",
-  "lst-005": "/5.png",
-};
+// TODO: Replace with live spot price feed (LBMA / Kitco API)
+const MOCK_SPOT_PRICE = 2_020.0;
 
-/** Delivery method descriptions */
-const DELIVERY_METHOD: Record<string, string> = {
-  "hub-001": "Vault Transfer (LBMA)",
-  "hub-002": "Allocated Storage (ZKB)",
-  "hub-003": "Vault Transfer (SGX)",
-  "hub-004": "COMEX Delivery",
-  "hub-005": "Allocated Storage (DBV)",
-  "hub-006": "Vault Transfer (DMCC)",
-};
-
-/* ---------- Countdown Timer ---------- */
-function CountdownTimer({ expiresAt }: { expiresAt: string }) {
-  const [remaining, setRemaining] = useState(() => {
-    const ms = new Date(expiresAt).getTime() - Date.now();
-    return Math.max(0, Math.floor(ms / 1000));
+/* ── Formatters ── */
+const fmtUsd = (n: number) =>
+  n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   });
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      const ms = new Date(expiresAt).getTime() - Date.now();
-      setRemaining(Math.max(0, Math.floor(ms / 1000)));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [expiresAt]);
+const fmtWeight = (n: number) => n.toLocaleString("en-US");
 
-  if (remaining <= 0) return <span className="text-xs text-danger font-medium">EXPIRED</span>;
-  const m = Math.floor(remaining / 60);
-  const s = remaining % 60;
+/* ── Filter Configurations ── */
+interface FilterOption {
+  label: string;
+  value: string;
+}
+
+const FORM_OPTIONS: FilterOption[] = [
+  { label: "All Forms", value: "" },
+  { label: "Bar", value: "bar" },
+  { label: "Coin", value: "coin" },
+];
+
+const VAULT_OPTIONS: FilterOption[] = [
+  { label: "All Vaults", value: "" },
+  { label: "Zurich Custody Vault", value: "hub-002" },
+  { label: "London Clearing Centre", value: "hub-001" },
+  { label: "New York Trading Floor", value: "hub-004" },
+  { label: "Singapore Settlement Node", value: "hub-003" },
+  { label: "Frankfurt Settlement Hub", value: "hub-005" },
+  { label: "Dubai Trade Gateway", value: "hub-006" },
+];
+
+/* ================================================================
+   FilterChip — inline filter control
+   ================================================================ */
+
+function FilterChip({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: FilterOption[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
-    <span className="font-mono text-xs tabular-nums text-warning">
-      {String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}
-    </span>
+    <div className="flex items-center gap-1.5">
+      <label
+        className="text-[10px] uppercase tracking-widest text-color-3/40 font-semibold"
+        htmlFor={`filter-${label}`}
+      >
+        {label}
+      </label>
+      <select
+        id={`filter-${label}`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          "h-8 rounded-lg border bg-color-1/50 px-3 text-xs text-color-3",
+          "focus:outline-none focus:ring-2 focus:ring-color-2/30 focus:border-color-2/40",
+          "transition-colors cursor-pointer",
+          value
+            ? "border-color-2/30 bg-color-2/5"
+            : "border-color-5/20"
+        )}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
-/* ---------- Filter Configs ---------- */
-const FILTERS: FilterConfig[] = [
-  { key: "form", label: "Form", options: [{ label: "Bar", value: "bar" }, { label: "Coin", value: "coin" }] },
-  { key: "purity", label: "Purity", options: [{ label: "995", value: "995" }, { label: "999", value: "999" }, { label: "9999", value: "9999" }] },
-  { key: "vault", label: "Vault", options: [
-    { label: "Zurich Custody Vault", value: "hub-002" },
-    { label: "London Clearing Centre", value: "hub-001" },
-    { label: "New York Trading Floor", value: "hub-004" },
-    { label: "Singapore Settlement Node", value: "hub-003" },
-    { label: "Frankfurt Settlement Hub", value: "hub-005" },
-    { label: "Dubai Trade Gateway", value: "hub-006" },
-  ]},
-  { key: "jurisdiction", label: "Jurisdiction", options: [
-    { label: "Switzerland", value: "Switzerland" },
-    { label: "United Kingdom", value: "United Kingdom" },
-    { label: "United States", value: "United States" },
-    { label: "Singapore", value: "Singapore" },
-    { label: "Germany", value: "Germany" },
-    { label: "UAE", value: "UAE" },
-  ]},
-];
-
-/* ---------- Reserve Modal removed — replaced by BuyNowModal ---------- */
-
 /* ================================================================
-   MAIN PAGE
+   SummaryStrip — aggregate marketplace metrics
    ================================================================ */
 
-interface ListingRow extends Listing {
-  availableWeightOz: number;
-  reservedWeightOz: number;
-  allocatedWeightOz: number;
-  totalValue: number;
-  activeReservation: Reservation | null;
+function SummaryStrip({
+  listings,
+}: {
+  listings: Listing[];
+}) {
+  const totalWeight = listings.reduce((s, l) => s + l.totalWeightOz, 0);
+  const avgPremium =
+    listings.length > 0
+      ? listings.reduce((s, l) => s + (l.pricePerOz - MOCK_SPOT_PRICE), 0) /
+        listings.length
+      : 0;
+  const totalNotional = listings.reduce(
+    (s, l) => s + l.totalWeightOz * l.pricePerOz,
+    0
+  );
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <div className="flex items-center gap-1.5 text-color-3/60">
+        <Package className="h-3 w-3" />
+        <span className="text-[11px]">
+          <span className="font-mono tabular-nums font-semibold text-color-3">
+            {listings.length}
+          </span>{" "}
+          allocations
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 text-color-3/60">
+        <Weight className="h-3 w-3" />
+        <span className="text-[11px]">
+          <span className="font-mono tabular-nums font-semibold text-color-3">
+            {fmtWeight(totalWeight)}
+          </span>{" "}
+          oz total
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 text-color-3/60">
+        <TrendingUp className="h-3 w-3" />
+        <span className="text-[11px]">
+          avg premium{" "}
+          <span className="font-mono tabular-nums font-semibold text-color-2">
+            +${fmtUsd(avgPremium)}
+          </span>
+          /oz
+        </span>
+      </div>
+      <div className="text-[11px] text-color-3/60">
+        notional{" "}
+        <span className="font-mono tabular-nums font-semibold text-color-3">
+          ${fmtUsd(totalNotional)}
+        </span>
+      </div>
+    </div>
+  );
 }
 
-function MarketplaceContent() {
+/* ================================================================
+   MarketplaceContent — main export (used by buyer page slide-out)
+   ================================================================ */
+
+export function MarketplaceContent() {
   useEffect(() => {
     runReservationExpirySweep({ nowMs: Date.now() });
   }, []);
 
   const listingsQ = useListings();
   const reservationsQ = useMyReservations(MOCK_USER_ID);
-  const filterValues = useFilterValues(["form", "purity", "vault", "jurisdiction"]);
+  const [formFilter, setFormFilter] = useState("");
+  const [vaultFilter, setVaultFilter] = useState("");
   const [reserveTarget, setReserveTarget] = useState<Listing | null>(null);
 
-  const state = typeof window !== "undefined" ? loadMarketplaceState() : null;
-  const rows: ListingRow[] = useMemo(() => {
+  /* ── Filter to published/available listings only ── */
+  const publishedListings = useMemo(() => {
     if (!listingsQ.data) return [];
-    const reservations = reservationsQ.data ?? [];
-    return listingsQ.data.map((listing) => {
-      const inv = state?.inventory.find((i) => i.listingId === listing.id);
-      const activeRes = reservations.find((r) => r.listingId === listing.id && r.state === "ACTIVE") ?? null;
-      return {
-        ...listing,
-        availableWeightOz: inv?.availableWeightOz ?? listing.totalWeightOz,
-        reservedWeightOz: inv?.reservedWeightOz ?? 0,
-        allocatedWeightOz: inv?.allocatedWeightOz ?? 0,
-        totalValue: (inv?.availableWeightOz ?? listing.totalWeightOz) * listing.pricePerOz,
-        activeReservation: activeRes,
-      };
-    });
-  }, [listingsQ.data, reservationsQ.data, state?.inventory]);
+    return listingsQ.data.filter(
+      (l) => l.status !== "suspended" && l.status !== "draft" && l.status !== "sold"
+    );
+  }, [listingsQ.data]);
 
-  const filteredRows = useMemo(() => {
-    return rows.filter((r) => {
-      if (filterValues.form && r.form !== filterValues.form) return false;
-      if (filterValues.purity && r.purity !== filterValues.purity) return false;
-      if (filterValues.vault && r.vaultHubId !== filterValues.vault) return false;
-      if (filterValues.jurisdiction && r.jurisdiction !== filterValues.jurisdiction) return false;
+  /* ── Apply user filters ── */
+  const filteredListings = useMemo(() => {
+    return publishedListings.filter((l) => {
+      if (formFilter && l.form !== formFilter) return false;
+      if (vaultFilter && l.vaultHubId !== vaultFilter) return false;
       return true;
     });
-  }, [rows, filterValues]);
+  }, [publishedListings, formFilter, vaultFilter]);
 
-  const featuredListings = useMemo(() => {
-    return filteredRows.filter((r) => LISTING_IMAGES[r.id]).slice(0, 5);
-  }, [filteredRows]);
+  const activeFilterCount = (formFilter ? 1 : 0) + (vaultFilter ? 1 : 0);
 
-  const targetInventory = useMemo(() => {
-    if (!reserveTarget || !state) return undefined;
-    return state.inventory.find((i) => i.listingId === reserveTarget.id);
-  }, [reserveTarget, state]);
-
-  const columns: ColumnDef<ListingRow, unknown>[] = useMemo(() => [
-    {
-      accessorKey: "id",
-      header: "Reference",
-      cell: ({ getValue }) => <span className="font-mono text-xs">{getValue<string>()}</span>,
-    },
-    { accessorKey: "form", header: "Form", cell: ({ getValue }) => <span className="capitalize">{getValue<string>()}</span> },
-    { accessorKey: "purity", header: "Purity", cell: ({ getValue }) => <span className="tabular-nums">.{getValue<string>()}</span> },
-    { accessorKey: "vaultName", header: "Vault" },
-    { accessorKey: "jurisdiction", header: "Jurisdiction" },
-    {
-      accessorKey: "availableWeightOz",
-      header: "Available (oz)",
-      cell: ({ getValue }) => <span className="tabular-nums">{getValue<number>().toLocaleString("en-US")}</span>,
-    },
-    {
-      accessorKey: "pricePerOz",
-      header: "Price / oz",
-      cell: ({ getValue }) => <span className="tabular-nums">${getValue<number>().toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>,
-    },
-    {
-      accessorKey: "totalValue",
-      header: "Total Value",
-      cell: ({ getValue }) => <span className="tabular-nums">${getValue<number>().toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>,
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ getValue }) => {
-        const s = getValue<string>();
-        const colors: Record<string, string> = {
-          available: "bg-success/10 text-success border-success/20",
-          reserved: "bg-warning/10 text-warning border-warning/20",
-          allocated: "bg-info/10 text-info border-info/20",
-          sold: "bg-text-faint/10 text-text-faint border-text-faint/20",
-          suspended: "bg-danger/10 text-danger border-danger/20",
-        };
-        return (
-          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium", colors[s] ?? "")}>
-            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-            {s}
-          </span>
-        );
-      },
-    },
-    {
-      id: "action",
-      header: "Action",
-      cell: ({ row }) => {
-        const r = row.original;
-        if (r.status === "suspended") return <span className="text-xs text-text-faint">—</span>;
-        if (r.activeReservation) {
-          return (
-            <div className="flex items-center gap-2">
-              <CountdownTimer expiresAt={r.activeReservation.expiresAt} />
-              <Link
-                href={`/reservations/${r.activeReservation.id}`}
-                className="text-xs text-gold hover:text-gold-hover transition-colors"
-              >
-                View
-              </Link>
-            </div>
-          );
-        }
-        if (r.availableWeightOz > 0) {
-          return (
-            <button
-              onClick={() => setReserveTarget(r)}
-              data-tour="marketplace-reserve-cta"
-              className="rounded-[var(--radius-input)] border border-gold/30 bg-gold/5 px-3 py-1 text-xs font-medium text-gold transition-colors hover:bg-gold/10"
-            >
-              Buy Now
-            </button>
-          );
-        }
-        return <span className="text-xs text-text-faint">—</span>;
-      },
-    },
-  ], []);
-
-  if (listingsQ.isLoading || reservationsQ.isLoading) return <LoadingState message="Loading marketplace inventory…" />;
-  if (listingsQ.isError) return <ErrorState message="Failed to load listings." onRetry={() => listingsQ.refetch()} />;
+  /* ── Loading / Error ── */
+  if (listingsQ.isLoading || reservationsQ.isLoading)
+    return <LoadingState message="Loading marketplace inventory…" />;
+  if (listingsQ.isError)
+    return (
+      <ErrorState
+        message="Failed to load listings."
+        onRetry={() => listingsQ.refetch()}
+      />
+    );
 
   return (
-    <>
-      <PageHeader
-        title="Marketplace — Live Gold Inventory"
-        description="Deterministic inventory, vault-verified, settlement-gated"
-      />
+    <div className="space-y-6">
+      {/* ── Page Header ── */}
+      <div>
+        <h1 className="text-lg font-semibold text-color-3 tracking-tight">
+          Curated Gold Allocations
+        </h1>
+        <p className="text-xs text-color-3/40 mt-0.5">
+          Vault-verified inventory · Settlement-gated · Premium pricing
+        </p>
+      </div>
 
-      <FilterBar filters={FILTERS} className="mt-4" />
+      {/* ── Filter Bar ── */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-1.5 text-color-3/50">
+          <Filter className="h-3.5 w-3.5" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest">
+            Filters
+          </span>
+        </div>
 
-      {/* Featured Listings Card Grid */}
-      {featuredListings.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint mb-3">
-            Featured Allocations
-          </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {featuredListings.map((listing, idx) => {
-              const imgSrc = LISTING_IMAGES[listing.id];
-              const notional = listing.availableWeightOz * listing.pricePerOz;
-              const delivery = DELIVERY_METHOD[listing.vaultHubId] ?? "Vault Transfer";
-              const isFirst = idx === 0;
-              return (
-                <div
-                  key={listing.id}
-                  data-tour={isFirst ? "marketplace-listing-demo" : undefined}
-                  className="group card-base border border-border overflow-hidden transition-all hover:border-gold/30"
-                >
-                  {/* Image */}
-                  <div className="relative h-36 w-full bg-surface-2 overflow-hidden">
-                    {imgSrc && (
-                      <Image
-                        src={imgSrc}
-                        alt={listing.title}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
-                      />
-                    )}
-                    <div className="absolute top-2 left-2 rounded-sm bg-bg/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gold">
-                      .{listing.purity}
-                    </div>
-                  </div>
+        <FilterChip
+          label="Form"
+          options={FORM_OPTIONS}
+          value={formFilter}
+          onChange={setFormFilter}
+        />
 
-                  {/* Metadata */}
-                  <div className="p-3 space-y-2">
-                    <p className="text-xs font-medium text-text leading-tight truncate" title={listing.title}>
-                      {listing.title}
-                    </p>
-                    <div className="space-y-1 text-[11px]">
-                      <div className="flex justify-between">
-                        <span className="text-text-faint">Weight</span>
-                        <span className="tabular-nums text-text">{listing.availableWeightOz.toLocaleString()} oz</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-faint">Vault</span>
-                        <span className="text-text truncate ml-2 text-right" title={listing.vaultName}>{listing.vaultName}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-faint">Delivery</span>
-                        <span className="text-text text-right">{delivery}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-faint">Price/oz</span>
-                        <span className="tabular-nums font-medium text-text">
-                          ${listing.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-t border-border pt-1 mt-1">
-                        <span className="text-text-faint">Notional</span>
-                        <span className="tabular-nums font-semibold text-gold">
-                          ${notional.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setReserveTarget(listing)}
-                      data-tour={isFirst ? "marketplace-reserve-cta" : undefined}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-gold/30 bg-gold/5 px-2 py-1.5 text-[11px] font-medium text-gold transition-colors hover:bg-gold/10"
-                    >
-                      Buy Now
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <FilterChip
+          label="Vault"
+          options={VAULT_OPTIONS}
+          value={vaultFilter}
+          onChange={setVaultFilter}
+        />
+
+        {activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setFormFilter("");
+              setVaultFilter("");
+            }}
+            className="flex items-center gap-1 rounded-full border border-color-5/20 bg-color-1/50 px-2.5 py-1 text-[10px] font-medium text-color-3/50 transition-colors hover:bg-color-5/10 hover:text-color-3"
+          >
+            <X className="h-3 w-3" />
+            Clear ({activeFilterCount})
+          </button>
+        )}
+      </div>
+
+      {/* ── Summary Strip ── */}
+      <SummaryStrip listings={filteredListings} />
+
+      {/* ── Asset Card Grid ── */}
+      {filteredListings.length > 0 ? (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredListings.map((listing) => (
+            <AssetCard
+              key={listing.id}
+              listing={listing}
+              onReserve={setReserveTarget}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Package className="h-10 w-10 text-color-3/20 mb-3" />
+          <p className="text-sm text-color-3/50">
+            No allocations match the current filters.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setFormFilter("");
+              setVaultFilter("");
+            }}
+            className="mt-3 text-xs text-color-2 hover:text-color-2/80 transition-colors"
+          >
+            Clear all filters
+          </button>
         </div>
       )}
 
-      {/* Full Data Table */}
-      <div className="mt-6">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint mb-3">
-          Full Inventory Ledger
-        </h2>
-        <DataTable
-          columns={columns}
-          data={filteredRows}
-          dense
-          emptyMessage="No listings match the current filters."
-        />
-      </div>
-
+      {/* ── Checkout Modal (Phase 3) ── */}
       {reserveTarget && (
-        <BuyNowModal
+        <CheckoutModalWrapper
           listing={reserveTarget}
-          inventory={targetInventory}
+          maxWeightOz={reserveTarget.totalWeightOz}
           onClose={() => setReserveTarget(null)}
         />
       )}
-    </>
+    </div>
   );
 }
+
+/* ================================================================
+   Default Page Export
+   ================================================================ */
 
 export default function MarketplacePage() {
   return (

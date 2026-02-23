@@ -88,6 +88,16 @@ function categorizeBlocker(raw: string): CategorizedBlocker {
     };
   }
 
+  // Provenance failure
+  if (upper.includes("PROVENANCE_FAILED") || upper.includes("LBMA") || upper.includes("GOOD_DELIVERY")) {
+    return {
+      label: "Provenance Verification Failed",
+      description: raw.replace(/^PROVENANCE_FAILED:\s*/i, ""),
+      severity: "warning",
+      icon: ShieldAlert,
+    };
+  }
+
   // Capital control
   if (upper.includes("CAPITAL_CONTROL")) {
     return {
@@ -243,7 +253,7 @@ export function PublishGatePanel({
 
       {/* Individual check summary */}
       {gateResult.checks && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <CheckPill
             label="Seller Verified"
             passed={gateResult.checks.sellerVerified}
@@ -253,10 +263,15 @@ export function PublishGatePanel({
             passed={gateResult.checks.evidenceComplete}
           />
           <CheckPill
+            label="Provenance"
+            passed={gateResult.checks.provenanceVerified}
+          />
+          <CheckPill
             label="Data Validated"
             passed={
               gateResult.checks.sellerVerified &&
               gateResult.checks.evidenceComplete &&
+              gateResult.checks.provenanceVerified &&
               gateResult.allowed
             }
           />

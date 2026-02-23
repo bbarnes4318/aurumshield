@@ -31,6 +31,13 @@
   --info: #5a8ccb;
   --focus-ring: #7fa6ff;
 
+  /* ── Buyer Journey Palette (4-Phase) ── */
+  --color-1: #13233A;
+  --color-2: #D0A85C;
+  --color-3: #E7ECF4;
+  --color-4: #D16A5D;
+  --color-5: #6A5D2B;
+
   --radius-sm: 6px;
   --radius: 10px;
   --radius-input: 6px;
@@ -94,6 +101,13 @@
   --color-danger: var(--danger);
   --color-info: var(--info);
   --color-focus-ring: var(--focus-ring);
+
+  /* ── Buyer Journey Palette ── */
+  --color-color-1: var(--color-1);
+  --color-color-2: var(--color-2);
+  --color-color-3: var(--color-3);
+  --color-color-4: var(--color-4);
+  --color-color-5: var(--color-5);
 
   /* Radii */
   --radius-sm: 6px;
@@ -504,4 +518,88 @@ body.presentation-mode .card-base {
 }
 body.presentation-mode .typo-mono {
   font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------
+   11. SLIDE-OUT PANEL ANIMATION
+   ---------------------------------------------------------------- */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* ----------------------------------------------------------------
+   12. ZERO-SCROLL VIEWPORT LOCK
+   ----------------------------------------------------------------
+   Applied to buyer Mission Control and other full-viewport layouts.
+   Body/root remain overflow:hidden unconditionally.
+   ---------------------------------------------------------------- */
+.viewport-lock {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ----------------------------------------------------------------
+   13. HIDDEN SCROLLBAR (horizontal swipe without visible bar)
+   ----------------------------------------------------------------
+   Used for horizontal stepper on small screens.
+   ---------------------------------------------------------------- */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* ----------------------------------------------------------------
+   14. BUYER JOURNEY — Frosted Glass Panel
+   ---------------------------------------------------------------- */
+.glass-panel {
+  background: rgba(19, 35, 58, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(208, 168, 92, 0.12);
+  border-radius: var(--radius);
+}
+
+/* ----------------------------------------------------------------
+   15. BUYER JOURNEY — Biometric Scan Animations
+   ---------------------------------------------------------------- */
+@keyframes scanLine {
+  0%   { top: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 rgba(208, 168, 92, 0.5); }
+  70%  { box-shadow: 0 0 0 12px rgba(208, 168, 92, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(208, 168, 92, 0); }
+}
+.animate-scan-line {
+  animation: scanLine 2.2s ease-in-out infinite;
+}
+.animate-pulse-ring {
+  animation: pulseRing 1.8s ease-out infinite;
 }

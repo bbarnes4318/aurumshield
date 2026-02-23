@@ -19,9 +19,10 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { LogIn, AlertCircle } from "lucide-react";
+import { LogIn, AlertCircle, ShieldAlert } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useAuth } from "@/providers/auth-provider";
+import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
 // TODO: Uncomment when @clerk/nextjs is installed
 // import { SignIn } from "@clerk/nextjs";
 
@@ -51,6 +52,13 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [fingerprintWarning, setFingerprintWarning] = useState<string | null>(null);
+
+  /* ── Fingerprint.com — capture visitor_id on mount ── */
+  const { data: fpData } = useVisitorData(
+    { extendedResult: true },
+    { immediate: true },
+  );
 
   const {
     register,
@@ -61,8 +69,37 @@ function LoginContent() {
     defaultValues: { email: "", password: "" },
   });
 
-  const onSubmit = (data: LoginForm) => {
+  const onSubmit = async (data: LoginForm) => {
     setServerError(null);
+    setFingerprintWarning(null);
+
+    /* ── Device fraud check (non-blocking for demo) ── */
+    if (fpData?.visitorId) {
+      try {
+        const res = await fetch("/api/fingerprint/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            visitorId: fpData.visitorId,
+            requestId: fpData.requestId,
+          }),
+        });
+        if (res.ok) {
+          const verification = await res.json();
+          if (!verification.trusted) {
+            setFingerprintWarning(
+              verification.riskDetail ?? "Device flagged — please contact support.",
+            );
+            // In production, you may want to block login entirely here.
+            // For now, we show a warning but allow the login to proceed.
+          }
+        }
+      } catch {
+        // Fingerprint verification failure is non-fatal
+        console.warn("[AurumShield] Fingerprint verification unavailable");
+      }
+    }
+
     const result = login(data.email);
     if (result.success) {
       const next = searchParams.get("next");
@@ -122,6 +159,13 @@ function LoginContent() {
               <div className="mb-4 flex items-start gap-2 rounded-[var(--radius-sm)] border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 {serverError}
+              </div>
+            )}
+
+            {fingerprintWarning && (
+              <div className="mb-4 flex items-start gap-2 rounded-[var(--radius-sm)] border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-sm text-amber-400">
+                <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
+                {fingerprintWarning}
               </div>
             )}
 

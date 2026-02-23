@@ -20,6 +20,7 @@ const PUBLIC_ROUTES = [
   "/demo/login",
   "/platform",
   "/demo/walkthrough",
+  "/onboarding",
 ];
 
 interface AppShellProps {

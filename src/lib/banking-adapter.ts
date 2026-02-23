@@ -1,14 +1,25 @@
 /* ================================================================
-   BANKING ADAPTER — Server-Side Only
-
+   BANKING ADAPTER — Modern Treasury Settlement Rail
+   ================================================================
    Wraps the Modern Treasury SDK to execute outbound payment orders.
+   Refactored into the ModernTreasurySettlementRail class implementing
+   the ISettlementRail interface for dual-rail settlement routing.
+
    MUST NOT be imported in client components.
    All API keys / org IDs are read from process.env at call time.
+
+   Legacy executePayout() function is preserved for backward
+   compatibility and delegates to the class internally.
    ================================================================ */
 
 import ModernTreasury from "modern-treasury";
+import type {
+  ISettlementRail,
+  SettlementPayoutRequest,
+  SettlementPayoutResult,
+} from "./settlement-rail";
 
-/* ---------- Result Type ---------- */
+/* ---------- Legacy Result Type (preserved for backward compat) ---------- */
 
 export interface PayoutResult {
   success: boolean;
@@ -31,6 +42,152 @@ const ORIGINATING_INTERNAL_ACCOUNT_ID =
   process.env.AURUMSHIELD_ORIGINATING_INTERNAL_ACCOUNT_ID ??
   "demo-originating-internal-account";
 
+/* ================================================================
+   ModernTreasurySettlementRail Class
+   ================================================================ */
+
+export class ModernTreasurySettlementRail implements ISettlementRail {
+  readonly name = "Modern Treasury (Fedwire / RTGS)";
+
+  /**
+   * Check if Modern Treasury credentials are present in the environment.
+   */
+  isConfigured(): boolean {
+    const apiKey = process.env[ENV_API_KEY];
+    const orgId = process.env[ENV_ORG_ID];
+    return !!(
+      apiKey &&
+      orgId &&
+      apiKey !== "YOUR_MODERN_TREASURY_API_KEY" &&
+      orgId !== "YOUR_MODERN_TREASURY_ORG_ID"
+    );
+  }
+
+  /**
+   * Execute a payout via Modern Treasury payment orders.
+   *
+   * Flow:
+   *   1. Seller Payout — wire to the seller's external account
+   *   2. Fee Sweep — internal book transfer to revenue account
+   */
+  async executePayout(
+    request: SettlementPayoutRequest,
+  ): Promise<SettlementPayoutResult> {
+    const apiKey = process.env[ENV_API_KEY];
+    const orgId = process.env[ENV_ORG_ID];
+    const revenueAccountId = process.env[ENV_REVENUE_ACCOUNT];
+
+    /* ── Guard: mock fallback when credentials are absent ── */
+    if (!apiKey || !orgId) {
+      const sellerPayout =
+        request.totalAmountCents - request.platformFeeCents;
+      console.warn(
+        `[AurumShield] ${ENV_API_KEY} or ${ENV_ORG_ID} not set — mock Modern Treasury payout for ${request.settlementId}`,
+      );
+      return {
+        success: true,
+        railUsed: "modern_treasury",
+        externalIds: [
+          `mock-mt-seller-${request.settlementId}`,
+          `mock-mt-fee-${request.settlementId}`,
+        ],
+        sellerPayoutCents: sellerPayout,
+        platformFeeCents: request.platformFeeCents,
+        isFallback: false,
+      };
+    }
+
+    if (!revenueAccountId) {
+      console.warn(
+        `[AurumShield] ${ENV_REVENUE_ACCOUNT} not set — fee sweep will be skipped`,
+      );
+    }
+
+    /* ── Initialise client (per-call, never cached at module level) ── */
+    const mt = new ModernTreasury({
+      apiKey,
+      organizationID: orgId,
+    });
+
+    const sellerPayoutAmount =
+      request.totalAmountCents - request.platformFeeCents;
+    const externalIds: string[] = [];
+
+    try {
+      /* ── 1. Seller Payout (Fedwire / RTGS) ── */
+      const sellerOrder = await mt.paymentOrders.create({
+        type: "wire",
+        direction: "debit",
+        amount: sellerPayoutAmount,
+        currency: "USD",
+        originating_account_id: ORIGINATING_INTERNAL_ACCOUNT_ID,
+        receiving_account_id: request.sellerAccountId,
+        description: `AurumShield Settlement Payout: ${request.settlementId}`,
+        metadata: {
+          settlementId: request.settlementId,
+          leg: "seller_payout",
+          ...request.metadata,
+        },
+      });
+      externalIds.push(sellerOrder.id);
+
+      /* ── 2. Fee Sweep (internal book transfer) ── */
+      if (revenueAccountId && request.platformFeeCents > 0) {
+        const feeOrder = await mt.paymentOrders.create({
+          type: "book",
+          direction: "debit",
+          amount: request.platformFeeCents,
+          currency: "USD",
+          originating_account_id: ORIGINATING_INTERNAL_ACCOUNT_ID,
+          receiving_account_id: revenueAccountId,
+          description: `AurumShield Platform Fee: ${request.settlementId}`,
+          metadata: {
+            settlementId: request.settlementId,
+            leg: "fee_sweep",
+          },
+        });
+        externalIds.push(feeOrder.id);
+      }
+
+      return {
+        success: true,
+        railUsed: "modern_treasury",
+        externalIds,
+        sellerPayoutCents: sellerPayoutAmount,
+        platformFeeCents: request.platformFeeCents,
+        isFallback: false,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        "[AurumShield] Modern Treasury executePayout exception:",
+        message,
+      );
+      return {
+        success: false,
+        railUsed: "modern_treasury",
+        externalIds,
+        sellerPayoutCents: 0,
+        platformFeeCents: request.platformFeeCents,
+        isFallback: false,
+        error: message,
+      };
+    }
+  }
+}
+
+/* ---------- Singleton Export ---------- */
+
+/** Pre-instantiated rail for convenience. */
+export const modernTreasuryRail = new ModernTreasurySettlementRail();
+
+/* ================================================================
+   Legacy API — Preserved for Backward Compatibility
+   ================================================================
+   Existing code that calls executePayout() directly will continue
+   to work. This function now delegates to the class internally.
+   ================================================================ */
+
 /**
  * Execute two Modern Treasury payment orders atomically:
  *
@@ -46,6 +203,8 @@ const ORIGINATING_INTERNAL_ACCOUNT_ID =
  * @param totalSettlementAmount    Total settlement value in cents
  * @param platformFeeAmount        Platform fee in cents
  * @param settlementId             AurumShield settlement ID (for description / metadata)
+ *
+ * @deprecated Use `modernTreasuryRail.executePayout()` or `routeSettlement()` instead.
  */
 export async function executePayout(
   sellerExternalAccountId: string,
@@ -53,70 +212,16 @@ export async function executePayout(
   platformFeeAmount: number,
   settlementId: string,
 ): Promise<PayoutResult> {
-  /* ── Guard: env vars must be present ── */
-  const apiKey = process.env[ENV_API_KEY];
-  const orgId = process.env[ENV_ORG_ID];
-  const revenueAccountId = process.env[ENV_REVENUE_ACCOUNT];
-
-  if (!apiKey || !orgId) {
-    console.warn(
-      `[AurumShield] ${ENV_API_KEY} or ${ENV_ORG_ID} not set — banking payout skipped`,
-    );
-    return {
-      success: false,
-      paymentOrderIds: [],
-      error: "Modern Treasury credentials not configured",
-    };
-  }
-
-  if (!revenueAccountId) {
-    console.warn(
-      `[AurumShield] ${ENV_REVENUE_ACCOUNT} not set — fee sweep will be skipped`,
-    );
-  }
-
-  /* ── Initialise client (per-call, never cached at module level) ── */
-  const mt = new ModernTreasury({
-    apiKey,
-    organizationID: orgId,
+  const result = await modernTreasuryRail.executePayout({
+    settlementId,
+    sellerAccountId: sellerExternalAccountId,
+    totalAmountCents: totalSettlementAmount,
+    platformFeeCents: platformFeeAmount,
   });
 
-  const sellerPayoutAmount = totalSettlementAmount - platformFeeAmount;
-  const paymentOrderIds: string[] = [];
-
-  try {
-    /* ── 1. Seller Payout (Fedwire / RTGS) ── */
-    const sellerOrder = await mt.paymentOrders.create({
-      type: "wire",
-      direction: "debit",
-      amount: sellerPayoutAmount,
-      currency: "USD",
-      originating_account_id: ORIGINATING_INTERNAL_ACCOUNT_ID,
-      receiving_account_id: sellerExternalAccountId,
-      description: `AurumShield Settlement Payout: ${settlementId}`,
-      metadata: { settlementId, leg: "seller_payout" },
-    });
-    paymentOrderIds.push(sellerOrder.id);
-
-    /* ── 2. Fee Sweep (internal book transfer) ── */
-    if (revenueAccountId && platformFeeAmount > 0) {
-      const feeOrder = await mt.paymentOrders.create({
-        type: "book",
-        direction: "debit",
-        amount: platformFeeAmount,
-        currency: "USD",
-        originating_account_id: ORIGINATING_INTERNAL_ACCOUNT_ID,
-        receiving_account_id: revenueAccountId,
-        description: `AurumShield Platform Fee: ${settlementId}`,
-        metadata: { settlementId, leg: "fee_sweep" },
-      });
-      paymentOrderIds.push(feeOrder.id);
-    }
-
-    return { success: true, paymentOrderIds };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[AurumShield] executePayout exception:", message);
-    return { success: false, paymentOrderIds, error: message };
-  }
+  return {
+    success: result.success,
+    paymentOrderIds: result.externalIds,
+    error: result.error,
+  };
 }

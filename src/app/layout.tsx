@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
 import { Suspense } from "react";
 import { ClerkWrapper } from "@/providers/clerk-wrapper";
+import { FingerprintProvider } from "@/providers/fingerprint-provider";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
@@ -57,14 +58,16 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="dark">
             <QueryProvider>
               <AuthProvider>
-                <Suspense fallback={null}>
-                  <DemoProvider>
-                    <TourProvider>
-                      <AppShell>{children}</AppShell>
-                    </TourProvider>
-                    <Toaster theme="dark" position="bottom-right" richColors />
-                  </DemoProvider>
-                </Suspense>
+                <FingerprintProvider>
+                  <Suspense fallback={null}>
+                    <DemoProvider>
+                      <TourProvider>
+                        <AppShell>{children}</AppShell>
+                      </TourProvider>
+                      <Toaster theme="dark" position="bottom-right" richColors />
+                    </DemoProvider>
+                  </Suspense>
+                </FingerprintProvider>
               </AuthProvider>
             </QueryProvider>
           </ThemeProvider>

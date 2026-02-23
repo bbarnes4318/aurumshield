@@ -2042,6 +2042,10 @@ export interface ListingEvidenceItem {
     extractedWeightOz: number | null;
     /** Raw weight text as it appeared in the document. */
     rawWeightText: string | null;
+    /** Refiner name extracted from the document (for LBMA Good Delivery verification). */
+    extractedRefinerName: string | null;
+    /** Raw refiner text as it appeared in the document. */
+    rawRefinerText: string | null;
     /** Whether the Textract analysis was successful. */
     analysisSucceeded: boolean;
     /** Error message if analysis failed. */

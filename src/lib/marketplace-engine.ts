@@ -17,6 +17,7 @@ import type {
 import type { MarketplacePolicySnapshot } from "./policy-engine";
 import { loadVerificationCase } from "./verification-engine";
 import { getOrg } from "./auth-store";
+import { isGoodDeliveryRefiner } from "./lbma-service";
 
 /* ---------- State Shape ---------- */
 export interface MarketplaceState {
@@ -256,6 +257,92 @@ export interface GateResult {
     sellerVerified: boolean;
     evidenceComplete: boolean;
     evidencePresent: ListingEvidenceType[];
+    provenanceVerified: boolean;
+  };
+}
+
+/* ---------- Provenance Result ---------- */
+export interface ProvenanceResult {
+  /** Whether the refiner is on the LBMA Good Delivery List */
+  refinerOnGoodDeliveryList: boolean;
+  /** Refiner name as extracted from the assay document */
+  extractedRefinerName: string | null;
+  /** Whether a refiner name was found in the assay document */
+  refinerNameFound: boolean;
+  /** Overall provenance verification pass/fail */
+  passed: boolean;
+  /** Human-readable summary */
+  detail: string;
+}
+
+/**
+ * Run a provenance check for a listing.
+ *
+ * Cross-references the refiner name extracted by Textract from the
+ * assay report against the LBMA Good Delivery List cache provided by
+ * lbma-service.ts.
+ *
+ * Returns a structured result indicating whether the refiner is on the
+ * Good Delivery List. This check is advisory — it adds a blocker to the
+ * publish gate if the refiner is NOT on the list, but does not block if
+ * no refiner name was extracted (to allow manual override).
+ */
+export function runProvenanceCheck(
+  state: MarketplaceState,
+  listingId: string,
+): ProvenanceResult {
+  const listingEvidence = state.listingEvidence.filter(
+    (e) => e.listingId === listingId,
+  );
+
+  // Find the assay report evidence with extracted metadata
+  const assayEvidence = listingEvidence.find((e) => e.type === "ASSAY_REPORT");
+
+  if (!assayEvidence) {
+    return {
+      refinerOnGoodDeliveryList: false,
+      extractedRefinerName: null,
+      refinerNameFound: false,
+      passed: false,
+      detail: "No assay report uploaded — cannot verify refiner provenance.",
+    };
+  }
+
+  const meta = assayEvidence.extractedMetadata;
+  if (!meta || !meta.analysisSucceeded) {
+    return {
+      refinerOnGoodDeliveryList: false,
+      extractedRefinerName: null,
+      refinerNameFound: false,
+      passed: false,
+      detail: "Assay report analysis not available — cannot verify refiner provenance.",
+    };
+  }
+
+  const refinerName = meta.extractedRefinerName;
+  if (!refinerName) {
+    // No refiner name extracted — advisory pass (don't block hard)
+    return {
+      refinerOnGoodDeliveryList: false,
+      extractedRefinerName: null,
+      refinerNameFound: false,
+      passed: true,
+      detail:
+        "Refiner name not found in assay document — provenance check skipped. Manual review may be required.",
+    };
+  }
+
+  // Cross-reference against LBMA Good Delivery List
+  const isOnList = isGoodDeliveryRefiner(refinerName);
+
+  return {
+    refinerOnGoodDeliveryList: isOnList,
+    extractedRefinerName: refinerName,
+    refinerNameFound: true,
+    passed: isOnList,
+    detail: isOnList
+      ? `Refiner "${refinerName}" verified on LBMA Good Delivery List.`
+      : `Refiner "${refinerName}" is NOT on the LBMA Good Delivery List — listing may be rejected.`,
   };
 }
 
@@ -395,7 +482,7 @@ export function runPublishGate(
     return {
       allowed: false,
       blockers: ["Listing not found"],
-      checks: { sellerVerified: false, evidenceComplete: false, evidencePresent: [] },
+      checks: { sellerVerified: false, evidenceComplete: false, evidencePresent: [], provenanceVerified: false },
     };
   }
 
@@ -467,10 +554,21 @@ export function runPublishGate(
     }
   }
 
+  // 4) Provenance check — cross-reference refiner against LBMA Good Delivery List
+  const provenanceResult = runProvenanceCheck(state, listingId);
+  let provenanceVerified = provenanceResult.passed;
+
+  if (provenanceResult.refinerNameFound && !provenanceResult.refinerOnGoodDeliveryList) {
+    blockers.push(
+      `PROVENANCE_FAILED: ${provenanceResult.detail}`,
+    );
+    provenanceVerified = false;
+  }
+
   return {
     allowed: blockers.length === 0,
     blockers,
-    checks: { sellerVerified, evidenceComplete, evidencePresent },
+    checks: { sellerVerified, evidenceComplete, evidencePresent, provenanceVerified },
   };
 }
 
@@ -489,7 +587,7 @@ export function publishListing(
 
   const listing = state.listings.find((l) => l.id === listingId);
   if (!listing) {
-    return { next: state, gateResult: { allowed: false, blockers: ["Listing not found"], checks: { sellerVerified: false, evidenceComplete: false, evidencePresent: [] } } };
+    return { next: state, gateResult: { allowed: false, blockers: ["Listing not found"], checks: { sellerVerified: false, evidenceComplete: false, evidencePresent: [], provenanceVerified: false } } };
   }
 
   const publishedAt = new Date(nowMs).toISOString();

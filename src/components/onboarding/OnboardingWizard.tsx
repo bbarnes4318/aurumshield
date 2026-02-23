@@ -1,0 +1,248 @@
+"use client";
+
+/* ================================================================
+   ONBOARDING WIZARD — Orchestrator
+   ================================================================
+   3-step progressive disclosure flow for KYC/KYB verification.
+   Manages form state via react-hook-form + Zod, renders the
+   active step, and provides a persistent progress bar.
+
+   Steps:
+     1. Corporate Identity & Contact
+     2. UBO Document Upload
+     3. Biometric Liveness Check
+   ================================================================ */
+
+import { useState, useCallback } from "react";
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { Shield, CheckCircle2 } from "lucide-react";
+
+import {
+  onboardingSchema,
+  ONBOARDING_STEPS,
+  type OnboardingFormData,
+} from "@/lib/schemas/onboarding-schema";
+
+import { StepCorporateIdentity } from "./StepCorporateIdentity";
+import { StepUBODocuments } from "./StepUBODocuments";
+import { StepLivenessCheck } from "./StepLivenessCheck";
+
+/* ----------------------------------------------------------------
+   Progress Bar
+   ---------------------------------------------------------------- */
+
+function ProgressBar({ currentStep }: { currentStep: number }) {
+  const progress = ((currentStep - 1) / (ONBOARDING_STEPS.length - 1)) * 100;
+
+  return (
+    <div className="mb-8">
+      {/* Step circles + labels */}
+      <div className="flex items-center justify-between mb-3">
+        {ONBOARDING_STEPS.map((step) => {
+          const isCompleted = currentStep > step.id;
+          const isActive = currentStep === step.id;
+
+          return (
+            <div key={step.id} className="flex flex-col items-center gap-1.5">
+              <div
+                className={`
+                  flex h-8 w-8 items-center justify-center rounded-full
+                  text-xs font-semibold transition-all duration-300
+                  ${
+                    isCompleted
+                      ? "bg-color-2 text-color-1"
+                      : isActive
+                        ? "border-2 border-color-2 text-color-2"
+                        : "border border-color-5/40 text-color-5"
+                  }
+                `}
+              >
+                {isCompleted ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  step.id
+                )}
+              </div>
+              <span
+                className={`
+                  text-[10px] font-medium tracking-wide uppercase
+                  ${isActive ? "text-color-2" : isCompleted ? "text-color-3/70" : "text-color-5/60"}
+                `}
+              >
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Progress track */}
+      <div className="relative h-1 w-full rounded-full bg-color-5/20 overflow-hidden">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-color-2 transition-all duration-500 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------
+   Wizard Component
+   ---------------------------------------------------------------- */
+
+export function OnboardingWizard() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+
+  const methods = useForm<OnboardingFormData>({
+    resolver: zodResolver(onboardingSchema),
+    defaultValues: {
+      companyName: "",
+      registrationNumber: "",
+      jurisdiction: "",
+      contactEmail: "",
+      contactPhone: "",
+      uboDocumentName: "",
+      uboDeclarationAccepted: false as unknown as true,
+      livenessCompleted: false as unknown as true,
+    },
+    mode: "onTouched",
+  });
+
+  const { trigger, handleSubmit } = methods;
+
+  /* ── Step navigation ── */
+
+  const stepFields = ONBOARDING_STEPS[currentStep - 1].fields;
+
+  const goNext = useCallback(async () => {
+    const valid = await trigger(stepFields as unknown as (keyof OnboardingFormData)[]);
+    if (!valid) return;
+
+    if (currentStep < ONBOARDING_STEPS.length) {
+      setCurrentStep((s) => s + 1);
+    }
+  }, [currentStep, trigger, stepFields]);
+
+  const goBack = useCallback(() => {
+    if (currentStep > 1) {
+      setCurrentStep((s) => s - 1);
+    }
+  }, [currentStep]);
+
+  /* ── Final submission ── */
+
+  const onSubmit = useCallback(
+    async (data: OnboardingFormData) => {
+      setIsSubmitting(true);
+
+      // TODO: POST to /api/onboarding with the verified data
+      // For now, simulate a 1.5s network call
+      console.log("[AurumShield] Onboarding data submitted:", data);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      setIsSubmitting(false);
+      router.push("/buyer");
+    },
+    [router],
+  );
+
+  /* ── Render active step ── */
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return <StepCorporateIdentity />;
+      case 2:
+        return <StepUBODocuments />;
+      case 3:
+        return <StepLivenessCheck />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
+        {/* Header */}
+        <div className="flex items-center gap-2.5 mb-6">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-color-2/10">
+            <Shield className="h-5 w-5 text-color-2" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-color-3 tracking-tight">
+              Identity Verification
+            </h1>
+            <p className="text-xs text-color-3/50">
+              Institutional KYC/KYB · AurumShield Clearing
+            </p>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <ProgressBar currentStep={currentStep} />
+
+        {/* Active step */}
+        <div className="min-h-[320px]">{renderStep()}</div>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between mt-8 pt-6 border-t border-color-5/20">
+          {currentStep > 1 ? (
+            <button
+              type="button"
+              onClick={goBack}
+              className="text-sm font-medium text-color-3/60 hover:text-color-3 transition-colors"
+            >
+              ← Back
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {currentStep < ONBOARDING_STEPS.length ? (
+            <button
+              type="button"
+              onClick={goNext}
+              className="
+                inline-flex items-center gap-2 rounded-lg px-6 py-2.5
+                bg-color-2 text-color-1 text-sm font-semibold
+                hover:bg-color-2/90 active:bg-color-2/80
+                transition-colors duration-150
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50
+              "
+            >
+              Continue →
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="
+                inline-flex items-center gap-2 rounded-lg px-6 py-2.5
+                bg-color-2 text-color-1 text-sm font-semibold
+                hover:bg-color-2/90 active:bg-color-2/80
+                disabled:opacity-50 disabled:pointer-events-none
+                transition-colors duration-150
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50
+              "
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-color-1 border-t-transparent" />
+                  Processing…
+                </>
+              ) : (
+                "Complete Verification ✓"
+              )}
+            </button>
+          )}
+        </div>
+      </form>
+    </FormProvider>
+  );
+}

@@ -499,6 +499,15 @@ export function applySettlementAction(
       );
       const authRef = authEntry?.id ?? "N/A";
 
+      // Determine payment rail routing (deterministic — based on notional)
+      const thresholdCents = parseInt(process.env.SETTLEMENT_ENTERPRISE_THRESHOLD ?? "25000000", 10);
+      const notionalCents = Math.round(settlement.notionalUsd * 100);
+      const paymentRail = notionalCents <= thresholdCents ? "moov" : "modern_treasury";
+
+      // Determine logistics routing ($50k split)
+      const logisticsThresholdCents = 50_000_00; // $50,000 in cents
+      const logisticsCarrier = notionalCents <= logisticsThresholdCents ? "easypost_usps" : "brinks";
+
       // Atomic DvP: single ledger entry covering both legs + escrow close
       const dvpSnapshot: LedgerEntrySnapshot = {
         checksStatus: "PASS",
@@ -515,6 +524,7 @@ export function applySettlementAction(
         `fundsReleased=true goldReleased=true escrowClosed=true`,
         `fundsLeg: $${settlement.notionalUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })} released to seller ${settlement.sellerOrgId} via ${settlement.rail}`,
         `goldLeg: ${settlement.weightOz}oz title transferred to buyer ${settlement.buyerOrgId}`,
+        `paymentRail=${paymentRail} logisticsCarrier=${logisticsCarrier}`,
         `authorizationRef=${authRef}`,
         `executedBy=${payload.actorUserId} role=${payload.actorRole} executedAt=${now}`,
       ].join(" | ");

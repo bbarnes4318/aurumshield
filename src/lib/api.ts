@@ -257,6 +257,8 @@ export async function apiCreateListingEvidence(input: {
           rawPurityText: extractionResult.rawPurityText,
           extractedWeightOz: extractionResult.extractedWeightOz,
           rawWeightText: extractionResult.rawWeightText,
+          extractedRefinerName: null, // TODO: populate via textract-adapter.ts refiner extraction
+          rawRefinerText: null,
           analysisSucceeded: extractionResult.success,
           analysisError: extractionResult.error,
         },
@@ -278,6 +280,8 @@ export async function apiCreateListingEvidence(input: {
           rawPurityText: null,
           extractedWeightOz: null,
           rawWeightText: null,
+          extractedRefinerName: null,
+          rawRefinerText: null,
           analysisSucceeded: false,
           analysisError: errorMessage,
         },
