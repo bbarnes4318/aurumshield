@@ -518,14 +518,15 @@ import { notifyPartiesOfSettlement } from "@/actions/notifications";
 import { triggerSettlementPayouts } from "@/actions/banking";
 
 /* ---------- Placeholder contact data for demo users ---------- */
-const DEMO_CONTACTS: Record<string, { email: string; phone: string }> = {
-  "user-1": { email: "buyer@aurumshield.vip", phone: "+15551000001" },
-  "user-2": { email: "ops@aurumshield.vip", phone: "+15551000002" },
-  "user-3": { email: "seller@aurumshield.vip", phone: "+15551000003" },
-  "user-4": { email: "compliance@aurumshield.vip", phone: "+15551000004" },
-  "user-5": { email: "treasury@aurumshield.vip", phone: "+15551000005" },
+/* ⚠️ SMS DEPRECATED — phone numbers removed (D7 directive) */
+const DEMO_CONTACTS: Record<string, { email: string }> = {
+  "user-1": { email: "buyer@aurumshield.vip" },
+  "user-2": { email: "ops@aurumshield.vip" },
+  "user-3": { email: "seller@aurumshield.vip" },
+  "user-4": { email: "compliance@aurumshield.vip" },
+  "user-5": { email: "treasury@aurumshield.vip" },
 };
-const DEFAULT_CONTACT = { email: "unknown@aurumshield.vip", phone: "+15550000000" };
+const DEFAULT_CONTACT = { email: "unknown@aurumshield.vip" };
 
 /* ---------- Demo banking constants (cents) ---------- */
 /** Placeholder Modern Treasury external account ID for demo sellers */
@@ -611,6 +612,7 @@ export function useApplySettlementAction() {
       });
 
       // ── Notify buyer & seller when settlement reaches SETTLED ──
+      // ⚠️ SMS DEPRECATED (D7) — email only
       if (data.settlement.status === "SETTLED") {
         const buyer = DEMO_CONTACTS[data.settlement.buyerUserId] ?? DEFAULT_CONTACT;
         const seller = DEMO_CONTACTS[data.settlement.sellerUserId] ?? DEFAULT_CONTACT;
@@ -619,8 +621,6 @@ export function useApplySettlementAction() {
         notifyPartiesOfSettlement(
           buyer.email,
           seller.email,
-          buyer.phone,
-          seller.phone,
           data.settlement.id,
         ).catch((err) => {
           console.error("[AurumShield] Settlement notification failed:", err);

@@ -1,30 +1,45 @@
 "use server";
 
 /* ================================================================
-   SETTLEMENT NOTIFICATION — Server Action
+   SETTLEMENT NOTIFICATION — Server Action (D7 Revised)
    
    Bridges the client-side TanStack Query hooks to the server-side
    communications adapter. This file runs ENTIRELY on the server —
    no API keys are ever exposed to the client boundary.
+
+   ⚠️  SMS DEPRECATED — All Fractel/sendText functionality removed.
+       Only Resend email notifications are dispatched post-settlement.
    ================================================================ */
 
-import { sendEmail, sendText } from "@/lib/communications-adapter";
+import { sendEmail } from "@/lib/communications-adapter";
 
 /**
  * Notify buyer and seller that a DvP settlement has completed.
- * Uses Promise.allSettled so a failure in one channel (e.g. SMS)
- * does not block delivery in another channel (e.g. email).
+ * Uses Promise.allSettled so a failure in one email
+ * does not block delivery of the other.
  *
  * This function never throws — it returns structured results.
+ *
+ * @param buyerEmail  – Buyer's email address
+ * @param sellerEmail – Seller's email address
+ * @param settlementId – Settlement case ID
+ * @param certificateNumber – (Optional) Gold Clearing Certificate number, embedded in email body
  */
 export async function notifyPartiesOfSettlement(
   buyerEmail: string,
   sellerEmail: string,
-  buyerPhone: string,
-  sellerPhone: string,
   settlementId: string,
+  certificateNumber?: string,
 ) {
   const timestamp = new Date().toISOString();
+
+  const certBlock = certificateNumber
+    ? `
+        <div style="background: #1a2e1a; border: 1px solid #22c55e33; border-radius: 8px; padding: 20px; margin: 24px 0;">
+          <p style="margin: 0 0 8px; font-size: 12px; color: #22c55e; text-transform: uppercase; letter-spacing: 1px;">Gold Clearing Certificate</p>
+          <p style="margin: 0; font-size: 16px; font-weight: 600; color: #e4e4e7; font-family: 'Courier New', monospace;">${certificateNumber}</p>
+        </div>`
+    : "";
 
   /* ── Email bodies ── */
   const buyerEmailHtml = `
@@ -39,7 +54,7 @@ export async function notifyPartiesOfSettlement(
         <div style="background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 8px; padding: 20px; margin: 24px 0;">
           <p style="margin: 0 0 8px; font-size: 14px; color: #a1a1aa;">Status</p>
           <p style="margin: 0; font-size: 18px; font-weight: 600; color: #22c55e;">✓ SETTLED</p>
-        </div>
+        </div>${certBlock}
         <p style="margin: 0 0 8px; font-size: 14px; color: #a1a1aa;">
           Gold title has been transferred to your account. Funds have been released from escrow.
         </p>
@@ -63,7 +78,7 @@ export async function notifyPartiesOfSettlement(
         <div style="background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 8px; padding: 20px; margin: 24px 0;">
           <p style="margin: 0 0 8px; font-size: 14px; color: #a1a1aa;">Status</p>
           <p style="margin: 0; font-size: 18px; font-weight: 600; color: #22c55e;">✓ SETTLED</p>
-        </div>
+        </div>${certBlock}
         <p style="margin: 0 0 8px; font-size: 14px; color: #a1a1aa;">
           Funds have been released to your account. Gold title has been transferred to the buyer.
         </p>
@@ -77,25 +92,18 @@ export async function notifyPartiesOfSettlement(
 
   const subject = `[AurumShield] Settlement ${settlementId} — Confirmed`;
 
-  /* ── SMS bodies ── */
-  const buyerSms = `AurumShield: Settlement ${settlementId} SETTLED. Gold title transferred to your account. Funds released from escrow. ${timestamp}`;
-  const sellerSms = `AurumShield: Settlement ${settlementId} SETTLED. Funds released to your account. Gold title transferred to buyer. ${timestamp}`;
-
-  /* ── Dispatch all notifications concurrently ── */
+  /* ── Dispatch email notifications concurrently ── */
   const results = await Promise.allSettled([
     sendEmail(buyerEmail, subject, buyerEmailHtml),
     sendEmail(sellerEmail, subject, sellerEmailHtml),
-    sendText(buyerPhone, buyerSms),
-    sendText(sellerPhone, sellerSms),
   ]);
 
   const summary = results.map((r, i) => {
-    const channel = i < 2 ? "email" : "sms";
-    const party = i % 2 === 0 ? "buyer" : "seller";
+    const party = i === 0 ? "buyer" : "seller";
     if (r.status === "fulfilled") {
-      return { channel, party, ...r.value };
+      return { channel: "email" as const, party, ...r.value };
     }
-    return { channel, party, success: false, error: String(r.reason) };
+    return { channel: "email" as const, party, success: false, error: String(r.reason) };
   });
 
   console.log(

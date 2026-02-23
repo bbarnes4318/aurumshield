@@ -33,8 +33,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { createHmac, timingSafeEqual } from "crypto";
 import { applySettlementAction } from "@/lib/settlement-engine";
-import { loadSettlementState } from "@/lib/settlement-store";
+import { loadSettlementState, saveSettlementState } from "@/lib/settlement-store";
 import { getDbClient } from "@/lib/db";
+import { issueCertificate } from "@/lib/certificate-engine";
+import { notifyPartiesOfSettlement } from "@/actions/notifications";
+import { mockOrders, mockListings, mockUsers } from "@/lib/mock-data";
+
 
 /* ---------- HMAC Signature Verification ---------- */
 
@@ -320,7 +324,85 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
   }
 
-  /* ── Step 6: Respond ── */
+  /* ── Step 5b: Persist in-memory settlement state ── */
+  saveSettlementState(result.state);
+
+  /* ── Step 6: Post-SETTLED Pipeline (D7 — certificate + email only) ── */
+  let certificateNumber: string | undefined;
+
+  if (result.settlement.status === "SETTLED") {
+    console.log(
+      `[MOOV-WEBHOOK] Settlement ${settlementId} reached SETTLED — triggering post-settlement pipeline`,
+    );
+
+    try {
+      // ── 6a: Issue Gold Clearing Certificate ──
+      const order = mockOrders.find((o) => o.id === result.settlement.orderId);
+      const listing = mockListings.find(
+        (l) => l.id === result.settlement.listingId,
+      );
+      const dvpEntry = result.ledgerEntries.find(
+        (e) => e.type === "DVP_EXECUTED",
+      );
+
+      if (order && listing && dvpEntry) {
+        const certificate = await issueCertificate({
+          settlement: result.settlement,
+          order,
+          listing,
+          dvpLedgerEntry: dvpEntry,
+          now,
+        });
+        certificateNumber = certificate.certificateNumber;
+
+        console.log(
+          `[MOOV-WEBHOOK] Certificate issued: ${certificateNumber} for settlement ${settlementId}`,
+        );
+      } else {
+        console.warn(
+          `[MOOV-WEBHOOK] Could not issue certificate — missing dependencies: ` +
+            `order=${!!order}, listing=${!!listing}, dvpEntry=${!!dvpEntry}`,
+        );
+      }
+
+      // ── 6b: Send email notifications (SMS deprecated per D7 directive) ──
+      const buyerUser = mockUsers.find(
+        (u) => u.id === result.settlement.buyerUserId,
+      );
+      const sellerUser = mockUsers.find(
+        (u) => u.id === result.settlement.sellerUserId,
+      );
+      const buyerEmail =
+        buyerUser?.email ?? "unknown-buyer@aurumshield.vip";
+      const sellerEmail =
+        sellerUser?.email ?? "unknown-seller@aurumshield.vip";
+
+      // Fire-and-forget — email failures don't block webhook response
+      notifyPartiesOfSettlement(
+        buyerEmail,
+        sellerEmail,
+        settlementId,
+        certificateNumber,
+      ).catch((err) => {
+        console.error(
+          `[MOOV-WEBHOOK] Post-SETTLED email notification failed for ${settlementId}:`,
+          err,
+        );
+      });
+    } catch (pipelineErr) {
+      const pipelineMsg =
+        pipelineErr instanceof Error
+          ? pipelineErr.message
+          : String(pipelineErr);
+      console.error(
+        `[MOOV-WEBHOOK] Post-SETTLED pipeline error for ${settlementId}:`,
+        pipelineMsg,
+      );
+      // Non-fatal — the settlement status was already persisted successfully
+    }
+  }
+
+  /* ── Step 7: Respond ── */
   console.log(
     `[MOOV-WEBHOOK] ${mapping.action} applied successfully for settlement ${settlementId}`,
   );
@@ -332,5 +414,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     transferId,
     engineStatus,
     ledgerEntriesCreated: result.ledgerEntries.length,
+    ...(certificateNumber ? { certificateNumber } : {}),
   });
 }
+

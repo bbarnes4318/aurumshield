@@ -5,10 +5,15 @@
    ================================================================
    Two selectable radio-cards for delivery method. If SECURE_DELIVERY
    is selected, a Zod-validated address form expands smoothly below,
-   followed by a simulated Brink's rate quote card.
+   followed by a live Brink's rate quote card (D3 fix).
 
    Settlement is finalized via a custom "Slide-to-Execute" component
    instead of a standard button.
+
+   D3 FIX: BrinksRateQuote now calls serverGetBrinksQuote action.
+   D4 FIX: Financial summary shows notional + platform fee + delivery.
+   D5 FIX: Added onSignatureComplete prop — gates navigation on BoS
+           signature completion.
    ================================================================ */
 
 import {
@@ -29,6 +34,8 @@ import {
   MapPin,
   ArrowRight,
   FileSignature,
+  Loader2,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -36,6 +43,12 @@ import {
   type DeliveryMethod,
   type CheckoutFormData,
 } from "@/lib/schemas/checkout-schema";
+import {
+  serverGetBrinksQuote,
+  serverGetPlatformFeeEstimate,
+  type BrinksQuoteResult,
+  type PlatformFeeEstimateResult,
+} from "@/lib/actions/checkout-actions";
 
 /* ── Formatters ── */
 const fmtUsd = (n: number) =>
@@ -98,14 +111,14 @@ function SlideToExecute({
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!dragging) return;
       const maxTravel = trackWidth - thumbWidth;
-      const delta = e.clientX - startX.current;
-      const pct = Math.min(1, Math.max(0, delta / maxTravel));
-      setProgress(pct);
+      const dx = Math.max(0, Math.min(e.clientX - startX.current, maxTravel));
+      setProgress(dx / maxTravel);
     },
     [dragging, trackWidth]
   );
 
   const handlePointerUp = useCallback(() => {
+    if (!dragging) return;
     setDragging(false);
     if (progress >= THRESHOLD) {
       setIsComplete(true);
@@ -114,44 +127,59 @@ function SlideToExecute({
     } else {
       setProgress(0);
     }
-  }, [progress, onComplete]);
+  }, [dragging, progress, onComplete]);
 
   return (
     <div
       ref={trackRef}
       className={cn(
-        "relative h-14 rounded-xl overflow-hidden select-none",
-        "border transition-colors",
+        "relative h-14 w-full select-none overflow-hidden rounded-xl border",
+        "transition-colors duration-200",
         isComplete
-          ? "border-emerald-500/30 bg-emerald-500/10"
-          : "border-color-2/20 bg-color-1/50"
+          ? "border-emerald-500/30 bg-emerald-500/8"
+          : disabled
+            ? "border-color-5/10 bg-color-1/30 opacity-50"
+            : "border-color-5/20 bg-color-1/50"
       )}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
     >
-      {/* Track label */}
+      {/* Label */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         {isSubmitting ? (
-          <span className="text-xs font-medium text-color-3/50 animate-pulse">
-            Executing Settlement…
-          </span>
+          <div className="flex items-center gap-2 text-color-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-xs font-semibold tracking-wider uppercase">
+              Processing…
+            </span>
+          </div>
         ) : isComplete ? (
-          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Executed
-          </span>
+          <div className="flex items-center gap-2 text-emerald-400">
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="text-xs font-semibold tracking-wider uppercase">
+              Executed
+            </span>
+          </div>
         ) : (
-          <span className="text-xs font-medium text-color-3/30 tracking-wide">
+          <span
+            className={cn(
+              "text-xs font-semibold tracking-wider uppercase",
+              disabled ? "text-color-3/20" : "text-color-3/30"
+            )}
+          >
             Slide to Execute Settlement
           </span>
         )}
       </div>
 
-      {/* Thumb */}
+      {/* Draggable thumb */}
       {!isComplete && !isSubmitting && (
         <div
           onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
           className={cn(
-            "absolute top-1 left-1 bottom-1 flex items-center justify-center rounded-lg cursor-grab active:cursor-grabbing",
+            "absolute top-1 left-1 bottom-1 z-10 flex items-center justify-center",
+            "rounded-lg cursor-grab active:cursor-grabbing touch-none",
             "bg-color-2 text-color-1 transition-shadow",
             "shadow-[0_0_12px_rgba(208,168,92,0.3)]",
             disabled ? "opacity-40 cursor-not-allowed" : ""
@@ -181,49 +209,191 @@ function SlideToExecute({
 }
 
 /* ================================================================
-   Brink's Rate Quote Card (simulated)
+   Brink's Rate Quote Card — D3 FIX: Uses serverGetBrinksQuote
    ================================================================ */
 
-function BrinksRateQuote({ weightOz }: { weightOz: number }) {
-  // Simulated rate: $2.50/oz base + $150 flat for armored transport
-  const baseFee = weightOz * 2.5;
-  const armoredFee = 150;
-  const insurance = weightOz * 1.25;
-  const totalShipping = baseFee + armoredFee + insurance;
+function BrinksRateQuote({
+  weightOz,
+  notionalUsd,
+}: {
+  weightOz: number;
+  notionalUsd: number;
+}) {
+  const [quote, setQuote] = useState<BrinksQuoteResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (weightOz <= 0 || notionalUsd <= 0) return;
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    serverGetBrinksQuote({
+      weightOz,
+      notionalUsd,
+      countryCode: "US", // TODO: Derive from shipping address country
+    })
+      .then((result) => {
+        if (!cancelled) {
+          setQuote(result);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.warn("[AurumShield] Brink's quote failed:", err);
+          setError("Rate quote unavailable");
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [weightOz, notionalUsd]);
+
+  if (isLoading) {
+    return (
+      <div className="rounded-lg border border-color-5/15 bg-color-1/30 px-4 py-3 flex items-center gap-2 text-xs text-color-3/50">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        Fetching Brink&apos;s rate quote…
+      </div>
+    );
+  }
+
+  if (error || !quote) {
+    // Fallback to simulated rates if server action fails
+    const baseFee = weightOz * 2.5;
+    const armoredFee = 150;
+    const insurance = weightOz * 1.25;
+    const totalShipping = baseFee + armoredFee + insurance;
+
+    return (
+      <div className="rounded-lg border border-color-5/15 bg-color-1/30 px-4 py-3 space-y-2">
+        <div className="flex items-center gap-2 mb-1">
+          <Package className="h-3.5 w-3.5 text-color-2" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-color-3/50">
+            Brink&apos;s Global Services — Rate Quote (Est.)
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+          <span className="text-color-3/40">Transport Fee</span>
+          <span className="font-mono tabular-nums text-color-3 text-right">
+            ${fmtUsd(baseFee)}
+          </span>
+          <span className="text-color-3/40">Armored Surcharge</span>
+          <span className="font-mono tabular-nums text-color-3 text-right">
+            ${fmtUsd(armoredFee)}
+          </span>
+          <span className="text-color-3/40">Insurance (All-Risk)</span>
+          <span className="font-mono tabular-nums text-color-3 text-right">
+            ${fmtUsd(insurance)}
+          </span>
+          <span className="text-color-3/50 font-semibold border-t border-color-5/10 pt-1.5">
+            Total Shipping
+          </span>
+          <span className="font-mono tabular-nums text-color-2 font-semibold text-right border-t border-color-5/10 pt-1.5">
+            ${fmtUsd(totalShipping)}
+          </span>
+        </div>
+        <p className="text-[10px] text-color-3/30 italic">
+          Est. delivery: 5–7 business days · Fully insured · GPS-tracked
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-color-5/15 bg-color-1/30 px-4 py-3 space-y-2">
       <div className="flex items-center gap-2 mb-1">
         <Package className="h-3.5 w-3.5 text-color-2" />
         <span className="text-[10px] font-bold uppercase tracking-widest text-color-3/50">
-          Brink&apos;s Global Services — Rate Quote
+          {quote.carrier} — Rate Quote
         </span>
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
         <span className="text-color-3/40">Transport Fee</span>
         <span className="font-mono tabular-nums text-color-3 text-right">
-          ${fmtUsd(baseFee)}
+          ${fmtUsd(quote.baseFee)}
         </span>
 
-        <span className="text-color-3/40">Armored Surcharge</span>
+        <span className="text-color-3/40">Handling &amp; Packaging</span>
         <span className="font-mono tabular-nums text-color-3 text-right">
-          ${fmtUsd(armoredFee)}
+          ${fmtUsd(quote.handlingFee)}
         </span>
 
         <span className="text-color-3/40">Insurance (All-Risk)</span>
         <span className="font-mono tabular-nums text-color-3 text-right">
-          ${fmtUsd(insurance)}
+          ${fmtUsd(quote.insuranceFee)}
         </span>
 
         <span className="text-color-3/50 font-semibold border-t border-color-5/10 pt-1.5">
           Total Shipping
         </span>
         <span className="font-mono tabular-nums text-color-2 font-semibold text-right border-t border-color-5/10 pt-1.5">
-          ${fmtUsd(totalShipping)}
+          ${fmtUsd(quote.totalFee)}
         </span>
       </div>
       <p className="text-[10px] text-color-3/30 italic">
-        Est. delivery: 5–7 business days · Fully insured · GPS-tracked
+        Est. delivery: {quote.estimatedDays} business days · Fully insured · GPS-tracked ·
+        Quote valid {quote.validForMinutes} min
+      </p>
+    </div>
+  );
+}
+
+/* ================================================================
+   Financial Summary — D4 FIX: Shows notional + fees + delivery
+   ================================================================ */
+
+function FinancialSummary({
+  notionalUsd,
+}: {
+  notionalUsd: number;
+}) {
+  const [feeEstimate, setFeeEstimate] = useState<PlatformFeeEstimateResult | null>(null);
+
+  useEffect(() => {
+    if (notionalUsd <= 0) return;
+
+    let cancelled = false;
+    const notionalCents = Math.round(notionalUsd * 100);
+
+    serverGetPlatformFeeEstimate({ notionalCents })
+      .then((result) => {
+        if (!cancelled) setFeeEstimate(result);
+      })
+      .catch((err) => {
+        console.warn("[AurumShield] Fee estimate failed:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [notionalUsd]);
+
+  if (!feeEstimate) return null;
+
+  return (
+    <div className="rounded-lg border border-color-5/15 bg-color-1/30 px-4 py-3 space-y-2">
+      <div className="flex items-center gap-2 mb-1">
+        <DollarSign className="h-3.5 w-3.5 text-color-2" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-color-3/50">
+          Fee Schedule
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+        <span className="text-color-3/40">
+          Indemnification ({feeEstimate.bps / 100}%)
+        </span>
+        <span className="font-mono tabular-nums text-color-3 text-right">
+          {feeEstimate.feeUsd}
+        </span>
+      </div>
+      <p className="text-[10px] text-color-3/30 italic">
+        Add-on fees (compliance, insurance upgrades) calculated at settlement finalization.
       </p>
     </div>
   );
@@ -240,6 +410,8 @@ interface StepTwoRoutingProps {
   signingUrl?: string | null;
   /** Signature request ID for tracking */
   signatureRequestId?: string | null;
+  /** D5 FIX: Called when the buyer completes BoS signature */
+  onSignatureComplete?: () => void;
 }
 
 export function StepTwoRouting({
@@ -247,6 +419,7 @@ export function StepTwoRouting({
   isSubmitting,
   signingUrl,
   signatureRequestId,
+  onSignatureComplete,
 }: StepTwoRoutingProps) {
   const {
     register,
@@ -271,13 +444,51 @@ export function StepTwoRouting({
     | Record<string, { message?: string }>
     | undefined;
 
+  /**
+   * D5 FIX: Listen for postMessage from Dropbox Sign embedded iFrame.
+   * The HS embedded SDK sends a "signature_request_all_signed" event
+   * when all parties have signed. In embedded mode (iFrame), the
+   * signed message is sent via window.postMessage.
+   */
+  useEffect(() => {
+    if (!signingUrl || !onSignatureComplete) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      // Dropbox Sign embedded SDK sends events via postMessage
+      if (
+        typeof event.data === "string" &&
+        (event.data.includes("signature_request_all_signed") ||
+          event.data.includes('"type":"signature_request_signed"'))
+      ) {
+        console.log("[AurumShield] BoS signature completed via postMessage");
+        onSignatureComplete();
+      }
+
+      // Also handle JSON-formatted events
+      if (typeof event.data === "object" && event.data !== null) {
+        const data = event.data as Record<string, unknown>;
+        if (
+          data.type === "hellosign:userFinishRequest" ||
+          data.type === "hellosign:userSignRequest" ||
+          data.event === "signature_request_all_signed"
+        ) {
+          console.log("[AurumShield] BoS signature completed via SDK event");
+          onSignatureComplete();
+        }
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [signingUrl, onSignatureComplete]);
+
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
       <div className="flex items-center gap-2">
         <Truck className="h-4 w-4 text-color-2" />
         <h2 className="text-sm font-semibold text-color-3">
-          Delivery & Settlement
+          Delivery &amp; Settlement
         </h2>
       </div>
 
@@ -301,6 +512,9 @@ export function StepTwoRouting({
           </p>
         </div>
       </div>
+
+      {/* ── D4 FIX: Financial Summary (platform fee) ── */}
+      {notional > 0 && <FinancialSummary notionalUsd={notional} />}
 
       {/* ── Delivery Method Radio Cards ── */}
       <div>
@@ -442,8 +656,11 @@ export function StepTwoRouting({
             />
           </div>
 
-          {/* ── Brink's Rate Quote ── */}
-          <BrinksRateQuote weightOz={weightOz || 0} />
+          {/* ── D3 FIX: Brink's Rate Quote via server action ── */}
+          <BrinksRateQuote
+            weightOz={weightOz || 0}
+            notionalUsd={notional}
+          />
         </div>
       )}
 

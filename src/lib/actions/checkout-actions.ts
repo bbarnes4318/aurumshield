@@ -160,3 +160,91 @@ export async function serverGetShippingQuote(
 ): Promise<EasyPostShipment> {
   return createShipmentQuote(input.toAddress, input.weightOz);
 }
+
+/* ---------- Brink's Delivery Quote (D3 Fix) ---------- */
+
+export interface BrinksQuoteInput {
+  weightOz: number;
+  notionalUsd: number;
+  /** Country code for the delivery address (e.g. "US"). */
+  countryCode: string;
+}
+
+export interface BrinksQuoteResult {
+  baseFee: number;
+  insuranceFee: number;
+  handlingFee: number;
+  totalFee: number;
+  estimatedDays: number;
+  carrier: string;
+  validForMinutes: number;
+  quotedAt: string;
+}
+
+/**
+ * Get a Brink's Global Services rate quote for high-value gold shipments.
+ * Uses the brinks-service adapter (mock API client).
+ */
+export async function serverGetBrinksQuote(
+  input: BrinksQuoteInput,
+): Promise<BrinksQuoteResult> {
+  const { fetchDeliveryRate } = await import("@/lib/delivery/brinks-service");
+  // Address is required by the adapter signature but not used in the mock
+  const placeholderAddress = {
+    fullName: "",
+    streetAddress: "",
+    city: "",
+    stateProvince: "",
+    postalCode: "",
+    country: input.countryCode,
+    phone: "",
+  };
+  const quote = await fetchDeliveryRate(placeholderAddress, input.weightOz, input.notionalUsd);
+  return {
+    baseFee: quote.baseFee,
+    insuranceFee: quote.insuranceFee,
+    handlingFee: quote.handlingFee,
+    totalFee: quote.totalFee,
+    estimatedDays: quote.estimatedDays,
+    carrier: quote.carrier,
+    validForMinutes: quote.validForMinutes,
+    quotedAt: quote.quotedAt,
+  };
+}
+
+/* ---------- Platform Fee Estimate (D4 Fix) ---------- */
+
+export interface PlatformFeeEstimateInput {
+  notionalCents: number;
+}
+
+export interface PlatformFeeEstimateResult {
+  /** Core indemnification fee in cents. */
+  feeCents: number;
+  /** Basis points used. */
+  bps: number;
+  /** Human-readable display. */
+  feeUsd: string;
+}
+
+/**
+ * Compute the platform's core indemnification fee for a given notional.
+ * This is the minimum fee displayed during checkout before add-ons.
+ */
+export async function serverGetPlatformFeeEstimate(
+  input: PlatformFeeEstimateInput,
+): Promise<PlatformFeeEstimateResult> {
+  const { computeFeeQuote, defaultPricingConfig, formatCentsUsd } = await import("@/lib/fees/fee-engine");
+  const config = defaultPricingConfig();
+  const result = computeFeeQuote({
+    notionalCents: input.notionalCents,
+    selectedAddOns: [],
+    config,
+    now: new Date().toISOString(),
+  });
+  return {
+    feeCents: result.feeQuote.coreIndemnificationFeeCents,
+    bps: config.coreFee.indemnificationBps,
+    feeUsd: formatCentsUsd(result.feeQuote.coreIndemnificationFeeCents),
+  };
+}

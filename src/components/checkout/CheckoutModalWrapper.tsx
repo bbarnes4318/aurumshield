@@ -7,14 +7,19 @@
      Step 1: Price Lock (weight, price, countdown + OANDA spot)
      Step 2: Delivery Routing (method, address, slide-to-execute
                               + Dropbox Sign Bill of Sale iFrame)
+
+   D1 + D6 FIX: Now wired to the real useAtomicBuy pipeline
+   (reserve → convert → open settlement) and populates buyer/seller
+   identity from the authenticated user context.
    ================================================================ */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, ChevronLeft, ShieldCheck } from "lucide-react";
+import { X, ChevronLeft, ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
 import type { Listing } from "@/lib/mock-data";
+import { mockUsers } from "@/lib/mock-data";
 import {
   combinedCheckoutSchema,
   type CheckoutFormData,
@@ -25,6 +30,9 @@ import {
   serverGetSigningUrl,
   type SpotPriceResult,
 } from "@/lib/actions/checkout-actions";
+import { useAuth } from "@/providers/auth-provider";
+import { useAtomicBuy } from "@/hooks/use-atomic-buy";
+import { useOpenSettlementFromOrder } from "@/hooks/use-mock-queries";
 import { StepOnePriceLock } from "./StepOnePriceLock";
 import { StepTwoRouting } from "./StepTwoRouting";
 
@@ -48,9 +56,13 @@ export function CheckoutModalWrapper({
   onClose,
 }: CheckoutModalWrapperProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const atomicBuy = useAtomicBuy();
+  const openSettlement = useOpenSettlementFromOrder();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   /* ── OANDA spot price state ── */
   const [spotPrice, setSpotPrice] = useState<SpotPriceResult | null>(null);
@@ -58,6 +70,16 @@ export function CheckoutModalWrapper({
   /* ── Dropbox Sign embedded signing state ── */
   const [signingUrl, setSigningUrl] = useState<string | null>(null);
   const [signatureRequestId, setSignatureRequestId] = useState<string | null>(null);
+
+  /* ── Track generated order / settlement IDs ── */
+  const settlementIdRef = useRef<string | null>(null);
+
+  /* ── Resolve seller email from user store ── */
+  const sellerUser = mockUsers.find((u) => u.id === listing.sellerUserId);
+  const buyerEmail = user?.email ?? "buyer@aurumshield.com";
+  const buyerName = user?.name ?? "Buyer";
+  const sellerEmail = sellerUser?.email ?? "seller@aurumshield.com";
+  const sellerName = listing.sellerName ?? sellerUser?.name ?? "Seller";
 
   /* Fetch live spot price on mount */
   useEffect(() => {
@@ -93,25 +115,52 @@ export function CheckoutModalWrapper({
     setCurrentStep(1);
   }, []);
 
+  /**
+   * D1 FIX: Full E2E pipeline
+   * 1. Reserve inventory + convert to order via useAtomicBuy
+   * 2. Open settlement from the real order
+   * 3. Create Bill of Sale via Dropbox Sign with real identities
+   * 4. Navigation gated on signature completion (D5)
+   */
   const handleFinalSubmit = useCallback(async () => {
     const isValid = await form.trigger();
     if (!isValid) return;
 
     setIsSubmitting(true);
+    setSubmitError(null);
     const data = form.getValues();
-    const generatedOrderId = `ORD-${Date.now()}`;
+    const userId = user?.id ?? "user-1";
 
     try {
-      // 1. Create Bill of Sale via Dropbox Sign
+      // 1. Atomic reserve → convert (creates reservation + order in state store)
+      const buyResult = await atomicBuy.execute({
+        listingId: listing.id,
+        userId,
+        weightOz: data.weightOz,
+        notional: data.weightOz * data.lockedPrice,
+      });
+
+      const realOrderId = buyResult.order.id;
+
+      // 2. Open settlement case from the real order
+      const settlement = await openSettlement.mutateAsync({
+        orderId: realOrderId,
+        actorRole: user?.role ?? "buyer",
+        actorUserId: userId,
+      });
+
+      settlementIdRef.current = settlement.id;
+
+      // 3. Create Bill of Sale via Dropbox Sign with real identities (D6 fix)
       const billOfSaleResult = await serverCreateBillOfSale({
         buyer: {
-          name: "Buyer", // TODO: Pull from authenticated user context
-          emailAddress: "buyer@aurumshield.com",
+          name: buyerName,
+          emailAddress: buyerEmail,
           role: "buyer",
         },
         seller: {
-          name: "Seller", // TODO: Pull from listing owner data
-          emailAddress: "seller@aurumshield.com",
+          name: sellerName,
+          emailAddress: sellerEmail,
           role: "seller",
         },
         billOfSale: {
@@ -120,7 +169,7 @@ export function CheckoutModalWrapper({
           pricePerOz: data.lockedPrice,
           notionalUsd: data.weightOz * data.lockedPrice,
           deliveryMethod: data.deliveryMethod,
-          orderId: generatedOrderId,
+          orderId: realOrderId,
           listingId: listing.id,
           settlementDate: new Date().toISOString(),
         },
@@ -128,7 +177,7 @@ export function CheckoutModalWrapper({
 
       setSignatureRequestId(billOfSaleResult.signatureRequestId);
 
-      // 2. Get embedded signing URL for buyer
+      // 4. Get embedded signing URL for buyer
       if (billOfSaleResult.buyerSignatureId) {
         const urlResult = await serverGetSigningUrl(
           billOfSaleResult.buyerSignatureId,
@@ -136,36 +185,56 @@ export function CheckoutModalWrapper({
         setSigningUrl(urlResult.signUrl);
       }
 
-      console.log("Checkout submitted:", {
+      console.log("[AurumShield] Checkout pipeline complete:", {
         listingId: listing.id,
-        orderId: generatedOrderId,
+        orderId: realOrderId,
+        settlementId: settlement.id,
         signatureRequestId: billOfSaleResult.signatureRequestId,
         isMock: billOfSaleResult.isMock,
-        ...data,
+        buyerEmail,
+        sellerEmail,
       });
 
       setIsSubmitting(false);
       setIsSuccess(true);
 
-      // Route to the Post-Trade Dossier instead of reloading inventory.
-      // The settlement ID convention mirrors the order ID for traceability.
-      const settlementId = `stl-${generatedOrderId.replace("ORD-", "")}`;
-      setTimeout(() => {
-        router.push(`/settlements/${settlementId}`);
-      }, 2500);
+      // D5 FIX: Route to the real settlement ID.
+      // Navigation is deferred until signature completion event fires
+      // (handled by onSignatureComplete callback from StepTwoRouting).
+      // If running in mock mode (no embedded signing), navigate after brief delay.
+      if (billOfSaleResult.isMock) {
+        setTimeout(() => {
+          router.push(`/settlements/${settlement.id}`);
+        }, 1500);
+      }
+      // Otherwise, StepTwoRouting will call onSignatureComplete when
+      // the Dropbox Sign embedded SDK fires 'sign' or 'finish' event.
     } catch (err) {
       console.error("[AurumShield] Checkout submission failed:", err);
+      const message = err instanceof Error ? err.message : "Transaction failed";
+      setSubmitError(message);
       setIsSubmitting(false);
       // Modal stays open on failure — user can retry
     }
-  }, [form, listing.id, listing.title, router]);
+  }, [form, listing.id, listing.title, router, user, atomicBuy, openSettlement, buyerName, buyerEmail, sellerName, sellerEmail]);
+
+  /**
+   * D5 FIX: Called by StepTwoRouting when the Dropbox Sign embedded
+   * SDK fires the signature completion event. Only then do we navigate.
+   */
+  const handleSignatureComplete = useCallback(() => {
+    const sid = settlementIdRef.current;
+    if (sid) {
+      router.push(`/settlements/${sid}`);
+    }
+  }, [router]);
 
   return (
     <>
       {/* ── Backdrop ── */}
       <div
         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-        onClick={onClose}
+        onClick={isSubmitting ? undefined : onClose}
         aria-hidden="true"
       />
 
@@ -181,7 +250,7 @@ export function CheckoutModalWrapper({
           {/* ── Modal Header ── */}
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-color-5/10 bg-color-1/95 backdrop-blur-sm px-5 py-4">
             <div className="flex items-center gap-3">
-              {currentStep === 2 && !isSuccess && (
+              {currentStep === 2 && !isSuccess && !isSubmitting && (
                 <button
                   type="button"
                   onClick={goBackToStepOne}
@@ -239,7 +308,8 @@ export function CheckoutModalWrapper({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-color-5/20 text-color-3/50 hover:text-color-3 hover:border-color-5/40 transition-colors"
+                disabled={isSubmitting}
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-color-5/20 text-color-3/50 hover:text-color-3 hover:border-color-5/40 transition-colors disabled:opacity-50"
                 aria-label="Close checkout"
               >
                 <X className="h-4 w-4" />
@@ -283,10 +353,49 @@ export function CheckoutModalWrapper({
                       isSubmitting={isSubmitting}
                       signingUrl={signingUrl}
                       signatureRequestId={signatureRequestId}
+                      onSignatureComplete={handleSignatureComplete}
                     />
                   )}
                 </form>
               </FormProvider>
+            )}
+
+            {/* ── Submission error ── */}
+            {submitError && !isSubmitting && !isSuccess && (
+              <div className="mt-4 rounded-md border border-red-500/30 bg-red-500/5 px-4 py-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-red-400">
+                      Transaction Failed
+                    </p>
+                    <p className="text-xs text-red-400/80 mt-0.5">
+                      {submitError}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSubmitError(null)}
+                  className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            {/* ── Pipeline progress during submission ── */}
+            {isSubmitting && (
+              <div className="mt-4 flex items-center gap-2 rounded-md border border-color-2/20 bg-color-2/5 px-4 py-3 text-xs text-color-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>
+                  {atomicBuy.step === "reserving" && "Locking inventory…"}
+                  {atomicBuy.step === "converting" && "Creating order…"}
+                  {atomicBuy.step === "done" && openSettlement.isPending && "Opening settlement…"}
+                  {atomicBuy.step === "done" && !openSettlement.isPending && "Preparing Bill of Sale…"}
+                  {atomicBuy.step === "idle" && "Initializing…"}
+                </span>
+              </div>
             )}
           </div>
 

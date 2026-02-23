@@ -54,46 +54,22 @@ export async function sendEmail(
   }
 }
 
-/* ---------- SMS (Fractel REST API) ---------- */
-
-const FRACTEL_BASE_URL = "https://api.fractel.net/v1/messages";
+/* ---------- SMS (DEPRECATED — D7 Directive) ---------- */
 
 /**
- * Send an SMS via the Fractel REST API.
- * Reads FRACTEL_API_KEY from process.env at invocation time.
- * Never throws — returns a structured result.
+ * @deprecated SMS functionality has been removed per D7 system directive.
+ * Fractel API integration is no longer active. This function is a no-op
+ * preserved for backward compatibility with any residual imports.
+ *
+ * The ONLY notification channel is Resend email.
  */
 export async function sendText(
-  to: string,
-  message: string,
+  _to: string,
+  _message: string,
 ): Promise<SendResult> {
-  const apiKey = process.env.FRACTEL_API_KEY;
-  if (!apiKey) {
-    console.warn("[AurumShield] FRACTEL_API_KEY is not set — SMS skipped");
-    return { success: false, error: "FRACTEL_API_KEY not configured" };
-  }
-
-  try {
-    const response = await fetch(FRACTEL_BASE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ to, message }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      const errorMsg = `Fractel API ${response.status}: ${body}`;
-      console.error("[AurumShield] Fractel API error:", errorMsg);
-      return { success: false, error: errorMsg };
-    }
-
-    return { success: true };
-  } catch (err) {
-    const message_ = err instanceof Error ? err.message : String(err);
-    console.error("[AurumShield] sendText exception:", message_);
-    return { success: false, error: message_ };
-  }
+  console.warn(
+    "[AurumShield] sendText() is DEPRECATED — SMS functionality removed per D7 directive. Use sendEmail() instead.",
+  );
+  return { success: false, error: "SMS_DEPRECATED" };
 }
+
