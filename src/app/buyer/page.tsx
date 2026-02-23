@@ -31,6 +31,7 @@ import {
   useListings,
   useVerificationCase,
   useCertificateBySettlement,
+  useKycStatus,
 } from "@/hooks/use-mock-queries";
 import type {
   Order,
@@ -459,23 +460,69 @@ function EmptyState({ onBrowse }: { onBrowse: () => void }) {
 function VerificationDrawerBody() {
   const { user, org } = useAuth();
   const caseQ = useVerificationCase(user?.id ?? null);
+  const kycQ = useKycStatus(user?.id);
   const vc = caseQ.data;
+  const kycStatus = kycQ.data?.kycStatus ?? "PENDING";
 
-  if (caseQ.isLoading) return <LoadingState message="Loading verification…" />;
+  if (caseQ.isLoading || kycQ.isLoading) return <LoadingState message="Loading verification…" />;
+
+  /* ── KYC Status Badge ── */
+  const KYC_BADGE: Record<string, { label: string; color: string; bg: string }> = {
+    APPROVED: { label: "VERIFIED", color: "text-success", bg: "bg-success/10 border-success/20" },
+    PENDING: { label: "PENDING", color: "text-warning", bg: "bg-warning/10 border-warning/20" },
+    ELEVATED: { label: "ELEVATED REVIEW", color: "text-warning", bg: "bg-warning/10 border-warning/20" },
+    REJECTED: { label: "REJECTED", color: "text-danger", bg: "bg-danger/10 border-danger/20" },
+  };
+  const badge = KYC_BADGE[kycStatus] ?? KYC_BADGE.PENDING;
 
   if (!vc) {
     return (
-      <div className="p-5">
-        <p className="text-sm text-text-muted">
-          Your identity verification has not started yet. Verification will be initiated
-          as part of the transaction lifecycle.
-        </p>
+      <div className="p-5 space-y-4">
+        {/* Live KYC Status from PostgreSQL */}
+        <div className={cn("flex items-center gap-3 rounded-[var(--radius-sm)] border px-4 py-3", badge.bg)}>
+          <Fingerprint className={cn("h-5 w-5 shrink-0", badge.color)} />
+          <div>
+            <p className={cn("text-xs font-bold uppercase tracking-widest", badge.color)}>
+              {badge.label}
+            </p>
+            <p className="text-xs text-text-muted mt-0.5">
+              {kycStatus === "APPROVED"
+                ? "Your identity has been verified by Persona."
+                : kycStatus === "REJECTED"
+                  ? "Verification was rejected. Please contact support or re-verify."
+                  : "Verification has not been completed yet."}
+            </p>
+          </div>
+        </div>
+
+        {kycStatus !== "APPROVED" && (
+          <Link
+            href="/onboarding"
+            className={cn(
+              "inline-flex items-center gap-2 rounded-[var(--radius-input)]",
+              "bg-gold px-5 py-2 text-sm font-medium text-bg",
+              "transition-colors hover:bg-gold-hover active:bg-gold-pressed",
+            )}
+          >
+            <Fingerprint className="h-4 w-4" />
+            {kycStatus === "REJECTED" ? "Re-verify Identity" : "Start Verification"}
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        )}
       </div>
     );
   }
 
   return (
     <div className="p-5 space-y-4">
+      {/* Live KYC Status Badge */}
+      <div className={cn("flex items-center gap-2 rounded-full border px-3 py-1 w-fit", badge.bg)}>
+        <span className="h-1.5 w-1.5 rounded-full bg-current" style={{ color: `var(--${kycStatus === "APPROVED" ? "success" : kycStatus === "REJECTED" ? "danger" : "warning"})` }} />
+        <span className={cn("text-[10px] font-bold uppercase tracking-widest", badge.color)}>
+          KYC: {badge.label}
+        </span>
+      </div>
+
       <CaseSummaryCard verificationCase={vc} />
       <StepLadder steps={vc.steps} currentStepId={vc.nextRequiredStepId} />
       <DecisionPanel

@@ -11,6 +11,7 @@ import { AuditLog } from "@/components/verification/audit-log";
 import {
   useVerificationCase,
   useInitVerification,
+  useKycStatus,
 } from "@/hooks/use-mock-queries";
 import { Fingerprint, Printer, ShieldAlert } from "lucide-react";
 import type { VerificationTrack } from "@/lib/mock-data";
@@ -27,8 +28,18 @@ function VerificationContent() {
   const { user, org } = useAuth();
   const caseQ = useVerificationCase(user?.id ?? null);
   const initMut = useInitVerification();
+  const kycQ = useKycStatus(user?.id);
 
   const vc = caseQ.data;
+  const kycStatus = kycQ.data?.kycStatus ?? "PENDING";
+
+  const KYC_BADGE_MAP: Record<string, { label: string; cls: string }> = {
+    APPROVED: { label: "VERIFIED", cls: "text-success bg-success/10 border-success/20" },
+    PENDING: { label: "PENDING", cls: "text-warning bg-warning/10 border-warning/20" },
+    ELEVATED: { label: "ELEVATED REVIEW", cls: "text-warning bg-warning/10 border-warning/20" },
+    REJECTED: { label: "REJECTED", cls: "text-danger bg-danger/10 border-danger/20" },
+  };
+  const kycBadge = KYC_BADGE_MAP[kycStatus] ?? KYC_BADGE_MAP.PENDING;
 
   const handleInitCase = (track: VerificationTrack) => {
     if (!user || !org) return;
@@ -127,6 +138,11 @@ function VerificationContent() {
           <Printer className="h-3.5 w-3.5" />
           Print Case File
         </button>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${kycBadge.cls}`}
+        >
+          KYC: {kycBadge.label}
+        </span>
       </div>
 
       {/* 3-panel layout at ≥1280px */}

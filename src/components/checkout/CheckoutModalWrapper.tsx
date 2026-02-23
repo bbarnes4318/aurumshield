@@ -10,6 +10,7 @@
    ================================================================ */
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X, ChevronLeft, ShieldCheck } from "lucide-react";
@@ -46,6 +47,7 @@ export function CheckoutModalWrapper({
   maxWeightOz,
   onClose,
 }: CheckoutModalWrapperProps) {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -97,6 +99,7 @@ export function CheckoutModalWrapper({
 
     setIsSubmitting(true);
     const data = form.getValues();
+    const generatedOrderId = `ORD-${Date.now()}`;
 
     try {
       // 1. Create Bill of Sale via Dropbox Sign
@@ -117,7 +120,7 @@ export function CheckoutModalWrapper({
           pricePerOz: data.lockedPrice,
           notionalUsd: data.weightOz * data.lockedPrice,
           deliveryMethod: data.deliveryMethod,
-          orderId: `ORD-${Date.now()}`,
+          orderId: generatedOrderId,
           listingId: listing.id,
           settlementDate: new Date().toISOString(),
         },
@@ -135,6 +138,7 @@ export function CheckoutModalWrapper({
 
       console.log("Checkout submitted:", {
         listingId: listing.id,
+        orderId: generatedOrderId,
         signatureRequestId: billOfSaleResult.signatureRequestId,
         isMock: billOfSaleResult.isMock,
         ...data,
@@ -143,15 +147,18 @@ export function CheckoutModalWrapper({
       setIsSubmitting(false);
       setIsSuccess(true);
 
-      // Auto-close after success (delayed to allow signing)
+      // Route to the Post-Trade Dossier instead of reloading inventory.
+      // The settlement ID convention mirrors the order ID for traceability.
+      const settlementId = `stl-${generatedOrderId.replace("ORD-", "")}`;
       setTimeout(() => {
-        onClose();
-      }, signingUrl ? 10000 : 2000);
+        router.push(`/settlements/${settlementId}`);
+      }, 2500);
     } catch (err) {
       console.error("[AurumShield] Checkout submission failed:", err);
       setIsSubmitting(false);
+      // Modal stays open on failure — user can retry
     }
-  }, [form, listing.id, listing.title, onClose, signingUrl]);
+  }, [form, listing.id, listing.title, router]);
 
   return (
     <>

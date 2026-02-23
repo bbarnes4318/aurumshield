@@ -51,6 +51,12 @@ import {
 
 /* ================================================================
    Existing hooks — unchanged
+   TODO: WIRE_TO_LIVE_API — The hooks below read from mock-data.ts fixtures.
+   These data points (metrics, counterparties, transactions, corridors,
+   hubs, labs, claims, reinsurance, policies, roles, timeline, audit events,
+   evidence, dashboard scenarios) have NO corresponding PostgreSQL tables.
+   A separate phase is required to build the full risk/capital API surface.
+   Until then, these remain as institutional visual fixtures.
    ================================================================ */
 
 export function useMetrics() {
@@ -182,10 +188,47 @@ export function useTableData() {
   return useCounterparties();
 }
 
+/* TODO: WIRE_TO_LIVE_API — useDashboardData reads from getMockDashboardData().
+   Capital adequacy, TRI bands, risk distribution, evidence health, and WORM
+   storage data exist only as fixtures in mock-data.ts. No PostgreSQL tables. */
 export function useDashboardData(scenario: DashboardScenario = "phase1") {
   return useQuery<DashboardData>({
     queryKey: ["dashboard", scenario],
     queryFn: () => mockFetch(getMockDashboardData(scenario)),
+  });
+}
+
+/* ================================================================
+   Live PostgreSQL hooks — Identity Perimeter
+   ================================================================
+   These hooks query live API routes backed by PostgreSQL,
+   NOT mock data. They are the first hooks to cross the
+   mock → live boundary.
+   ================================================================ */
+
+export type KycStatusValue = "PENDING" | "APPROVED" | "ELEVATED" | "REJECTED";
+
+interface KycStatusResponse {
+  kycStatus: KycStatusValue;
+  source: "postgresql" | "fallback";
+  reason?: string;
+}
+
+/**
+ * Fetch the live `kyc_status` for a user from PostgreSQL.
+ * Falls back to PENDING if DB is unreachable (graceful degradation).
+ * 30s staleTime — KYC status rarely changes mid-session.
+ */
+export function useKycStatus(userId: string | null | undefined) {
+  return useQuery<KycStatusResponse>({
+    queryKey: ["kyc-status", userId],
+    queryFn: async () => {
+      const res = await fetch(`/api/user/kyc-status?userId=${encodeURIComponent(userId!)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
+    enabled: !!userId,
+    staleTime: 30_000, // 30s cache — KYC status changes infrequently
   });
 }
 
@@ -875,6 +918,8 @@ import {
   apiExportIntradayPacket,
 } from "@/lib/api";
 
+/* TODO: WIRE_TO_LIVE_API — useIntradayCapital reads from apiGetIntradayCapitalSnapshot()
+   which resolves from capital-engine.ts localStorage state, not PostgreSQL. */
 export function useIntradayCapital() {
   return useQuery<IntradayCapitalSnapshot>({
     queryKey: ["intraday-capital"],
@@ -944,6 +989,8 @@ import {
   apiExportCapitalControlsPacket,
 } from "@/lib/api";
 
+/* TODO: WIRE_TO_LIVE_API — useCapitalControls reads from apiGetCapitalControls()
+   which resolves from capital-controls localStorage engine, not PostgreSQL. */
 export function useCapitalControls() {
   return useQuery<CapitalControlDecision>({
     queryKey: ["capital-controls"],
