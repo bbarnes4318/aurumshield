@@ -1,11 +1,17 @@
 "use client";
 
 /* ================================================================
-   ONBOARDING WIZARD — Orchestrator
+   ONBOARDING WIZARD — Orchestrator (with save-and-resume)
    ================================================================
    3-step progressive disclosure flow for KYC/KYB verification.
    Manages form state via react-hook-form + Zod, renders the
    active step, and provides a persistent progress bar.
+
+   Save-and-Resume:
+     • On mount: loads saved state from /api/compliance/state
+     • On step transition: auto-saves progress
+     • "Resume Later" button for safe exit
+     • On final submit: marks state as COMPLETED
 
    Steps:
      1. Corporate Identity & Contact
@@ -13,11 +19,11 @@
      3. Biometric Liveness Check
    ================================================================ */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Shield, CheckCircle2 } from "lucide-react";
+import { Shield, CheckCircle2, LogOut, Loader2 } from "lucide-react";
 
 import {
   onboardingSchema,
@@ -28,6 +34,11 @@ import {
 import { StepCorporateIdentity } from "./StepCorporateIdentity";
 import { StepUBODocuments } from "./StepUBODocuments";
 import { StepLivenessCheck } from "./StepLivenessCheck";
+
+import {
+  useOnboardingState,
+  useSaveOnboardingState,
+} from "@/hooks/use-onboarding-state";
 
 /* ----------------------------------------------------------------
    Progress Bar
@@ -96,7 +107,13 @@ function ProgressBar({ currentStep }: { currentStep: number }) {
 export function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(true);
   const router = useRouter();
+  const hasRestoredRef = useRef(false);
+
+  /* ── Saved state hooks ── */
+  const savedStateQ = useOnboardingState();
+  const saveMutation = useSaveOnboardingState();
 
   const methods = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
@@ -113,7 +130,54 @@ export function OnboardingWizard() {
     mode: "onTouched",
   });
 
-  const { trigger, handleSubmit } = methods;
+  const { trigger, handleSubmit, reset, getValues } = methods;
+
+  /* ── Restore saved state on mount ── */
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    if (savedStateQ.isLoading) return;
+
+    hasRestoredRef.current = true;
+
+    if (savedStateQ.data) {
+      const saved = savedStateQ.data;
+
+      // Restore wizard step
+      if (saved.currentStep >= 1 && saved.currentStep <= 3) {
+        setCurrentStep(saved.currentStep);
+      }
+
+      // Restore form values from metadata_json
+      const meta = saved.metadataJson as Partial<OnboardingFormData> | undefined;
+      if (meta && typeof meta === "object") {
+        reset({
+          companyName: meta.companyName ?? "",
+          registrationNumber: meta.registrationNumber ?? "",
+          jurisdiction: meta.jurisdiction ?? "",
+          contactEmail: meta.contactEmail ?? "",
+          contactPhone: meta.contactPhone ?? "",
+          uboDocumentName: meta.uboDocumentName ?? "",
+          uboDeclarationAccepted: (meta.uboDeclarationAccepted ?? false) as unknown as true,
+          livenessCompleted: (meta.livenessCompleted ?? false) as unknown as true,
+        });
+      }
+    }
+
+    setIsRestoring(false);
+  }, [savedStateQ.isLoading, savedStateQ.data, reset]);
+
+  /* ── Auto-save helper ── */
+  const saveProgress = useCallback(
+    (step: number, status: "IN_PROGRESS" | "COMPLETED" = "IN_PROGRESS") => {
+      const formData = getValues();
+      saveMutation.mutate({
+        currentStep: step,
+        status,
+        metadataJson: formData as unknown as Record<string, unknown>,
+      });
+    },
+    [getValues, saveMutation],
+  );
 
   /* ── Step navigation ── */
 
@@ -123,16 +187,26 @@ export function OnboardingWizard() {
     const valid = await trigger(stepFields as unknown as (keyof OnboardingFormData)[]);
     if (!valid) return;
 
+    const nextStep = currentStep + 1;
     if (currentStep < ONBOARDING_STEPS.length) {
-      setCurrentStep((s) => s + 1);
+      setCurrentStep(nextStep);
+      saveProgress(nextStep);
     }
-  }, [currentStep, trigger, stepFields]);
+  }, [currentStep, trigger, stepFields, saveProgress]);
 
   const goBack = useCallback(() => {
     if (currentStep > 1) {
-      setCurrentStep((s) => s - 1);
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+      saveProgress(prevStep);
     }
-  }, [currentStep]);
+  }, [currentStep, saveProgress]);
+
+  /* ── Resume Later ── */
+  const handleResumeLater = useCallback(() => {
+    saveProgress(currentStep);
+    router.push("/buyer");
+  }, [currentStep, saveProgress, router]);
 
   /* ── Final submission ── */
 
@@ -145,10 +219,13 @@ export function OnboardingWizard() {
       console.log("[AurumShield] Onboarding data submitted:", data);
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
+      // Mark onboarding as completed
+      saveProgress(3, "COMPLETED");
+
       setIsSubmitting(false);
       router.push("/buyer");
     },
-    [router],
+    [router, saveProgress],
   );
 
   /* ── Render active step ── */
@@ -165,6 +242,16 @@ export function OnboardingWizard() {
         return null;
     }
   };
+
+  /* ── Loading state while restoring ── */
+  if (isRestoring) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Loader2 className="h-8 w-8 text-color-2 animate-spin" />
+        <p className="text-sm text-color-3/50">Restoring your progress…</p>
+      </div>
+    );
+  }
 
   return (
     <FormProvider {...methods}>
@@ -192,17 +279,29 @@ export function OnboardingWizard() {
 
         {/* Navigation */}
         <div className="flex items-center justify-between mt-8 pt-6 border-t border-color-5/20">
-          {currentStep > 1 ? (
+          <div className="flex items-center gap-3">
+            {currentStep > 1 ? (
+              <button
+                type="button"
+                onClick={goBack}
+                className="text-sm font-medium text-color-3/60 hover:text-color-3 transition-colors"
+              >
+                ← Back
+              </button>
+            ) : (
+              <div />
+            )}
+
+            {/* Resume Later */}
             <button
               type="button"
-              onClick={goBack}
-              className="text-sm font-medium text-color-3/60 hover:text-color-3 transition-colors"
+              onClick={handleResumeLater}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-color-3/40 hover:text-color-3/60 transition-colors"
             >
-              ← Back
+              <LogOut className="h-3.5 w-3.5" />
+              Resume Later
             </button>
-          ) : (
-            <div />
-          )}
+          </div>
 
           {currentStep < ONBOARDING_STEPS.length ? (
             <button
