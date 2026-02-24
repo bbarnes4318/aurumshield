@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Store,
@@ -67,7 +68,7 @@ import {
 import type { ClearingCertificate } from "@/lib/certificate-engine";
 import { mockCorridors } from "@/lib/mock-data";
 
-const MOCK_USER_ID = "user-1";
+/* MOCK_USER_ID removed — dashboard now reads from useAuth() */
 
 /* ================================================================
    Derive lifecycle timestamps from ledger entries
@@ -680,8 +681,23 @@ function CertificateDrawerBody({ cert }: { cert: ClearingCertificate }) {
    ================================================================ */
 
 export default function BuyerPage() {
-  const ordersQ = useMyOrders(MOCK_USER_ID);
-  const reservationsQ = useMyReservations(MOCK_USER_ID);
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  const router = useRouter();
+
+  /* ── KYC Gate: unverified users → compliance lock-in ── */
+  const kycQ = useKycStatus(userId || undefined);
+  const kycStatus = kycQ.data?.kycStatus ?? "PENDING";
+
+  useEffect(() => {
+    if (kycQ.isLoading) return;
+    if (kycStatus !== "APPROVED") {
+      router.replace("/onboarding/compliance");
+    }
+  }, [kycQ.isLoading, kycStatus, router]);
+
+  const ordersQ = useMyOrders(userId);
+  const reservationsQ = useMyReservations(userId);
   const settlementsQ = useSettlements();
   const listingsQ = useListings();
 
@@ -697,7 +713,7 @@ export default function BuyerPage() {
       return { activeOrder: null, completedOrders: [], activeSettlement: null };
 
     const buyerSettlements = settlementsQ.data.filter(
-      (s: SettlementCase) => s.buyerUserId === MOCK_USER_ID,
+      (s: SettlementCase) => s.buyerUserId === userId,
     );
 
     const active = ordersQ.data.find(

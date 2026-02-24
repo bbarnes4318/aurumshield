@@ -15,11 +15,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
+import { useKycStatus } from "@/hooks/use-mock-queries";
 import { LoadingState } from "@/components/ui/state-views";
 
 export default function PlatformRouter() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const kycQ = useKycStatus(user?.id);
 
   useEffect(() => {
     // Wait until auth has finished loading
@@ -30,6 +32,9 @@ export default function PlatformRouter() {
       router.replace("/login");
       return;
     }
+
+    // Wait for KYC status to resolve before routing buyers
+    if (kycQ.isLoading) return;
 
     // STRICT ROLE-BASED ROUTING
     switch (user.role) {
@@ -43,11 +48,19 @@ export default function PlatformRouter() {
         router.replace("/seller"); // Sellers go to Seller Home
         break;
       case "buyer":
-      default:
-        router.replace("/buyer"); // Buyers (and any fallback) go to Buyer Home
+      default: {
+        // KYC GATE: unverified buyers → compliance lock-in
+        const kycStatus = kycQ.data?.kycStatus ?? "PENDING";
+        if (kycStatus === "APPROVED") {
+          router.replace("/buyer");
+        } else {
+          router.replace("/onboarding/compliance");
+        }
         break;
+      }
     }
-  }, [user, isLoading, isAuthenticated, router]);
+  }, [user, isLoading, isAuthenticated, router, kycQ.isLoading, kycQ.data]);
 
   return <LoadingState message="Authenticating role and securing workspace..." />;
 }
+

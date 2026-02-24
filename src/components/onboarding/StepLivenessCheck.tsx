@@ -41,21 +41,14 @@ import type { OnboardingFormData } from "@/lib/schemas/onboarding-schema";
 
 type VerificationState = "idle" | "verifying" | "processing" | "verified";
 
-/* ----------------------------------------------------------------
-   Mock User ID
-   ----------------------------------------------------------------
-   In production, this would come from the authenticated session
-   (e.g. Clerk's useUser().id). For now we use a deterministic
-   demo UUID so the webhook flow can be tested end-to-end.
-   ---------------------------------------------------------------- */
-
-const DEMO_USER_ID = "d290f1ee-6c54-4b01-90e6-d701748f0851";
+import { useAuth } from "@/providers/auth-provider";
 
 /* ----------------------------------------------------------------
    Step Component
    ---------------------------------------------------------------- */
 
 export function StepLivenessCheck() {
+  const { user } = useAuth();
   const {
     setValue,
     watch,
@@ -118,7 +111,7 @@ export function StepLivenessCheck() {
 
       const client = new Persona.Client({
         templateId,
-        referenceId: DEMO_USER_ID, // ← THE GOLDEN THREAD: links Persona → our webhook → PostgreSQL
+        referenceId: user?.id ?? "", // THE GOLDEN THREAD: links Persona → our webhook → PostgreSQL
         environment: "sandbox", // TODO: Switch to "production" for live
         onReady: () => {
           console.log("[AurumShield] Persona Inquiry flow is ready");
@@ -165,7 +158,7 @@ export function StepLivenessCheck() {
       if (!mountedRef.current) return;
       setVerificationState("idle");
     }
-  }, [templateId, setValue]);
+  }, [templateId, setValue, user?.id]);
 
   // Cleanup on unmount
   useEffect(() => {
