@@ -7,13 +7,13 @@
    Users see:
      1. Institutional Compliance Protocol copy
      2. "Initiate Secure Verification" → launches Persona SDK
-     3. Polling /api/user/kyc-status after Persona completes
+     3. SSE stream from /api/compliance/stream after Persona completes
      4. APPROVED → redirect to /buyer
      5. REJECTED → in-product Compliance Case escalation
 
    Save-and-Resume:
      • On mount: checks saved onboarding state for existing inquiry
-     • If provider_inquiry_id exists + PROVIDER_PENDING → resumes polling
+     • If provider_inquiry_id exists + PROVIDER_PENDING → resumes SSE stream
      • Persona inquiryId is persisted on completion
      • "Resume Later" affordance for safe exit
 
@@ -52,7 +52,7 @@ type ComplianceState =
   | "loading"       // Checking saved state
   | "idle"          // Show "Initiate Secure Verification" button
   | "verifying"     // Persona overlay is active
-  | "polling"       // Persona completed → polling /api/user/kyc-status
+  | "streaming"     // Persona completed → SSE stream from /api/compliance/stream
   | "approved"      // KYC approved → redirecting to /buyer
   | "rejected"      // KYC rejected → show failure UI
   | "review";       // State recovery: inquiry done, awaiting backend review
@@ -61,9 +61,8 @@ type ComplianceState =
    Constants
    ---------------------------------------------------------------- */
 
-const POLL_INTERVAL_MS = 2000;
-const MAX_POLL_ATTEMPTS = 15;
 const PERSONA_TEMPLATE_ID = process.env.NEXT_PUBLIC_PERSONA_TEMPLATE_ID;
+const SSE_MAX_RETRIES = 3;
 
 /* ================================================================
    COMPONENT
@@ -75,8 +74,9 @@ export default function CompliancePage() {
   const [state, setState] = useState<ComplianceState>("loading");
   const [error, setError] = useState<string | null>(null);
   const personaClientRef = useRef<{ destroy: () => void } | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
   const mountedRef = useRef(true);
-  const pollCountRef = useRef(0);
+  const sseRetryCountRef = useRef(0);
   const hasCheckedSavedRef = useRef(false);
 
   /* ── Saved state hooks ── */
@@ -90,11 +90,15 @@ export default function CompliancePage() {
     };
   }, []);
 
-  // Cleanup Persona client on unmount
+  // Cleanup Persona client + EventSource on unmount
   useEffect(() => {
     return () => {
       if (personaClientRef.current) {
         try { personaClientRef.current.destroy(); } catch { /* already destroyed */ }
+      }
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
       }
     };
   }, []);
@@ -112,8 +116,8 @@ export default function CompliancePage() {
       // If inquiry was submitted but platform status is still pending
       if (saved.providerInquiryId && saved.status === "PROVIDER_PENDING") {
         setState("review");
-        // Start polling to check if webhook has arrived
-        pollKycStatus();
+        // Start SSE stream to check if webhook has arrived
+        startSseStream();
         return;
       }
 
@@ -129,71 +133,104 @@ export default function CompliancePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedStateQ.isLoading, savedStateQ.data]);
 
-  /* ── Poll /api/user/kyc-status after Persona completes ── */
-  const pollKycStatus = useCallback(async () => {
-    if (!user?.id) return;
-    pollCountRef.current = 0;
+  /* ── SSE stream /api/compliance/stream after Persona completes ── */
+  const startSseStream = useCallback(() => {
+    // Close any existing stream
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
 
-    const poll = async () => {
+    if (state !== "review") {
+      setState("streaming");
+    }
+
+    const es = new EventSource("/api/compliance/stream");
+    eventSourceRef.current = es;
+
+    es.onmessage = (event) => {
       if (!mountedRef.current) return;
-      pollCountRef.current++;
 
       try {
-        const res = await fetch(
-          `/api/user/kyc-status?userId=${encodeURIComponent(user.id)}`,
-        );
-        if (!res.ok) throw new Error("Failed to fetch KYC status");
-        const data = await res.json();
+        const payload = JSON.parse(event.data);
 
-        if (data.kycStatus === "APPROVED") {
-          // Mark onboarding as completed
-          saveMutation.mutate({
-            currentStep: 4,
-            status: "COMPLETED",
-            statusReason: "KYC approved via provider webhook",
-          });
-          setState("approved");
-          // Brief pause to show success state, then redirect
-          setTimeout(() => {
-            if (mountedRef.current) router.replace("/buyer");
-          }, 1500);
-          return;
+        // Handle initial connection event with current case status
+        if (payload.type === "connected" && payload.caseStatus) {
+          if (payload.caseStatus === "APPROVED") {
+            saveMutation.mutate({
+              currentStep: 4,
+              status: "COMPLETED",
+              statusReason: "KYC approved via compliance case",
+            });
+            setState("approved");
+            es.close();
+            setTimeout(() => {
+              if (mountedRef.current) router.replace("/buyer");
+            }, 1500);
+            return;
+          }
+
+          if (payload.caseStatus === "REJECTED") {
+            saveMutation.mutate({
+              currentStep: 4,
+              status: "REVIEW",
+              statusReason: "KYC rejected — escalated to compliance team",
+            });
+            setState("rejected");
+            es.close();
+            return;
+          }
         }
 
-        if (data.kycStatus === "REJECTED") {
-          saveMutation.mutate({
-            currentStep: 4,
-            status: "REVIEW",
-            statusReason: "KYC rejected — escalated to compliance team",
-          });
-          setState("rejected");
-          return;
-        }
+        // Handle live case events
+        if (payload.type === "case_event" && payload.event) {
+          const action = payload.event.action;
 
-        // Still PENDING — keep polling
-        if (pollCountRef.current < MAX_POLL_ATTEMPTS) {
-          setTimeout(poll, POLL_INTERVAL_MS);
-        } else {
-          // Max attempts reached — show "Review in progress"
-          // The provider inquiry completed but the webhook hasn't arrived yet.
-          // This is the state recovery path — show transparent status.
-          setState("review");
-          // TODO: Phase 2 — subscribe to SSE for live updates
-          // TODO: Phase 2 — trigger email/SMS notification for long delays
+          if (action === "INQUIRY_COMPLETED") {
+            saveMutation.mutate({
+              currentStep: 4,
+              status: "COMPLETED",
+              statusReason: "KYC approved via provider webhook",
+            });
+            setState("approved");
+            es.close();
+            setTimeout(() => {
+              if (mountedRef.current) router.replace("/buyer");
+            }, 1500);
+            return;
+          }
+
+          if (action === "INQUIRY_FAILED") {
+            saveMutation.mutate({
+              currentStep: 4,
+              status: "REVIEW",
+              statusReason: "KYC rejected — escalated to compliance team",
+            });
+            setState("rejected");
+            es.close();
+            return;
+          }
         }
       } catch {
-        // Network error — retry if under max
-        if (pollCountRef.current < MAX_POLL_ATTEMPTS) {
-          setTimeout(poll, POLL_INTERVAL_MS);
-        }
+        // Ignore malformed SSE data
       }
     };
 
-    if (state !== "review") {
-      setState("polling");
-    }
-    poll();
-  }, [user?.id, router, saveMutation, state]);
+    es.onerror = () => {
+      if (!mountedRef.current) return;
+      sseRetryCountRef.current++;
+
+      if (sseRetryCountRef.current >= SSE_MAX_RETRIES) {
+        // Max retries reached — show review state
+        es.close();
+        eventSourceRef.current = null;
+        setState("review");
+        return;
+      }
+
+      // EventSource auto-reconnects, but we track retries for our fallback
+    };
+  }, [router, saveMutation, state]);
 
   /* ── Launch Persona Embedded Flow ── */
   const launchPersona = useCallback(async () => {
@@ -229,8 +266,8 @@ export default function CompliancePage() {
           statusReason: "Demo Persona inquiry completed, awaiting webhook",
         });
 
-        // Simulate Persona completion → start polling
-        pollKycStatus();
+        // Simulate Persona completion → start SSE stream
+        startSseStream();
       }, 3000);
       return;
     }
@@ -268,8 +305,8 @@ export default function CompliancePage() {
             statusReason: `Persona inquiry ${inquiryId} completed with status: ${status}`,
           });
 
-          // Start polling the backend for the webhook result
-          pollKycStatus();
+          // Start SSE stream for real-time webhook results
+          startSseStream();
         },
         onCancel: ({ inquiryId }: { inquiryId?: string }) => {
           console.log(
@@ -306,7 +343,7 @@ export default function CompliancePage() {
       setState("idle");
       setError("Failed to load verification system. Please try again.");
     }
-  }, [user?.id, pollKycStatus, saveMutation]);
+  }, [user?.id, startSseStream, saveMutation]);
 
   /* ── Resume Later ── */
   const handleResumeLater = useCallback(() => {
@@ -355,8 +392,7 @@ export default function CompliancePage() {
               automatically. The ComplianceBanner will reflect your current
               status across all pages.
             </p>
-            {/* TODO: Phase 2 — SSE live status subscription */}
-            {/* TODO: Phase 2 — email/SMS notification for long delays */}
+            {/* SSE live status subscription active */}
             <div className="flex items-center gap-3">
               <Link
                 href="/buyer"
@@ -423,8 +459,8 @@ export default function CompliancePage() {
           </div>
         )}
 
-        {/* ── POLLING: Waiting for webhook ── */}
-        {state === "polling" && (
+        {/* ── STREAMING: Waiting for SSE event ── */}
+        {state === "streaming" && (
           <div className="flex flex-col items-center text-center py-6">
             <Loader2 className="h-10 w-10 text-color-2 animate-spin mb-5" />
             <h1 className="text-lg font-semibold text-color-3 tracking-tight mb-2">
@@ -432,6 +468,10 @@ export default function CompliancePage() {
             </h1>
             <p className="text-sm text-color-3/40">
               Validating your identity credentials against our compliance engine…
+            </p>
+            <p className="text-[10px] text-color-3/25 mt-2 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live connection
             </p>
           </div>
         )}

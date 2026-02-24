@@ -17,6 +17,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createHmac, timingSafeEqual } from "crypto";
 import { processProviderWebhook } from "@/lib/verification-engine";
+import {
+  getComplianceCaseByUserId,
+  createComplianceCase,
+} from "@/lib/compliance/models";
+import { appendComplianceEvent, publishCaseEvent } from "@/lib/compliance/events";
 
 /* ---------- HMAC Signature Verification ---------- */
 
@@ -167,6 +172,44 @@ export async function POST(request: Request): Promise<NextResponse> {
   console.log(
     `[VERIFICATION-WEBHOOK] Step "${stepId}" resolved to ${outcome} for user ${userId}`,
   );
+
+  /* ── Step 5: Compliance Case event logging ── */
+  try {
+    let cc = await getComplianceCaseByUserId(userId);
+    if (!cc) {
+      cc = await createComplianceCase({
+        userId,
+        orgType: orgType,
+        status: "PENDING_PROVIDER",
+        tier: "BROWSE",
+      });
+    }
+
+    const event = await appendComplianceEvent(
+      cc.id,
+      webhookId,
+      "PROVIDER",
+      "STEP_COMPLETED",
+      {
+        stepId,
+        outcome,
+        orgId,
+        orgType,
+        providerNotes: providerNotes ?? null,
+        caseStatus: result.case.status,
+      },
+    );
+
+    if (event) {
+      publishCaseEvent(userId, cc.id, event);
+    }
+  } catch (ccErr) {
+    // Non-fatal: the verification step was already processed.
+    console.error(
+      `[VERIFICATION-WEBHOOK] ComplianceCase event failed for user ${userId}:`,
+      ccErr instanceof Error ? ccErr.message : String(ccErr),
+    );
+  }
 
   return NextResponse.json({
     received: true,

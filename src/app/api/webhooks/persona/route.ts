@@ -2,6 +2,11 @@
    PERSONA IDENTITY WEBHOOK RECEIVER
    POST /api/webhooks/persona
 
+   Compliance Case integration:
+     - Creates or updates a ComplianceCase on each event
+     - Appends an idempotent ComplianceEvent to the audit trail
+     - Publishes the event to SSE subscribers for real-time UI updates
+
    Receives asynchronous inquiry updates from Persona after a user
    completes (or fails) the hosted KYC/KYB flow.
 
@@ -31,6 +36,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { createHmac, timingSafeEqual } from "crypto";
 import { getDbClient } from "@/lib/db";
+import {
+  getComplianceCaseByUserId,
+  createComplianceCase,
+  updateComplianceCaseStatus,
+  updateComplianceCaseInquiryId,
+} from "@/lib/compliance/models";
+import { appendComplianceEvent, publishCaseEvent } from "@/lib/compliance/events";
 
 /* ---------- HMAC Signature Verification ---------- */
 
@@ -259,12 +271,74 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
   }
 
-  /* ── Step 5: Respond ── */
+  /* ── Step 5: Compliance Case integration ── */
+  let complianceCaseId: string | undefined;
+  try {
+    // Find or create a ComplianceCase for this user
+    let cc = await getComplianceCaseByUserId(userId);
+    if (!cc) {
+      cc = await createComplianceCase({
+        userId,
+        status: "OPEN",
+        tier: "BROWSE",
+      });
+      console.log(
+        `[PERSONA-WEBHOOK] Created ComplianceCase ${cc.id} for user ${userId}`,
+      );
+    }
+    complianceCaseId = cc.id;
+
+    // Store the Persona inquiry reference on the case
+    const inquiryRef = inquiry.referenceId;
+    if (inquiryRef) {
+      await updateComplianceCaseInquiryId(cc.id, inquiryRef);
+    }
+
+    // Update case status based on the event
+    const caseStatus = newKycStatus === "APPROVED" ? "APPROVED" as const : "REJECTED" as const;
+    const caseTier = newKycStatus === "APPROVED" ? "EXECUTE" as const : "BROWSE" as const;
+    await updateComplianceCaseStatus(cc.id, caseStatus, caseTier);
+
+    // Append audit event (idempotent via event_id)
+    const eventIdKey = `persona-${eventName}-${userId}-${Date.now()}`;
+    const event = await appendComplianceEvent(
+      cc.id,
+      eventIdKey,
+      "PROVIDER",
+      eventName === "inquiry.completed" ? "INQUIRY_COMPLETED" : "INQUIRY_FAILED",
+      {
+        provider: "Persona",
+        eventName,
+        kycStatus: newKycStatus,
+        referenceId: inquiry.referenceId,
+        inquiryStatus: inquiry.status,
+      },
+    );
+
+    // Publish to SSE subscribers for real-time UI updates
+    if (event) {
+      publishCaseEvent(userId, cc.id, event);
+    }
+
+    console.log(
+      `[PERSONA-WEBHOOK] ComplianceCase ${cc.id} → status=${caseStatus}, tier=${caseTier}`,
+    );
+  } catch (ccErr) {
+    // Non-fatal: the KYC status was already updated successfully.
+    // Log the compliance case error but don't fail the webhook.
+    console.error(
+      `[PERSONA-WEBHOOK] ComplianceCase update failed for user ${userId}:`,
+      ccErr instanceof Error ? ccErr.message : String(ccErr),
+    );
+  }
+
+  /* ── Step 6: Respond ── */
   return NextResponse.json({
     received: true,
     action: "updated",
     userId,
     newKycStatus,
     event: eventName,
+    complianceCaseId,
   });
 }

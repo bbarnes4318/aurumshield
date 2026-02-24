@@ -248,3 +248,139 @@ export async function serverGetPlatformFeeEstimate(
     feeUsd: formatCentsUsd(result.feeQuote.coreIndemnificationFeeCents),
   };
 }
+
+/* ---------- Server-Backed Quote (Price Lock) ---------- */
+
+export interface CreateQuoteActionInput {
+  listingId: string;
+  weightOz: number;
+  premiumBps?: number;
+}
+
+export interface QuoteActionResult {
+  quoteId: string;
+  lockedPrice: number;
+  spotPrice: number;
+  premiumBps: number;
+  expiresAt: string;
+  secondsRemaining: number;
+  priceFeedSource: string;
+  priceFeedTimestamp: string;
+}
+
+/**
+ * Create a server-backed price-lock quote.
+ *
+ * Enforces:
+ *   1. LOCK_PRICE compliance capability
+ *   2. Step-up re-verification (recent session)
+ *
+ * Returns a StepUpResponse shape so the client's useReverification
+ * hook can detect REVERIFICATION_REQUIRED and prompt re-auth.
+ */
+export async function serverCreateQuote(
+  input: CreateQuoteActionInput,
+): Promise<{ error?: string; data?: QuoteActionResult }> {
+  try {
+    // Enforce compliance capability
+    const { requireComplianceCapability, requireReverification, AuthError } = await import("@/lib/authz");
+    const session = await requireComplianceCapability("LOCK_PRICE");
+
+    // Enforce step-up re-verification
+    try {
+      await requireReverification();
+    } catch (err) {
+      if (err instanceof AuthError && err.message === "REVERIFICATION_REQUIRED") {
+        return { error: "REVERIFICATION_REQUIRED" };
+      }
+      throw err;
+    }
+
+    // Create the quote
+    const { createQuote } = await import("@/lib/pricing/quote-engine");
+    const result = await createQuote({
+      userId: session.userId,
+      listingId: input.listingId,
+      weightOz: input.weightOz,
+      premiumBps: input.premiumBps,
+    });
+
+    return {
+      data: {
+        quoteId: result.quote.id,
+        lockedPrice: result.quote.lockedPrice,
+        spotPrice: result.quote.spotPrice,
+        premiumBps: result.quote.premiumBps,
+        expiresAt: result.quote.expiresAt,
+        secondsRemaining: result.secondsRemaining,
+        priceFeedSource: result.quote.priceFeedSource,
+        priceFeedTimestamp: result.quote.priceFeedTimestamp,
+      },
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to create quote";
+    console.error("[CHECKOUT] serverCreateQuote failed:", message);
+    return { error: message };
+  }
+}
+
+/* ---------- Validate Quote ---------- */
+
+export interface ValidateQuoteResult {
+  valid: boolean;
+  quoteId: string;
+  lockedPrice: number;
+  weightOz: number;
+  secondsRemaining: number;
+  priceFeedSource: string;
+}
+
+/**
+ * Validate that a quote is still active and owned by the caller.
+ * Used in StepTwo to verify the quote hasn't expired before settlement.
+ */
+export async function serverValidateQuote(
+  quoteId: string,
+): Promise<{ error?: string; data?: ValidateQuoteResult }> {
+  try {
+    const { requireSession } = await import("@/lib/authz");
+    const session = await requireSession();
+
+    const { validateQuote } = await import("@/lib/pricing/quote-engine");
+    const quote = await validateQuote(quoteId, session.userId);
+
+    if (!quote) {
+      return {
+        data: {
+          valid: false,
+          quoteId,
+          lockedPrice: 0,
+          weightOz: 0,
+          secondsRemaining: 0,
+          priceFeedSource: "",
+        },
+      };
+    }
+
+    const secondsRemaining = Math.max(
+      0,
+      Math.floor((new Date(quote.expiresAt).getTime() - Date.now()) / 1000),
+    );
+
+    return {
+      data: {
+        valid: true,
+        quoteId: quote.id,
+        lockedPrice: quote.lockedPrice,
+        weightOz: quote.weightOz,
+        secondsRemaining,
+        priceFeedSource: quote.priceFeedSource,
+      },
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to validate quote";
+    console.error("[CHECKOUT] serverValidateQuote failed:", message);
+    return { error: message };
+  }
+}
+

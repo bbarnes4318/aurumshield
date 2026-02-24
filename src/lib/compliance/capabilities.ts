@@ -12,6 +12,7 @@
    ================================================================ */
 
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useKycStatus } from "@/hooks/use-mock-queries";
 
@@ -109,7 +110,7 @@ export interface ComplianceCapabilities {
   status: ComplianceStatus;
   /** Raw KYC status from the database */
   rawKycStatus: string;
-  /** Maximum capability granted by current KYC status */
+  /** Maximum capability granted by current KYC status or tier */
   maxCapability: ComplianceCapability;
   /** Check if a specific capability is available */
   can: (capability: ComplianceCapability) => boolean;
@@ -117,11 +118,26 @@ export interface ComplianceCapabilities {
   isLoading: boolean;
   /** Whether the user is fully approved */
   isApproved: boolean;
+  /** Active compliance case tier (null if no case exists) */
+  caseTier: string | null;
 }
+
+/* ── Tier → Capability (mirrors server-side tiering.ts) ── */
+
+const TIER_CAPABILITY_MAP: Record<string, ComplianceCapability> = {
+  BROWSE: "BROWSE",
+  QUOTE: "QUOTE",
+  LOCK: "LOCK_PRICE",
+  EXECUTE: "SETTLE",
+};
 
 /**
  * React hook that derives compliance capabilities from the
- * user's live KYC status (via the existing TanStack Query).
+ * user's live KYC status AND their ComplianceCase tier.
+ *
+ * Priority:
+ *   1. If a ComplianceCase exists with tier → use TIER_CAPABILITY_MAP
+ *   2. Otherwise → fall back to KYC_CAPABILITY_MAP (legacy path)
  *
  * Usage:
  *   const { can, status, isApproved } = useComplianceCapabilities();
@@ -131,19 +147,41 @@ export function useComplianceCapabilities(): ComplianceCapabilities {
   const { user } = useAuth();
   const kycQ = useKycStatus(user?.id ?? undefined);
 
+  // Fetch the user's active ComplianceCase for tier-based capability
+  const caseQ = useQuery<{ case: { tier: string; status: string } | null }>({
+    queryKey: ["compliance-case-me"],
+    queryFn: async () => {
+      const res = await fetch("/api/compliance/cases/me");
+      if (!res.ok) return { case: null };
+      return res.json();
+    },
+    staleTime: 15_000,
+    enabled: !!user?.id,
+  });
+
   const rawKycStatus = kycQ.data?.kycStatus ?? "NOT_STARTED";
+  const caseTier = caseQ.data?.case?.tier ?? null;
+  const caseStatus = caseQ.data?.case?.status ?? null;
 
   return useMemo(() => {
     const status = deriveComplianceStatus(rawKycStatus);
-    const maxCapability = deriveMaxCapability(rawKycStatus);
+
+    // If a case exists and is APPROVED, use the tier-based capability
+    let maxCapability: ComplianceCapability;
+    if (caseTier && caseStatus === "APPROVED") {
+      maxCapability = TIER_CAPABILITY_MAP[caseTier] ?? "BROWSE";
+    } else {
+      maxCapability = deriveMaxCapability(rawKycStatus);
+    }
 
     return {
       status,
       rawKycStatus,
       maxCapability,
       can: (cap: ComplianceCapability) => hasCapability(maxCapability, cap),
-      isLoading: kycQ.isLoading,
+      isLoading: kycQ.isLoading || caseQ.isLoading,
       isApproved: status === "APPROVED",
+      caseTier,
     };
-  }, [rawKycStatus, kycQ.isLoading]);
+  }, [rawKycStatus, kycQ.isLoading, caseQ.isLoading, caseTier, caseStatus]);
 }

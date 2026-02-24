@@ -36,9 +36,11 @@ import {
   FileSignature,
   Loader2,
   DollarSign,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { useReverification } from "@/hooks/useReverification";
 import {
   DELIVERY_OPTIONS,
   type DeliveryMethod,
@@ -47,6 +49,7 @@ import {
 import {
   serverGetBrinksQuote,
   serverGetPlatformFeeEstimate,
+  serverValidateQuote,
   type BrinksQuoteResult,
   type PlatformFeeEstimateResult,
 } from "@/lib/actions/checkout-actions";
@@ -478,10 +481,50 @@ export function StepTwoRouting({
     formState: { errors },
   } = useFormContext<CheckoutFormData>();
 
+  const { execute, isReverifying } = useReverification();
+
   const deliveryMethod = watch("deliveryMethod");
   const weightOz = watch("weightOz");
   const lockedPrice = watch("lockedPrice");
+  const quoteId = watch("quoteId");
   const notional = (weightOz || 0) * (lockedPrice || 0);
+
+  /* ── Quote Validation (on mount) ── */
+  const [quoteValid, setQuoteValid] = useState<boolean | null>(() => quoteId ? null : true);
+  const [quoteSecondsLeft, setQuoteSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    if (!quoteId) return;
+
+    let cancelled = false;
+    serverValidateQuote(quoteId).then((result) => {
+      if (cancelled) return;
+      if (result.data) {
+        setQuoteValid(result.data.valid);
+        setQuoteSecondsLeft(result.data.secondsRemaining);
+      } else {
+        setQuoteValid(false);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [quoteId]);
+
+  /* ── Countdown for quote remaining time ── */
+  useEffect(() => {
+    if (quoteSecondsLeft <= 0) return;
+    const id = setInterval(() => {
+      setQuoteSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(id);
+          setQuoteValid(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [quoteSecondsLeft]);
 
   const selectDelivery = (method: DeliveryMethod) => {
     setValue("deliveryMethod", method, { shouldValidate: true });
@@ -547,12 +590,17 @@ export function StepTwoRouting({
       <div className="rounded-lg border border-color-2/15 bg-color-2/5 px-4 py-3 flex items-center justify-between">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-color-3/40">
-            Locked Order
+            {quoteId ? "Server-Locked Order" : "Locked Order"}
           </p>
           <p className="font-mono text-sm tabular-nums text-color-3">
             {weightOz?.toLocaleString() ?? "—"} oz @ $
             {fmtUsd(lockedPrice || 0)}/oz
           </p>
+          {quoteId && (
+            <p className="text-[9px] font-mono text-color-3/20 mt-0.5 truncate max-w-[200px]">
+              Quote: {quoteId}
+            </p>
+          )}
         </div>
         <div className="text-right">
           <p className="text-[10px] uppercase tracking-widest text-color-3/40">
@@ -561,6 +609,11 @@ export function StepTwoRouting({
           <p className="font-mono text-lg font-bold tabular-nums text-color-2">
             ${fmtUsd(notional)}
           </p>
+          {quoteSecondsLeft > 0 && (
+            <p className="text-[9px] font-mono text-amber-400 mt-0.5">
+              {quoteSecondsLeft}s remaining
+            </p>
+          )}
         </div>
       </div>
 
@@ -727,13 +780,51 @@ export function StepTwoRouting({
         </div>
       )}
 
+      {/* ── Quote Expired Warning ── */}
+      {quoteValid === false && quoteId && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-red-500/15 bg-red-500/5 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-red-400" />
+          <p className="text-xs text-red-400 leading-relaxed">
+            Your price lock quote has expired. Please return to Step 1 to
+            lock a new price.
+          </p>
+        </div>
+      )}
+
       {/* ── Slide-to-Execute ── */}
       {deliveryMethod && (
         <div className="pt-2">
+          {isReverifying && (
+            <div className="flex items-center justify-center gap-2 mb-3 text-color-2">
+              <ShieldCheck className="h-4 w-4 animate-pulse" />
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Re-verifying identity to execute purchase…
+              </span>
+            </div>
+          )}
           <SlideToExecute
-            onComplete={onSubmit}
-            disabled={!deliveryMethod}
-            isSubmitting={isSubmitting}
+            onComplete={async () => {
+              if (quoteId) {
+                // Wrap execution in reverification
+                const outcome = await execute(async () => {
+                  // Validate quote is still live before executing
+                  const validation = await serverValidateQuote(quoteId);
+                  if (!validation.data?.valid) {
+                    return { error: "Quote expired. Please return to Step 1." };
+                  }
+                  // Signal success — the actual settlement is handled by onSubmit
+                  return { data: true };
+                });
+                if (outcome.ok) {
+                  onSubmit();
+                }
+              } else {
+                // No quoteId (demo mode) — proceed directly
+                onSubmit();
+              }
+            }}
+            disabled={!deliveryMethod || quoteValid === false}
+            isSubmitting={isSubmitting || isReverifying}
           />
           <p className="text-center text-[10px] text-color-3/30 mt-2">
             By executing, you agree to AurumShield&apos;s settlement terms and

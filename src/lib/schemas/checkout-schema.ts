@@ -21,6 +21,8 @@ export const stepOneSchema = z.object({
   lockedPrice: z
     .number({ message: "Price is required" })
     .positive("Locked price must be a valid positive number"),
+  /** Server-generated quote ID (set after createQuote succeeds) */
+  quoteId: z.string().uuid().optional(),
 });
 
 export type StepOneData = z.infer<typeof stepOneSchema>;
