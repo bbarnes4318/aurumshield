@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { Listing } from "@/lib/mock-data";
 import { TrustBadge } from "@/components/ui/TrustBadge";
+import { trackEvent } from "@/lib/analytics";
 
 /* ── Formatter utilities ── */
 const fmtUsd = (n: number) =>
@@ -203,7 +204,10 @@ export function AssetCard({ listing, onReserve, liveSpot }: AssetCardProps) {
       <div className="px-5 pb-5 pt-1">
         <button
           type="button"
-          onClick={() => onReserve(listing)}
+          onClick={() => {
+            trackEvent("ReserveClicked", { listingId: listing.id });
+            onReserve(listing);
+          }}
           disabled={isSuspended}
           aria-disabled={isSuspended}
           className={cn(

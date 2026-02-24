@@ -38,6 +38,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 import {
   DELIVERY_OPTIONS,
   type DeliveryMethod,
@@ -84,6 +85,7 @@ function SlideToExecute({
   const startX = useRef(0);
 
   const THRESHOLD = 0.92;
+  const KEYBOARD_STEP = 0.05;
   const thumbWidth = 48;
 
   /* Track width via ResizeObserver — avoids reading ref during render */
@@ -96,6 +98,14 @@ function SlideToExecute({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  /* ── Complete handler (shared by pointer & keyboard) ── */
+  const completeSlide = useCallback(() => {
+    setIsComplete(true);
+    setProgress(1);
+    trackEvent("CheckoutExecuted", {});
+    onComplete();
+  }, [onComplete]);
 
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -121,20 +131,48 @@ function SlideToExecute({
     if (!dragging) return;
     setDragging(false);
     if (progress >= THRESHOLD) {
-      setIsComplete(true);
-      setProgress(1);
-      onComplete();
+      completeSlide();
     } else {
       setProgress(0);
     }
-  }, [dragging, progress, onComplete]);
+  }, [dragging, progress, completeSlide]);
+
+  /* ── Keyboard support: Left/Right arrow keys ── */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (disabled || isComplete || isSubmitting) return;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setProgress((prev) => {
+          const next = Math.min(prev + KEYBOARD_STEP, 1);
+          if (next >= THRESHOLD) {
+            // Schedule completion after state update
+            requestAnimationFrame(() => completeSlide());
+          }
+          return next;
+        });
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setProgress((prev) => Math.max(prev - KEYBOARD_STEP, 0));
+      }
+    },
+    [disabled, isComplete, isSubmitting, completeSlide]
+  );
 
   return (
     <div
       ref={trackRef}
+      role="slider"
+      tabIndex={disabled || isComplete || isSubmitting ? -1 : 0}
+      aria-label="Slide to confirm purchase"
+      aria-valuenow={Math.round(progress * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      onKeyDown={handleKeyDown}
       className={cn(
         "relative h-14 w-full select-none overflow-hidden rounded-xl border",
         "transition-colors duration-200",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/40 focus-visible:ring-offset-2 focus-visible:ring-offset-color-1",
         isComplete
           ? "border-emerald-500/30 bg-emerald-500/8"
           : disabled
@@ -190,7 +228,19 @@ function SlideToExecute({
             transition: dragging ? "none" : "transform 0.3s ease-out",
           }}
         >
-          <ArrowRight className="h-5 w-5" />
+          <ArrowRight
+            className="h-5 w-5 animate-[slide-hint_2s_ease-in-out_infinite]"
+            style={{
+              animation: dragging || progress > 0 ? "none" : undefined,
+            }}
+          />
+          {/* Keyframe for gentle horizontal float */}
+          <style>{`
+            @keyframes slide-hint {
+              0%, 100% { transform: translateX(0); }
+              50% { transform: translateX(3px); }
+            }
+          `}</style>
         </div>
       )}
 
@@ -438,6 +488,7 @@ export function StepTwoRouting({
     if (method === "VAULT_CUSTODY") {
       setValue("shippingAddress", undefined);
     }
+    trackEvent("DeliveryOptionSelected", { method });
   };
 
   const addressErrors = errors.shippingAddress as

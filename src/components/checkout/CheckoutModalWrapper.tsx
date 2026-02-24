@@ -31,6 +31,7 @@ import {
   type SpotPriceResult,
 } from "@/lib/actions/checkout-actions";
 import { useAuth } from "@/providers/auth-provider";
+import { trackEvent } from "@/lib/analytics";
 import { useAtomicBuy } from "@/hooks/use-atomic-buy";
 import { useOpenSettlementFromOrder } from "@/hooks/use-mock-queries";
 import { StepOnePriceLock } from "./StepOnePriceLock";
@@ -93,6 +94,11 @@ export function CheckoutModalWrapper({
       });
     return () => { cancelled = true; };
   }, []);
+
+  /* ── Track modal open ── */
+  useEffect(() => {
+    trackEvent("CheckoutModalOpened", { listingId: listing.id });
+  }, [listing.id]);
 
   const activePrice = spotPrice?.pricePerOz ?? listing.pricePerOz;
 
@@ -198,6 +204,12 @@ export function CheckoutModalWrapper({
       setIsSubmitting(false);
       setIsSuccess(true);
 
+      trackEvent("CheckoutCompleted", {
+        listingId: listing.id,
+        orderId: realOrderId,
+        total: data.weightOz * data.lockedPrice,
+      });
+
       // D5 FIX: Route to the real settlement ID.
       // Navigation is deferred until signature completion event fires
       // (handled by onSignatureComplete callback from StepTwoRouting).
@@ -234,7 +246,12 @@ export function CheckoutModalWrapper({
       {/* ── Backdrop ── */}
       <div
         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-        onClick={isSubmitting ? undefined : onClose}
+        onClick={isSubmitting ? undefined : () => {
+          if (!isSuccess) {
+            trackEvent("CheckoutAbandoned", { listingId: listing.id, step: currentStep });
+          }
+          onClose();
+        }}
         aria-hidden="true"
       />
 
@@ -307,7 +324,12 @@ export function CheckoutModalWrapper({
 
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  if (!isSuccess) {
+                    trackEvent("CheckoutAbandoned", { listingId: listing.id, step: currentStep });
+                  }
+                  onClose();
+                }}
                 disabled={isSubmitting}
                 className="flex h-7 w-7 items-center justify-center rounded-md border border-color-5/20 text-color-3/50 hover:text-color-3 hover:border-color-5/40 transition-colors disabled:opacity-50"
                 aria-label="Close checkout"

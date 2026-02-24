@@ -20,6 +20,7 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { useListings, useMyReservations } from "@/hooks/use-mock-queries";
 import { runReservationExpirySweep } from "@/lib/api";
 import { fetchSpotPrice } from "@/lib/actions/checkout-actions";
+import { trackEvent } from "@/lib/analytics";
 import type { Listing } from "@/lib/mock-data";
 import { CheckoutModalWrapper } from "@/components/checkout/CheckoutModalWrapper";
 import { AssetCard } from "@/components/marketplace/AssetCard";
@@ -263,10 +264,22 @@ export function MarketplaceContent() {
         formFilter={formFilter}
         vaultFilter={vaultFilter}
         sortKey={sortKey}
-        onFormChange={setFormFilter}
-        onVaultChange={setVaultFilter}
-        onSortChange={setSortKey}
-        onClearAll={handleClearAll}
+        onFormChange={(v) => {
+          setFormFilter(v);
+          trackEvent("FilterUsed", { filter: "form", value: v, vaultFilter });
+        }}
+        onVaultChange={(v) => {
+          setVaultFilter(v);
+          trackEvent("FilterUsed", { filter: "vault", value: v, formFilter });
+        }}
+        onSortChange={(v) => {
+          setSortKey(v);
+          trackEvent("SortChanged", { sortKey: v });
+        }}
+        onClearAll={() => {
+          handleClearAll();
+          trackEvent("FilterCleared");
+        }}
       />
 
       {/* ── Summary Strip (with live spot) ── */}

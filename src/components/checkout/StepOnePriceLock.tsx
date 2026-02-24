@@ -9,12 +9,16 @@
 
    Live spot price from OANDA adapter is used when available,
    falling back to the listing's static pricePerOz.
+
+   Phase 4: High-trust UI — calm blue countdown, no red alarm
+   colors, tooltip explainer, ARIA timer role, analytics hooks.
    ================================================================ */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useFormContext } from "react-hook-form";
-import { Lock, Clock, AlertTriangle, Radio } from "lucide-react";
+import { Lock, Clock, AlertTriangle, Radio, HelpCircle } from "lucide-react";
 import type { CheckoutFormData } from "@/lib/schemas/checkout-schema";
+import { trackEvent } from "@/lib/analytics";
 
 /* ── Countdown Hook ── */
 function useCountdown(seconds: number) {
@@ -72,6 +76,7 @@ export function StepOnePriceLock({
   } = useFormContext<CheckoutFormData>();
 
   const countdown = useCountdown(60);
+  const expiredTracked = useRef(false);
 
   /** Active price: prefer live spot price, fall back to listing price */
   const activePrice = liveSpotPrice ?? pricePerOz;
@@ -83,14 +88,48 @@ export function StepOnePriceLock({
     setValue("lockedPrice", activePrice);
   }, [activePrice, setValue]);
 
-  /* Handle advance with validation */
+  /* Track price lock expiration (fire once) */
+  useEffect(() => {
+    if (countdown.isExpired && !expiredTracked.current) {
+      expiredTracked.current = true;
+      trackEvent("PriceLockExpired", { pricePerOz: activePrice });
+    }
+  }, [countdown.isExpired, activePrice]);
+
+  /* Handle advance with validation + analytics */
   const handleLockPrice = useCallback(async () => {
     const isValid = await trigger(["weightOz", "lockedPrice"]);
-    if (isValid) onAdvance();
-  }, [trigger, onAdvance]);
+    if (isValid) {
+      trackEvent("PriceLocked", {
+        lockedPrice: activePrice,
+        weightOz,
+        timeRemaining: countdown.remaining,
+      });
+      onAdvance();
+    }
+  }, [trigger, onAdvance, activePrice, weightOz, countdown.remaining]);
 
   /** Price source indicator */
   const isLive = priceSource === "oanda_live";
+
+  /* ── Countdown color palette (Phase 4: high-trust, no red) ── */
+  const timerBorder = countdown.isExpired
+    ? "border-color-5/30 bg-color-5/5"
+    : countdown.remaining <= 15
+      ? "border-amber-500/30 bg-amber-500/5"
+      : "border-blue-200/30 bg-blue-500/5";
+
+  const timerIconColor = countdown.isExpired
+    ? "text-color-3/40"
+    : countdown.remaining <= 15
+      ? "text-amber-400"
+      : "text-blue-400";
+
+  const timerTextColor = countdown.isExpired
+    ? "text-color-3/40"
+    : countdown.remaining <= 15
+      ? "text-amber-400"
+      : "text-blue-400";
 
   return (
     <div className="space-y-5">
@@ -124,43 +163,54 @@ export function StepOnePriceLock({
         </span>
       </div>
 
-      {/* ── Countdown Timer ── */}
+      {/* ── Countdown Timer (Phase 4: calm blue → amber → gray, no red) ── */}
       <div
-        className={`
-          flex items-center gap-3 rounded-lg border px-4 py-3
-          ${
-            countdown.isExpired
-              ? "border-red-500/30 bg-red-500/5"
-              : countdown.remaining <= 15
-                ? "border-amber-500/30 bg-amber-500/5"
-                : "border-color-2/20 bg-color-2/5"
-          }
-        `}
+        role="timer"
+        aria-live="assertive"
+        aria-label={
+          countdown.isExpired
+            ? "Price lock expired"
+            : `${countdown.remaining} seconds remaining to lock price`
+        }
+        className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${timerBorder}`}
       >
-        <Clock
-          className={`h-4 w-4 shrink-0 ${
-            countdown.isExpired
-              ? "text-red-400"
-              : countdown.remaining <= 15
-                ? "text-amber-400"
-                : "text-color-2"
-          }`}
-        />
+        <Clock className={`h-4 w-4 shrink-0 ${timerIconColor}`} />
         <div className="flex-1">
           <p className="text-[10px] uppercase tracking-widest text-color-3/40">
-            Price Lock Expires In
+            Lock your price (60 sec)
           </p>
           <p
-            className={`font-mono text-xl font-bold tabular-nums ${
-              countdown.isExpired
-                ? "text-red-400"
-                : countdown.remaining <= 15
-                  ? "text-amber-400"
-                  : "text-color-2"
-            }`}
+            className={`font-mono text-xl font-bold tabular-nums ${timerTextColor}`}
           >
             {countdown.display}
           </p>
+        </div>
+
+        {/* "?" tooltip explaining the price lock */}
+        <div className="relative group shrink-0">
+          <button
+            type="button"
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-color-5/20 text-color-3/30 hover:text-color-3/60 hover:border-color-5/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/30"
+            aria-label="Why lock the price?"
+            tabIndex={0}
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+          </button>
+          <div
+            role="tooltip"
+            className="
+              absolute right-0 top-full mt-2 z-20
+              w-56 rounded-lg border border-color-5/20 bg-color-1 px-3 py-2
+              text-[11px] leading-relaxed text-color-3/70 shadow-lg
+              opacity-0 pointer-events-none scale-95
+              group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-100
+              group-focus-within:opacity-100 group-focus-within:pointer-events-auto group-focus-within:scale-100
+              transition-all duration-150
+            "
+          >
+            This price is locked while you checkout to protect you from
+            market spikes. The lock expires after 60 seconds.
+          </div>
         </div>
 
         {/* Progress arc */}
@@ -184,13 +234,7 @@ export function StepOnePriceLock({
               strokeWidth="2.5"
               strokeDasharray={`${countdown.progress * 100.53} 100.53`}
               strokeLinecap="round"
-              className={
-                countdown.isExpired
-                  ? "text-red-400"
-                  : countdown.remaining <= 15
-                    ? "text-amber-400"
-                    : "text-color-2"
-              }
+              className={timerTextColor}
             />
           </svg>
         </div>
@@ -281,7 +325,7 @@ export function StepOnePriceLock({
       </button>
 
       {countdown.isExpired && (
-        <p className="text-center text-xs text-red-400/80">
+        <p className="text-center text-xs text-color-3/50">
           The price lock window has expired. Please close and reopen the
           checkout to refresh the quote.
         </p>
@@ -289,4 +333,3 @@ export function StepOnePriceLock({
     </div>
   );
 }
-
