@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import {
   Store,
@@ -41,11 +40,12 @@ import type {
   LedgerEntry,
 } from "@/lib/mock-data";
 import { useAuth } from "@/providers/auth-provider";
+import { useComplianceCapabilities } from "@/lib/compliance/capabilities";
 
 /* ================================================================
    MarketplaceContent — lazy-loaded inside the overlay panel
    ================================================================ */
-import { MarketplaceContent } from "@/app/marketplace/page";
+import { MarketplaceContent } from "@/components/marketplace/MarketplaceContent";
 
 /* ================================================================
    VerificationDrawerContent — inline version of verification
@@ -683,18 +683,9 @@ function CertificateDrawerBody({ cert }: { cert: ClearingCertificate }) {
 export default function BuyerPage() {
   const { user } = useAuth();
   const userId = user?.id ?? "";
-  const router = useRouter();
 
-  /* ── KYC Gate: unverified users → compliance lock-in ── */
-  const kycQ = useKycStatus(userId || undefined);
-  const kycStatus = kycQ.data?.kycStatus ?? "PENDING";
-
-  useEffect(() => {
-    if (kycQ.isLoading) return;
-    if (kycStatus !== "APPROVED") {
-      router.replace("/onboarding/compliance");
-    }
-  }, [kycQ.isLoading, kycStatus, router]);
+  /* ── Capability-based gating (no redirect) ── */
+  const { can } = useComplianceCapabilities();
 
   const ordersQ = useMyOrders(userId);
   const reservationsQ = useMyReservations(userId);

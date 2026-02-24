@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar, MobileDrawer } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { CommandPalette } from "@/components/ui/command-palette";
+import { ComplianceBanner } from "@/components/compliance/ComplianceBanner";
 import { DemoScriptOverlay } from "@/components/demo/demo-script-overlay";
 import { TourOverlay } from "@/demo/tour-engine/TourOverlay";
 import { TourHighlighter } from "@/demo/tour-engine/TourHighlighter";
@@ -76,6 +77,9 @@ export function AppShell({ children }: AppShellProps) {
           onToggleSidebar={() => setCollapsed((c) => !c)}
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
         />
+
+        {/* Compliance status banner — visible when KYC ≠ APPROVED */}
+        <ComplianceBanner />
 
         <main
           id="main-content"

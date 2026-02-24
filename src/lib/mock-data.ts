@@ -2017,6 +2017,11 @@ export interface Listing {
   createdAt: string;
   pricePerOz: number;
   totalWeightOz: number;
+  /** Trust signal flags (derived from evidence & verification) */
+  isAssayVerified?: boolean;
+  isLbmaGoodDelivery?: boolean;
+  isFullyInsured?: boolean;
+  isSellerVerified?: boolean;
 }
 
 /* ---------- Listing Evidence ---------- */
@@ -2144,6 +2149,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-01-20T09:00:00Z",
     pricePerOz: 2048.5,
     totalWeightOz: 400,
+    isAssayVerified: true,
+    isLbmaGoodDelivery: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-002",
@@ -2162,6 +2171,9 @@ export const mockListings: Listing[] = [
     createdAt: "2026-01-22T10:30:00Z",
     pricePerOz: 2092.0,
     totalWeightOz: 100,
+    isAssayVerified: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-003",
@@ -2180,6 +2192,9 @@ export const mockListings: Listing[] = [
     createdAt: "2026-01-25T14:00:00Z",
     pricePerOz: 2035.75,
     totalWeightOz: 100,
+    isAssayVerified: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-004",
@@ -2198,6 +2213,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-01-28T06:15:00Z",
     pricePerOz: 2052.25,
     totalWeightOz: 1000,
+    isAssayVerified: true,
+    isLbmaGoodDelivery: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-005",
@@ -2216,6 +2235,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-01-30T08:45:00Z",
     pricePerOz: 2055.0,
     totalWeightOz: 50,
+    isAssayVerified: true,
+    isLbmaGoodDelivery: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-006",
@@ -2234,6 +2257,9 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-01T11:00:00Z",
     pricePerOz: 2098.0,
     totalWeightOz: 200,
+    isAssayVerified: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-007",
@@ -2252,6 +2278,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-03T09:30:00Z",
     pricePerOz: 2038.0,
     totalWeightOz: 200,
+    isAssayVerified: true,
+    isLbmaGoodDelivery: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-008",
@@ -2270,6 +2300,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-04T13:20:00Z",
     pricePerOz: 2060.5,
     totalWeightOz: 50,
+    isAssayVerified: true,
+    isLbmaGoodDelivery: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-009",
@@ -2288,6 +2322,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-05T07:00:00Z",
     pricePerOz: 2022.0,
     totalWeightOz: 400,
+    isAssayVerified: false,
+    isLbmaGoodDelivery: false,
+    isFullyInsured: false,
+    isSellerVerified: true,
   },
   {
     id: "lst-010",
@@ -2306,6 +2344,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-06T05:30:00Z",
     pricePerOz: 2088.75,
     totalWeightOz: 100,
+    isAssayVerified: true,
+    isLbmaGoodDelivery: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-011",
@@ -2324,6 +2366,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-07T10:00:00Z",
     pricePerOz: 2050.0,
     totalWeightOz: 500,
+    isAssayVerified: true,
+    isLbmaGoodDelivery: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-012",
@@ -2342,6 +2388,9 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-08T15:45:00Z",
     pricePerOz: 2065.0,
     totalWeightOz: 50,
+    isAssayVerified: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-013",
@@ -2360,6 +2409,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-10T08:15:00Z",
     pricePerOz: 2047.25,
     totalWeightOz: 400,
+    isAssayVerified: true,
+    isLbmaGoodDelivery: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-014",
@@ -2378,6 +2431,9 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-12T09:00:00Z",
     pricePerOz: 2095.5,
     totalWeightOz: 50,
+    isAssayVerified: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
   {
     id: "lst-015",
@@ -2396,6 +2452,10 @@ export const mockListings: Listing[] = [
     createdAt: "2026-02-14T11:30:00Z",
     pricePerOz: 2054.0,
     totalWeightOz: 250,
+    isAssayVerified: true,
+    isLbmaGoodDelivery: true,
+    isFullyInsured: true,
+    isSellerVerified: true,
   },
 ];
 

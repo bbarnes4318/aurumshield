@@ -4,18 +4,18 @@
    ASSET CARD — Curated Gold Listing Card
    ================================================================
    Frosted glass card displaying a single gold listing with
-   institutional-grade typography and premium styling.
+   institutional-grade typography, trust badges, live spot price
+   context, Framer Motion hover animation, and accessibility.
+
    Maps directly to the inventory_listings PostgreSQL schema:
      id, form, purity, total_weight_oz, premium_per_oz, vault_location
    ================================================================ */
 
-import { MapPin, ArrowRight } from "lucide-react";
+import { MapPin, ArrowRight, TrendingUp, ShieldCheck, Award, ShieldHalf, UserCheck } from "lucide-react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { Listing } from "@/lib/mock-data";
-
-/* ── Mock spot price for premium derivation ── */
-// TODO: Replace with live spot price from LBMA / Kitco API
-const MOCK_SPOT_PRICE = 2_020.0;
+import { TrustBadge } from "@/components/ui/TrustBadge";
 
 /* ── Formatter utilities ── */
 const fmtUsd = (n: number) =>
@@ -37,23 +37,32 @@ const FORM_LABELS: Record<string, string> = {
 interface AssetCardProps {
   listing: Listing;
   onReserve: (listing: Listing) => void;
+  /** Live XAU/USD spot price from OANDA adapter */
+  liveSpot: number;
 }
 
-export function AssetCard({ listing, onReserve }: AssetCardProps) {
-  const premium = listing.pricePerOz - MOCK_SPOT_PRICE;
+export function AssetCard({ listing, onReserve, liveSpot }: AssetCardProps) {
+  const premium = listing.pricePerOz - liveSpot;
   const notional = listing.totalWeightOz * listing.pricePerOz;
   const isSuspended = listing.status === "suspended";
+  const premiumPositive = premium > 0;
 
   return (
-    <article
+    <motion.article
       role="article"
       aria-label={`${listing.title} — ${fmtWeight(listing.totalWeightOz)} oz gold ${listing.form}`}
       className={cn(
-        "glass-panel overflow-hidden transition-all duration-200 ease-out",
+        "glass-panel overflow-hidden transition-colors duration-200 ease-out",
         isSuspended
           ? "opacity-50 pointer-events-none"
-          : "hover:border-color-2/30 hover:shadow-[0_0_24px_rgba(208,168,92,0.08)]",
+          : "hover:border-color-2/30",
       )}
+      whileHover={
+        isSuspended
+          ? undefined
+          : { y: -4, boxShadow: "0 8px 30px rgba(208,168,92,0.12)" }
+      }
+      transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
     >
       <div className="px-5 pt-5 pb-4 space-y-4">
         {/* ── Header: Form Badge + Purity Tag ── */}
@@ -74,6 +83,7 @@ export function AssetCard({ listing, onReserve }: AssetCardProps) {
               "px-2 py-0.5",
               "text-[10px] font-bold tracking-wider text-color-2",
             )}
+            aria-label={`Purity .${listing.purity}`}
           >
             .{listing.purity}
           </span>
@@ -86,6 +96,27 @@ export function AssetCard({ listing, onReserve }: AssetCardProps) {
         >
           {listing.title}
         </p>
+
+        {/* ── Trust Badges ── */}
+        {(listing.isAssayVerified ||
+          listing.isLbmaGoodDelivery ||
+          listing.isFullyInsured ||
+          listing.isSellerVerified) && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {listing.isAssayVerified && (
+              <TrustBadge label="Assay Verified" icon={ShieldCheck} />
+            )}
+            {listing.isLbmaGoodDelivery && (
+              <TrustBadge label="LBMA" icon={Award} />
+            )}
+            {listing.isFullyInsured && (
+              <TrustBadge label="Insured" icon={ShieldHalf} />
+            )}
+            {listing.isSellerVerified && (
+              <TrustBadge label="Verified Seller" icon={UserCheck} variant="neutral" />
+            )}
+          </div>
+        )}
 
         {/* ── Hero Weight ── */}
         <div className="text-center py-2">
@@ -107,8 +138,11 @@ export function AssetCard({ listing, onReserve }: AssetCardProps) {
             <p className="text-[10px] uppercase tracking-widest text-color-3/40 mb-0.5">
               Premium / oz
             </p>
-            <p className="font-mono text-sm font-semibold tabular-nums text-color-2">
-              +${fmtUsd(premium)}
+            <p className="font-mono text-sm font-semibold tabular-nums text-color-2 flex items-center gap-1">
+              {premiumPositive && (
+                <TrendingUp className="h-3 w-3 text-emerald-500 shrink-0" aria-hidden="true" />
+              )}
+              {premiumPositive ? "+" : ""}${fmtUsd(Math.abs(premium))}
             </p>
           </div>
 
@@ -122,28 +156,44 @@ export function AssetCard({ listing, onReserve }: AssetCardProps) {
             </p>
           </div>
 
+          {/* Live Spot Reference */}
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-color-3/40 mb-0.5">
+              Spot
+            </p>
+            <p className="font-mono text-xs tabular-nums text-color-3/50">
+              ${fmtUsd(liveSpot)}
+            </p>
+          </div>
+
           {/* Notional Value */}
-          <div className="col-span-2">
+          <div>
             <p className="text-[10px] uppercase tracking-widest text-color-3/40 mb-0.5">
               Notional Value
             </p>
-            <p className="font-mono text-base font-semibold tabular-nums text-color-3">
+            <p className="font-mono text-sm font-semibold tabular-nums text-color-3">
               ${fmtUsd(notional)}
             </p>
           </div>
         </div>
 
-        {/* ── Vault Location ── */}
-        <div className="flex items-center gap-1.5 text-color-3/50">
-          <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+        {/* ── Vault Location Badge ── */}
+        <div
+          className={cn(
+            "flex items-center gap-1.5 rounded-sm",
+            "bg-color-2/5 border border-color-2/15",
+            "px-2 py-1",
+          )}
+          aria-label={`Vault location: ${listing.vaultName}, ${listing.jurisdiction}`}
+        >
+          <MapPin className="h-3 w-3 shrink-0 text-color-2/60" aria-hidden="true" />
           <span
-            className="text-xs truncate"
+            className="text-xs text-color-3/70 truncate"
             title={listing.vaultName}
-            aria-label={`Vault location: ${listing.vaultName}`}
           >
             {listing.vaultName}
           </span>
-          <span className="text-[10px] text-color-3/30">
+          <span className="text-[10px] text-color-3/30 shrink-0">
             · {listing.jurisdiction}
           </span>
         </div>
@@ -155,6 +205,7 @@ export function AssetCard({ listing, onReserve }: AssetCardProps) {
           type="button"
           onClick={() => onReserve(listing)}
           disabled={isSuspended}
+          aria-disabled={isSuspended}
           className={cn(
             "flex w-full items-center justify-center gap-2",
             "rounded-lg px-4 py-2.5",
@@ -169,6 +220,6 @@ export function AssetCard({ listing, onReserve }: AssetCardProps) {
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
-    </article>
+    </motion.article>
   );
 }

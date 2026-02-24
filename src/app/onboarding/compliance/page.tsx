@@ -1,14 +1,15 @@
 "use client";
 
 /* ================================================================
-   /onboarding/compliance — Institutional Compliance Lock-In
+   /onboarding/compliance — Institutional Compliance Verification
    ================================================================
-   Unverified users are locked into this page. They see:
+   KYC verification page embedded within the full app shell.
+   Users see:
      1. Institutional Compliance Protocol copy
      2. "Initiate Secure Verification" → launches Persona SDK
      3. Polling /api/user/kyc-status after Persona completes
      4. APPROVED → redirect to /buyer
-     5. REJECTED → "Compliance Review Required" failure UI
+     5. REJECTED → in-product Compliance Case escalation
 
    Edge Cases:
      - onCancel: resets to "Initiate" screen
@@ -23,10 +24,11 @@ import {
   ShieldCheck,
   Loader2,
   AlertTriangle,
-  Mail,
   CheckCircle2,
   XCircle,
+  MessageSquare,
 } from "lucide-react";
+import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 
 /* ----------------------------------------------------------------
@@ -226,19 +228,18 @@ export default function CompliancePage() {
             </h1>
             <p className="text-sm text-color-3/60 leading-relaxed max-w-md mb-6">
               Our automated identity perimeter was unable to instantly clear
-              your corporate credentials. To maintain the security of the
-              settlement engine, your account has been flagged for manual
-              review. Please contact our institutional onboarding desk at{" "}
-              <span className="font-medium text-color-2">compliance@yourdomain.com</span>{" "}
-              to resolve this status.
+              your corporate credentials. Your account has been flagged for
+              manual review by our compliance team. You can track the status
+              of your review and submit additional documents through our
+              compliance portal.
             </p>
-            <a
-              href="mailto:compliance@yourdomain.com"
+            <Link
+              href="/compliance/case"
               className="inline-flex items-center gap-2 rounded-lg bg-color-2 px-6 py-3 text-sm font-semibold text-color-1 transition-colors hover:bg-color-2/90 active:bg-color-2/80"
             >
-              <Mail className="h-4 w-4" />
-              Contact Onboarding Desk
-            </a>
+              <MessageSquare className="h-4 w-4" />
+              Contact Compliance Team
+            </Link>
             <button
               type="button"
               onClick={() => { setState("idle"); setError(null); }}
