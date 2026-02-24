@@ -10,6 +10,7 @@
    ================================================================ */
 
 import { MapPin, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Listing } from "@/lib/mock-data";
 
 /* ── Mock spot price for premium derivation ── */
@@ -44,36 +45,35 @@ export function AssetCard({ listing, onReserve }: AssetCardProps) {
   const isSuspended = listing.status === "suspended";
 
   return (
-    <div
-      className={`
-        glass-panel overflow-hidden
-        transition-all duration-200 ease-out
-        ${
-          isSuspended
-            ? "opacity-50 pointer-events-none"
-            : "hover:border-color-2/30 hover:shadow-[0_0_24px_rgba(208,168,92,0.08)]"
-        }
-      `}
+    <article
+      role="article"
+      aria-label={`${listing.title} — ${fmtWeight(listing.totalWeightOz)} oz gold ${listing.form}`}
+      className={cn(
+        "glass-panel overflow-hidden transition-all duration-200 ease-out",
+        isSuspended
+          ? "opacity-50 pointer-events-none"
+          : "hover:border-color-2/30 hover:shadow-[0_0_24px_rgba(208,168,92,0.08)]",
+      )}
     >
       <div className="px-5 pt-5 pb-4 space-y-4">
         {/* ── Header: Form Badge + Purity Tag ── */}
         <div className="flex items-center justify-between">
           <span
-            className="
-              inline-flex items-center rounded-sm
-              bg-color-5/15 px-2 py-0.5
-              text-[10px] font-bold uppercase tracking-widest text-color-3/70
-            "
+            className={cn(
+              "inline-flex items-center rounded-sm",
+              "bg-color-5/15 px-2 py-0.5",
+              "text-[10px] font-bold uppercase tracking-widest text-color-3/70",
+            )}
           >
             {FORM_LABELS[listing.form] ?? listing.form}
           </span>
           <span
-            className="
-              inline-flex items-center rounded-sm
-              bg-color-2/10 border border-color-2/20
-              px-2 py-0.5
-              text-[10px] font-bold tracking-wider text-color-2
-            "
+            className={cn(
+              "inline-flex items-center rounded-sm",
+              "bg-color-2/10 border border-color-2/20",
+              "px-2 py-0.5",
+              "text-[10px] font-bold tracking-wider text-color-2",
+            )}
           >
             .{listing.purity}
           </span>
@@ -135,8 +135,12 @@ export function AssetCard({ listing, onReserve }: AssetCardProps) {
 
         {/* ── Vault Location ── */}
         <div className="flex items-center gap-1.5 text-color-3/50">
-          <MapPin className="h-3 w-3 shrink-0" />
-          <span className="text-xs truncate" title={listing.vaultName}>
+          <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+          <span
+            className="text-xs truncate"
+            title={listing.vaultName}
+            aria-label={`Vault location: ${listing.vaultName}`}
+          >
             {listing.vaultName}
           </span>
           <span className="text-[10px] text-color-3/30">
@@ -151,20 +155,20 @@ export function AssetCard({ listing, onReserve }: AssetCardProps) {
           type="button"
           onClick={() => onReserve(listing)}
           disabled={isSuspended}
-          className="
-            flex w-full items-center justify-center gap-2
-            rounded-lg px-4 py-2.5
-            bg-color-2 text-color-1 text-sm font-semibold
-            transition-all duration-150
-            hover:bg-[#dbb56a] active:bg-[#c49b4e]
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50 focus-visible:ring-offset-2 focus-visible:ring-offset-color-1
-            disabled:opacity-40 disabled:cursor-not-allowed
-          "
+          className={cn(
+            "flex w-full items-center justify-center gap-2",
+            "rounded-lg px-4 py-2.5",
+            "bg-color-2 text-color-1 text-sm font-semibold",
+            "transition-all duration-150",
+            "hover:bg-[#dbb56a] active:bg-[#c49b4e]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50 focus-visible:ring-offset-2 focus-visible:ring-offset-color-1",
+            "disabled:opacity-40 disabled:cursor-not-allowed",
+          )}
         >
           Reserve Asset
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
-    </div>
+    </article>
   );
 }

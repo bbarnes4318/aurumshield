@@ -1,12 +1,18 @@
 /* ================================================================
-   /onboarding — Isolated Compliance Layout (No AppShell)
+   /onboarding — Layout (Inside AppShell)
    ================================================================
-   Renders a minimal top-bar with the AurumShield logo ONLY.
-   No sidebar, no navbar, no dashboard chrome. Unverified users
-   must see nothing except the compliance protocol.
+   Onboarding is now a guided workflow embedded within the full
+   app shell. The sidebar and topbar remain visible so users don't
+   feel trapped. This layout is a simple pass-through — the AppShell
+   provides the chrome.
    ================================================================ */
 
-import { AppLogo } from "@/components/app-logo";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "AurumShield — Onboarding",
+  description: "Complete your institutional compliance verification.",
+};
 
 export default function OnboardingLayout({
   children,
@@ -14,16 +20,8 @@ export default function OnboardingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-color-1 flex flex-col">
-      {/* ── Minimal Top Bar — Logo Only ── */}
-      <header className="shrink-0 flex items-center px-6 py-4 border-b border-color-5/20">
-        <AppLogo className="h-8 w-auto" variant="dark" />
-      </header>
-
-      {/* ── Content Area ── */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        {children}
-      </div>
+    <div className="mx-auto w-full max-w-3xl py-4">
+      {children}
     </div>
   );
 }

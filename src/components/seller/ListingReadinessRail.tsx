@@ -39,6 +39,7 @@ function ReadinessCard({
   return (
     <Link
       href={`/sell?listing=${listing.id}`}
+      title={`${isReady ? "Publish" : "Edit"} listing: ${listing.title}`}
       className={cn(
         "block rounded-[var(--radius-sm)] border px-3 py-2.5 transition-colors group",
         isLoading
@@ -62,12 +63,15 @@ function ReadinessCard({
         {isLoading ? (
           <div className="h-5 w-5 rounded-full bg-text-faint/10 animate-pulse shrink-0 mt-0.5" />
         ) : isReady ? (
-          <CheckCircle2 className="h-4.5 w-4.5 text-success shrink-0 mt-0.5" />
+          <CheckCircle2 className="h-4.5 w-4.5 text-success shrink-0 mt-0.5" aria-hidden="true" />
         ) : (
           <div className="flex items-center gap-1 shrink-0 mt-0.5">
             {blockerCount > 0 && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-danger/10 border border-danger/20 px-1.5 py-0.5 text-[10px] font-medium text-danger">
-                <XCircle className="h-2.5 w-2.5" />
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full bg-danger/10 border border-danger/20 px-1.5 py-0.5 text-[10px] font-medium text-danger"
+                aria-label={`${blockerCount} blocker${blockerCount > 1 ? "s" : ""}`}
+              >
+                <XCircle className="h-2.5 w-2.5" aria-hidden="true" />
                 {blockerCount}
               </span>
             )}
@@ -83,7 +87,7 @@ function ReadinessCard({
               key={i}
               className="text-[10px] text-danger flex items-start gap-1"
             >
-              <AlertTriangle className="h-2.5 w-2.5 shrink-0 mt-[2px]" />
+              <AlertTriangle className="h-2.5 w-2.5 shrink-0 mt-[2px]" aria-hidden="true" />
               <span className="truncate">{formatBlockerLabel(b)}</span>
             </p>
           ))}
@@ -98,7 +102,7 @@ function ReadinessCard({
       {/* CTA */}
       <div className="flex items-center gap-1 mt-2 text-[11px] font-medium text-gold group-hover:text-gold-hover transition-colors">
         {isReady ? "Publish Now" : "Continue Editing"}
-        <ArrowRight className="h-3 w-3" />
+        <ArrowRight className="h-3 w-3" aria-hidden="true" />
       </div>
     </Link>
   );
@@ -151,11 +155,14 @@ export function ListingReadinessRail({
     <div className={cn("space-y-3", className)}>
       {/* Header */}
       <div className="flex items-center gap-2">
-        <FileStack className="h-4 w-4 text-gold" />
+        <FileStack className="h-4 w-4 text-gold" aria-hidden="true" />
         <h3 className="text-xs font-semibold uppercase tracking-widest text-text-faint">
           Listing Readiness
         </h3>
-        <span className="ml-auto inline-flex items-center justify-center rounded-full bg-gold/10 text-gold text-[10px] font-semibold min-w-[18px] h-[18px] px-1">
+        <span
+          className="ml-auto inline-flex items-center justify-center rounded-full bg-gold/10 text-gold text-[10px] font-semibold min-w-[18px] h-[18px] px-1"
+          aria-label={`${sortedDrafts.length} draft listing${sortedDrafts.length !== 1 ? "s" : ""}`}
+        >
           {sortedDrafts.length}
         </span>
       </div>

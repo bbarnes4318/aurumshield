@@ -4,7 +4,8 @@
    SELLER LISTING CONSOLE — /sell/listings
    ================================================================
    Table view of all listings owned by the current seller, with
-   status badges, filterable by status, and links to detail pages.
+   status badges, filterable by status, searchable by title/ID,
+   and links to detail pages.
    ================================================================ */
 
 import { useMemo, useState } from "react";
@@ -18,7 +19,7 @@ import { RequireAuth } from "@/components/auth/require-auth";
 import { useAuth } from "@/providers/auth-provider";
 import { useMyListings } from "@/hooks/use-mock-queries";
 import type { Listing, ListingStatus } from "@/lib/mock-data";
-import { Plus, AlertTriangle, ExternalLink } from "lucide-react";
+import { Plus, AlertTriangle, ExternalLink, Search } from "lucide-react";
 
 /* ---------- Status badge config ---------- */
 const STATUS_CONFIG: Record<ListingStatus, { label: string; color: string }> = {
@@ -95,7 +96,7 @@ const columns: ColumnDef<Listing, unknown>[] = [
       const cfg = STATUS_CONFIG[s] ?? STATUS_CONFIG.draft;
       return (
         <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium", cfg.color)}>
-          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+          <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
           {cfg.label}
         </span>
       );
@@ -116,9 +117,10 @@ const columns: ColumnDef<Listing, unknown>[] = [
     cell: ({ row }) => (
       <Link
         href={`/sell/listings/${row.original.id}`}
-        className="flex items-center gap-1 text-xs text-gold hover:text-gold-hover transition-colors"
+        className="flex items-center gap-1 text-xs text-gold hover:text-gold-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 rounded"
+        aria-label={`View listing ${row.original.title}`}
       >
-        View <ExternalLink className="h-3 w-3" />
+        View <ExternalLink className="h-3 w-3" aria-hidden="true" />
       </Link>
     ),
   },
@@ -131,19 +133,31 @@ function SellerListingConsoleContent() {
   const userRole = user?.role ?? "buyer";
   const listingsQ = useMyListings(userId);
   const [activeTab, setActiveTab] = useState<ListingStatus | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   /* Filter by status tab */
-  const rows = useMemo(() => {
+  const tabFiltered = useMemo(() => {
     if (!listingsQ.data) return [];
     if (activeTab === "all") return listingsQ.data;
     return listingsQ.data.filter((l) => l.status === activeTab);
   }, [listingsQ.data, activeTab]);
 
+  /* Apply search query */
+  const rows = useMemo(() => {
+    if (!searchQuery.trim()) return tabFiltered;
+    const q = searchQuery.toLowerCase().trim();
+    return tabFiltered.filter(
+      (l) =>
+        l.title.toLowerCase().includes(q) ||
+        l.id.toLowerCase().includes(q),
+    );
+  }, [tabFiltered, searchQuery]);
+
   /* Role gate — placed AFTER all hooks */
   if (userRole !== "seller" && userRole !== "admin") {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <AlertTriangle className="h-8 w-8 text-warning mb-3" />
+        <AlertTriangle className="h-8 w-8 text-warning mb-3" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-text">Access Restricted</h2>
         <p className="mt-1 text-sm text-text-muted max-w-sm">
           Only seller or admin accounts may view the listing console.
@@ -165,13 +179,37 @@ function SellerListingConsoleContent() {
             href="/sell"
             className="inline-flex items-center gap-1.5 rounded-input bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover"
           >
-            <Plus className="h-3.5 w-3.5" /> New Listing
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" /> New Listing
           </Link>
         }
       />
 
+      {/* Search Input */}
+      <div className="relative mt-6 mb-4 max-w-sm">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-faint pointer-events-none"
+          aria-hidden="true"
+        />
+        <label htmlFor="listing-search" className="sr-only">
+          Search listings by title or ID
+        </label>
+        <input
+          id="listing-search"
+          name="listing-search"
+          type="search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by title or ID…"
+          className={cn(
+            "w-full rounded-lg border border-border bg-surface-2 py-2 pl-9 pr-3 text-sm text-text placeholder:text-text-faint",
+            "focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40",
+            "transition-colors",
+          )}
+        />
+      </div>
+
       {/* Status Tabs */}
-      <div className="flex gap-1 mt-6 mb-4 overflow-x-auto pb-1">
+      <div className="flex gap-1 mb-4 overflow-x-auto pb-1" role="tablist" aria-label="Filter listings by status">
         {STATUS_TABS.map((tab) => {
           const count = listingsQ.data
             ? tab.value === "all"
@@ -181,12 +219,14 @@ function SellerListingConsoleContent() {
           return (
             <button
               key={tab.value}
+              role="tab"
+              aria-selected={activeTab === tab.value}
               onClick={() => setActiveTab(tab.value)}
               className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                 activeTab === tab.value
                   ? "bg-gold/10 text-gold border border-gold/30"
-                  : "text-text-muted hover:bg-surface-2"
+                  : "text-text-muted hover:bg-surface-2",
               )}
             >
               {tab.label}
@@ -199,13 +239,19 @@ function SellerListingConsoleContent() {
       {rows.length === 0 ? (
         <EmptyState
           title="No listings"
-          message={activeTab === "all" ? "Create your first gold listing to get started." : `No listings with status "${activeTab}".`}
-          action={activeTab === "all" ? (
+          message={
+            searchQuery
+              ? `No listings matching "${searchQuery}".`
+              : activeTab === "all"
+                ? "Create your first gold listing to get started."
+                : `No listings with status "${activeTab}".`
+          }
+          action={activeTab === "all" && !searchQuery ? (
             <Link
               href="/sell"
               className="inline-flex items-center gap-1.5 rounded-input bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover"
             >
-              <Plus className="h-3.5 w-3.5" /> Create Listing
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Create Listing
             </Link>
           ) : undefined}
         />

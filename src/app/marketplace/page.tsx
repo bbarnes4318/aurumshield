@@ -12,14 +12,17 @@
    ================================================================ */
 
 import { useState, useMemo, useEffect, Suspense } from "react";
-import { Filter, Package, Weight, TrendingUp, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Package, Weight, TrendingUp } from "lucide-react";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { useListings, useMyReservations } from "@/hooks/use-mock-queries";
 import { runReservationExpirySweep } from "@/lib/api";
 import type { Listing } from "@/lib/mock-data";
 import { CheckoutModalWrapper } from "@/components/checkout/CheckoutModalWrapper";
 import { AssetCard } from "@/components/marketplace/AssetCard";
+import {
+  MarketplaceFilterBar,
+  type SortKey,
+} from "@/components/marketplace/MarketplaceFilterBar";
 
 /* ================================================================ */
 const MOCK_USER_ID = "user-1";
@@ -35,74 +38,6 @@ const fmtUsd = (n: number) =>
   });
 
 const fmtWeight = (n: number) => n.toLocaleString("en-US");
-
-/* ── Filter Configurations ── */
-interface FilterOption {
-  label: string;
-  value: string;
-}
-
-const FORM_OPTIONS: FilterOption[] = [
-  { label: "All Forms", value: "" },
-  { label: "Bar", value: "bar" },
-  { label: "Coin", value: "coin" },
-];
-
-const VAULT_OPTIONS: FilterOption[] = [
-  { label: "All Vaults", value: "" },
-  { label: "Zurich Custody Vault", value: "hub-002" },
-  { label: "London Clearing Centre", value: "hub-001" },
-  { label: "New York Trading Floor", value: "hub-004" },
-  { label: "Singapore Settlement Node", value: "hub-003" },
-  { label: "Frankfurt Settlement Hub", value: "hub-005" },
-  { label: "Dubai Trade Gateway", value: "hub-006" },
-];
-
-/* ================================================================
-   FilterChip — inline filter control
-   ================================================================ */
-
-function FilterChip({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: FilterOption[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <label
-        className="text-[10px] uppercase tracking-widest text-color-3/40 font-semibold"
-        htmlFor={`filter-${label}`}
-      >
-        {label}
-      </label>
-      <select
-        id={`filter-${label}`}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn(
-          "h-8 rounded-lg border bg-color-1/50 px-3 text-xs text-color-3",
-          "focus:outline-none focus:ring-2 focus:ring-color-2/30 focus:border-color-2/40",
-          "transition-colors cursor-pointer",
-          value
-            ? "border-color-2/30 bg-color-2/5"
-            : "border-color-5/20"
-        )}
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 /* ================================================================
    SummaryStrip — aggregate marketplace metrics
@@ -121,13 +56,13 @@ function SummaryStrip({
       : 0;
   const totalNotional = listings.reduce(
     (s, l) => s + l.totalWeightOz * l.pricePerOz,
-    0
+    0,
   );
 
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
       <div className="flex items-center gap-1.5 text-color-3/60">
-        <Package className="h-3 w-3" />
+        <Package className="h-3 w-3" aria-hidden="true" />
         <span className="text-[11px]">
           <span className="font-mono tabular-nums font-semibold text-color-3">
             {listings.length}
@@ -136,7 +71,7 @@ function SummaryStrip({
         </span>
       </div>
       <div className="flex items-center gap-1.5 text-color-3/60">
-        <Weight className="h-3 w-3" />
+        <Weight className="h-3 w-3" aria-hidden="true" />
         <span className="text-[11px]">
           <span className="font-mono tabular-nums font-semibold text-color-3">
             {fmtWeight(totalWeight)}
@@ -145,7 +80,7 @@ function SummaryStrip({
         </span>
       </div>
       <div className="flex items-center gap-1.5 text-color-3/60">
-        <TrendingUp className="h-3 w-3" />
+        <TrendingUp className="h-3 w-3" aria-hidden="true" />
         <span className="text-[11px]">
           avg premium{" "}
           <span className="font-mono tabular-nums font-semibold text-color-2">
@@ -165,6 +100,66 @@ function SummaryStrip({
 }
 
 /* ================================================================
+   Sort comparator
+   ================================================================ */
+
+function applySortKey(listings: Listing[], sortKey: SortKey): Listing[] {
+  if (!sortKey) return listings;
+  const sorted = [...listings];
+  switch (sortKey) {
+    case "price-asc":
+      sorted.sort((a, b) => a.pricePerOz - b.pricePerOz);
+      break;
+    case "price-desc":
+      sorted.sort((a, b) => b.pricePerOz - a.pricePerOz);
+      break;
+    case "weight-asc":
+      sorted.sort((a, b) => a.totalWeightOz - b.totalWeightOz);
+      break;
+    case "weight-desc":
+      sorted.sort((a, b) => b.totalWeightOz - a.totalWeightOz);
+      break;
+    case "premium-asc":
+      sorted.sort(
+        (a, b) =>
+          a.pricePerOz - MOCK_SPOT_PRICE - (b.pricePerOz - MOCK_SPOT_PRICE),
+      );
+      break;
+  }
+  return sorted;
+}
+
+/* ================================================================
+   AssetCardSkeleton — suspense fallback for individual card slots
+   ================================================================ */
+
+function AssetCardSkeleton() {
+  return (
+    <div className="glass-panel overflow-hidden animate-pulse">
+      <div className="px-5 pt-5 pb-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-4 w-12 rounded bg-color-5/10" />
+          <div className="h-4 w-10 rounded bg-color-5/10" />
+        </div>
+        <div className="h-3 w-3/4 rounded bg-color-5/10" />
+        <div className="flex justify-center py-2">
+          <div className="h-8 w-24 rounded bg-color-5/10" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-6 rounded bg-color-5/10" />
+          <div className="h-6 rounded bg-color-5/10" />
+          <div className="col-span-2 h-6 rounded bg-color-5/10" />
+        </div>
+        <div className="h-3 w-2/3 rounded bg-color-5/10" />
+      </div>
+      <div className="px-5 pb-5 pt-1">
+        <div className="h-10 rounded-lg bg-color-5/10" />
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
    MarketplaceContent — main export (used by buyer page slide-out)
    ================================================================ */
 
@@ -177,13 +172,15 @@ export function MarketplaceContent() {
   const reservationsQ = useMyReservations(MOCK_USER_ID);
   const [formFilter, setFormFilter] = useState("");
   const [vaultFilter, setVaultFilter] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("");
   const [reserveTarget, setReserveTarget] = useState<Listing | null>(null);
 
   /* ── Filter to published/available listings only ── */
   const publishedListings = useMemo(() => {
     if (!listingsQ.data) return [];
     return listingsQ.data.filter(
-      (l) => l.status !== "suspended" && l.status !== "draft" && l.status !== "sold"
+      (l) =>
+        l.status !== "suspended" && l.status !== "draft" && l.status !== "sold",
     );
   }, [listingsQ.data]);
 
@@ -196,7 +193,18 @@ export function MarketplaceContent() {
     });
   }, [publishedListings, formFilter, vaultFilter]);
 
-  const activeFilterCount = (formFilter ? 1 : 0) + (vaultFilter ? 1 : 0);
+  /* ── Apply sort ── */
+  const sortedListings = useMemo(
+    () => applySortKey(filteredListings, sortKey),
+    [filteredListings, sortKey],
+  );
+
+  /* ── Clear all handler ── */
+  const handleClearAll = () => {
+    setFormFilter("");
+    setVaultFilter("");
+    setSortKey("");
+  };
 
   /* ── Loading / Error ── */
   if (listingsQ.isLoading || reservationsQ.isLoading)
@@ -222,70 +230,41 @@ export function MarketplaceContent() {
       </div>
 
       {/* ── Filter Bar ── */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-1.5 text-color-3/50">
-          <Filter className="h-3.5 w-3.5" />
-          <span className="text-[10px] font-semibold uppercase tracking-widest">
-            Filters
-          </span>
-        </div>
-
-        <FilterChip
-          label="Form"
-          options={FORM_OPTIONS}
-          value={formFilter}
-          onChange={setFormFilter}
-        />
-
-        <FilterChip
-          label="Vault"
-          options={VAULT_OPTIONS}
-          value={vaultFilter}
-          onChange={setVaultFilter}
-        />
-
-        {activeFilterCount > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              setFormFilter("");
-              setVaultFilter("");
-            }}
-            className="flex items-center gap-1 rounded-full border border-color-5/20 bg-color-1/50 px-2.5 py-1 text-[10px] font-medium text-color-3/50 transition-colors hover:bg-color-5/10 hover:text-color-3"
-          >
-            <X className="h-3 w-3" />
-            Clear ({activeFilterCount})
-          </button>
-        )}
-      </div>
+      <MarketplaceFilterBar
+        formFilter={formFilter}
+        vaultFilter={vaultFilter}
+        sortKey={sortKey}
+        onFormChange={setFormFilter}
+        onVaultChange={setVaultFilter}
+        onSortChange={setSortKey}
+        onClearAll={handleClearAll}
+      />
 
       {/* ── Summary Strip ── */}
-      <SummaryStrip listings={filteredListings} />
+      <SummaryStrip listings={sortedListings} />
 
       {/* ── Asset Card Grid ── */}
-      {filteredListings.length > 0 ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredListings.map((listing) => (
-            <AssetCard
-              key={listing.id}
-              listing={listing}
-              onReserve={setReserveTarget}
-            />
+      {sortedListings.length > 0 ? (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {sortedListings.map((listing) => (
+            <Suspense key={listing.id} fallback={<AssetCardSkeleton />}>
+              <AssetCard
+                listing={listing}
+                onReserve={setReserveTarget}
+              />
+            </Suspense>
           ))}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Package className="h-10 w-10 text-color-3/20 mb-3" />
+          <Package className="h-10 w-10 text-color-3/20 mb-3" aria-hidden="true" />
           <p className="text-sm text-color-3/50">
             No allocations match the current filters.
           </p>
           <button
             type="button"
-            onClick={() => {
-              setFormFilter("");
-              setVaultFilter("");
-            }}
-            className="mt-3 text-xs text-color-2 hover:text-color-2/80 transition-colors"
+            onClick={handleClearAll}
+            className="mt-3 text-xs text-color-2 hover:text-color-2/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50 rounded"
           >
             Clear all filters
           </button>

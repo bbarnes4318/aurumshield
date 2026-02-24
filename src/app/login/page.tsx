@@ -4,7 +4,7 @@
    LOGIN PAGE — Dual-mode (Clerk + Demo)
    ================================================================
    When Clerk is configured with valid keys:
-   - Shows Clerk's <SignIn /> component (handles OAuth, MFA, etc.)
+   - Shows Clerk's <SignIn /> component (handles OAuth, MFA, passkeys)
    - Preserves demo account quick-login below for demo mode
 
    When Clerk is NOT configured:
@@ -23,8 +23,7 @@ import { LogIn, AlertCircle, ShieldAlert } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useAuth } from "@/providers/auth-provider";
 import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
-// TODO: Uncomment when @clerk/nextjs is installed
-// import { SignIn } from "@clerk/nextjs";
+import { SignIn } from "@clerk/nextjs";
 
 /** Check if Clerk is configured at build time */
 const CLERK_ENABLED =
@@ -123,7 +122,6 @@ function LoginContent() {
         </div>
 
         {/* ─── Clerk Sign-In (when configured) ─── */}
-        {/* TODO: Uncomment when @clerk/nextjs is installed
         {CLERK_ENABLED && (
           <div className="mb-6 flex justify-center">
             <SignIn
@@ -145,7 +143,6 @@ function LoginContent() {
             />
           </div>
         )}
-        */}
 
         {/* ─── Demo / Mock Login Form ─── */}
         {!CLERK_ENABLED && (
