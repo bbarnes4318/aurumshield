@@ -87,7 +87,7 @@ export async function POST(
   );
 
   if (event) {
-    publishCaseEvent(session.userId, caseId, event);
+    await publishCaseEvent(session.userId, caseId, event);
   }
 
   return NextResponse.json({

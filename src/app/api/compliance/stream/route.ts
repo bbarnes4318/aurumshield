@@ -13,7 +13,7 @@
    Protocol:
      - Content-Type: text/event-stream
      - Initial "connected" event with current case status
-     - Live events forwarded from the in-memory pub/sub bus
+     - Live events forwarded from PG LISTEN/NOTIFY bus (RSK-008)
      - Keep-alive comment (": keep-alive\n\n") every 30 seconds
      - Stream closes when the client disconnects
 
@@ -22,7 +22,7 @@
 
 import { requireSession, AuthError } from "@/lib/authz";
 import { getComplianceCaseByUserId } from "@/lib/compliance/models";
-import { subscribeCaseEvents, KEEP_ALIVE_MS } from "@/lib/compliance/events";
+import { subscribeCaseEvents, KEEP_ALIVE_MS, emitMetric } from "@/lib/compliance/events";
 
 export const dynamic = "force-dynamic";
 
@@ -55,26 +55,33 @@ export async function GET(): Promise<Response> {
     currentCase = null;
   }
 
-  /* ── Step 3: Create SSE stream ── */
-  const encoder = new TextEncoder();
+  /* ── Step 3: Subscribe to PG LISTEN/NOTIFY bus ── */
+  // subscribeCaseEvents is now async — it ensures the global PG
+  // listener is active before registering the local callback.
+  let unsubscribePromise: Promise<() => void> | null = null;
   let unsubscribe: (() => void) | null = null;
   let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
 
   const stream = new ReadableStream({
     start(controller) {
+      const encoder = new TextEncoder();
+
       // Send initial connection event with current case state
       const connectPayload = JSON.stringify({
         type: "connected",
         caseId: currentCase?.id ?? null,
         caseStatus: currentCase?.status ?? null,
         caseTier: currentCase?.tier ?? null,
+        nodeId: process.env.HOSTNAME || "unknown",
       });
       controller.enqueue(
         encoder.encode(`data: ${connectPayload}\n\n`),
       );
 
-      // Subscribe to live events for this user
-      unsubscribe = subscribeCaseEvents(userId, (payload) => {
+      // Track SSE connection (metric emitted inside subscribeCaseEvents)
+
+      // Subscribe to the distributed event bus
+      unsubscribePromise = subscribeCaseEvents(userId, (payload) => {
         try {
           const eventPayload = JSON.stringify({
             type: "case_event",
@@ -88,6 +95,18 @@ export async function GET(): Promise<Response> {
           // Stream may have been closed — ignore write errors
         }
       });
+
+      // Handle async subscription setup
+      unsubscribePromise
+        .then((unsub) => {
+          unsubscribe = unsub;
+        })
+        .catch((err) => {
+          console.error("[SSE] Failed to subscribe to PG bus:", err);
+          // Still send events via initial connected payload — stream
+          // remains open but won't receive live updates if PG fails.
+          emitMetric("pg_listener_errors");
+        });
 
       // Keep-alive to prevent proxy/load-balancer timeout
       keepAliveTimer = setInterval(() => {

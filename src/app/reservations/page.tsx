@@ -19,6 +19,7 @@ import {
   determineApproval,
   type MarketplacePolicySnapshot,
 } from "@/lib/policy-engine";
+import { useRiskConfig } from "@/hooks/use-risk-config";
 
 const MOCK_USER_ID = "user-1";
 
@@ -68,6 +69,7 @@ export default function ReservationsPage() {
   const hubQ = useHubs();
   const cpQ = useCounterparties();
   const convertMut = useConvertReservation();
+  const rc = useRiskConfig();
 
   const [convertError, setConvertError] = useState<string | null>(null);
 
@@ -111,8 +113,8 @@ export default function ReservationsPage() {
     const notional = reservation.weightOz * reservation.pricePerOzLocked;
     const tri = computeTRI(cp, corridor, notional, capital);
     const capVal = validateCapital(notional, capital);
-    const blockers = checkBlockers(cp, corridor, hub, tri, notional, capital);
-    const approval = determineApproval(tri.score, notional);
+    const blockers = checkBlockers(cp, corridor, hub, tri, notional, capital, rc.data);
+    const approval = determineApproval(tri.score, notional, rc.data);
 
     if (hasBlockLevel(blockers)) {
       const blockMsg = blockers
@@ -140,7 +142,7 @@ export default function ReservationsPage() {
       { onSuccess: (order) => router.push(`/orders/${order.id}`),
         onError: (err) => setConvertError(err instanceof Error ? err.message : "Conversion failed.") },
     );
-  }, [dashQ.data, listingsQ.data, corQ.data, hubQ.data, cpQ.data, convertMut, router]);
+  }, [dashQ.data, listingsQ.data, corQ.data, hubQ.data, cpQ.data, convertMut, router, rc.data]);
 
   /* Column definitions */
   const columns: ColumnDef<ReservationRow, unknown>[] = useMemo(() => [

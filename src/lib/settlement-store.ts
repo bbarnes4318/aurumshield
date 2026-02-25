@@ -14,6 +14,7 @@ function fixtureState(): SettlementState {
   return {
     settlements: structuredClone(mockSettlements),
     ledger: structuredClone(mockLedger),
+    clearingJournals: [],
   };
 }
 

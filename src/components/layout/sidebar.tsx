@@ -31,6 +31,7 @@ import {
   Presentation,
   Briefcase,
   Package,
+  FileText,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -128,6 +129,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Audit Console", href: "/audit", icon: ShieldCheck, roles: ["admin", "compliance", "treasury", "vault_ops"], dataTour: "sidebar-audit" },
       { label: "Supervisory Mode", href: "/supervisory", icon: Gavel, roles: ["admin", "compliance"], dataTour: "sidebar-supervisory" },
+      { label: "Technical Overview", href: "/technical-overview", icon: FileText, dataTour: "sidebar-technical-overview" },
     ],
   },
   {

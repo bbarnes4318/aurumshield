@@ -279,7 +279,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (!cc) {
       cc = await createComplianceCase({
         userId,
-        status: "OPEN",
+        status: "PENDING_PROVIDER",
         tier: "BROWSE",
       });
       console.log(
@@ -297,7 +297,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Update case status based on the event
     const caseStatus = newKycStatus === "APPROVED" ? "APPROVED" as const : "REJECTED" as const;
     const caseTier = newKycStatus === "APPROVED" ? "EXECUTE" as const : "BROWSE" as const;
-    await updateComplianceCaseStatus(cc.id, caseStatus, caseTier);
+    await updateComplianceCaseStatus(cc.id, caseStatus, cc.status, caseTier);
 
     // Append audit event (idempotent via event_id)
     const eventIdKey = `persona-${eventName}-${userId}-${Date.now()}`;
@@ -317,7 +317,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     // Publish to SSE subscribers for real-time UI updates
     if (event) {
-      publishCaseEvent(userId, cc.id, event);
+      await publishCaseEvent(userId, cc.id, event);
     }
 
     console.log(

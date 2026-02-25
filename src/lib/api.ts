@@ -18,6 +18,7 @@ import {
   checkBlockers,
   determineApproval,
   hasBlockLevel,
+  DEFAULT_RISK_CONFIG,
 } from "./policy-engine";
 import type { MarketplacePolicySnapshot } from "./policy-engine";
 import { loadVerificationCase } from "./verification-engine";
@@ -298,16 +299,29 @@ function consumeQuoteFromStore(
  * @param notional — Server-computed notional (weightOz × listing.pricePerOz)
  * @returns The policy snapshot with all compliance evaluations
  */
-function buildServerPolicySnapshot(notional: number): MarketplacePolicySnapshot {
+async function buildServerPolicySnapshot(notional: number): Promise<MarketplacePolicySnapshot> {
   // Fetch compliance data from trusted "server database"
   const cp = mockCounterparties[0]; // In production: DB lookup by buyer's counterparty
   const corridor = mockCorridors[0]; // In production: DB lookup by listing jurisdiction pair
   const capital = mockCapitalPhase1; // In production: DB lookup by platform capital state
+  // Fetch risk config via API route — never import DB modules in client-bundled code.
+  // Falls back to DEFAULT_RISK_CONFIG if the API is unreachable (e.g., during SSG).
+  let rc: import("./policy-engine").RiskConfiguration;
+  try {
+    const origin = typeof window !== "undefined"
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+    const res = await fetch(`${origin}/api/risk-config`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    rc = await res.json();
+  } catch {
+    rc = DEFAULT_RISK_CONFIG;
+  }
 
   const tri = computeTRI(cp, corridor, notional, capital);
   const capVal = validateCapital(notional, capital);
-  const blockers = checkBlockers(cp, corridor, undefined, tri, notional, capital);
-  const approval = determineApproval(tri.score, notional);
+  const blockers = checkBlockers(cp, corridor, undefined, tri, notional, capital, rc);
+  const approval = determineApproval(tri.score, notional, rc);
 
   return {
     triScore: tri.score,
@@ -487,7 +501,7 @@ export async function apiExecuteAtomicCheckout(input: {
   }
 
   // ── Server-side compliance evaluation ──
-  const serverPolicySnapshot = buildServerPolicySnapshot(serverNotional);
+  const serverPolicySnapshot = await buildServerPolicySnapshot(serverNotional);
 
   // ── BLOCK-severity enforcement — abort before any state mutation ──
   if (hasBlockLevel(serverPolicySnapshot.blockers)) {
@@ -1351,6 +1365,7 @@ export async function apiSelectAddOns(input: {
   saveSettlementState({
     settlements: newSettlements,
     ledger: [...state.ledger, ledgerEntry],
+    clearingJournals: state.clearingJournals ?? [],
   });
 
   return mockFetch({ settlement, feeQuote: result.feeQuote });
@@ -1456,7 +1471,7 @@ export async function apiProcessPayment(input: {
     });
   }
 
-  saveSettlementState({ settlements: newSettlements, ledger: newLedger });
+  saveSettlementState({ settlements: newSettlements, ledger: newLedger, clearingJournals: state.clearingJournals ?? [] });
 
   // Audit
   appendAuditEvent({
@@ -1527,7 +1542,7 @@ export async function apiApproveManualReview(input: {
     detail: `Manual review approved by ${input.actorRole}${activated ? " — clearing activated" : ""}`,
   });
 
-  saveSettlementState({ settlements: newSettlements, ledger: newLedger });
+  saveSettlementState({ settlements: newSettlements, ledger: newLedger, clearingJournals: state.clearingJournals ?? [] });
 
   return mockFetch({ settlement, activated });
 }
@@ -1567,7 +1582,7 @@ export async function apiRejectManualReview(input: {
     detail: `Manual review rejected — ${input.reason}`,
   });
 
-  saveSettlementState({ settlements: newSettlements, ledger: newLedger });
+  saveSettlementState({ settlements: newSettlements, ledger: newLedger, clearingJournals: state.clearingJournals ?? [] });
 
   return mockFetch(settlement);
 }

@@ -5,6 +5,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { RiskBadge } from "@/components/ui/risk-badge";
 import type { Transaction, Counterparty, DashboardCapital, EvidenceItem } from "@/lib/mock-data";
 import { computeTRI, validateCapital, determineApproval } from "@/app/transactions/new/wizard-policy-engine";
+import { useRiskConfig } from "@/hooks/use-risk-config";
 import type { Corridor } from "@/lib/mock-data";
 
 function fmt(n: number) { return n >= 1e9 ? `$${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : `$${n.toLocaleString()}`; }
@@ -25,9 +26,11 @@ export function DetailSidebar({ tx, cp, corridor, capital, evidence }: Props) {
   const isActive = tx.status === "processing" || tx.status === "pending";
   const isLocked = tx.status === "completed" || tx.status === "failed" || tx.status === "reversed";
 
+  const rc = useRiskConfig();
+
   const tri = cp && corridor && capital ? computeTRI(cp, corridor, tx.amount, capital) : null;
   const capVal = capital ? validateCapital(tx.amount, capital) : null;
-  const approval = tri ? determineApproval(tri.score, tx.amount) : null;
+  const approval = tri ? determineApproval(tri.score, tx.amount, rc.data) : null;
 
   const BAND = { green: "text-success bg-success/10 border-success", amber: "text-warning bg-warning/10 border-warning", red: "text-danger bg-danger/10 border-danger" };
 

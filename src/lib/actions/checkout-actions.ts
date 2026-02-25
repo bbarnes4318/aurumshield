@@ -255,7 +255,7 @@ export async function serverGetPlatformFeeEstimate(
 export interface CreateQuoteActionInput {
   listingId: string;
   weightOz: number;
-  premiumBps?: number;
+  /* premiumBps removed (RSK-011) — server derives from DB listing */
 }
 
 export interface QuoteActionResult {
@@ -303,7 +303,6 @@ export async function serverCreateQuote(
       userId: session.userId,
       listingId: input.listingId,
       weightOz: input.weightOz,
-      premiumBps: input.premiumBps,
     });
     // RSK-002: Emit forensic order_created audit event
     emitOrderCreatedEvent({

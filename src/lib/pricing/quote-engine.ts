@@ -40,8 +40,7 @@ export interface CreateQuoteInput {
   userId: string;
   listingId: string;
   weightOz: number;
-  /** Premium in basis points over spot (default 0) */
-  premiumBps?: number;
+  /* premiumBps intentionally removed (RSK-011) — server derives from DB listing */
 }
 
 export interface QuoteResult {
@@ -82,31 +81,63 @@ const QUOTE_TTL_SECONDS = 60;
 /**
  * Create a new price-lock quote.
  *
- * 1. Fetches the live spot price from OANDA adapter
- * 2. Computes lockedPrice = weightOz * spot * (1 + premiumBps/10000)
- * 3. Sets expiresAt = now + 60s
- * 4. Inserts the quote row
- * 5. Returns the Quote + secondsRemaining for client countdown
+ * RSK-011: Premium is NEVER accepted from the client.
+ * The server queries inventory_listings.premium_per_oz for the
+ * seller-designated premium and derives premiumBps from spot.
  *
- * Before creating, cancels any existing ACTIVE quotes for the same
- * user + listing to prevent quote stacking.
+ * Flow:
+ *   1. Query the listing's premium_per_oz from the DB
+ *   2. Fetch the live spot price from OANDA adapter
+ *   3. Derive premiumBps = (premiumPerOz / spotPrice) * 10_000
+ *   4. Compute lockedPrice = weightOz * (spotPrice + premiumPerOz)
+ *   5. Guard: lockedPrice >= spotPrice * weightOz (no negative premiums)
+ *   6. Cancel stale ACTIVE quotes for the same user + listing
+ *   7. Insert + return the quote
  */
 export async function createQuote(input: CreateQuoteInput): Promise<QuoteResult> {
   const { getDbClient } = await import("@/lib/db");
   const { getSpotPrice } = await import("@/lib/oanda-adapter");
   const db = await getDbClient();
-  const premiumBps = input.premiumBps ?? 0;
 
   try {
+    // ── RSK-011: Query authoritative premium from inventory_listings ──
+    const { rows: listingRows } = await db.query<{
+      premium_per_oz: string;
+    }>(
+      `SELECT premium_per_oz FROM inventory_listings WHERE id = $1`,
+      [input.listingId],
+    );
+
+    if (listingRows.length === 0) {
+      throw new Error(
+        `LISTING_NOT_FOUND: Listing ${input.listingId} does not exist. Cannot create quote against phantom listing.`,
+      );
+    }
+
+    const premiumPerOz = parseFloat(listingRows[0].premium_per_oz);
+
     // Fetch authoritative spot price
     const spot = await getSpotPrice();
     const spotPrice = spot.pricePerOz;
     const priceFeedSource = spot.source;
     const priceFeedTimestamp = spot.timestamp;
 
-    // Compute locked price: weight * spot * (1 + premium/10000)
-    const premiumMultiplier = 1 + premiumBps / 10_000;
-    const lockedPrice = Number((input.weightOz * spotPrice * premiumMultiplier).toFixed(4));
+    // Derive premium in basis points from the DB-sourced premium_per_oz
+    const premiumBps = spotPrice > 0
+      ? Math.round((premiumPerOz / spotPrice) * 10_000)
+      : 0;
+
+    // Compute locked price: weight * (spot + seller premium)
+    const lockedPrice = Number((input.weightOz * (spotPrice + premiumPerOz)).toFixed(4));
+
+    // ── RSK-011 GUARD: lockedPrice must never be below spot ──
+    const spotFloor = Number((input.weightOz * spotPrice).toFixed(4));
+    if (lockedPrice < spotFloor) {
+      throw new Error(
+        `NEGATIVE_PREMIUM_REJECTED: lockedPrice (${lockedPrice}) < spot floor (${spotFloor}). ` +
+        `premium_per_oz=${premiumPerOz} is invalid — cannot sell below spot.`,
+      );
+    }
 
     // Cancel any existing active quotes for this user + listing
     await db.query(

@@ -44,6 +44,7 @@ type BuyFormData = z.infer<typeof buySchema>;
 const STEP_LABELS: Record<AtomicBuyStep, string> = {
   idle: "",
   executing: "Executing atomic checkout…",
+  polling: "Confirming transaction…",
   done: "Buy order confirmed",
   error: "Transaction failed",
 };

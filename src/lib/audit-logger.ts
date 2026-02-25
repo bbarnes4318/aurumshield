@@ -1,4 +1,4 @@
-"use server";
+/* server-only utility — do not import in client components */
 
 /* ================================================================
    FORENSIC AUDIT LOGGER — Structured, Append-Only Event Emission

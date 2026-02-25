@@ -35,6 +35,7 @@ import {
   type ComplianceCheck,
   type PolicySnapshot,
 } from "./wizard-policy-engine";
+import { useRiskConfig } from "@/hooks/use-risk-config";
 import { StepParties } from "./step-parties";
 import { StepCorridor } from "./step-corridor";
 import { StepCompliance } from "./step-compliance";
@@ -87,6 +88,7 @@ export default function NewTransactionPage() {
   const corQ = useCorridors();
   const hubQ = useHubs();
   const dashQ = useDashboardData("phase1");
+  const rc = useRiskConfig();
 
   const [machineState, dispatch] = useReducer(wizardReducer, "DRAFT" as WizardMachineState);
   const [isCreating, setIsCreating] = useState(false);
@@ -121,18 +123,18 @@ export default function NewTransactionPage() {
 
   const blockers: PolicyBlocker[] = useMemo(() => {
     if (!capital) return [];
-    return checkBlockers(selectedCp, selectedCor, selectedHub, tri, amount, capital);
-  }, [selectedCp, selectedCor, selectedHub, tri, amount, capital]);
+    return checkBlockers(selectedCp, selectedCor, selectedHub, tri, amount, capital, rc.data);
+  }, [selectedCp, selectedCor, selectedHub, tri, amount, capital, rc.data]);
 
   const approval: ApprovalResult | null = useMemo(() => {
     if (!tri) return null;
-    return determineApproval(tri.score, amount);
-  }, [tri, amount]);
+    return determineApproval(tri.score, amount, rc.data);
+  }, [tri, amount, rc.data]);
 
   const complianceChecks: ComplianceCheck[] = useMemo(() => {
     if (!selectedCp || !selectedCor || !selectedHub || !tri || !capVal) return [];
-    return runComplianceChecks(selectedCp, selectedCor, selectedHub, tri, capVal);
-  }, [selectedCp, selectedCor, selectedHub, tri, capVal]);
+    return runComplianceChecks(selectedCp, selectedCor, selectedHub, tri, capVal, rc.data);
+  }, [selectedCp, selectedCor, selectedHub, tri, capVal, rc.data]);
 
   const blockersExist = hasBlockLevel(blockers);
 

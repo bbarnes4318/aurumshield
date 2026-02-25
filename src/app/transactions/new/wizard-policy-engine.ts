@@ -10,6 +10,8 @@ export {
   hasBlockLevel,
   determineApproval,
   runComplianceChecks,
+  DEFAULT_RISK_CONFIG,
+  type RiskConfiguration,
   type TRIComponent,
   type TRIResult,
   type CapitalValidation,
@@ -20,3 +22,4 @@ export {
   type ComplianceCheck,
   type PolicySnapshot,
 } from "@/lib/policy-engine";
+

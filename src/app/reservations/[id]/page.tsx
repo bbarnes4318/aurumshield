@@ -20,6 +20,7 @@ import {
   determineApproval,
   type MarketplacePolicySnapshot,
 } from "@/lib/policy-engine";
+import { useRiskConfig } from "@/hooks/use-risk-config";
 
 /* ---------- Countdown Timer ---------- */
 function CountdownTimer({ expiresAt }: { expiresAt: string }) {
@@ -79,6 +80,7 @@ function ReservationDetailContent() {
   const cpQ = useCounterparties();
   const vcQ = useVerificationCase(userId);
   const convertMut = useConvertReservation();
+  const rc = useRiskConfig();
   const [convertError, setConvertError] = useState<string | null>(null);
 
   const reservation = useMemo(() => resQ.data?.find((r) => r.id === params.id), [resQ.data, params.id]);
@@ -103,10 +105,10 @@ function ReservationDetailContent() {
     const notional = reservation.weightOz * reservation.pricePerOzLocked;
     const tri = computeTRI(cp, corridor, notional, capital);
     const capVal = validateCapital(notional, capital);
-    const blockers = checkBlockers(cp, corridor, hub, tri, notional, capital);
-    const approval = determineApproval(tri.score, notional);
+    const blockers = checkBlockers(cp, corridor, hub, tri, notional, capital, rc.data);
+    const approval = determineApproval(tri.score, notional, rc.data);
     return { tri, capVal, blockers, approval, cp, corridor, hub, notional };
-  }, [reservation, listing, dashQ.data, cpQ.data, corQ.data, hubQ.data]);
+  }, [reservation, listing, dashQ.data, cpQ.data, corQ.data, hubQ.data, rc.data]);
 
   const handleConvert = useCallback(() => {
     if (!reservation || !policyPreview) return;

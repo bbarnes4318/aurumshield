@@ -20,6 +20,8 @@ const PUBLIC_ROUTES = [
   "/forgot-password",
   "/demo/login",
   "/platform",
+  "/platform-overview",
+  "/technical-overview",
   "/demo/walkthrough",
 ];
 

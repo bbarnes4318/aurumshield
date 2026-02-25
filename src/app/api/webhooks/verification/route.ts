@@ -201,7 +201,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
 
     if (event) {
-      publishCaseEvent(userId, cc.id, event);
+      await publishCaseEvent(userId, cc.id, event);
     }
   } catch (ccErr) {
     // Non-fatal: the verification step was already processed.

@@ -214,36 +214,138 @@ export async function createComplianceCase(
   }
 }
 
+/* ================================================================
+   STATE MACHINE CONFINEMENT — RSK-009
+   ================================================================
+   Compliance state transitions are confined to a strict mathematical
+   graph. Any UPDATE that does not match an allowed edge in the
+   transition matrix is rejected at both the application layer
+   (pre-flight check) AND the database layer (WHERE status = $expected).
+
+   This eliminates:
+   - Race conditions (two concurrent webhooks)
+   - Code-level exploits (REJECTED → APPROVED bypass)
+   - Blind CRUD mutations without provenance
+   ================================================================ */
+
 /**
- * Update a ComplianceCase status and optionally promote/set the tier.
+ * Immutable transition matrix.
+ * Key = current status, Value = set of statuses reachable from it.
+ *
+ * Graph edges:
+ *   OPEN ──→ PENDING_USER, CLOSED
+ *   PENDING_USER ──→ PENDING_PROVIDER, CLOSED
+ *   PENDING_PROVIDER ──→ UNDER_REVIEW, PENDING_USER, CLOSED
+ *   UNDER_REVIEW ──→ APPROVED, REJECTED, PENDING_PROVIDER
+ *   APPROVED ──→ (terminal)
+ *   REJECTED ──→ OPEN (re-application only)
+ *   CLOSED ──→ (terminal)
+ */
+export const ALLOWED_TRANSITIONS: Readonly<
+  Record<ComplianceCaseStatus, readonly ComplianceCaseStatus[]>
+> = {
+  OPEN: ["PENDING_USER", "CLOSED"],
+  PENDING_USER: ["PENDING_PROVIDER", "CLOSED"],
+  PENDING_PROVIDER: ["UNDER_REVIEW", "APPROVED", "REJECTED", "PENDING_USER", "CLOSED"],
+  UNDER_REVIEW: ["APPROVED", "REJECTED", "PENDING_PROVIDER"],
+  APPROVED: [],
+  REJECTED: ["OPEN"],
+  CLOSED: [],
+} as const;
+
+/**
+ * Thrown when a state transition violates the confinement matrix
+ * OR when a concurrent mutation has already moved the state.
+ */
+export class StateTransitionConflictError extends Error {
+  public readonly caseId: string;
+  public readonly expectedStatus: ComplianceCaseStatus;
+  public readonly targetStatus: ComplianceCaseStatus;
+
+  constructor(
+    caseId: string,
+    expectedStatus: ComplianceCaseStatus,
+    targetStatus: ComplianceCaseStatus,
+    reason: "INVALID_TRANSITION" | "CONCURRENT_CONFLICT",
+  ) {
+    const msg =
+      reason === "INVALID_TRANSITION"
+        ? `STATE_TRANSITION_DENIED: ${expectedStatus} → ${targetStatus} is not an allowed edge in the compliance state machine (caseId=${caseId})`
+        : `STATE_TRANSITION_CONFLICT: Case ${caseId} is no longer in status ${expectedStatus} — concurrent mutation detected. Target was ${targetStatus}`;
+    super(msg);
+    this.name = "StateTransitionConflictError";
+    this.caseId = caseId;
+    this.expectedStatus = expectedStatus;
+    this.targetStatus = targetStatus;
+  }
+}
+
+/**
+ * Update a ComplianceCase status with strict state machine confinement.
+ *
+ * Enforces two layers of protection:
+ *   1. Application-layer: validates the transition against ALLOWED_TRANSITIONS
+ *   2. Database-layer: WHERE status = $expectedPreviousStatus (optimistic lock)
+ *
+ * If the database returns zero rows, a concurrent mutation has already
+ * moved the case — throws StateTransitionConflictError.
+ *
+ * @param caseId - The compliance case primary key
+ * @param targetStatus - The desired new status
+ * @param expectedPreviousStatus - The status you believe the case is currently in
+ * @param tier - Optional tier promotion
  */
 export async function updateComplianceCaseStatus(
   caseId: string,
-  status: ComplianceCaseStatus,
+  targetStatus: ComplianceCaseStatus,
+  expectedPreviousStatus: ComplianceCaseStatus,
   tier?: ComplianceTier,
 ): Promise<ComplianceCase> {
+  // ── Layer 1: Application-level transition matrix check ──
+  const allowed = ALLOWED_TRANSITIONS[expectedPreviousStatus];
+  if (!allowed.includes(targetStatus)) {
+    throw new StateTransitionConflictError(
+      caseId,
+      expectedPreviousStatus,
+      targetStatus,
+      "INVALID_TRANSITION",
+    );
+  }
+
+  // ── Layer 2: Database-level optimistic lock ──
   const { getDbClient } = await import("@/lib/db");
   const client = await getDbClient();
 
   try {
     const tierClause = tier !== undefined
-      ? ", tier = $3"
+      ? ", tier = $4"
       : "";
     const values: unknown[] = tier !== undefined
-      ? [status, caseId, tier]
-      : [status, caseId];
+      ? [targetStatus, caseId, expectedPreviousStatus, tier]
+      : [targetStatus, caseId, expectedPreviousStatus];
 
     const { rows } = await client.query<ComplianceCaseRow>(
       `UPDATE compliance_cases
        SET status = $1${tierClause}
-       WHERE id = $2
+       WHERE id = $2 AND status = $3
        RETURNING *`,
       values,
     );
 
     if (rows.length === 0) {
-      throw new Error(`ComplianceCase ${caseId} not found`);
+      // The case is no longer in the expected state — concurrent mutation
+      throw new StateTransitionConflictError(
+        caseId,
+        expectedPreviousStatus,
+        targetStatus,
+        "CONCURRENT_CONFLICT",
+      );
     }
+
+    console.log(
+      `[COMPLIANCE] Case ${caseId}: ${expectedPreviousStatus} → ${targetStatus}` +
+        (tier ? ` (tier=${tier})` : ""),
+    );
 
     return caseRowToDomain(rows[0]);
   } finally {

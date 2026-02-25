@@ -54,6 +54,17 @@ const KYC_CAPABILITY_MAP: Record<string, ComplianceCapability> = {
   REJECTED: "BROWSE",
 };
 
+/**
+ * RSK-012: Capabilities that MUST be verified against the DB compliance
+ * case. These gate financial execution and cannot fall back to the stale
+ * JWT KYC_CAPABILITY_MAP. If the DB is unreachable, access is DENIED.
+ */
+const PROTECTED_CAPABILITIES: ReadonlySet<ComplianceCapability> = new Set([
+  "LOCK_PRICE",
+  "EXECUTE_PURCHASE",
+  "SETTLE",
+]);
+
 /** Clerk org role → AurumShield role */
 const CLERK_ROLE_MAP: Record<string, UserRole> = {
   "org:admin": "admin",
@@ -164,25 +175,74 @@ export async function requireAdmin(): Promise<AuthSession> {
    ================================================================ */
 
 /**
- * Require a compliance capability. Checks in priority order:
- *   1. ComplianceCase tier (if an active case exists and is APPROVED)
- *   2. Fall back to KYC status → KYC_CAPABILITY_MAP
+ * Require a compliance capability.
+ *
+ * RSK-012 — FAIL-CLOSED ENFORCEMENT:
+ *
+ *   Protected capabilities (LOCK_PRICE, EXECUTE_PURCHASE, SETTLE)
+ *   REQUIRE a DB-verified APPROVED compliance case. If the database
+ *   is unreachable, execution halts with a 500. If no APPROVED case
+ *   exists, a 403 is thrown. The stale JWT KYC_CAPABILITY_MAP is
+ *   NEVER consulted for these capabilities.
+ *
+ *   Low-privilege capabilities (BROWSE, QUOTE) may still fall back
+ *   to the KYC_CAPABILITY_MAP for convenience, since they cannot
+ *   initiate financial execution.
  *
  * Capabilities are hierarchical: requiring LOCK_PRICE implies
  * the user also has BROWSE and QUOTE.
  *
- * Throws 403 if the user's tier/KYC status doesn't grant the capability.
+ * Throws:
+ *   - 500 if DB is unreachable and a protected capability is requested
+ *   - 403 if the user lacks the required capability
  */
 export async function requireComplianceCapability(
   capability: ComplianceCapability,
 ): Promise<AuthSession> {
   const session = await requireSession();
 
-  // Try tier-based capability from ComplianceCase
-  let maxCapability: ComplianceCapability = KYC_CAPABILITY_MAP[session.kycStatus] ?? "BROWSE";
+  const requiredIndex = CAPABILITY_LADDER.indexOf(capability);
+
+  // Protected capabilities that gate financial execution
+  const isProtected = PROTECTED_CAPABILITIES.has(capability);
+
+  if (isProtected) {
+    // ── RSK-012: Strict DB-only path — no JWT fallback ──
+    // DB errors MUST bubble (500). No try/catch.
+    const { getComplianceCaseByUserId } =
+      await import("@/lib/compliance/models");
+    const { TIER_TO_CAPABILITY_MAP } = await import("@/lib/compliance/tiering");
+    const cc = await getComplianceCaseByUserId(session.userId);
+
+    if (!cc || cc.status !== "APPROVED" || !TIER_TO_CAPABILITY_MAP[cc.tier]) {
+      throw new AuthError(
+        403,
+        `COMPLIANCE_DENIED: Capability "${capability}" requires an APPROVED compliance case. ` +
+          `No valid compliance record found for user ${session.userId}.`,
+      );
+    }
+
+    const maxCapability = TIER_TO_CAPABILITY_MAP[cc.tier];
+    const maxIndex = CAPABILITY_LADDER.indexOf(maxCapability);
+
+    if (requiredIndex > maxIndex) {
+      throw new AuthError(
+        403,
+        `COMPLIANCE_TIER_INSUFFICIENT: Capability "${capability}" requires tier above current. ` +
+          `Current max: "${maxCapability}" (tier: ${cc.tier}).`,
+      );
+    }
+
+    return session;
+  }
+
+  // ── Low-privilege path (BROWSE, QUOTE) — KYC fallback is acceptable ──
+  let maxCapability: ComplianceCapability =
+    KYC_CAPABILITY_MAP[session.kycStatus] ?? "BROWSE";
 
   try {
-    const { getComplianceCaseByUserId } = await import("@/lib/compliance/models");
+    const { getComplianceCaseByUserId } =
+      await import("@/lib/compliance/models");
     const { TIER_TO_CAPABILITY_MAP } = await import("@/lib/compliance/tiering");
     const cc = await getComplianceCaseByUserId(session.userId);
 
@@ -190,12 +250,13 @@ export async function requireComplianceCapability(
       maxCapability = TIER_TO_CAPABILITY_MAP[cc.tier];
     }
   } catch {
-    // Non-fatal: fall back to KYC_CAPABILITY_MAP
-    console.warn("[AUTHZ] ComplianceCase lookup failed, using KYC status fallback");
+    // Non-fatal for BROWSE/QUOTE: fall back to KYC_CAPABILITY_MAP
+    console.warn(
+      "[AUTHZ] ComplianceCase lookup failed for low-privilege capability, using KYC fallback",
+    );
   }
 
   const maxIndex = CAPABILITY_LADDER.indexOf(maxCapability);
-  const requiredIndex = CAPABILITY_LADDER.indexOf(capability);
 
   if (requiredIndex > maxIndex) {
     throw new AuthError(
@@ -225,7 +286,9 @@ const REVERIFICATION_CAPABILITIES: Set<ComplianceCapability> = new Set([
 /**
  * Check whether a given capability requires step-up re-verification.
  */
-export function requiresReverification(capability: ComplianceCapability): boolean {
+export function requiresReverification(
+  capability: ComplianceCapability,
+): boolean {
   return REVERIFICATION_CAPABILITIES.has(capability);
 }
 
@@ -305,13 +368,10 @@ export class AuthError extends Error {
  */
 export function authErrorResponse(error: unknown): Response {
   if (error instanceof AuthError) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: error.statusCode,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: error.statusCode,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   // Re-throw non-auth errors
   throw error;

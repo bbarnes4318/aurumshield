@@ -55,7 +55,9 @@ const STATUS_CONFIG: Record<SettlementStatus, { label: string; color: string }> 
   AWAITING_VERIFICATION: { label: "Awaiting Verification", color: "bg-warning/10 text-warning border-warning/20" },
   READY_TO_SETTLE: { label: "Ready to Settle", color: "bg-success/10 text-success border-success/20" },
   AUTHORIZED: { label: "Authorized", color: "bg-info/10 text-info border-info/20" },
+  PROCESSING_RAIL: { label: "Processing Rail", color: "bg-warning/10 text-warning border-warning/20 animate-pulse" },
   SETTLED: { label: "Settled", color: "bg-success/10 text-success border-success/20" },
+  REVERSED: { label: "Reversed", color: "bg-danger/10 text-danger border-danger/20" },
   FAILED: { label: "Failed", color: "bg-danger/10 text-danger border-danger/20" },
   CANCELLED: { label: "Cancelled", color: "bg-surface-3 text-text-faint border-border" },
   AMBIGUOUS_STATE: { label: "Ambiguous State", color: "bg-danger/10 text-danger border-danger/20 animate-pulse" },
@@ -97,6 +99,7 @@ const ACTION_UI: Record<SettlementActionType, ActionConfig> = {
   FAIL_SETTLEMENT: { label: "Fail Settlement", icon: <XCircle className="h-3.5 w-3.5" />, variant: "danger" },
   CANCEL_SETTLEMENT: { label: "Cancel Settlement", icon: <Ban className="h-3.5 w-3.5" />, variant: "warning" },
   RESOLVE_AMBIGUOUS: { label: "Resolve Ambiguous State", icon: <RotateCcw className="h-3.5 w-3.5" />, variant: "warning" },
+  REVERSE_SETTLEMENT: { label: "Reverse Settlement", icon: <RotateCcw className="h-3.5 w-3.5" />, variant: "danger" },
 };
 
 /* ---------- Determine disable reason for each action ---------- */

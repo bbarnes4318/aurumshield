@@ -166,7 +166,6 @@ export function StepOnePriceLock({
       serverCreateQuote({
         listingId,
         weightOz,
-        premiumBps: 0,
       }),
     );
 
