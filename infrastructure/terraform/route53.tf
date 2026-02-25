@@ -38,6 +38,19 @@ resource "aws_route53_record" "www" {
   }
 }
 
+# app.aurumshield.vip → ALB (application subdomain)
+resource "aws_route53_record" "app" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "app.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id                = aws_lb.main.zone_id
+    evaluate_target_health = true
+  }
+}
+
 # ACM DNS validation records — created automatically by Terraform
 resource "aws_route53_record" "cert_validation" {
   for_each = {

@@ -75,6 +75,14 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "DATABASE_NAME"
           value = var.db_name
+        },
+        {
+          name  = "NEXT_PUBLIC_ROOT_URL"
+          value = "https://${var.domain_name}"
+        },
+        {
+          name  = "NEXT_PUBLIC_APP_URL"
+          value = "https://app.${var.domain_name}"
         }
       ]
 

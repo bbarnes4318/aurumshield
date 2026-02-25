@@ -15,6 +15,7 @@ import { useTour } from "@/demo/tour-engine/TourProvider";
 
 /** Routes that render WITHOUT the app shell (sidebar/topbar) */
 const PUBLIC_ROUTES = [
+  "/",
   "/login",
   "/signup",
   "/forgot-password",

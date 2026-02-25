@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { MarketingLanding } from "@/components/marketing/marketing-landing";
 
 export default function RootPage() {
-  redirect("/platform");
+  return <MarketingLanding />;
 }
