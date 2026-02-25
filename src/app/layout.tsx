@@ -11,6 +11,7 @@ import { DemoProvider } from "@/providers/demo-provider";
 import { TourProvider } from "@/demo/tour-engine/TourProvider";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "sonner";
+import { ChunkErrorRecovery } from "@/components/chunk-error-recovery";
 
 /* ----------------------------------------------------------------
    FONTS — next/font (self-hosted, no external requests)
@@ -55,6 +56,7 @@ export default function RootLayout({
         className={`${ibmPlexSans.variable} ${sourceSerif.variable}`}
       >
         <body className="font-sans antialiased">
+          <ChunkErrorRecovery />
           <ThemeProvider attribute="class" defaultTheme="dark">
             <QueryProvider>
               <AuthProvider>
