@@ -139,11 +139,12 @@ export function CheckoutModalWrapper({
 
     try {
       // 1. Atomic reserve → convert (creates reservation + order in state store)
+      //    RSK-004: quoteId binds execution to the server-locked price
       const buyResult = await atomicBuy.execute({
         listingId: listing.id,
         userId,
         weightOz: data.weightOz,
-        notional: data.weightOz * data.lockedPrice,
+        quoteId: data.quoteId ?? "",
       });
 
       const realOrderId = buyResult.order.id;
@@ -411,8 +412,7 @@ export function CheckoutModalWrapper({
               <div className="mt-4 flex items-center gap-2 rounded-md border border-color-2/20 bg-color-2/5 px-4 py-3 text-xs text-color-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>
-                  {atomicBuy.step === "reserving" && "Locking inventory…"}
-                  {atomicBuy.step === "converting" && "Creating order…"}
+                  {atomicBuy.step === "executing" && !openSettlement.isPending && "Executing atomic checkout…"}
                   {atomicBuy.step === "done" && openSettlement.isPending && "Opening settlement…"}
                   {atomicBuy.step === "done" && !openSettlement.isPending && "Preparing Bill of Sale…"}
                   {atomicBuy.step === "idle" && "Initializing…"}

@@ -21,6 +21,7 @@ import {
   CreditCard,
   Activity,
   FileText,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -57,6 +58,7 @@ const STATUS_CONFIG: Record<SettlementStatus, { label: string; color: string }> 
   SETTLED: { label: "Settled", color: "bg-success/10 text-success border-success/20" },
   FAILED: { label: "Failed", color: "bg-danger/10 text-danger border-danger/20" },
   CANCELLED: { label: "Cancelled", color: "bg-surface-3 text-text-faint border-border" },
+  AMBIGUOUS_STATE: { label: "Ambiguous State", color: "bg-danger/10 text-danger border-danger/20 animate-pulse" },
 };
 
 /* ---------- Ledger entry type icons ---------- */
@@ -94,6 +96,7 @@ const ACTION_UI: Record<SettlementActionType, ActionConfig> = {
   EXECUTE_DVP: { label: "Execute DvP", icon: <Zap className="h-3.5 w-3.5" />, variant: "success" },
   FAIL_SETTLEMENT: { label: "Fail Settlement", icon: <XCircle className="h-3.5 w-3.5" />, variant: "danger" },
   CANCEL_SETTLEMENT: { label: "Cancel Settlement", icon: <Ban className="h-3.5 w-3.5" />, variant: "warning" },
+  RESOLVE_AMBIGUOUS: { label: "Resolve Ambiguous State", icon: <RotateCcw className="h-3.5 w-3.5" />, variant: "warning" },
 };
 
 /* ---------- Determine disable reason for each action ---------- */
@@ -112,6 +115,15 @@ function getActionDisableReason(
   // Terminal state
   if (settlement.status === "SETTLED" || settlement.status === "FAILED" || settlement.status === "CANCELLED") {
     return `Settlement is ${settlement.status}`;
+  }
+
+  // AMBIGUOUS_STATE — only RESOLVE_AMBIGUOUS, FAIL, CANCEL allowed
+  if (settlement.status === "AMBIGUOUS_STATE") {
+    if (action !== "RESOLVE_AMBIGUOUS" && action !== "FAIL_SETTLEMENT" && action !== "CANCEL_SETTLEMENT") {
+      return "Settlement locked in AMBIGUOUS_STATE — resolve ambiguity first";
+    }
+    // For RESOLVE_AMBIGUOUS, only check role (already done above)
+    return null;
   }
 
   // Blockers
@@ -174,6 +186,7 @@ function SettlementDetailContent() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [failReason, setFailReason] = useState("");
+  const [resolveReason, setResolveReason] = useState("");
 
   const settlement = settlementQ.data;
   const ledger = ledgerQ.data ?? [];
@@ -240,6 +253,7 @@ function SettlementDetailContent() {
     "MARK_VERIFICATION_CLEARED",
     "AUTHORIZE_SETTLEMENT",
     "EXECUTE_DVP",
+    "RESOLVE_AMBIGUOUS",
     "FAIL_SETTLEMENT",
     "CANCEL_SETTLEMENT",
   ];
@@ -259,6 +273,34 @@ function SettlementDetailContent() {
           {statusCfg.label}
         </span>
       </div>
+
+      {/* ═══ AMBIGUOUS_STATE Critical Warning Banner ═══ */}
+      {settlement.status === "AMBIGUOUS_STATE" && (
+        <div className="mb-6 rounded-lg border-2 border-danger/40 bg-danger/5 p-4 print:hidden">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5 animate-pulse" />
+            <div className="space-y-2">
+              <p className="text-sm font-bold text-danger uppercase tracking-wider">
+                Double-Spend Risk — Manual Reconciliation Required
+              </p>
+              <p className="text-xs text-text leading-relaxed">
+                This settlement&apos;s Moov payout outcome is indeterminate. A timeout or network error
+                occurred during the transfer, and the status-check poll could not confirm whether Moov
+                executed the payout. <span className="font-semibold text-danger">DO NOT re-execute the payout</span> until
+                a Treasury Admin has verified the transfer status in the Moov dashboard.
+              </p>
+              <div className="flex items-center gap-3 pt-1 text-[10px] text-text-faint">
+                <span className="inline-flex items-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  All settlement actions locked
+                </span>
+                <span>•</span>
+                <span>Use &quot;Resolve Ambiguous State&quot; below after reconciliation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ DvP Settlement Rails Visualization ═══ */}
       <SettlementRailsVisualization
@@ -584,6 +626,27 @@ function SettlementDetailContent() {
                       loading={applyAction.isPending}
                       disableReason={disableReason ?? (!cancelReason.trim() ? "Reason required" : null)}
                       onClick={() => handleAction("CANCEL_SETTLEMENT", cancelReason.trim())}
+                    />
+                  </div>
+                );
+              }
+              if (action === "RESOLVE_AMBIGUOUS") {
+                return (
+                  <div key={action} className="space-y-1.5">
+                    <input
+                      type="text"
+                      placeholder="Reconciliation details (required)"
+                      value={resolveReason}
+                      onChange={(e) => setResolveReason(e.target.value)}
+                      className="w-full h-7 rounded border border-border bg-surface-2 px-2 text-xs text-text placeholder-text-faint outline-none focus:border-warning/50"
+                    />
+                    <ActionButton
+                      label={cfg.label}
+                      icon={cfg.icon}
+                      variant={cfg.variant}
+                      loading={applyAction.isPending}
+                      disableReason={disableReason ?? (!resolveReason.trim() ? "Reconciliation details required" : null)}
+                      onClick={() => handleAction("RESOLVE_AMBIGUOUS", resolveReason.trim())}
                     />
                   </div>
                 );

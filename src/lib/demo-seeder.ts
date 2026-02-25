@@ -30,8 +30,7 @@ import {
   apiCreateDraftListing,
   apiCreateListingEvidence,
   apiPublishListing,
-  createReservation,
-  convertReservationToOrder,
+  apiExecuteAtomicCheckout,
   apiOpenSettlementFromOrder,
   apiApplySettlementAction,
 } from "./api";
@@ -44,7 +43,7 @@ import {
   getOrg,
   findUserByEmail,
 } from "./auth-store";
-import type { MarketplacePolicySnapshot } from "./policy-engine";
+
 import {
   loadVerificationCase,
   saveVerificationCase,
@@ -398,29 +397,15 @@ async function seedPathA(): Promise<void> {
     return;
   }
 
-  // 4. Create reservation (as buyer, 50 oz of the 100 oz listing)
-  const reservation = await createReservation({
+  // 4. Atomic checkout: reserve + order in one call (50 oz of the 100 oz listing)
+  //    Server-side: computes notional, evaluates TRI/capital/blockers, enforces KYC
+  const { order } = await apiExecuteAtomicCheckout({
     listingId: listing.id,
     userId: DEMO_IDS.buyer,
     weightOz: 50,
-  });
-
-  // 5. Convert to order with policy snapshot
-  const policySnapshot: MarketplacePolicySnapshot = {
-    triScore: 2,
-    triBand: "green",
-    ecrBefore: 6.0,
-    ecrAfter: 6.001,
-    hardstopBefore: 0.75,
-    hardstopAfter: 0.7503,
-    approvalTier: "auto",
-    blockers: [],
-    timestamp: t0,
-  };
-  const order = await convertReservationToOrder({
-    reservationId: reservation.id,
-    userId: DEMO_IDS.buyer,
-    policySnapshot,
+    idempotencyKey: `demo-path-a-checkout-${listing.id}`,
+    quoteId: `demo-quote-a-${listing.id}`,
+    __skipQuoteValidation: true,
   });
 
   // 6. Open settlement (as admin)
@@ -537,29 +522,15 @@ async function seedPathB(): Promise<void> {
     return;
   }
 
-  // 4. Reserve (as buyer, 25 oz of the 50 oz listing)
-  const reservation = await createReservation({
+  // 4. Atomic checkout: reserve + order in one call (25 oz of the 50 oz listing)
+  //    Server-side: computes notional, evaluates TRI/capital/blockers, enforces KYC
+  const { order } = await apiExecuteAtomicCheckout({
     listingId: listing.id,
     userId: DEMO_IDS.buyer,
     weightOz: 25,
-  });
-
-  // 5. Convert to order
-  const policySnapshot: MarketplacePolicySnapshot = {
-    triScore: 3,
-    triBand: "green",
-    ecrBefore: 6.001,
-    ecrAfter: 6.003,
-    hardstopBefore: 0.7503,
-    hardstopAfter: 0.7510,
-    approvalTier: "auto",
-    blockers: [],
-    timestamp: t0,
-  };
-  const order = await convertReservationToOrder({
-    reservationId: reservation.id,
-    userId: DEMO_IDS.buyer,
-    policySnapshot,
+    idempotencyKey: `demo-path-b-checkout-${listing.id}`,
+    quoteId: `demo-quote-b-${listing.id}`,
+    __skipQuoteValidation: true,
   });
 
   // 6. Open settlement (as admin) — this is where Path B STOPS

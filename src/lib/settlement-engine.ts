@@ -32,6 +32,9 @@ import type {
   Hub,
   DashboardCapital,
   UserRole,
+  ClearingJournal,
+  ClearingJournalEntry,
+  ClearingJournalDirection,
 } from "./mock-data";
 import type { VerificationCase, LedgerEntrySnapshot } from "./mock-data";
 
@@ -39,6 +42,8 @@ import type { VerificationCase, LedgerEntrySnapshot } from "./mock-data";
 export interface SettlementState {
   settlements: SettlementCase[];
   ledger: LedgerEntry[];
+  /** RSK-006: Immutable double-entry clearing journals */
+  clearingJournals: ClearingJournal[];
 }
 
 /* ---------- Action Types ---------- */
@@ -49,7 +54,9 @@ export type SettlementActionType =
   | "AUTHORIZE_SETTLEMENT"
   | "EXECUTE_DVP"
   | "FAIL_SETTLEMENT"
-  | "CANCEL_SETTLEMENT";
+  | "CANCEL_SETTLEMENT"
+  | "RESOLVE_AMBIGUOUS"
+  | "REVERSE_SETTLEMENT";
 
 /* ---------- Action → Allowed Roles (deterministic) ---------- */
 export const ACTION_ROLE_MAP: Record<SettlementActionType, UserRole[]> = {
@@ -60,6 +67,8 @@ export const ACTION_ROLE_MAP: Record<SettlementActionType, UserRole[]> = {
   EXECUTE_DVP: ["admin"],
   FAIL_SETTLEMENT: ["admin"],
   CANCEL_SETTLEMENT: ["admin"],
+  RESOLVE_AMBIGUOUS: ["admin", "treasury"],
+  REVERSE_SETTLEMENT: ["admin", "compliance"],
 };
 
 /* ---------- Human-readable role labels ---------- */
@@ -114,9 +123,128 @@ function roleToActor(role: UserRole): LedgerEntry["actor"] {
   switch (role) {
     case "compliance": return "COMPLIANCE";
     case "buyer": return "BUYER";
-    case "seller": return "SELLER";
+    case "seller":  return "SELLER";
     default: return "OPS"; // admin, treasury, vault_ops
   }
+}
+
+/* ================================================================
+   RSK-006: Double-Entry Clearing Journal
+
+   Every fund movement must produce a balanced journal before the
+   settlement status can transition to SETTLED. This mirrors
+   fn_assert_journal_balanced() from 008_clearing_ledger.sql.
+   ================================================================ */
+
+/**
+ * Thrown when a journal's debits do not equal its credits.
+ * Equivalent to PostgreSQL RAISE EXCEPTION in fn_assert_journal_balanced().
+ */
+export class UnbalancedJournalError extends Error {
+  readonly journalId: string;
+  readonly debitsCents: number;
+  readonly creditsCents: number;
+  readonly settlementCaseId: string;
+  readonly timestamp: string;
+
+  constructor(opts: {
+    journalId: string;
+    debitsCents: number;
+    creditsCents: number;
+    settlementCaseId: string;
+  }) {
+    super(
+      `UNBALANCED_JOURNAL: journal=${opts.journalId} settlement=${opts.settlementCaseId} ` +
+      `debits=${opts.debitsCents} credits=${opts.creditsCents} ` +
+      `delta=${opts.debitsCents - opts.creditsCents}`,
+    );
+    this.name = "UnbalancedJournalError";
+    this.journalId = opts.journalId;
+    this.debitsCents = opts.debitsCents;
+    this.creditsCents = opts.creditsCents;
+    this.settlementCaseId = opts.settlementCaseId;
+    this.timestamp = new Date().toISOString();
+  }
+}
+
+/**
+ * Assert that a journal's total debits equal total credits.
+ * Pure function — no side effects.
+ */
+export function assertJournalBalanced(journal: ClearingJournal): void {
+  const debitsCents = journal.entries
+    .filter((e) => e.direction === "DEBIT")
+    .reduce((sum, e) => sum + e.amountCents, 0);
+
+  const creditsCents = journal.entries
+    .filter((e) => e.direction === "CREDIT")
+    .reduce((sum, e) => sum + e.amountCents, 0);
+
+  if (debitsCents !== creditsCents) {
+    throw new UnbalancedJournalError({
+      journalId: journal.id,
+      debitsCents,
+      creditsCents,
+      settlementCaseId: journal.settlementCaseId,
+    });
+  }
+}
+
+/**
+ * Create a balanced clearing journal for a settlement.
+ * Enforces the debit === credit invariant before returning.
+ *
+ * @param settlementCaseId - The settlement case this journal belongs to
+ * @param idempotencyKey - Unique key to prevent duplicate journals
+ * @param description - Human-readable description of the clearing event
+ * @param entries - Array of debit/credit entries (must balance)
+ * @param now - Timestamp for the journal
+ * @param createdBy - Actor creating the journal
+ * @param existingJournals - Existing journals for ID generation
+ *
+ * @returns New ClearingJournal with all entries
+ * @throws UnbalancedJournalError if debits !== credits
+ */
+export function postClearingJournal(
+  settlementCaseId: string,
+  idempotencyKey: string,
+  description: string,
+  entries: Omit<ClearingJournalEntry, "id" | "journalId">[],
+  now: string,
+  createdBy: string,
+  existingJournals: ClearingJournal[],
+): ClearingJournal {
+  if (entries.length === 0) {
+    throw new Error(`EMPTY_JOURNAL: Cannot post a journal with zero entries for settlement ${settlementCaseId}`);
+  }
+
+  // Check idempotency — if journal with this key already exists, return it
+  const existing = existingJournals.find((j) => j.idempotencyKey === idempotencyKey);
+  if (existing) return existing;
+
+  const journalId = `jnl-${String(existingJournals.length + 1).padStart(3, "0")}`;
+
+  const fullEntries: ClearingJournalEntry[] = entries.map((e, idx) => ({
+    id: `jle-${journalId}-${String(idx + 1).padStart(3, "0")}`,
+    journalId,
+    ...e,
+  }));
+
+  const journal: ClearingJournal = {
+    id: journalId,
+    settlementCaseId,
+    idempotencyKey,
+    description,
+    postedAt: now,
+    createdBy,
+    entries: fullEntries,
+  };
+
+  // CRITICAL: Assert balance BEFORE returning.
+  // This mirrors fn_assert_journal_balanced() from 008_clearing_ledger.sql.
+  assertJournalBalanced(journal);
+
+  return journal;
 }
 
 /* ================================================================
@@ -221,6 +349,7 @@ export function openSettlementFromOrder(
     state: {
       settlements: [...state.settlements, settlement],
       ledger: [...state.ledger, ledgerEntry],
+      clearingJournals: state.clearingJournals ?? [],
     },
     settlement,
     ledgerEntry,
@@ -309,6 +438,14 @@ export function computeSettlementRequirements(
     }
   }
 
+  // ── AMBIGUOUS_STATE blocker ──
+  if (settlement.status === "AMBIGUOUS_STATE") {
+    blockers.push(
+      "SETTLEMENT LOCKED — Ambiguous payout state detected. Moov transfer outcome is unknown. " +
+      "Treasury Admin must reconcile with the Moov dashboard and resolve this settlement before any further actions."
+    );
+  }
+
   return { blockers, warns, requiredActions };
 }
 
@@ -377,9 +514,29 @@ export function applySettlementAction(
   }
 
   // ── Terminal state guard ──
-  const TERMINAL: SettlementStatus[] = ["SETTLED", "FAILED", "CANCELLED"];
+  // AMBIGUOUS_STATE is also a locked state — only RESOLVE_AMBIGUOUS, FAIL, CANCEL can proceed
+  const TERMINAL: SettlementStatus[] = ["SETTLED", "FAILED", "CANCELLED", "REVERSED"];
   if (TERMINAL.includes(settlement.status)) {
     return { ok: false, code: "TERMINAL_STATE", message: `Settlement ${settlementId} is ${settlement.status} — no further actions allowed` };
+  }
+
+  // PROCESSING_RAIL blocks ALL actions — only system webhooks can transition out
+  if (settlement.status === "PROCESSING_RAIL") {
+    return {
+      ok: false,
+      code: "PROCESSING_LOCKED",
+      message: `Settlement ${settlementId} is PROCESSING_RAIL — funds are mid-flight. No manual actions permitted until rail confirms.`,
+    };
+  }
+
+  // AMBIGUOUS_STATE blocks all normal actions except resolution
+  const AMBIGUOUS_ALLOWED: SettlementActionType[] = ["RESOLVE_AMBIGUOUS", "FAIL_SETTLEMENT", "CANCEL_SETTLEMENT"];
+  if (settlement.status === "AMBIGUOUS_STATE" && !AMBIGUOUS_ALLOWED.includes(payload.action)) {
+    return {
+      ok: false,
+      code: "AMBIGUOUS_LOCKED",
+      message: `Settlement ${settlementId} is in AMBIGUOUS_STATE — only RESOLVE_AMBIGUOUS, FAIL_SETTLEMENT, or CANCEL_SETTLEMENT are allowed`,
+    };
   }
 
   // ── Activation gate enforcement (engine level) ──
@@ -531,6 +688,58 @@ export function applySettlementAction(
 
       addLedger("DVP_EXECUTED", dvpDetail, { actor: "SYSTEM", snapshot: dvpSnapshot });
 
+      // ── RSK-006: Post balanced clearing journal BEFORE status transition ──
+      const clearingIdempotencyKey = settlement.idempotencyKey ?? `dvp-${settlement.id}-${now}`;
+      // TODO: Fee calculation — currently 0 platform fee. Replace with actual fee engine output.
+      const platformFeeCents = 0;
+      const sellerProceedsCents = notionalCents - platformFeeCents;
+
+      const journalEntries: Omit<ClearingJournalEntry, "id" | "journalId">[] = [
+        // DEBIT escrow (funds leave escrow control)
+        {
+          accountCode: "SETTLEMENT_ESCROW",
+          direction: "DEBIT" as ClearingJournalDirection,
+          amountCents: notionalCents,
+          currency: settlement.currency ?? "USD",
+          memo: `Escrow release for settlement ${settlement.id}`,
+        },
+        // CREDIT seller proceeds
+        {
+          accountCode: "SELLER_PROCEEDS",
+          direction: "CREDIT" as ClearingJournalDirection,
+          amountCents: sellerProceedsCents,
+          currency: settlement.currency ?? "USD",
+          memo: `Seller payout via ${paymentRail} — order ${settlement.orderId}`,
+        },
+      ];
+
+      // Add platform fee entry only if non-zero (keeps journal balanced either way)
+      if (platformFeeCents > 0) {
+        journalEntries.push({
+          accountCode: "PLATFORM_FEE",
+          direction: "CREDIT" as ClearingJournalDirection,
+          amountCents: platformFeeCents,
+          currency: settlement.currency ?? "USD",
+          memo: `Platform clearing fee for settlement ${settlement.id}`,
+        });
+      }
+
+      const clearingJournal = postClearingJournal(
+        settlement.id,
+        clearingIdempotencyKey,
+        `DVP Settlement Clearing — ${settlement.weightOz}oz @ $${settlement.pricePerOzLocked}/oz via ${paymentRail}`,
+        journalEntries,
+        now,
+        payload.actorUserId,
+        state.clearingJournals ?? [],
+      );
+
+      // Attach journal reference to audit ledger
+      addLedger("JOURNAL_POSTED", `Clearing journal ${clearingJournal.id} posted — debits=${notionalCents} credits=${notionalCents} BALANCED`);
+
+      // Store the journal in state
+      (settlement as SettlementCase & { _clearingJournal?: ClearingJournal })._clearingJournal = clearingJournal;
+
       settlement.status = "SETTLED";
       break;
     }
@@ -555,6 +764,52 @@ export function applySettlementAction(
       break;
     }
 
+    /* ── RESOLVE_AMBIGUOUS (RSK-003 — clear AMBIGUOUS_STATE) ── */
+    case "RESOLVE_AMBIGUOUS": {
+      if (settlement.status !== "AMBIGUOUS_STATE") {
+        return {
+          ok: false,
+          code: "INVALID_STATE",
+          message: `RESOLVE_AMBIGUOUS requires status AMBIGUOUS_STATE, current is ${settlement.status}`,
+        };
+      }
+      if (!payload.reason) {
+        return { ok: false, code: "PRECONDITION", message: "Reason is required for RESOLVE_AMBIGUOUS (reconciliation details)" };
+      }
+
+      // Transition back to ESCROW_OPEN so the settlement can be re-processed
+      // or manually failed/cancelled by the operator.
+      settlement.status = "ESCROW_OPEN";
+      addLedger(
+        "STATUS_CHANGED",
+        `AMBIGUOUS_STATE resolved — ${payload.reason}. Settlement returned to ESCROW_OPEN for re-processing.`,
+      );
+      break;
+    }
+
+    /* ── REVERSE_SETTLEMENT (RSK-007 — dispute or rollback) ── */
+    case "REVERSE_SETTLEMENT": {
+      if (settlement.status !== "SETTLED") {
+        return {
+          ok: false,
+          code: "INVALID_STATE",
+          message: `REVERSE_SETTLEMENT requires status SETTLED, current is ${settlement.status}`,
+        };
+      }
+      if (!payload.reason) {
+        return { ok: false, code: "PRECONDITION", message: "Reason is required for REVERSE_SETTLEMENT (dispute or compliance note)" };
+      }
+
+      settlement.status = "REVERSED";
+      (settlement as SettlementCase).reversalReason = payload.reason;
+      (settlement as SettlementCase).reversedAt = now;
+      addLedger(
+        "STATUS_CHANGED",
+        `Settlement REVERSED — ${payload.reason}. Initiated by ${payload.actorRole} (${payload.actorUserId}).`,
+      );
+      break;
+    }
+
     default: {
       const _exhaustive: never = payload.action;
       return { ok: false, code: "UNKNOWN_ACTION", message: `Unknown action: ${_exhaustive}` };
@@ -573,6 +828,19 @@ export function applySettlementAction(
     state: {
       settlements: newSettlements,
       ledger: [...state.ledger, ...newEntries],
+      clearingJournals: [
+        ...(state.clearingJournals ?? []),
+        // Check if a clearing journal was created in this action
+        ...(() => {
+          const s = settlement as SettlementCase & { _clearingJournal?: ClearingJournal };
+          if (s._clearingJournal) {
+            const j = s._clearingJournal;
+            delete s._clearingJournal;
+            return [j];
+          }
+          return [];
+        })(),
+      ],
     },
     settlement,
     ledgerEntries: newEntries,

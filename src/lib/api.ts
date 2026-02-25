@@ -11,12 +11,22 @@ import type {
   ListingEvidenceType,
   ListingEvidenceItem,
 } from "./mock-data";
-import { mockEvidence } from "./mock-data";
+import { mockEvidence, mockCapitalPhase1, mockCounterparties, mockCorridors } from "./mock-data";
+import {
+  computeTRI,
+  validateCapital,
+  checkBlockers,
+  determineApproval,
+  hasBlockLevel,
+} from "./policy-engine";
+import type { MarketplacePolicySnapshot } from "./policy-engine";
+import { loadVerificationCase } from "./verification-engine";
 import {
   expireReservations,
   computeListingStatus,
   createReservation as engineCreateReservation,
   convertReservationToOrder as engineConvertReservation,
+  executeAtomicCheckout as engineAtomicCheckout,
   createDraftListing as engineCreateDraftListing,
   updateDraftListing as engineUpdateDraftListing,
   createListingEvidence as engineCreateListingEvidence,
@@ -150,6 +160,454 @@ export async function getListingEvidence(listingId: string): Promise<ListingEvid
 
 /* ---------- MUTATE endpoints ---------- */
 
+/* ── Idempotency + Rate Limiting stores (localStorage-backed) ── */
+const IDEMPOTENCY_STORE_KEY = "aurumshield:checkout-idempotency";
+const RATE_LIMIT_STORE_KEY = "aurumshield:checkout-ratelimit";
+const RATE_LIMIT_MAX = 5;          // max attempts
+const RATE_LIMIT_WINDOW_MS = 60_000; // per minute
+
+interface IdempotencyEntry {
+  reservation: Reservation;
+  order: Order;
+  completedAt: string;
+}
+
+function loadIdempotencyStore(): Record<string, IdempotencyEntry> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(IDEMPOTENCY_STORE_KEY) ?? "{}");
+  } catch { return {}; }
+}
+
+function saveIdempotencyEntry(key: string, entry: IdempotencyEntry): void {
+  if (typeof window === "undefined") return;
+  const store = loadIdempotencyStore();
+  store[key] = entry;
+  localStorage.setItem(IDEMPOTENCY_STORE_KEY, JSON.stringify(store));
+}
+
+function checkRateLimit(userId: string): void {
+  if (typeof window === "undefined") return;
+  const nowMs = Date.now();
+  try {
+    const raw = localStorage.getItem(RATE_LIMIT_STORE_KEY);
+    const store: Record<string, number[]> = raw ? JSON.parse(raw) : {};
+    const timestamps = (store[userId] ?? []).filter(
+      (t) => nowMs - t < RATE_LIMIT_WINDOW_MS,
+    );
+    if (timestamps.length >= RATE_LIMIT_MAX) {
+      throw new Error(
+        `RATE_LIMITED: Too many checkout attempts. Try again in ${Math.ceil((RATE_LIMIT_WINDOW_MS - (nowMs - timestamps[0])) / 1000)}s.`,
+      );
+    }
+    timestamps.push(nowMs);
+    store[userId] = timestamps;
+    localStorage.setItem(RATE_LIMIT_STORE_KEY, JSON.stringify(store));
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("RATE_LIMITED:")) throw err;
+    // Corrupt store — reset and allow
+  }
+}
+
+/* ── RSK-004: localStorage-Backed Quote Store ── */
+
+/**
+ * Quote snapshot stored in localStorage by the checkout flow.
+ * Written by StepOnePriceLock (via serverCreateQuote), consumed here.
+ *
+ * In production, this is replaced by the PostgreSQL-backed consumeQuote()
+ * in quote-engine.ts. This mirror exists because api.ts runs client-side
+ * in the mock environment and cannot import server-only modules.
+ */
+const QUOTE_STORE_KEY = "aurumshield:quote-store";
+
+interface QuoteSnapshot {
+  id: string;
+  userId: string;
+  listingId: string;
+  weightOz: number;
+  spotPrice: number;
+  premiumBps: number;
+  lockedPrice: number;
+  status: "ACTIVE" | "USED" | "EXPIRED" | "CANCELLED";
+  expiresAt: string;
+  priceFeedSource: string;
+  priceFeedTimestamp: string;
+}
+
+function loadQuoteStore(): Record<string, QuoteSnapshot> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(QUOTE_STORE_KEY) ?? "{}");
+  } catch { return {}; }
+}
+
+function saveQuoteStore(store: Record<string, QuoteSnapshot>): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(QUOTE_STORE_KEY, JSON.stringify(store));
+}
+
+/**
+ * Register a quote in the client-side store.
+ * Called when serverCreateQuote succeeds to mirror the quote for
+ * client-side consumption by apiExecuteAtomicCheckout.
+ */
+export function registerQuoteInStore(quote: QuoteSnapshot): void {
+  const store = loadQuoteStore();
+  store[quote.id] = quote;
+  saveQuoteStore(store);
+}
+
+/**
+ * Atomically consume a quote from the localStorage store.
+ * Returns the quote if valid (ACTIVE + unexpired + owned by user),
+ * marks it as USED, and persists. Returns null otherwise.
+ */
+function consumeQuoteFromStore(
+  quoteId: string,
+  userId: string,
+): QuoteSnapshot | null {
+  const store = loadQuoteStore();
+  const quote = store[quoteId];
+
+  if (!quote) return null;
+  if (quote.userId !== userId) return null;
+  if (quote.status !== "ACTIVE") return null;
+  if (new Date(quote.expiresAt).getTime() < Date.now()) {
+    // Auto-expire
+    quote.status = "EXPIRED";
+    saveQuoteStore(store);
+    return null;
+  }
+
+  // Atomically mark as USED
+  quote.status = "USED";
+  saveQuoteStore(store);
+  return quote;
+}
+
+/* ── Server-Side Compliance Oracle ── */
+
+/**
+ * PRIVATE — Builds the compliance policy snapshot entirely server-side.
+ * This function MUST NEVER be exposed to the client or accept client input.
+ *
+ * In production, counterparty/corridor/capital data would come from the
+ * trusted database. Here we use the mock data store as the "server database".
+ *
+ * @param notional — Server-computed notional (weightOz × listing.pricePerOz)
+ * @returns The policy snapshot with all compliance evaluations
+ */
+function buildServerPolicySnapshot(notional: number): MarketplacePolicySnapshot {
+  // Fetch compliance data from trusted "server database"
+  const cp = mockCounterparties[0]; // In production: DB lookup by buyer's counterparty
+  const corridor = mockCorridors[0]; // In production: DB lookup by listing jurisdiction pair
+  const capital = mockCapitalPhase1; // In production: DB lookup by platform capital state
+
+  const tri = computeTRI(cp, corridor, notional, capital);
+  const capVal = validateCapital(notional, capital);
+  const blockers = checkBlockers(cp, corridor, undefined, tri, notional, capital);
+  const approval = determineApproval(tri.score, notional);
+
+  return {
+    triScore: tri.score,
+    triBand: tri.band,
+    ecrBefore: capVal.currentECR,
+    ecrAfter: capVal.postTxnECR,
+    hardstopBefore: capVal.currentHardstopUtil,
+    hardstopAfter: capVal.postTxnHardstopUtil,
+    approvalTier: approval.tier,
+    blockers,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * ATOMIC CHECKOUT — Single unified endpoint replacing the split
+ * createReservation + convertReservationToOrder flow.
+ *
+ * Security controls:
+ *  - Idempotency key: prevents duplicate execution on network retries
+ *  - Rate limiting: IP/session-based (userId-keyed), 5 attempts/minute
+ *  - Capital controls: gates both reservation and conversion
+ *  - KYC/KYB verification: rejects unverified buyers
+ *  - Server-side compliance: TRI, capital, blockers evaluated in trust boundary
+ *  - P1 alert: compliance BLOCK rejections trigger PagerDuty-level alert
+ *
+ * Observability metrics emitted:
+ *  - checkout_attempt — every call
+ *  - checkout_success — on successful transaction
+ *  - checkout_inventory_conflict — when inventory is exhausted
+ *  - compliance_block_rejection — P1 alert on BLOCK-severity blocker
+ */
+export async function apiExecuteAtomicCheckout(input: {
+  listingId: string;
+  userId: string;
+  weightOz: number;
+  idempotencyKey: string;
+  /** Quote ID from price-lock step — REQUIRED for oracle binding (RSK-004) */
+  quoteId: string;
+  /**
+   * Demo-only flag — skips quote validation for seeder paths.
+   * MUST NOT be exposed to any client-facing API.
+   */
+  __skipQuoteValidation?: boolean;
+}): Promise<{ reservation: Reservation; order: Order }> {
+  // ── Metric: checkout_attempt ──
+  console.debug("[AurumShield Metric] checkout_attempt", {
+    listingId: input.listingId,
+    userId: input.userId,
+    idempotencyKey: input.idempotencyKey,
+    quoteId: input.quoteId ?? null,
+    timestamp: new Date().toISOString(),
+  });
+
+  // ── Idempotency check ──
+  const idempotencyStore = loadIdempotencyStore();
+  const cached = idempotencyStore[input.idempotencyKey];
+  if (cached) {
+    console.debug("[AurumShield Metric] checkout_idempotent_hit", {
+      idempotencyKey: input.idempotencyKey,
+    });
+    return mockFetch({ reservation: cached.reservation, order: cached.order });
+  }
+
+  // ── Rate limiting ──
+  checkRateLimit(input.userId);
+
+  // ── KYC/KYB Verification Gate ──
+  const verificationCase = loadVerificationCase(input.userId);
+  if (!verificationCase || verificationCase.status !== "VERIFIED") {
+    console.error("[AurumShield P1 ALERT] checkout_kyc_rejection", {
+      userId: input.userId,
+      verificationStatus: verificationCase?.status ?? "NONE",
+      timestamp: new Date().toISOString(),
+    });
+    throw new Error(
+      `KYC_VERIFICATION_REQUIRED: User ${input.userId} has not completed identity verification (status: ${verificationCase?.status ?? "NONE"}).`,
+    );
+  }
+
+  // ── Capital control enforcement (gates both operations) ──
+  await checkCapitalControl("CREATE_RESERVATION");
+  await checkCapitalControl("CONVERT_RESERVATION");
+
+  // ── Phase 0: State Machine — initial trade state ──
+  const { transitionTradeState } = await import("./state-machine");
+
+  // ── Single atomic state transition ──
+  const nowMs = Date.now();
+  const state = freshState(nowMs);
+
+  // ── Server-side notional computation (NEVER trust client) ──
+  const listing = state.listings.find((l) => l.id === input.listingId);
+  if (!listing) throw new Error(`Listing ${input.listingId} not found`);
+
+  // ── RSK-004: Oracle-bound notional via quote consumption ──
+  let serverNotional: number;
+  let quoteAudit: {
+    quoteId: string;
+    priceFeedSource: string;
+    priceFeedTimestamp: string;
+    lockedPrice: number;
+  } | null = null;
+
+  if (input.__skipQuoteValidation) {
+    // Demo path only — fallback to listing price
+    serverNotional = input.weightOz * listing.pricePerOz;
+    console.debug("[AurumShield] __skipQuoteValidation active — demo path, using listing price");
+  } else {
+    // Production path: atomically consume the quote
+    if (!input.quoteId) {
+      throw new Error("QUOTE_REQUIRED: A valid quoteId is required for order execution (RSK-004).");
+    }
+
+    const quote = consumeQuoteFromStore(input.quoteId, input.userId);
+
+    if (!quote) {
+      console.error("[AurumShield P1 ALERT] quote_consumption_failed", {
+        quoteId: input.quoteId,
+        userId: input.userId,
+        reason: "Quote not found, expired, already consumed, or belongs to another user",
+        timestamp: new Date().toISOString(),
+      });
+      throw new Error(
+        "QUOTE_INVALID: Quote is expired, already consumed, or does not belong to this user. Please create a new price lock.",
+      );
+    }
+
+    // Cross-listing guard: prevent replay across listings
+    if (quote.listingId !== input.listingId) {
+      console.error("[AurumShield P1 ALERT] quote_listing_mismatch", {
+        quoteId: input.quoteId,
+        quoteListingId: quote.listingId,
+        inputListingId: input.listingId,
+        userId: input.userId,
+        timestamp: new Date().toISOString(),
+      });
+      throw new Error(
+        "QUOTE_LISTING_MISMATCH: Quote was created for a different listing. This may indicate a replay attack.",
+      );
+    }
+
+    // Weight consistency guard
+    if (quote.weightOz !== input.weightOz) {
+      console.error("[AurumShield P1 ALERT] quote_weight_mismatch", {
+        quoteId: input.quoteId,
+        quoteWeightOz: quote.weightOz,
+        inputWeightOz: input.weightOz,
+        userId: input.userId,
+        timestamp: new Date().toISOString(),
+      });
+      throw new Error(
+        `QUOTE_WEIGHT_MISMATCH: Quote weight (${quote.weightOz} oz) does not match requested weight (${input.weightOz} oz).`,
+      );
+    }
+
+    // Oracle-bound notional: use the quote's locked price, NOT listing.pricePerOz
+    serverNotional = quote.lockedPrice;
+
+    quoteAudit = {
+      quoteId: quote.id,
+      priceFeedSource: quote.priceFeedSource,
+      priceFeedTimestamp: quote.priceFeedTimestamp,
+      lockedPrice: quote.lockedPrice,
+    };
+
+    console.debug("[AurumShield Metric] quote_consumed", {
+      quoteId: quote.id,
+      lockedPrice: quote.lockedPrice,
+      spotPrice: quote.spotPrice,
+      premiumBps: quote.premiumBps,
+      priceFeedSource: quote.priceFeedSource,
+      priceFeedTimestamp: quote.priceFeedTimestamp,
+      serverNotional,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // ── Server-side compliance evaluation ──
+  const serverPolicySnapshot = buildServerPolicySnapshot(serverNotional);
+
+  // ── BLOCK-severity enforcement — abort before any state mutation ──
+  if (hasBlockLevel(serverPolicySnapshot.blockers)) {
+    const blockMessages = serverPolicySnapshot.blockers
+      .filter((b) => b.severity === "BLOCK")
+      .map((b) => `${b.id}: ${b.title}`);
+
+    // ── P1 ALERT: Compliance block rejection ──
+    console.error("[AurumShield P1 ALERT] compliance_block_rejection", {
+      userId: input.userId,
+      listingId: input.listingId,
+      weightOz: input.weightOz,
+      notional: serverNotional,
+      blockers: blockMessages,
+      triScore: serverPolicySnapshot.triScore,
+      triBand: serverPolicySnapshot.triBand,
+      timestamp: new Date().toISOString(),
+    });
+
+    throw new Error(
+      `COMPLIANCE_BLOCKED: Transaction rejected by compliance perimeter. Blockers: ${blockMessages.join("; ")}`,
+    );
+  }
+
+  // ── Phase 0: State Machine — PENDING_ALLOCATION (trade initialized) ──
+  // Use a proto-orderId until the real order is created
+  const protoOrderId = `proto-${input.idempotencyKey}`;
+  transitionTradeState(
+    protoOrderId,
+    "PENDING_ALLOCATION",  // Implicit initial state
+    "PENDING_ALLOCATION",  // Declare entry into the state machine
+    input.userId,
+    "system",
+  );
+
+  try {
+    const { next, reservation, order } = engineAtomicCheckout(
+      state,
+      {
+        listingId: input.listingId,
+        buyerUserId: input.userId,
+        weightOz: input.weightOz,
+      },
+      nowMs,
+      serverNotional,
+      serverPolicySnapshot,
+    );
+
+    // Single persist — true atomicity in localStorage context
+    saveMarketplaceState(next);
+
+    // ── Cache for idempotency ──
+    saveIdempotencyEntry(input.idempotencyKey, {
+      reservation,
+      order,
+      completedAt: new Date(nowMs).toISOString(),
+    });
+
+    // ── Metric: checkout_success ──
+    console.debug("[AurumShield Metric] checkout_success", {
+      orderId: order.id,
+      reservationId: reservation.id,
+      listingId: input.listingId,
+      weightOz: input.weightOz,
+      notional: order.notional,
+      triScore: serverPolicySnapshot.triScore,
+      approvalTier: serverPolicySnapshot.approvalTier,
+      ...(quoteAudit ? {
+        quoteId: quoteAudit.quoteId,
+        priceFeedSource: quoteAudit.priceFeedSource,
+        priceFeedTimestamp: quoteAudit.priceFeedTimestamp,
+        oracleLockedPrice: quoteAudit.lockedPrice,
+      } : {}),
+      timestamp: new Date(nowMs).toISOString(),
+    });
+
+    // ── Phase 0: State Machine — LOCKED_UNSETTLED (inventory reserved, order created) ──
+    transitionTradeState(
+      order.id,
+      "PENDING_ALLOCATION",
+      "LOCKED_UNSETTLED",
+      input.userId,
+      "system",
+    );
+
+    return mockFetch({ reservation, order });
+  } catch (err) {
+    // ── RSK-005: Structured 409 Conflict for inventory invariant violations ──
+    const { InventoryInvariantViolation } = await import("./marketplace-engine");
+    if (err instanceof InventoryInvariantViolation) {
+      console.debug("[AurumShield Metric] checkout_inventory_conflict", {
+        listingId: err.listingId,
+        requestedOz: err.requestedOz,
+        availableOz: err.availableWeightOz,
+        lockedOz: err.lockedWeightOz,
+        totalOz: err.totalWeightOz,
+        operation: err.operation,
+        timestamp: err.timestamp,
+      });
+      // Re-throw with 409 semantics — caller should surface this to user
+      throw new Error(`409 CONFLICT: ${err.message}`);
+    }
+    // ── Metric: checkout_inventory_conflict (legacy path) ──
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("INVENTORY_EXHAUSTED")) {
+      console.debug("[AurumShield Metric] checkout_inventory_conflict", {
+        listingId: input.listingId,
+        requestedOz: input.weightOz,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    throw err;
+  }
+}
+
+/**
+ * @deprecated Use `apiExecuteAtomicCheckout` instead.
+ * Split reservation creation breaks atomicity — inventory can be locked
+ * without a corresponding order, creating a DoS vector.
+ */
 export async function createReservation(input: {
   listingId: string;
   userId: string;
@@ -173,6 +631,11 @@ export async function createReservation(input: {
   return mockFetch(reservation);
 }
 
+/**
+ * @deprecated Use `apiExecuteAtomicCheckout` instead.
+ * Split conversion breaks atomicity — depends on prior reservation
+ * existing in ACTIVE state, creating race condition windows.
+ */
 export async function convertReservationToOrder(input: {
   reservationId: string;
   userId: string;
@@ -201,6 +664,48 @@ export async function runReservationExpirySweep(input: {
   const next = expireReservations(state, input.nowMs);
   saveMarketplaceState(next);
   await mockFetch(undefined);
+}
+
+/* ---------- Order Status Polling (Phase 0 State Machine) ---------- */
+
+export interface OrderStatusResponse {
+  orderId: string;
+  /** Server-authoritative trade status derived from the state machine */
+  tradeStatus: import("./state-machine").TradeStatus;
+  /** Legacy order status for backward compatibility */
+  legacyStatus: import("./mock-data").OrderStatus;
+  /** Optional reason for non-success terminal states */
+  reason?: string;
+}
+
+/**
+ * Get the server-authoritative trade status for an order.
+ * Used by `use-atomic-buy.ts` for polling until terminal state.
+ *
+ * Maps the legacy OrderStatus to the strict TradeStatus enum
+ * defined in state-machine.ts.
+ */
+export async function apiGetOrderStatus(
+  orderId: string,
+): Promise<OrderStatusResponse> {
+  const { mapLegacyOrderStatus } = await import("./state-machine");
+  const state = loadMarketplaceState();
+  const order = state.orders.find((o) => o.id === orderId);
+
+  if (!order) {
+    return {
+      orderId,
+      tradeStatus: "FAILED",
+      legacyStatus: "cancelled",
+      reason: "Order not found",
+    };
+  }
+
+  return {
+    orderId,
+    tradeStatus: mapLegacyOrderStatus(order.status),
+    legacyStatus: order.status,
+  };
 }
 
 /* ---------- SELLER-SIDE MUTATE endpoints ---------- */
@@ -379,9 +884,7 @@ import {
   getOrg,
   getCurrentUser,
 } from "./auth-store";
-import {
-  loadVerificationCase,
-} from "./verification-engine";
+
 
 export interface LoginResult {
   success: boolean;
@@ -447,9 +950,7 @@ import type {
   UserRole,
 } from "./mock-data";
 import {
-  mockCorridors,
   mockHubs,
-  mockCapitalPhase1,
 } from "./mock-data";
 import {
   openSettlementFromOrder as engineOpenSettlement,

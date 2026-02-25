@@ -25,6 +25,9 @@
    ================================================================ */
 
 import { createHash } from "crypto";
+import { checkTransferStatus } from "./moov-adapter";
+import { emitSettlementFallbackEvent, emitSettlementPayoutConfirmedEvent } from "./audit-logger";
+import { transitionSettlementState } from "./state-machine";
 
 /* ---------- Types ---------- */
 
@@ -66,6 +69,12 @@ export interface SettlementPayoutResult {
   error?: string;
   /** Idempotency key used for this payout attempt */
   idempotencyKey?: string;
+  /**
+   * True when the Moov payout outcome is indeterminate (timeout/5xx)
+   * AND the status-check poll also failed. Settlement must be locked to
+   * AMBIGUOUS_STATE and requires Treasury Admin manual reconciliation.
+   */
+  ambiguousState?: boolean;
 }
 
 /**
@@ -241,6 +250,44 @@ export async function checkPriorFinality(
 
 /* ---------- Rail Selection ---------- */
 
+/**
+ * Check if a prior payout attempt already exists for this idempotency key
+ * with a non-retriable status. Returns the conflict status or null if safe.
+ *
+ * This is the replay guard: if a prior payout was already SUBMITTED or
+ * COMPLETED, we MUST NOT re-execute. The caller should return
+ * IDEMPOTENCY_CONFLICT to the upstream action.
+ */
+export async function checkPayoutIdempotency(
+  idempotencyKey: string,
+): Promise<{ status: string; externalId: string | null; settlementId: string } | null> {
+  try {
+    const { getDbClient } = await import("@/lib/db");
+    const db = await getDbClient();
+    try {
+      const result = await db.query(
+        `SELECT status, external_id, settlement_id
+         FROM payouts
+         WHERE idempotency_key = $1
+           AND status IN ('SUBMITTED', 'COMPLETED')
+         ORDER BY updated_at DESC LIMIT 1`,
+        [idempotencyKey],
+      );
+      if (result.rows.length === 0) return null;
+      return {
+        status: result.rows[0].status,
+        externalId: result.rows[0].external_id,
+        settlementId: result.rows[0].settlement_id,
+      };
+    } finally {
+      await db.end().catch(() => {});
+    }
+  } catch (err) {
+    console.error("[SETTLEMENT-RAIL] Failed to check payout idempotency:", err);
+    return null; // Fail open — caller proceeds with caution
+  }
+}
+
 export type RailMode = "auto" | "moov" | "modern_treasury";
 
 /**
@@ -317,6 +364,57 @@ export async function routeSettlement(
     };
   }
 
+  /* ── RSK-003: Pre-execution ledger guard ── */
+  // 1. Check for prior SUBMITTED/COMPLETED payout with same idempotency key
+  const priorPayout = await checkPayoutIdempotency(request.idempotencyKey!);
+  if (priorPayout) {
+    console.error(
+      `[AurumShield P1 ALERT] idempotency_conflict | ` +
+      `settlementId=${request.settlementId} ` +
+      `idempotencyKey=${request.idempotencyKey} ` +
+      `priorStatus=${priorPayout.status} ` +
+      `priorExternalId=${priorPayout.externalId ?? "N/A"} | ` +
+      `Replay attempt rejected — prior payout already in-flight or completed.`,
+    );
+    return {
+      success: false,
+      railUsed: "moov",
+      externalIds: priorPayout.externalId ? [priorPayout.externalId] : [],
+      sellerPayoutCents: 0,
+      platformFeeCents: request.platformFeeCents,
+      isFallback: false,
+      error: `IDEMPOTENCY_CONFLICT: A payout for this settlement is already ${priorPayout.status}. ` +
+        `External ID: ${priorPayout.externalId ?? "pending"}. No duplicate transfer was initiated.`,
+      idempotencyKey: request.idempotencyKey,
+    };
+  }
+
+  // 2. Check if settlement already has COMPLETED or PENDING finality
+  const settledFinality = await checkPriorFinality(request.settlementId, "moov");
+  const mtFinality = await checkPriorFinality(request.settlementId, "modern_treasury");
+  for (const finality of [settledFinality, mtFinality]) {
+    if (finality && (finality.finalityStatus === "COMPLETED" || finality.finalityStatus === "PENDING")) {
+      console.error(
+        `[AurumShield P1 ALERT] settlement_already_finalized | ` +
+        `settlementId=${request.settlementId} ` +
+        `finalityStatus=${finality.finalityStatus} ` +
+        `externalTransferId=${finality.externalTransferId ?? "N/A"} | ` +
+        `Refusing duplicate payout — settlement already has active finality.`,
+      );
+      return {
+        success: false,
+        railUsed: "moov",
+        externalIds: finality.externalTransferId ? [finality.externalTransferId] : [],
+        sellerPayoutCents: 0,
+        platformFeeCents: request.platformFeeCents,
+        isFallback: false,
+        error: `IDEMPOTENCY_CONFLICT: Settlement ${request.settlementId} already has ` +
+          `${finality.finalityStatus} finality. No duplicate transfer was initiated.`,
+        idempotencyKey: request.idempotencyKey,
+      };
+    }
+  }
+
   /* ── Record payout attempt ── */
   await recordPayoutAttempt({
     settlementId: request.settlementId,
@@ -327,6 +425,15 @@ export async function routeSettlement(
     amountCents: request.totalAmountCents,
   });
 
+  /* ── Phase 0: State Machine — PENDING_RAIL → RAIL_SUBMITTED ── */
+  transitionSettlementState(
+    request.settlementId,
+    "PENDING_RAIL",
+    "RAIL_SUBMITTED",
+    "system",
+    "system",
+  );
+
   /* ── Force Moov ── */
   if (mode === "moov") {
     const result = await executeOnRail("moov", request);
@@ -336,6 +443,7 @@ export async function routeSettlement(
       externalId: result.externalIds[0],
       errorMessage: result.error,
     });
+    emitPayoutAuditLog(request, result);
     return { ...result, idempotencyKey: request.idempotencyKey };
   }
 
@@ -348,6 +456,7 @@ export async function routeSettlement(
       externalId: result.externalIds[0],
       errorMessage: result.error,
     });
+    emitPayoutAuditLog(request, result);
     return { ...result, idempotencyKey: request.idempotencyKey };
   }
 
@@ -366,12 +475,120 @@ export async function routeSettlement(
     externalId: result.externalIds[0],
     errorMessage: result.error,
   });
+  emitPayoutAuditLog(request, result);
   return { ...result, idempotencyKey: request.idempotencyKey };
 }
 
+/* ---------- Structured Audit Log ---------- */
+
 /**
- * Execute on a specific rail. Returns a structured error if the rail
- * is not registered or not configured.
+ * Emit a structured settlement_payout_confirmed audit entry.
+ * Delegates to the forensic audit logger for non-repudiable JSON emission.
+ */
+function emitPayoutAuditLog(
+  request: SettlementPayoutRequest,
+  result: SettlementPayoutResult,
+): void {
+  // Only log successful or submitted payouts
+  if (!result.success) return;
+
+  emitSettlementPayoutConfirmedEvent({
+    settlementId: request.settlementId,
+    idempotencyKey: request.idempotencyKey ?? "N/A",
+    railUsed: result.railUsed,
+    externalIds: result.externalIds,
+    sellerPayoutCents: result.sellerPayoutCents,
+    platformFeeCents: result.platformFeeCents,
+    totalAmountCents: request.totalAmountCents,
+    isFallback: result.isFallback,
+  });
+}
+
+/* ---------- Moov Error Classification ---------- */
+
+/** Error categories that determine how the settlement rail handles failure. */
+type MoovErrorClass =
+  | "PROVEN_REJECTION"   // HTTP 400/422 — Moov definitively rejected; safe to fallback
+  | "AMBIGUOUS_FAILURE"; // Timeout, 5xx, network error — Moov may have succeeded
+
+/**
+ * Classify a Moov error or failed result to decide whether it is safe
+ * to fallback to Modern Treasury.
+ *
+ * PROVEN_REJECTION: HTTP 400/422 responses mean Moov definitively did NOT
+ * execute the transfer. Safe to fallback.
+ *
+ * AMBIGUOUS_FAILURE: Timeouts (ETIMEDOUT, ECONNRESET), HTTP 5xx, network
+ * errors — Moov may have received and processed the request. Fallback
+ * MUST NOT proceed without a status-check poll.
+ */
+function classifyMoovError(errorMessage: string): MoovErrorClass {
+  // HTTP 400/422 are proven rejections (bad request, validation failure)
+  if (/→ 4(?:00|22):/.test(errorMessage)) {
+    return "PROVEN_REJECTION";
+  }
+  // Everything else is ambiguous — timeouts, 5xx, network drops
+  return "AMBIGUOUS_FAILURE";
+}
+
+/**
+ * Build an AMBIGUOUS_STATE result with P1 alert emission.
+ * This is the "circuit breaker" — prevents double-spend by refusing
+ * to fallback when Moov's outcome is unknown.
+ */
+function buildAmbiguousResult(
+  request: SettlementPayoutRequest,
+  reason: string,
+): SettlementPayoutResult {
+  // ── P1 ALERT: settlement_ambiguous_state ──
+  console.error(
+    `[AurumShield P1 ALERT] settlement_ambiguous_state | ` +
+    `settlementId=${request.settlementId} ` +
+    `idempotencyKey=${request.idempotencyKey ?? "N/A"} ` +
+    `reason=${reason} | ` +
+    `ACTION REQUIRED: Treasury Admin must reconcile with Moov dashboard ` +
+    `before resolving this settlement. DO NOT re-execute payout.`,
+  );
+
+  // ── Metric: settlement_ambiguous_state ──
+  console.debug("[AurumShield Metric] settlement_ambiguous_state", {
+    settlementId: request.settlementId,
+    idempotencyKey: request.idempotencyKey,
+    reason,
+    timestamp: new Date().toISOString(),
+  });
+
+  return {
+    success: false,
+    railUsed: "moov",
+    externalIds: [],
+    sellerPayoutCents: 0,
+    platformFeeCents: request.platformFeeCents,
+    isFallback: false,
+    error: `AMBIGUOUS — ${reason}. Manual reconciliation required.`,
+    idempotencyKey: request.idempotencyKey,
+    ambiguousState: true,
+  };
+}
+
+/**
+ * Execute Moov payout with finality-gated fallback to Modern Treasury.
+ *
+ * CRITICAL SAFETY LOGIC (RSK-003):
+ *   Errors are classified as PROVEN_REJECTION or AMBIGUOUS_FAILURE.
+ *
+ *   Proven rejections (HTTP 400/422):
+ *     → Record FAILED finality, proceed to MT fallback.
+ *
+ *   Ambiguous failures (timeout, 5xx, network):
+ *     → Emit settlement_rail_timeout metric
+ *     → Poll Moov via checkTransferStatus(idempotencyKey)
+ *       - If Moov confirms success → return success (NO fallback)
+ *       - If Moov confirms failure → proceed to fallback
+ *       - If poll inconclusive → lock to AMBIGUOUS_STATE (NO fallback)
+ *
+ *   This prevents double-spend by NEVER blindly falling through to MT
+ *   when Moov's outcome is unknown.
  */
 async function executeMoovWithFallback(
   request: SettlementPayoutRequest,
@@ -389,32 +606,50 @@ async function executeMoovWithFallback(
         return result;
       }
 
-      // Moov failed — record finality before attempting fallback
-      await updatePayoutStatus({
-        idempotencyKey: request.idempotencyKey!,
-        status: "FAILED",
-        errorMessage: result.error,
-      });
-      await recordSettlementFinality({
+      // ── Moov returned { success: false } — classify the error ──
+      const errorClass = classifyMoovError(result.error ?? "");
+
+      if (errorClass === "PROVEN_REJECTION") {
+        // Safe to fallback — Moov definitively rejected this transfer
+        await updatePayoutStatus({
+          idempotencyKey: request.idempotencyKey!,
+          status: "FAILED",
+          errorMessage: result.error,
+        });
+        await recordSettlementFinality({
+          settlementId: request.settlementId,
+          rail: "moov",
+          externalTransferId: result.externalIds[0] ?? "none",
+          idempotencyKey: request.idempotencyKey!,
+          finalityStatus: "FAILED",
+          amountCents: request.totalAmountCents,
+          leg: "seller_payout",
+          isFallback: false,
+          errorMessage: result.error,
+        });
+        console.warn(
+          `[AurumShield] Moov PROVEN_REJECTION for ${request.settlementId}: ${result.error}. Proceeding to finality-gated fallback.`,
+        );
+        // Fall through to finality-gated fallback below
+      } else {
+        // AMBIGUOUS_FAILURE from a { success: false } response —
+        // Moov may have partially processed. Must poll.
+        return await handleAmbiguousFailure(request, result.error ?? "unknown error from result");
+      }
+    } catch (err) {
+      // ── Exception path — always ambiguous ──
+      // Network timeout, DNS failure, connection reset, etc.
+      const message = err instanceof Error ? err.message : String(err);
+
+      // ── Metric: settlement_rail_timeout ──
+      console.debug("[AurumShield Metric] settlement_rail_timeout", {
         settlementId: request.settlementId,
-        rail: "moov",
-        externalTransferId: result.externalIds[0] ?? "none",
-        idempotencyKey: request.idempotencyKey!,
-        finalityStatus: "FAILED",
-        amountCents: request.totalAmountCents,
-        leg: "seller_payout",
-        isFallback: false,
-        errorMessage: result.error,
+        idempotencyKey: request.idempotencyKey,
+        error: message,
+        timestamp: new Date().toISOString(),
       });
 
-      console.warn(
-        `[AurumShield] Moov payout failed for ${request.settlementId}: ${result.error}. Checking finality before fallback.`,
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.warn(
-        `[AurumShield] Moov payout exception for ${request.settlementId}: ${message}. Checking finality before fallback.`,
-      );
+      return await handleAmbiguousFailure(request, message);
     }
   } else {
     console.warn(
@@ -443,7 +678,8 @@ async function executeMoovWithFallback(
   }
 
   // Fallback to Modern Treasury — finality confirmed FAILED or no prior record
-  const fallbackResult = await executeFallback(request);
+  const moovError = "Moov finality FAILED or no prior finality record";
+  const fallbackResult = await executeFallback(request, moovError);
   await updatePayoutStatus({
     idempotencyKey: request.idempotencyKey!,
     status: fallbackResult.success ? "SUBMITTED" : "FAILED",
@@ -454,11 +690,143 @@ async function executeMoovWithFallback(
 }
 
 /**
+ * Handle an ambiguous Moov failure by polling Moov's transfer API.
+ *
+ * Three outcomes:
+ *   1. Moov confirms success → return success result, abort fallback
+ *   2. Moov confirms failure → record finality, allow fallback
+ *   3. Moov poll inconclusive → lock to AMBIGUOUS_STATE, abort fallback
+ */
+async function handleAmbiguousFailure(
+  request: SettlementPayoutRequest,
+  originalError: string,
+): Promise<SettlementPayoutResult> {
+  // ── Metric: settlement_rail_timeout ──
+  console.debug("[AurumShield Metric] settlement_rail_timeout", {
+    settlementId: request.settlementId,
+    idempotencyKey: request.idempotencyKey,
+    error: originalError,
+    timestamp: new Date().toISOString(),
+  });
+
+  console.warn(
+    `[AurumShield] AMBIGUOUS Moov failure for ${request.settlementId}: ${originalError}. ` +
+    `Initiating status-check poll via idempotency key.`,
+  );
+
+  // Derive the seller-leg idempotency key that was sent to Moov
+  const baseIdemKey = request.idempotencyKey ?? request.settlementId;
+  const sellerIdemKey = `${baseIdemKey}:seller`;
+
+  // ── Poll Moov for transfer status ──
+  const pollResult = await checkTransferStatus(sellerIdemKey, request.settlementId);
+
+  if (pollResult.found && pollResult.status) {
+    const moovStatus = pollResult.status.toLowerCase();
+
+    // Moov confirms the transfer was executed
+    if (moovStatus === "completed" || moovStatus === "pending") {
+      console.warn(
+        `[AurumShield] Status-check poll CONFIRMED Moov transfer ` +
+        `${pollResult.transferId} with status '${moovStatus}' for ${request.settlementId}. ` +
+        `Fallback ABORTED — using Moov result.`,
+      );
+
+      // Record confirmed finality
+      await recordSettlementFinality({
+        settlementId: request.settlementId,
+        rail: "moov",
+        externalTransferId: pollResult.transferId ?? "poll-confirmed",
+        idempotencyKey: request.idempotencyKey!,
+        finalityStatus: moovStatus === "completed" ? "COMPLETED" : "PENDING",
+        amountCents: request.totalAmountCents,
+        leg: "seller_payout",
+        isFallback: false,
+      });
+
+      await updatePayoutStatus({
+        idempotencyKey: request.idempotencyKey!,
+        status: "SUBMITTED",
+        externalId: pollResult.transferId,
+      });
+
+      return {
+        success: true,
+        railUsed: "moov",
+        externalIds: pollResult.transferId ? [pollResult.transferId] : [],
+        sellerPayoutCents: request.totalAmountCents - request.platformFeeCents,
+        platformFeeCents: request.platformFeeCents,
+        isFallback: false,
+        idempotencyKey: request.idempotencyKey,
+      };
+    }
+
+    // Moov confirms the transfer definitively failed
+    if (moovStatus === "failed" || moovStatus === "reversed") {
+      console.warn(
+        `[AurumShield] Status-check poll confirmed Moov transfer FAILED/REVERSED ` +
+        `(${moovStatus}) for ${request.settlementId}. Safe to fallback.`,
+      );
+
+      await recordSettlementFinality({
+        settlementId: request.settlementId,
+        rail: "moov",
+        externalTransferId: pollResult.transferId ?? "poll-confirmed-failed",
+        idempotencyKey: request.idempotencyKey!,
+        finalityStatus: "FAILED",
+        amountCents: request.totalAmountCents,
+        leg: "seller_payout",
+        isFallback: false,
+        errorMessage: `Poll confirmed: ${moovStatus}`,
+      });
+
+      await updatePayoutStatus({
+        idempotencyKey: request.idempotencyKey!,
+        status: "FAILED",
+        errorMessage: `Moov transfer ${moovStatus} (confirmed via poll)`,
+      });
+
+      // Safe to fall through to finality-gated fallback
+      const pollError = `Moov transfer ${moovStatus} (confirmed via poll)`;
+      const fallbackResult = await executeFallback(request, pollError);
+      await updatePayoutStatus({
+        idempotencyKey: request.idempotencyKey!,
+        status: fallbackResult.success ? "SUBMITTED" : "FAILED",
+        externalId: fallbackResult.externalIds[0],
+        errorMessage: fallbackResult.error,
+      });
+      return fallbackResult;
+    }
+  }
+
+  // ── Poll inconclusive — LOCK to AMBIGUOUS_STATE ──
+  // This is the safety net: we cannot determine Moov's outcome,
+  // so we refuse to fallback and require manual intervention.
+  return buildAmbiguousResult(
+    request,
+    `Moov payout outcome unknown after status-check poll. Original error: ${originalError}`,
+  );
+}
+
+/**
  * Execute on a fallback rail (Modern Treasury) and mark the result accordingly.
+ * Emits a P1 settlement_fallback_initiated audit event before executing.
  */
 async function executeFallback(
   request: SettlementPayoutRequest,
+  originalError: string = "unknown",
 ): Promise<SettlementPayoutResult> {
+  // ── P1 ALERT: settlement_fallback_initiated ──
+  emitSettlementFallbackEvent({
+    settlementId: request.settlementId,
+    originalRail: "moov",
+    fallbackRail: "modern_treasury",
+    amountCents: request.totalAmountCents,
+    idempotencyKey: request.idempotencyKey,
+    errorMessage: originalError,
+    errorStack: new Error(originalError).stack,
+  });
+
   const result = await executOnRailDirect("modern_treasury", request);
   return {
     ...result,

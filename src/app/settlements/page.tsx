@@ -23,6 +23,7 @@ const STATUS_CONFIG: Record<SettlementStatus, { label: string; color: string }> 
   SETTLED: { label: "Settled", color: "bg-success/10 text-success border-success/20" },
   FAILED: { label: "Failed", color: "bg-danger/10 text-danger border-danger/20" },
   CANCELLED: { label: "Cancelled", color: "bg-surface-3 text-text-faint border-border" },
+  AMBIGUOUS_STATE: { label: "Ambiguous State", color: "bg-danger/10 text-danger border-danger/20 animate-pulse" },
 };
 
 const RAIL_LABEL: Record<SettlementRail, string> = {

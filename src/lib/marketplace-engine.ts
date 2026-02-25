@@ -31,6 +31,203 @@ export interface MarketplaceState {
 /* ---------- Constants ---------- */
 const RESERVATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
+/* ---------- RSK-005: Inventory Invariant Enforcement ---------- */
+
+/**
+ * Thrown when an inventory mutation would violate the allocation invariant.
+ * Equivalent to a PostgreSQL CHECK constraint violation.
+ */
+export class InventoryInvariantViolation extends Error {
+  readonly listingId: string;
+  readonly totalWeightOz: number;
+  readonly lockedWeightOz: number;
+  readonly availableWeightOz: number;
+  readonly requestedOz: number;
+  readonly operation: "lock" | "release" | "assertion";
+  readonly timestamp: string;
+
+  constructor(opts: {
+    listingId: string;
+    totalWeightOz: number;
+    lockedWeightOz: number;
+    availableWeightOz: number;
+    requestedOz: number;
+    operation: "lock" | "release" | "assertion";
+    detail: string;
+  }) {
+    super(
+      `INVENTORY_INVARIANT_VIOLATION [${opts.operation}]: ${opts.detail} | ` +
+      `listing=${opts.listingId} total=${opts.totalWeightOz} ` +
+      `locked=${opts.lockedWeightOz} available=${opts.availableWeightOz} ` +
+      `requested=${opts.requestedOz}`,
+    );
+    this.name = "InventoryInvariantViolation";
+    this.listingId = opts.listingId;
+    this.totalWeightOz = opts.totalWeightOz;
+    this.lockedWeightOz = opts.lockedWeightOz;
+    this.availableWeightOz = opts.availableWeightOz;
+    this.requestedOz = opts.requestedOz;
+    this.operation = opts.operation;
+    this.timestamp = new Date().toISOString();
+  }
+}
+
+/**
+ * Compute locked weight from component parts.
+ * lockedWeightOz = reservedWeightOz + allocatedWeightOz
+ */
+export function computeLockedWeight(inv: InventoryPosition): number {
+  return inv.reservedWeightOz + inv.allocatedWeightOz;
+}
+
+/**
+ * Assert the inventory invariant holds.
+ * Mirrors the 4 CHECK constraints in 007_inventory_allocation.sql:
+ *   1. locked_weight_oz >= 0
+ *   2. available_weight_oz >= 0
+ *   3. total_weight_oz >= locked_weight_oz
+ *   4. available_weight_oz = total_weight_oz - locked_weight_oz
+ *
+ * Throws InventoryInvariantViolation on any violation.
+ */
+export function assertInventoryInvariant(
+  inv: InventoryPosition,
+  requestedOz = 0,
+): void {
+  const computed = computeLockedWeight(inv);
+
+  if (inv.lockedWeightOz < 0) {
+    throw new InventoryInvariantViolation({
+      listingId: inv.listingId,
+      totalWeightOz: inv.totalWeightOz,
+      lockedWeightOz: inv.lockedWeightOz,
+      availableWeightOz: inv.availableWeightOz,
+      requestedOz,
+      operation: "assertion",
+      detail: "lockedWeightOz is negative",
+    });
+  }
+
+  if (inv.availableWeightOz < 0) {
+    throw new InventoryInvariantViolation({
+      listingId: inv.listingId,
+      totalWeightOz: inv.totalWeightOz,
+      lockedWeightOz: inv.lockedWeightOz,
+      availableWeightOz: inv.availableWeightOz,
+      requestedOz,
+      operation: "assertion",
+      detail: "availableWeightOz is negative",
+    });
+  }
+
+  if (inv.totalWeightOz < inv.lockedWeightOz) {
+    throw new InventoryInvariantViolation({
+      listingId: inv.listingId,
+      totalWeightOz: inv.totalWeightOz,
+      lockedWeightOz: inv.lockedWeightOz,
+      availableWeightOz: inv.availableWeightOz,
+      requestedOz,
+      operation: "assertion",
+      detail: "lockedWeightOz exceeds totalWeightOz",
+    });
+  }
+
+  if (Math.abs(inv.availableWeightOz - (inv.totalWeightOz - inv.lockedWeightOz)) > 0.001) {
+    throw new InventoryInvariantViolation({
+      listingId: inv.listingId,
+      totalWeightOz: inv.totalWeightOz,
+      lockedWeightOz: inv.lockedWeightOz,
+      availableWeightOz: inv.availableWeightOz,
+      requestedOz,
+      operation: "assertion",
+      detail: `availableWeightOz (${inv.availableWeightOz}) != totalWeightOz - lockedWeightOz (${inv.totalWeightOz - inv.lockedWeightOz})`,
+    });
+  }
+
+  if (computed !== inv.lockedWeightOz) {
+    throw new InventoryInvariantViolation({
+      listingId: inv.listingId,
+      totalWeightOz: inv.totalWeightOz,
+      lockedWeightOz: inv.lockedWeightOz,
+      availableWeightOz: inv.availableWeightOz,
+      requestedOz,
+      operation: "assertion",
+      detail: `lockedWeightOz (${inv.lockedWeightOz}) != computed (reserved=${inv.reservedWeightOz} + allocated=${inv.allocatedWeightOz} = ${computed})`,
+    });
+  }
+}
+
+/**
+ * Atomic compare-and-swap: lock inventory weight.
+ * TypeScript equivalent of fn_lock_inventory() from 007_inventory_allocation.sql.
+ *
+ * @returns Updated InventoryPosition, or throws InventoryInvariantViolation
+ *          if insufficient available weight (409 Conflict equivalent).
+ */
+function lockInventory(
+  inv: InventoryPosition,
+  weightOz: number,
+  updatedAt: string,
+): InventoryPosition {
+  // Pre-condition: current state is valid
+  assertInventoryInvariant(inv, weightOz);
+
+  // CAS guard: equivalent to WHERE available_weight_oz >= $1
+  if (weightOz > inv.availableWeightOz) {
+    throw new InventoryInvariantViolation({
+      listingId: inv.listingId,
+      totalWeightOz: inv.totalWeightOz,
+      lockedWeightOz: inv.lockedWeightOz,
+      availableWeightOz: inv.availableWeightOz,
+      requestedOz: weightOz,
+      operation: "lock",
+      detail: `INVENTORY_EXHAUSTED: Requested ${weightOz} oz exceeds available ${inv.availableWeightOz} oz`,
+    });
+  }
+
+  // This is a delegation point — the caller is responsible for
+  // deciding whether this goes to reserved or allocated.
+  // We only update lockedWeightOz here; the caller updates the
+  // component fields (reservedWeightOz / allocatedWeightOz).
+  // The invariant assertion after the caller's mutation will
+  // verify consistency.
+  return {
+    ...inv,
+    lockedWeightOz: inv.lockedWeightOz + weightOz,
+    availableWeightOz: inv.availableWeightOz - weightOz,
+    updatedAt,
+  };
+}
+
+/**
+ * Atomic release: unlock inventory weight.
+ * TypeScript equivalent of fn_release_inventory() from 007_inventory_allocation.sql.
+ */
+function releaseInventory(
+  inv: InventoryPosition,
+  weightOz: number,
+  updatedAt: string,
+): InventoryPosition {
+  if (weightOz > inv.lockedWeightOz) {
+    throw new InventoryInvariantViolation({
+      listingId: inv.listingId,
+      totalWeightOz: inv.totalWeightOz,
+      lockedWeightOz: inv.lockedWeightOz,
+      availableWeightOz: inv.availableWeightOz,
+      requestedOz: weightOz,
+      operation: "release",
+      detail: `Cannot release ${weightOz} oz — only ${inv.lockedWeightOz} oz locked`,
+    });
+  }
+
+  return {
+    ...inv,
+    lockedWeightOz: inv.lockedWeightOz - weightOz,
+    availableWeightOz: inv.availableWeightOz + weightOz,
+    updatedAt,
+  };
+}
+
 const REQUIRED_EVIDENCE_TYPES: ListingEvidenceType[] = [
   "ASSAY_REPORT",
   "CHAIN_OF_CUSTODY",
@@ -103,12 +300,14 @@ export function expireReservations(
   const nextInventory = state.inventory.map((inv) => {
     const released = releasedByListing.get(inv.listingId);
     if (released) {
-      return {
-        ...inv,
-        availableWeightOz: inv.availableWeightOz + released,
-        reservedWeightOz: inv.reservedWeightOz - released,
-        updatedAt: new Date(nowMs).toISOString(),
+      // RSK-005: Release locked inventory atomically
+      const releasedInv = releaseInventory(inv, released, new Date(nowMs).toISOString());
+      const mutated: InventoryPosition = {
+        ...releasedInv,
+        reservedWeightOz: releasedInv.reservedWeightOz - released,
       };
+      assertInventoryInvariant(mutated);
+      return mutated;
     }
     return inv;
   });
@@ -141,11 +340,8 @@ export function createReservation(
 
   const inv = state.inventory.find((i) => i.listingId === listingId);
   if (!inv) throw new Error(`Inventory for listing ${listingId} not found`);
-  if (weightOz > inv.availableWeightOz) {
-    throw new Error(
-      `Requested ${weightOz} oz exceeds available ${inv.availableWeightOz} oz`,
-    );
-  }
+  // RSK-005: Atomic compare-and-swap with invariant enforcement
+  const lockedInv = lockInventory(inv, weightOz, new Date(nowMs).toISOString());
 
   const id = nextId("res", state.reservations);
   const createdAt = new Date(nowMs).toISOString();
@@ -162,16 +358,16 @@ export function createReservation(
     state: "ACTIVE",
   };
 
-  const nextInventory = state.inventory.map((i) =>
-    i.listingId === listingId
-      ? {
-          ...i,
-          availableWeightOz: i.availableWeightOz - weightOz,
-          reservedWeightOz: i.reservedWeightOz + weightOz,
-          updatedAt: new Date(nowMs).toISOString(),
-        }
-      : i,
-  );
+  const nextInventory = state.inventory.map((i) => {
+    if (i.listingId !== listingId) return i;
+    const mutated: InventoryPosition = {
+      ...lockedInv,
+      reservedWeightOz: lockedInv.reservedWeightOz + weightOz,
+    };
+    // Post-condition: invariant still holds
+    assertInventoryInvariant(mutated, weightOz);
+    return mutated;
+  });
 
   return {
     next: {
@@ -241,6 +437,119 @@ export function convertReservationToOrder(
       inventory: nextInventory,
       orders: [...state.orders, order],
     },
+    order,
+  };
+}
+
+/* ---------- executeAtomicCheckout ---------- */
+/**
+ * ATOMIC CHECKOUT — Collapses reserve + convert into a single state transition.
+ *
+ * System invariant: inventory cannot be allocated without a corresponding order.
+ * This function performs both operations in one pure-function call. If any
+ * validation fails (listing suspended, insufficient inventory, policy block),
+ * an error is thrown and no state mutation occurs.
+ *
+ * The reservation is created directly in CONVERTED state — it never enters
+ * the ACTIVE state. Inventory moves directly from available → allocated,
+ * skipping the reserved intermediate.
+ *
+ * This mirrors the semantics of a SERIALIZABLE DB transaction:
+ *   DB.transaction(async (tx) => {
+ *     SELECT ... FOR UPDATE on inventory
+ *     INSERT reservation
+ *     INSERT order
+ *     UPDATE inventory
+ *   })
+ */
+export interface AtomicCheckoutArgs {
+  listingId: string;
+  buyerUserId: string;
+  weightOz: number;
+}
+
+/**
+ * @param state          — Current marketplace state snapshot
+ * @param args           — Client-supplied identifiers (listingId, buyerUserId, weightOz)
+ * @param nowMs          — Server timestamp
+ * @param serverNotional — Server-computed notional (weightOz × listing.pricePerOz)
+ * @param serverPolicySnapshot — Server-evaluated compliance snapshot (NEVER from client)
+ */
+export function executeAtomicCheckout(
+  state: MarketplaceState,
+  args: AtomicCheckoutArgs,
+  nowMs: number,
+  serverNotional: number,
+  serverPolicySnapshot: MarketplacePolicySnapshot,
+): { next: MarketplaceState; reservation: Reservation; order: Order } {
+  const { listingId, buyerUserId, weightOz } = args;
+
+  // ── Validate listing ──
+  const listing = state.listings.find((l) => l.id === listingId);
+  if (!listing) throw new Error(`Listing ${listingId} not found`);
+  if (listing.status === "suspended")
+    throw new Error(`Listing ${listingId} is suspended`);
+
+  // ── RSK-005: Validate inventory with invariant assertion ──
+  const inv = state.inventory.find((i) => i.listingId === listingId);
+  if (!inv) throw new Error(`Inventory for listing ${listingId} not found`);
+  assertInventoryInvariant(inv, weightOz);
+
+  // Atomic compare-and-swap: lock the weight
+  const lockedInv = lockInventory(inv, weightOz, new Date(nowMs).toISOString());
+
+  const createdAt = new Date(nowMs).toISOString();
+  const expiresAt = new Date(nowMs + RESERVATION_TTL_MS).toISOString();
+
+  // ── Create reservation (CONVERTED immediately — never dangling) ──
+  const reservationId = nextId("res", state.reservations);
+  const reservation: Reservation = {
+    id: reservationId,
+    listingId,
+    buyerUserId,
+    weightOz,
+    pricePerOzLocked: listing.pricePerOz,
+    createdAt,
+    expiresAt,
+    state: "CONVERTED",
+  };
+
+  // ── Create order (within same transition) ──
+  const orderId = nextId("ord", state.orders);
+  const order: Order = {
+    id: orderId,
+    listingId,
+    reservationId,
+    buyerUserId,
+    sellerUserId: listing.sellerUserId,
+    sellerOrgId: listing.sellerOrgId,
+    weightOz,
+    pricePerOz: listing.pricePerOz,
+    notional: serverNotional,
+    status: "pending_verification",
+    createdAt,
+    policySnapshot: serverPolicySnapshot,
+  };
+
+  // ── RSK-005: Atomic inventory update with invariant post-check ──
+  const nextInventory = state.inventory.map((i) => {
+    if (i.listingId !== listingId) return i;
+    const mutated: InventoryPosition = {
+      ...lockedInv,
+      allocatedWeightOz: lockedInv.allocatedWeightOz + weightOz,
+    };
+    assertInventoryInvariant(mutated, weightOz);
+    return mutated;
+  });
+
+  return {
+    next: {
+      ...state,
+      inventory: nextInventory,
+      reservations: [...state.reservations, reservation],
+      orders: [...state.orders, order],
+    },
+    reservation,
     order,
   };
 }
@@ -315,7 +624,8 @@ export function runProvenanceCheck(
       extractedRefinerName: null,
       refinerNameFound: false,
       passed: false,
-      detail: "Assay report analysis not available — cannot verify refiner provenance.",
+      detail:
+        "Assay report analysis not available — cannot verify refiner provenance.",
     };
   }
 
@@ -406,7 +716,9 @@ export function updateDraftListing(
   const listing = state.listings.find((l) => l.id === listingId);
   if (!listing) throw new Error(`Listing ${listingId} not found`);
   if (listing.status !== "draft")
-    throw new Error(`Listing ${listingId} is ${listing.status}, not draft — cannot update`);
+    throw new Error(
+      `Listing ${listingId} is ${listing.status}, not draft — cannot update`,
+    );
 
   return {
     ...state,
@@ -482,26 +794,38 @@ export function runPublishGate(
     return {
       allowed: false,
       blockers: ["Listing not found"],
-      checks: { sellerVerified: false, evidenceComplete: false, evidencePresent: [], provenanceVerified: false },
+      checks: {
+        sellerVerified: false,
+        evidenceComplete: false,
+        evidencePresent: [],
+        provenanceVerified: false,
+      },
     };
   }
 
   // 1) Verification case check
   const vc = loadVerificationCase(userId);
   if (!vc) {
-    blockers.push("Seller verification case not found — complete KYC/KYB verification first");
+    blockers.push(
+      "Seller verification case not found — complete KYC/KYB verification first",
+    );
   } else {
     // Determine required track based on org type
     const org: Org | null = getOrg(listing.sellerOrgId);
     if (!org) {
       blockers.push("Seller organization not found");
     } else {
-      const requiredTrack = org.type === "company" ? "BUSINESS_KYB" : "INDIVIDUAL_KYC";
+      const requiredTrack =
+        org.type === "company" ? "BUSINESS_KYB" : "INDIVIDUAL_KYC";
       if (vc.track !== requiredTrack) {
-        blockers.push(`Verification track mismatch — expected ${requiredTrack}, found ${vc.track}`);
+        blockers.push(
+          `Verification track mismatch — expected ${requiredTrack}, found ${vc.track}`,
+        );
       }
       if (vc.status !== "VERIFIED") {
-        blockers.push(`Seller verification status is ${vc.status} — must be VERIFIED`);
+        blockers.push(
+          `Seller verification status is ${vc.status} — must be VERIFIED`,
+        );
       } else {
         sellerVerified = true;
       }
@@ -513,17 +837,24 @@ export function runPublishGate(
     (e) => e.listingId === listingId,
   );
   const presentTypes = new Set(listingEvidenceItems.map((e) => e.type));
-  const evidencePresent = REQUIRED_EVIDENCE_TYPES.filter((t) => presentTypes.has(t));
-  const evidenceComplete = evidencePresent.length === REQUIRED_EVIDENCE_TYPES.length;
+  const evidencePresent = REQUIRED_EVIDENCE_TYPES.filter((t) =>
+    presentTypes.has(t),
+  );
+  const evidenceComplete =
+    evidencePresent.length === REQUIRED_EVIDENCE_TYPES.length;
 
   for (const required of REQUIRED_EVIDENCE_TYPES) {
     if (!presentTypes.has(required)) {
-      blockers.push(`Missing required evidence: ${EVIDENCE_TITLES[required]} (${required})`);
+      blockers.push(
+        `Missing required evidence: ${EVIDENCE_TITLES[required]} (${required})`,
+      );
     }
   }
 
   // 3) Assay data verification — compare Textract-extracted values against listing specs
-  const assayEvidence = listingEvidenceItems.find((e) => e.type === "ASSAY_REPORT");
+  const assayEvidence = listingEvidenceItems.find(
+    (e) => e.type === "ASSAY_REPORT",
+  );
   if (assayEvidence?.extractedMetadata) {
     const meta = assayEvidence.extractedMetadata;
 
@@ -534,7 +865,10 @@ export function runPublishGate(
       );
     } else {
       // Purity cross-check: extracted purity must match listing.purity
-      if (meta.extractedPurity !== null && meta.extractedPurity !== listing.purity) {
+      if (
+        meta.extractedPurity !== null &&
+        meta.extractedPurity !== listing.purity
+      ) {
         blockers.push(
           `DATA_MISMATCH: Uploaded Assay Report purity (${meta.rawPurityText ?? meta.extractedPurity}) does not match listing specifications (${listing.purity}). ` +
             `Expected document purity to be ${listing.purity}.`,
@@ -558,17 +892,23 @@ export function runPublishGate(
   const provenanceResult = runProvenanceCheck(state, listingId);
   let provenanceVerified = provenanceResult.passed;
 
-  if (provenanceResult.refinerNameFound && !provenanceResult.refinerOnGoodDeliveryList) {
-    blockers.push(
-      `PROVENANCE_FAILED: ${provenanceResult.detail}`,
-    );
+  if (
+    provenanceResult.refinerNameFound &&
+    !provenanceResult.refinerOnGoodDeliveryList
+  ) {
+    blockers.push(`PROVENANCE_FAILED: ${provenanceResult.detail}`);
     provenanceVerified = false;
   }
 
   return {
     allowed: blockers.length === 0,
     blockers,
-    checks: { sellerVerified, evidenceComplete, evidencePresent, provenanceVerified },
+    checks: {
+      sellerVerified,
+      evidenceComplete,
+      evidencePresent,
+      provenanceVerified,
+    },
   };
 }
 
@@ -587,7 +927,19 @@ export function publishListing(
 
   const listing = state.listings.find((l) => l.id === listingId);
   if (!listing) {
-    return { next: state, gateResult: { allowed: false, blockers: ["Listing not found"], checks: { sellerVerified: false, evidenceComplete: false, evidencePresent: [], provenanceVerified: false } } };
+    return {
+      next: state,
+      gateResult: {
+        allowed: false,
+        blockers: ["Listing not found"],
+        checks: {
+          sellerVerified: false,
+          evidenceComplete: false,
+          evidencePresent: [],
+          provenanceVerified: false,
+        },
+      },
+    };
   }
 
   const publishedAt = new Date(nowMs).toISOString();
@@ -611,6 +963,7 @@ export function publishListing(
       availableWeightOz: listing.totalWeightOz,
       reservedWeightOz: 0,
       allocatedWeightOz: 0,
+      lockedWeightOz: 0,
       updatedAt: publishedAt,
     };
     nextInventory = [...state.inventory, newInv];

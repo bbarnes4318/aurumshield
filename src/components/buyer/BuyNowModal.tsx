@@ -43,8 +43,7 @@ type BuyFormData = z.infer<typeof buySchema>;
 
 const STEP_LABELS: Record<AtomicBuyStep, string> = {
   idle: "",
-  reserving: "Locking inventory…",
-  converting: "Creating order…",
+  executing: "Executing atomic checkout…",
   done: "Buy order confirmed",
   error: "Transaction failed",
 };
@@ -56,9 +55,7 @@ function StepIndicator({ step }: { step: AtomicBuyStep }) {
     <div
       className={cn(
         "flex items-center gap-2 rounded-[var(--radius-sm)] border px-3 py-2.5 text-xs font-medium",
-        step === "reserving" &&
-          "border-gold/20 bg-gold/5 text-gold",
-        step === "converting" &&
+        step === "executing" &&
           "border-gold/20 bg-gold/5 text-gold",
         step === "done" &&
           "border-success/20 bg-success/5 text-success",
@@ -66,34 +63,12 @@ function StepIndicator({ step }: { step: AtomicBuyStep }) {
           "border-danger/20 bg-danger/5 text-danger",
       )}
     >
-      {(step === "reserving" || step === "converting") && (
+      {step === "executing" && (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
       )}
       {step === "done" && <CheckCircle2 className="h-3.5 w-3.5" />}
       {step === "error" && <AlertTriangle className="h-3.5 w-3.5" />}
       <span>{STEP_LABELS[step]}</span>
-
-      {/* Sub-step dots */}
-      {(step === "reserving" || step === "converting") && (
-        <div className="ml-auto flex items-center gap-1">
-          <div
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              step === "reserving"
-                ? "bg-gold animate-pulse"
-                : "bg-success",
-            )}
-          />
-          <div
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              step === "converting"
-                ? "bg-gold animate-pulse"
-                : "bg-border",
-            )}
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -346,7 +321,9 @@ export function BuyNowModal({ listing, inventory, onClose }: BuyNowModalProps) {
           listingId: listing.id,
           userId: MOCK_USER_ID,
           weightOz: data.weightOz,
-          notional: data.weightOz * listing.pricePerOz,
+          // TODO(RSK-004): BuyNowModal is a legacy demo path.
+          // In production, this modal must go through the price-lock flow.
+          quoteId: "",
         });
 
         // Save delivery preference

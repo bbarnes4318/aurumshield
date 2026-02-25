@@ -39,6 +39,7 @@ import {
   serverCreateQuote,
   type QuoteActionResult,
 } from "@/lib/actions/checkout-actions";
+import { registerQuoteInStore } from "@/lib/api";
 
 /* ── Countdown Hook (from server expiresAt) ── */
 function useServerCountdown(expiresAt: string | null) {
@@ -178,6 +179,21 @@ export function StepOnePriceLock({
       // Persist to form context
       setValue("lockedPrice", data.lockedPrice / weightOz);
       setValue("quoteId", data.quoteId);
+
+      // RSK-004: Mirror quote to localStorage store for client-side consumption
+      registerQuoteInStore({
+        id: data.quoteId,
+        userId: "user-1", // TODO: pass real userId from auth context
+        listingId,
+        weightOz,
+        spotPrice: data.spotPrice,
+        premiumBps: data.premiumBps,
+        lockedPrice: data.lockedPrice,
+        status: "ACTIVE",
+        expiresAt: data.expiresAt,
+        priceFeedSource: data.priceFeedSource,
+        priceFeedTimestamp: data.priceFeedTimestamp,
+      });
 
       trackEvent("PriceLocked", {
         quoteId: data.quoteId,

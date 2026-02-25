@@ -2065,6 +2065,12 @@ export interface InventoryPosition {
   availableWeightOz: number;
   reservedWeightOz: number;
   allocatedWeightOz: number;
+  /**
+   * RSK-005: Total locked weight (reserved + allocated).
+   * INVARIANT: lockedWeightOz === reservedWeightOz + allocatedWeightOz
+   * CONSTRAINT: totalWeightOz >= lockedWeightOz >= 0
+   */
+  lockedWeightOz: number;
   updatedAt: string;
 }
 
@@ -2467,6 +2473,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 375,
     reservedWeightOz: 0,
     allocatedWeightOz: 25,
+    lockedWeightOz: 25,
     updatedAt: "2026-02-14T16:00:00Z",
   },
   {
@@ -2476,6 +2483,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 100,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-01-22T10:30:00Z",
   },
   {
@@ -2485,6 +2493,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 90,
     reservedWeightOz: 10,
     allocatedWeightOz: 0,
+    lockedWeightOz: 10,
     updatedAt: "2026-02-16T12:00:00Z",
   },
   {
@@ -2494,6 +2503,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 1000,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-01-28T06:15:00Z",
   },
   {
@@ -2503,6 +2513,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 50,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-01-30T08:45:00Z",
   },
   {
@@ -2512,6 +2523,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 200,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-02-01T11:00:00Z",
   },
   {
@@ -2521,6 +2533,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 185,
     reservedWeightOz: 0,
     allocatedWeightOz: 15,
+    lockedWeightOz: 15,
     updatedAt: "2026-02-15T10:20:00Z",
   },
   {
@@ -2530,6 +2543,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 50,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-02-04T13:20:00Z",
   },
   {
@@ -2539,6 +2553,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 400,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-02-05T07:00:00Z",
   },
   {
@@ -2548,6 +2563,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 100,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-02-06T05:30:00Z",
   },
   {
@@ -2557,6 +2573,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 500,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-02-07T10:00:00Z",
   },
   {
@@ -2566,6 +2583,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 50,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-02-08T15:45:00Z",
   },
   {
@@ -2575,6 +2593,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 400,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-02-10T08:15:00Z",
   },
   {
@@ -2584,6 +2603,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 50,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-02-12T09:00:00Z",
   },
   {
@@ -2593,6 +2613,7 @@ export const mockInventoryPositions: InventoryPosition[] = [
     availableWeightOz: 250,
     reservedWeightOz: 0,
     allocatedWeightOz: 0,
+    lockedWeightOz: 0,
     updatedAt: "2026-02-14T11:30:00Z",
   },
 ];
@@ -2887,7 +2908,8 @@ export type LedgerEntryType =
   | "FEE_CONFIGURED"
   | "PAYMENT_RECEIVED"
   | "ACTIVATION_COMPLETED"
-  | "APPROVAL_UPDATED";
+  | "APPROVAL_UPDATED"
+  | "JOURNAL_POSTED";
 
 export interface LedgerEntrySnapshot {
   checksStatus: "PASS" | "WARN" | "BLOCK";
@@ -2913,6 +2935,40 @@ export interface LedgerEntry {
   snapshot?: LedgerEntrySnapshot;
 }
 
+/* ---------- RSK-006: Immutable Double-Entry Clearing Ledger ---------- */
+
+export type ClearingJournalDirection = "CREDIT" | "DEBIT";
+
+/**
+ * A single debit or credit line in a clearing journal.
+ * Maps 1:1 to ledger_entries in 008_clearing_ledger.sql.
+ * amount_cents is always positive; direction determines sign.
+ */
+export interface ClearingJournalEntry {
+  id: string;
+  journalId: string;
+  accountCode: string;            // 'BUYER_ESCROW' | 'SELLER_PROCEEDS' | 'PLATFORM_FEE' etc.
+  direction: ClearingJournalDirection;
+  amountCents: number;            // strictly positive (BIGINT in DB)
+  currency: string;               // 'USD'
+  memo?: string;
+}
+
+/**
+ * Immutable journal header — one per settlement clearing event.
+ * Maps 1:1 to ledger_journals in 008_clearing_ledger.sql.
+ * INVARIANT: SUM(DEBIT entries) === SUM(CREDIT entries)
+ */
+export interface ClearingJournal {
+  id: string;
+  settlementCaseId: string;
+  idempotencyKey: string;         // UUID — unique per journal
+  description: string;
+  postedAt: string;
+  createdBy: string;
+  entries: ClearingJournalEntry[];
+}
+
 export type SettlementStatus =
   | "DRAFT"
   | "ESCROW_OPEN"
@@ -2921,7 +2977,10 @@ export type SettlementStatus =
   | "AWAITING_VERIFICATION"
   | "READY_TO_SETTLE"
   | "AUTHORIZED"
+  | "PROCESSING_RAIL"    // RSK-007: Funds mid-flight, UI locked
+  | "AMBIGUOUS_STATE"    // RSK-007: Timeout/partition, needs reconciliation
   | "SETTLED"
+  | "REVERSED"           // RSK-007: Dispute or rollback initiated
   | "FAILED"
   | "CANCELLED";
 
@@ -2992,6 +3051,22 @@ export interface SettlementCase {
   requiresManualApproval: boolean;
   /** Manual approval status. */
   approvalStatus: "not_required" | "pending" | "approved" | "rejected";
+  /**
+   * RSK-006: Idempotency key for settlement clearing.
+   * Maps to idempotency_key UUID UNIQUE NOT NULL in settlement_cases.
+   */
+  idempotencyKey?: string;
+  /* ── RSK-007: Rail audit fields (009_state_machine_fix.sql) ── */
+  /** Timestamp when funds were submitted to external rail */
+  railSubmittedAt?: string;
+  /** Timestamp when rail confirmed receipt/completion */
+  railConfirmedAt?: string;
+  /** External rail reference ID (Moov transfer ID, Modern Treasury payment ID) */
+  railReferenceId?: string;
+  /** Reason for reversal (dispute details, compliance note) */
+  reversalReason?: string;
+  /** Timestamp of reversal */
+  reversedAt?: string;
 }
 
 /* ---------- Settlement Fixtures ---------- */

@@ -183,6 +183,74 @@ interface MoovTransferResponse {
   createdOn: string;
 }
 
+/* ---------- Transfer Status Check Result ---------- */
+
+export interface MoovTransferStatusResult {
+  /** Whether a matching transfer was found on Moov */
+  found: boolean;
+  /** Transfer status if found (e.g. "pending", "completed", "failed", "reversed") */
+  status?: string;
+  /** External transfer ID if found */
+  transferId?: string;
+}
+
+/**
+ * Query Moov's transfer API to check if a prior transfer exists for a
+ * given idempotency key. This is the synchronous status-check poll
+ * that MUST be called before fallback to avoid double-spend.
+ *
+ * Queries: GET /transfers?metadata.idempotencyKey={key}
+ * In mock mode (no credentials), returns { found: false }.
+ */
+export async function checkTransferStatus(
+  idempotencyKey: string,
+  settlementId: string,
+): Promise<MoovTransferStatusResult> {
+  const creds = getMoovCredentials();
+
+  // Mock mode — no credentials, cannot poll
+  if (!creds) {
+    console.warn(
+      `[AurumShield] Moov credentials absent — cannot poll transfer status for ${settlementId} (idem: ${idempotencyKey.slice(0, 12)})`,
+    );
+    return { found: false };
+  }
+
+  try {
+    const token = await getAccessToken(creds.publicKey, creds.secretKey);
+
+    // Moov's list-transfers endpoint filtered by metadata
+    // The idempotency key we sent is stored in transfer metadata
+    const transfers = await moovFetch<{ transfers?: MoovTransferResponse[] }>(
+      `/transfers?count=1&metadata.idempotencyKey=${encodeURIComponent(idempotencyKey)}`,
+      { method: "GET", token },
+    );
+
+    const match = transfers.transfers?.[0];
+    if (!match) {
+      return { found: false };
+    }
+
+    console.debug(
+      `[AurumShield] Moov status-check poll for ${settlementId}: transferID=${match.transferID} status=${match.status}`,
+    );
+
+    return {
+      found: true,
+      status: match.status,
+      transferId: match.transferID,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[AurumShield] Moov status-check poll FAILED for ${settlementId}:`,
+      message,
+    );
+    // Poll failure is NOT a proven rejection — must treat as ambiguous
+    return { found: false };
+  }
+}
+
 /* ================================================================
    MoovSettlementRail Class
    ================================================================ */

@@ -33,6 +33,7 @@ import {
   type EasyPostAddress,
   type EasyPostShipment,
 } from "@/lib/easypost-adapter";
+import { emitOrderCreatedEvent, hashPolicySnapshot } from "@/lib/audit-logger";
 
 /* ---------- Spot Price ---------- */
 
@@ -304,6 +305,25 @@ export async function serverCreateQuote(
       weightOz: input.weightOz,
       premiumBps: input.premiumBps,
     });
+    // RSK-002: Emit forensic order_created audit event
+    emitOrderCreatedEvent({
+      orderId: result.quote.id, // quoteId serves as proto-order ID at this stage
+      userId: session.userId,
+      listingId: input.listingId,
+      lockedPrice: result.quote.lockedPrice,
+      spotPrice: result.quote.spotPrice,
+      weightOz: input.weightOz,
+      notionalCents: Math.round(result.quote.lockedPrice * input.weightOz * 100),
+      policySnapshotHash: hashPolicySnapshot({
+        lockedPrice: result.quote.lockedPrice,
+        spotPrice: result.quote.spotPrice,
+        premiumBps: result.quote.premiumBps,
+        listingId: input.listingId,
+        userId: session.userId,
+        timestamp: result.quote.priceFeedTimestamp,
+      }),
+      quoteId: result.quote.id,
+    });
 
     return {
       data: {
@@ -429,3 +449,48 @@ export async function serverValidateDeclaredValue(
     limitCents: USPS_MAX_DECLARED_VALUE_CENTS,
   };
 }
+
+/* ---------- Checkout Idempotency Key (RSK-003) ---------- */
+
+export interface CheckoutIdempotencyKeyResult {
+  /** UUIDv4 key for the checkout transaction. */
+  idempotencyKey: string;
+  /** ISO timestamp when the key was generated. */
+  generatedAt: string;
+}
+
+/**
+ * Generate a UUIDv4 idempotency key for the checkout transaction.
+ *
+ * This key is generated once at order-creation time and propagated
+ * downstream to settlement-rail.ts for Moov (X-Idempotency-Key) and
+ * Modern Treasury (idempotency_key param).
+ *
+ * The key is distinct from the settlement rail's deterministic SHA-256
+ * key — this covers the full checkout lifecycle, while the SHA-256 key
+ * is scoped to individual settlement payout operations.
+ *
+ * Security: runs server-side only. The client receives the key for
+ * storage/retry but cannot forge one accepted by the rails.
+ */
+export async function serverGenerateCheckoutIdempotencyKey(
+  orderId: string,
+  userId: string,
+): Promise<CheckoutIdempotencyKeyResult> {
+  const { randomUUID } = await import("crypto");
+  const idempotencyKey = randomUUID();
+
+  // Structured audit log for key generation
+  console.info(
+    `[AurumShield AUDIT] checkout_idempotency_key_generated | ` +
+    `orderId=${orderId} userId=${userId} ` +
+    `idempotencyKey=${idempotencyKey} ` +
+    `timestamp=${new Date().toISOString()}`,
+  );
+
+  return {
+    idempotencyKey,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
