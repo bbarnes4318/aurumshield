@@ -623,6 +623,7 @@ export async function apiApplySettlementAction(input: {
               listing,
               dvpLedgerEntry: dvpEntry,
               now: input.now,
+              escrowReleased: true, // DvP executed = escrow released atomically
             });
 
             // Idempotent audit event: CLEARING_CERTIFICATE_ISSUED

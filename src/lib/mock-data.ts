@@ -3041,6 +3041,7 @@ export const mockSettlements: SettlementCase[] = [
       addOnFeesCents: 0,
       vendorPassThroughCents: 0,
       totalDueCents: 5_000_000,
+      declaredValueCents: 10_121_250,
       lineItems: [
         {
           code: "indemnification_fee",

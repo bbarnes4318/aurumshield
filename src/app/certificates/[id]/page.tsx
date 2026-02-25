@@ -72,6 +72,65 @@ function Field({ label, children, mono = false }: { label: string; children: Rea
   );
 }
 
+function VerifySignatureButton({ certificateNumber }: { certificateNumber: string }) {
+  const [status, setStatus] = useState<"idle" | "loading" | "valid" | "invalid">("idle");
+  const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
+
+  const verify = useCallback(async () => {
+    setStatus("loading");
+    try {
+      const res = await fetch(`/api/certificates/${encodeURIComponent(certificateNumber)}/verify`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      setStatus(data.valid ? "valid" : "invalid");
+      setVerifiedAt(data.verifiedAt ?? new Date().toISOString());
+    } catch {
+      setStatus("invalid");
+      setVerifiedAt(new Date().toISOString());
+    }
+  }, [certificateNumber]);
+
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={verify}
+        disabled={status === "loading"}
+        className={`
+          inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold
+          transition-all duration-200 print:hidden
+          ${status === "valid"
+            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+            : status === "invalid"
+              ? "bg-red-500/10 text-red-400 border border-red-500/20"
+              : "bg-gold/10 text-gold border border-gold/20 hover:bg-gold/20"
+          }
+          disabled:opacity-50 disabled:cursor-not-allowed
+        `}
+      >
+        {status === "loading" && (
+          <div className="h-3 w-3 animate-spin rounded-full border-2 border-gold border-t-transparent" />
+        )}
+        {status === "valid" && <Check className="h-3 w-3" />}
+        {status === "invalid" && <Lock className="h-3 w-3" />}
+        {status === "idle" && <Lock className="h-3 w-3" />}
+        {status === "loading"
+          ? "Verifying…"
+          : status === "valid"
+            ? "Signature Valid"
+            : status === "invalid"
+              ? "Verification Failed"
+              : "Verify Signature"}
+      </button>
+      {verifiedAt && (
+        <span className="text-[10px] text-text-faint font-mono">
+          {new Date(verifiedAt).toLocaleString()}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Main ---------- */
 
 function CertificateContent() {
@@ -302,22 +361,61 @@ function CertificateContent() {
             </table>
           </div>
 
-          {/* ═══ CRYPTOGRAPHIC SIGNATURE ═══ */}
+          {/* ═══ DIGITAL SIGNATURE ═══ */}
           <div className="px-8 py-5 border-t border-border">
-            <SectionTitle>Cryptographic Signature</SectionTitle>
-            <div className="rounded-lg border border-border bg-surface-2/50 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-text-faint mb-2">SHA-256 Signature Hash</p>
-              <div className="flex items-center gap-2">
-                <code className="font-mono text-[11px] text-gold break-all leading-relaxed flex-1">
-                  {cert.signatureHash}
-                </code>
-                <CopyButton text={cert.signatureHash} label="Copy signature hash" />
+            <SectionTitle>Digital Signature</SectionTitle>
+            {cert.kmsSignature ? (
+              <div className="space-y-4">
+                {/* KMS Signature Details */}
+                <table className="w-full text-xs">
+                  <tbody>
+                    <Field label="Algorithm" mono>{cert.signatureAlg ?? "—"}</Field>
+                    <Field label="KMS Key ID" mono>{cert.kmsKeyId ?? "—"}</Field>
+                    <Field label="Signed At" mono>{cert.signedAt ?? "—"}</Field>
+                  </tbody>
+                </table>
+
+                {/* Signature Value */}
+                <div className="rounded-lg border border-border bg-surface-2/50 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-faint mb-2">KMS Signature (Base-64)</p>
+                  <div className="flex items-center gap-2">
+                    <code className="font-mono text-[10px] text-gold break-all leading-relaxed flex-1">
+                      {cert.kmsSignature.slice(0, 64)}…
+                    </code>
+                    <CopyButton text={cert.kmsSignature} label="Copy full KMS signature" />
+                  </div>
+                </div>
+
+                {/* Verify Button */}
+                <VerifySignatureButton certificateNumber={cert.certificateNumber} />
+
+                {/* Legacy hash (still present for audit trail) */}
+                <div className="rounded-lg border border-border/50 bg-surface-2/30 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-faint mb-1">SHA-256 Digest (Legacy)</p>
+                  <div className="flex items-center gap-2">
+                    <code className="font-mono text-[10px] text-text-faint break-all leading-relaxed flex-1">
+                      {cert.signatureHash}
+                    </code>
+                    <CopyButton text={cert.signatureHash} label="Copy SHA-256 hash" />
+                  </div>
+                </div>
               </div>
-              <p className="text-[10px] text-text-faint mt-2 italic">
-                This hash is computed from the canonical serialization of the certificate payload fields using SHA-256. 
-                Any modification to certificate data will produce a different hash.
-              </p>
-            </div>
+            ) : (
+              // Legacy: pre-KMS certificates — show SHA-256 hash only
+              <div className="rounded-lg border border-border bg-surface-2/50 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-faint mb-2">SHA-256 Signature Hash</p>
+                <div className="flex items-center gap-2">
+                  <code className="font-mono text-[11px] text-gold break-all leading-relaxed flex-1">
+                    {cert.signatureHash}
+                  </code>
+                  <CopyButton text={cert.signatureHash} label="Copy signature hash" />
+                </div>
+                <p className="text-[10px] text-text-faint mt-2 italic">
+                  This hash is computed from the canonical serialization of the certificate payload fields using SHA-256.
+                  Any modification to certificate data will produce a different hash.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* ═══ AUDIT REFERENCE ═══ */}

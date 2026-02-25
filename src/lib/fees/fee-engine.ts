@@ -462,6 +462,8 @@ export interface FeeQuote {
   addOnFeesCents: number;
   vendorPassThroughCents: number;
   totalDueCents: number;
+  /** Declared value = notionalCents + totalDueCents. Used for shipping insurance limits. */
+  declaredValueCents: number;
   lineItems: FeeLineItem[];
   calculatedAtUtc: string;
   /** If true, this quote is frozen and must not be recalculated. */
@@ -681,11 +683,14 @@ export function computeFeeQuote(
     }
   }
 
+  const totalDueCents = platformFees + vendorPassThrough;
+
   const feeQuote: FeeQuote = {
     coreIndemnificationFeeCents: coreFee,
     addOnFeesCents: platformFees - coreFee,
     vendorPassThroughCents: vendorPassThrough,
-    totalDueCents: platformFees + vendorPassThrough,
+    totalDueCents,
+    declaredValueCents: notionalCents + totalDueCents,
     lineItems,
     calculatedAtUtc: now,
     frozen: false,

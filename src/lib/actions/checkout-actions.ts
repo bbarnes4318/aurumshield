@@ -384,3 +384,48 @@ export async function serverValidateQuote(
   }
 }
 
+/* ---------- Declared Value Enforcement ---------- */
+
+export interface DeclaredValueValidation {
+  valid: boolean;
+  declaredValueCents: number;
+  limitCents: number;
+  message?: string;
+}
+
+/**
+ * Server-side hard enforcement of the USPS $50k declared-value cap.
+ * SECURE_DELIVERY routes through EasyPost (USPS Registered Mail) for
+ * shipments ≤ $50k notional. Above that threshold, buyers must use
+ * VAULT_CUSTODY or armored transport.
+ *
+ * This is the server-side backstop — the client-side Zod schema also
+ * enforces this, but we never trust client-only validation.
+ */
+export async function serverValidateDeclaredValue(
+  deliveryMethod: string,
+  declaredValueCents: number,
+): Promise<DeclaredValueValidation> {
+  const { USPS_MAX_DECLARED_VALUE_CENTS } = await import(
+    "@/lib/schemas/checkout-schema"
+  );
+
+  if (
+    deliveryMethod === "SECURE_DELIVERY" &&
+    declaredValueCents > USPS_MAX_DECLARED_VALUE_CENTS
+  ) {
+    return {
+      valid: false,
+      declaredValueCents,
+      limitCents: USPS_MAX_DECLARED_VALUE_CENTS,
+      message:
+        "Registered mail only insures up to $50,000. Please select Vault Custody or contact us for armored transport.",
+    };
+  }
+
+  return {
+    valid: true,
+    declaredValueCents,
+    limitCents: USPS_MAX_DECLARED_VALUE_CENTS,
+  };
+}

@@ -110,6 +110,7 @@ async function moovFetch<T>(
     method?: string;
     body?: unknown;
     token: string;
+    idempotencyKey?: string;
   },
 ): Promise<T> {
   const url = `${MOOV_API_BASE}${path}`;
@@ -118,6 +119,11 @@ async function moovFetch<T>(
     "Content-Type": "application/json",
     Accept: "application/json",
   };
+
+  // Moov accepts X-Idempotency-Key for transfer deduplication
+  if (options.idempotencyKey) {
+    headers["X-Idempotency-Key"] = options.idempotencyKey;
+  }
 
   const response = await fetch(url, {
     method: options.method ?? "GET",
@@ -146,17 +152,19 @@ function mockPayout(
   request: SettlementPayoutRequest,
 ): SettlementPayoutResult {
   const sellerPayout = request.totalAmountCents - request.platformFeeCents;
-  const mockTransferId = `mock-moov-xfr-${request.settlementId}-${Date.now().toString(36)}`;
-  const mockFeeId = `mock-moov-fee-${request.settlementId}-${Date.now().toString(36)}`;
-
+  const idemSuffix = request.idempotencyKey
+    ? request.idempotencyKey.slice(0, 12)
+    : "no-idem";
   console.warn(
-    `[AurumShield] MOOV_PUBLIC_KEY not set — using mock payout for settlement ${request.settlementId} ($${(sellerPayout / 100).toFixed(2)} to seller)`,
+    `[AurumShield] Moov credentials absent — mock payout for ${request.settlementId} (idem: ${idemSuffix})`,
   );
-
   return {
     success: true,
     railUsed: "moov",
-    externalIds: [mockTransferId, mockFeeId],
+    externalIds: [
+      `mock-moov-seller-${request.settlementId}-${idemSuffix}`,
+      `mock-moov-fee-${request.settlementId}-${idemSuffix}`,
+    ],
     sellerPayoutCents: sellerPayout,
     platformFeeCents: request.platformFeeCents,
     isFallback: false,
@@ -214,6 +222,11 @@ export class MoovSettlementRail implements ISettlementRail {
       request.totalAmountCents - request.platformFeeCents;
     const externalIds: string[] = [];
 
+    // Derive per-leg idempotency keys from the settlement-level key
+    const baseIdemKey = request.idempotencyKey ?? request.settlementId;
+    const sellerIdemKey = `${baseIdemKey}:seller`;
+    const feeIdemKey = `${baseIdemKey}:fee`;
+
     try {
       const token = await getAccessToken(creds.publicKey, creds.secretKey);
 
@@ -223,6 +236,7 @@ export class MoovSettlementRail implements ISettlementRail {
         {
           method: "POST",
           token,
+          idempotencyKey: sellerIdemKey,
           body: {
             source: {
               // AurumShield escrow wallet
@@ -240,6 +254,7 @@ export class MoovSettlementRail implements ISettlementRail {
             metadata: {
               settlementId: request.settlementId,
               leg: "seller_payout",
+              idempotencyKey: sellerIdemKey,
               ...request.metadata,
             },
           },
@@ -254,6 +269,7 @@ export class MoovSettlementRail implements ISettlementRail {
           {
             method: "POST",
             token,
+            idempotencyKey: feeIdemKey,
             body: {
               source: {
                 paymentMethodID: process.env.MOOV_ESCROW_PAYMENT_METHOD_ID ?? "escrow-wallet",
@@ -270,6 +286,7 @@ export class MoovSettlementRail implements ISettlementRail {
               metadata: {
                 settlementId: request.settlementId,
                 leg: "fee_sweep",
+                idempotencyKey: feeIdemKey,
               },
             },
           },
@@ -284,6 +301,7 @@ export class MoovSettlementRail implements ISettlementRail {
         sellerPayoutCents,
         platformFeeCents: request.platformFeeCents,
         isFallback: false,
+        idempotencyKey: request.idempotencyKey,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -299,6 +317,7 @@ export class MoovSettlementRail implements ISettlementRail {
         platformFeeCents: request.platformFeeCents,
         isFallback: false,
         error: message,
+        idempotencyKey: request.idempotencyKey,
       };
     }
   }

@@ -81,19 +81,23 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
     if (!apiKey || !orgId) {
       const sellerPayout =
         request.totalAmountCents - request.platformFeeCents;
+      const idemSuffix = request.idempotencyKey
+        ? request.idempotencyKey.slice(0, 12)
+        : "no-idem";
       console.warn(
-        `[AurumShield] ${ENV_API_KEY} or ${ENV_ORG_ID} not set — mock Modern Treasury payout for ${request.settlementId}`,
+        `[AurumShield] ${ENV_API_KEY} or ${ENV_ORG_ID} not set — mock Modern Treasury payout for ${request.settlementId} (idem: ${idemSuffix})`,
       );
       return {
         success: true,
         railUsed: "modern_treasury",
         externalIds: [
-          `mock-mt-seller-${request.settlementId}`,
-          `mock-mt-fee-${request.settlementId}`,
+          `mock-mt-seller-${request.settlementId}-${idemSuffix}`,
+          `mock-mt-fee-${request.settlementId}-${idemSuffix}`,
         ],
         sellerPayoutCents: sellerPayout,
         platformFeeCents: request.platformFeeCents,
         isFallback: false,
+        idempotencyKey: request.idempotencyKey,
       };
     }
 
@@ -113,6 +117,11 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
       request.totalAmountCents - request.platformFeeCents;
     const externalIds: string[] = [];
 
+    // Derive per-leg idempotency keys from the settlement-level key
+    const baseIdemKey = request.idempotencyKey ?? request.settlementId;
+    const sellerIdemKey = `${baseIdemKey}:seller`;
+    const feeIdemKey = `${baseIdemKey}:fee`;
+
     try {
       /* ── 1. Seller Payout (Fedwire / RTGS) ── */
       const sellerOrder = await mt.paymentOrders.create({
@@ -126,8 +135,11 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
         metadata: {
           settlementId: request.settlementId,
           leg: "seller_payout",
+          idempotencyKey: sellerIdemKey,
           ...request.metadata,
         },
+        // @ts-expect-error -- MT SDK supports idempotency_key in request body
+        idempotency_key: sellerIdemKey,
       });
       externalIds.push(sellerOrder.id);
 
@@ -144,7 +156,10 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
           metadata: {
             settlementId: request.settlementId,
             leg: "fee_sweep",
+            idempotencyKey: feeIdemKey,
           },
+          // @ts-expect-error -- MT SDK supports idempotency_key in request body
+          idempotency_key: feeIdemKey,
         });
         externalIds.push(feeOrder.id);
       }
@@ -156,6 +171,7 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
         sellerPayoutCents: sellerPayoutAmount,
         platformFeeCents: request.platformFeeCents,
         isFallback: false,
+        idempotencyKey: request.idempotencyKey,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -171,6 +187,7 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
         platformFeeCents: request.platformFeeCents,
         isFallback: false,
         error: message,
+        idempotencyKey: request.idempotencyKey,
       };
     }
   }

@@ -8,6 +8,9 @@
 
 import { z } from "zod";
 
+/** USPS Registered Mail maximum insured value in cents ($50,000) */
+export const USPS_MAX_DECLARED_VALUE_CENTS = 5_000_000;
+
 /* ── Delivery Method Enum (matches SQL exactly) ── */
 export const DELIVERY_METHODS = ["VAULT_CUSTODY", "SECURE_DELIVERY"] as const;
 export type DeliveryMethod = (typeof DELIVERY_METHODS)[number];
@@ -51,6 +54,8 @@ export const addressSchema = z.object({
     .string()
     .min(2, "Country is required")
     .max(100, "Country is too long"),
+  /** Optional: links this address to a pre-verified recipient or delegate */
+  recipientUserId: z.string().uuid("Invalid recipient user ID").optional(),
 });
 
 export type ShippingAddress = z.infer<typeof addressSchema>;
@@ -62,6 +67,8 @@ export const stepTwoSchema = z
       message: "Please select a delivery method",
     }),
     shippingAddress: addressSchema.optional(),
+    /** Total declared value in cents (notional + fees + insurance). Computed client-side, validated server-side. */
+    declaredValueCents: z.number().int().nonnegative().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.deliveryMethod === "SECURE_DELIVERY" && !data.shippingAddress) {
@@ -85,6 +92,18 @@ export const stepTwoSchema = z
         }
       }
     }
+    // Hard rule: USPS Registered Mail cannot insure above $50k
+    if (
+      data.deliveryMethod === "SECURE_DELIVERY" &&
+      data.declaredValueCents != null &&
+      data.declaredValueCents > USPS_MAX_DECLARED_VALUE_CENTS
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Registered mail only insures up to $50,000. Please select Vault Custody or contact us for armored transport.",
+        path: ["declaredValueCents"],
+      });
+    }
   });
 
 export type StepTwoData = z.infer<typeof stepTwoSchema>;
@@ -96,6 +115,7 @@ export const combinedCheckoutSchema = stepOneSchema.merge(
       message: "Please select a delivery method",
     }),
     shippingAddress: addressSchema.optional(),
+    declaredValueCents: z.number().int().nonnegative().optional(),
   })
 ).superRefine((data, ctx) => {
   if (data.deliveryMethod === "SECURE_DELIVERY" && !data.shippingAddress) {
@@ -103,6 +123,17 @@ export const combinedCheckoutSchema = stepOneSchema.merge(
       code: "custom",
       message: "Shipping address is required for armored delivery",
       path: ["shippingAddress"],
+    });
+  }
+  if (
+    data.deliveryMethod === "SECURE_DELIVERY" &&
+    data.declaredValueCents != null &&
+    data.declaredValueCents > USPS_MAX_DECLARED_VALUE_CENTS
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Registered mail only insures up to $50,000. Please select Vault Custody or contact us for armored transport.",
+      path: ["declaredValueCents"],
     });
   }
 });

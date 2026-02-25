@@ -18,6 +18,8 @@ export interface AtomicBuyInput {
   weightOz: number;
   /** Notional value for policy evaluation */
   notional: number;
+  /** Quote ID from price-lock step — passed through for server-side traceability */
+  quoteId?: string;
 }
 
 export type AtomicBuyStep = "idle" | "reserving" | "converting" | "done" | "error";

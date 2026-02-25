@@ -489,6 +489,12 @@ export function StepTwoRouting({
   const quoteId = watch("quoteId");
   const notional = (weightOz || 0) * (lockedPrice || 0);
 
+  // Declared value = notional in cents (simplified — full version uses FeeQuote.declaredValueCents)
+  const declaredValueCents = Math.round(notional * 100);
+  const USPS_MAX_CENTS = 5_000_000; // $50,000
+  const exceedsDeclaredValueLimit =
+    deliveryMethod === "SECURE_DELIVERY" && declaredValueCents > USPS_MAX_CENTS;
+
   /* ── Quote Validation (on mount) ── */
   const [quoteValid, setQuoteValid] = useState<boolean | null>(() => quoteId ? null : true);
   const [quoteSecondsLeft, setQuoteSecondsLeft] = useState(0);
@@ -791,6 +797,27 @@ export function StepTwoRouting({
         </div>
       )}
 
+      {/* ── Declared Value Exceeds USPS Limit Warning ── */}
+      {exceedsDeclaredValueLimit && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 animate-in slide-in-from-top-2 fade-in duration-300">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />
+          <div className="text-xs leading-relaxed">
+            <p className="text-amber-400 font-semibold">
+              Declared value exceeds USPS insurance limit
+            </p>
+            <p className="text-amber-400/70 mt-1">
+              Registered mail only insures up to $50,000. Your order&apos;s
+              declared value is{" "}
+              <span className="font-mono font-semibold">
+                ${(declaredValueCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
+              . Please select <strong>Vault Custody</strong> or contact us
+              for armored transport.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Slide-to-Execute ── */}
       {deliveryMethod && (
         <div className="pt-2">
@@ -823,7 +850,7 @@ export function StepTwoRouting({
                 onSubmit();
               }
             }}
-            disabled={!deliveryMethod || quoteValid === false}
+            disabled={!deliveryMethod || quoteValid === false || exceedsDeclaredValueLimit}
             isSubmitting={isSubmitting || isReverifying}
           />
           <p className="text-center text-[10px] text-color-3/30 mt-2">

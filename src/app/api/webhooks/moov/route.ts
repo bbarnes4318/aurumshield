@@ -36,6 +36,7 @@ import { applySettlementAction } from "@/lib/settlement-engine";
 import { loadSettlementState, saveSettlementState } from "@/lib/settlement-store";
 import { getDbClient } from "@/lib/db";
 import { issueCertificate } from "@/lib/certificate-engine";
+import { recordSettlementFinality, updatePayoutStatus } from "@/lib/settlement-rail";
 import { notifyPartiesOfSettlement } from "@/actions/notifications";
 import { mockOrders, mockListings, mockUsers } from "@/lib/mock-data";
 
@@ -82,9 +83,15 @@ function verifyMoovSignature(
 const MoovTransferDataSchema = z.object({
   transferID: z.string().min(1, "transferID is required"),
   status: z.string().min(1, "status is required"),
+  amount: z.object({
+    value: z.number(),
+    currency: z.string(),
+  }).optional(),
   metadata: z
     .object({
       settlementId: z.string().min(1, "settlementId is required in metadata"),
+      idempotencyKey: z.string().optional(),
+      leg: z.string().optional(),
     })
     .passthrough(),
 });
@@ -327,6 +334,35 @@ export async function POST(request: Request): Promise<NextResponse> {
   /* ── Step 5b: Persist in-memory settlement state ── */
   saveSettlementState(result.state);
 
+  /* ── Step 5c: Record settlement finality + update payout status ── */
+  const idemKey = data.metadata.idempotencyKey ?? `moov:${transferId}`;
+  const finalityStatus: "COMPLETED" | "FAILED" | "REVERSED" =
+    eventType === "transfer.completed" ? "COMPLETED"
+    : eventType === "transfer.reversed" ? "REVERSED"
+    : "FAILED";
+
+  recordSettlementFinality({
+    settlementId,
+    rail: "moov",
+    externalTransferId: transferId,
+    idempotencyKey: idemKey,
+    finalityStatus,
+    amountCents: data.amount?.value ?? 0,
+    leg: (data.metadata.leg as "seller_payout" | "fee_sweep") ?? "seller_payout",
+    isFallback: false,
+  }).catch((err) => {
+    console.error(`[MOOV-WEBHOOK] Failed to record settlement finality:`, err);
+  });
+
+  updatePayoutStatus({
+    idempotencyKey: idemKey,
+    status: finalityStatus,
+    externalId: transferId,
+    errorMessage: eventType !== "transfer.completed" ? mapping.reason : undefined,
+  }).catch((err) => {
+    console.error(`[MOOV-WEBHOOK] Failed to update payout status:`, err);
+  });
+
   /* ── Step 6: Post-SETTLED Pipeline (D7 — certificate + email only) ── */
   let certificateNumber: string | undefined;
 
@@ -352,6 +388,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           listing,
           dvpLedgerEntry: dvpEntry,
           now,
+          escrowReleased: true, // Transfer completed = escrow released
         });
         certificateNumber = certificate.certificateNumber;
 

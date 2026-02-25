@@ -87,6 +87,19 @@ export async function routeAndCreateShipment(
     `[AurumShield] Logistics routing for ${settlementId}: notional=$${(notionalCents / 100).toFixed(2)} → ${carrier}`,
   );
 
+  // ── Hard guard: USPS Registered Mail $50k insurance cap ──
+  // This is the defense-in-depth backstop. Even if client-side and
+  // schema-level checks are bypassed, we refuse to create an EasyPost
+  // shipment for values exceeding the USPS declared-value ceiling.
+  const USPS_MAX_CENTS = 5_000_000; // $50,000
+  if (carrier === "easypost" && notionalCents > USPS_MAX_CENTS) {
+    throw new Error(
+      `DECLARED_VALUE_EXCEEDS_USPS_LIMIT: Notional $${(notionalCents / 100).toFixed(2)} exceeds the ` +
+      `$${(USPS_MAX_CENTS / 100).toLocaleString()} USPS Registered Mail insurance cap. ` +
+      `Use armored transport (Brink's) for shipments above this threshold.`,
+    );
+  }
+
   if (carrier === "easypost") {
     return handleEasyPost(weightOz, address);
   }

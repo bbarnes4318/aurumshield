@@ -2,8 +2,10 @@
    CERTIFICATE ENGINE — Deterministic Gold Clearing Certificate System
    
    Governance Rules:
-   1. Certificates are issued ONLY when settlement.status === "SETTLED"
-      AND a DVP_EXECUTED ledger entry exists.
+   1. Certificates are issued ONLY when:
+      - settlement.status === "SETTLED"
+      - A DVP_EXECUTED ledger entry exists
+      - Escrow hold has been released (escrowReleased === true)
    2. Certificate numbers are deterministic and collision-resistant.
    3. Signature hashes use real SHA-256 (WebCrypto / node:crypto).
    4. Idempotent: no duplicate certificate for the same settlement.
@@ -46,6 +48,14 @@ export interface ClearingCertificate {
   vaultHubId: string;
   dvpLedgerEntryId: string;
   signatureHash: string;
+  /** AWS KMS digital signature (base-64). Present on certificates issued after KMS upgrade. */
+  kmsSignature?: string;
+  /** Signing algorithm (e.g. RSASSA_PKCS1_V1_5_SHA_256 or MOCK_SHA256_HEX). */
+  signatureAlg?: string;
+  /** KMS key ID or alias used to produce the signature. */
+  kmsKeyId?: string;
+  /** ISO-8601 timestamp of when the KMS signature was produced. */
+  signedAt?: string;
 }
 
 /* ---------- Certificate Store (SSR-safe) ---------- */
@@ -261,6 +271,12 @@ export interface IssueCertificateArgs {
   listing: Listing;
   dvpLedgerEntry: LedgerEntry;
   now: string;
+  /**
+   * Must be `true` to issue a certificate. Confirms that the escrow
+   * hold has been released as part of DvP execution. Prevents
+   * certificate issuance before settlement finality.
+   */
+  escrowReleased: boolean;
 }
 
 /**
@@ -269,6 +285,7 @@ export interface IssueCertificateArgs {
  * Preconditions:
  * - settlement.status === "SETTLED"
  * - dvpLedgerEntry.type === "DVP_EXECUTED"
+ * - escrowReleased === true (escrow hold released after DvP)
  *
  * Idempotent: if a certificate already exists for this settlementId,
  * the existing certificate is returned unchanged.
@@ -276,7 +293,7 @@ export interface IssueCertificateArgs {
 export async function issueCertificate(
   args: IssueCertificateArgs,
 ): Promise<ClearingCertificate> {
-  const { settlement, listing, dvpLedgerEntry, now } = args;
+  const { settlement, listing, dvpLedgerEntry, now, escrowReleased } = args;
 
   // ── Idempotency check ──
   const existing = getCertificateBySettlementId(settlement.id);
@@ -291,6 +308,11 @@ export async function issueCertificate(
   if (dvpLedgerEntry.type !== "DVP_EXECUTED") {
     throw new Error(
       `CERTIFICATE_PRECONDITION: dvpLedgerEntry.type is "${dvpLedgerEntry.type}", expected "DVP_EXECUTED"`,
+    );
+  }
+  if (!escrowReleased) {
+    throw new Error(
+      `CERTIFICATE_PRECONDITION: escrowReleased is false — escrow hold must be released before certificate issuance`,
     );
   }
 
@@ -339,9 +361,33 @@ export async function issueCertificate(
   const canonical = canonicalSerializeCertificatePayload(certPayload);
   const signatureHash = await sha256Hex(canonical);
 
+  // ── KMS digital signature ──
+  let kmsSignature: string | undefined;
+  let signatureAlg: string | undefined;
+  let kmsKeyId: string | undefined;
+  let signedAt: string | undefined;
+
+  try {
+    const { canonicalDigest } = await import("@/lib/certificates/canonicalize");
+    const { signCertificate } = await import("@/lib/certificates/kms-signer");
+    const digest = await canonicalDigest(canonical);
+    const kmsResult = await signCertificate(digest);
+    kmsSignature = kmsResult.signature;
+    signatureAlg = kmsResult.signatureAlg;
+    kmsKeyId = kmsResult.kmsKeyId;
+    signedAt = kmsResult.signedAt;
+  } catch (err) {
+    // KMS signing failure is non-fatal — certificate still valid with SHA-256 hash
+    console.error("[CERT-ENGINE] KMS signing failed (non-fatal):", err);
+  }
+
   const certificate: ClearingCertificate = {
     ...certPayload,
     signatureHash,
+    kmsSignature,
+    signatureAlg,
+    kmsKeyId,
+    signedAt,
   };
 
   // ── Persist ──

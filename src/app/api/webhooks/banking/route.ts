@@ -18,7 +18,9 @@ import { verifyModernTreasurySignature } from "@/lib/webhook-verify";
 import { applySettlementAction } from "@/lib/settlement-engine";
 import type { SettlementState } from "@/lib/settlement-engine";
 import type { SettlementCase, LedgerEntry } from "@/lib/mock-data";
-import { loadSettlementState } from "@/lib/settlement-store";
+import { loadSettlementState, saveSettlementState } from "@/lib/settlement-store";
+import { getDbClient } from "@/lib/db";
+import { recordSettlementFinality, updatePayoutStatus } from "@/lib/settlement-rail";
 
 /* ---------- Zod Schema: Modern Treasury Webhook Payload ---------- */
 
@@ -31,11 +33,15 @@ import { loadSettlementState } from "@/lib/settlement-store";
  */
 const MTWebhookMetadataSchema = z.object({
   settlementId: z.string().min(1, "settlementId is required in metadata"),
+  idempotencyKey: z.string().optional(),
+  leg: z.string().optional(),
 });
 
 const MTWebhookDataSchema = z.object({
   id: z.string(),
   status: z.string(),
+  amount: z.number().optional(),
+  currency: z.string().optional(),
   metadata: MTWebhookMetadataSchema,
 });
 
@@ -62,16 +68,12 @@ const WEBHOOK_ACTOR = {
   actorUserId: "mt-webhook-system",
 } as const;
 
-/* ================================================================
-   persistWebhookUpdateToDatabase
-
-   TODO: Wire this to RDS PostgreSQL via Prisma/Drizzle once the DB
-         is provisioned. This function currently logs the engine
-         result and does NOT persist state. The settlement state
-         change will need to be written to the production database
-         so the UI reflects the update.
-   ================================================================ */
-function persistWebhookUpdateToDatabase(
+/**
+ * Persist settlement status + ledger entries to PostgreSQL.
+ * Writes the engine's updated settlement status and appends new ledger entries.
+ * Fail-open: errors are logged but do not block the webhook response.
+ */
+async function persistWebhookUpdateToDatabase(
   settlementId: string,
   engineResult: {
     ok: true;
@@ -79,33 +81,51 @@ function persistWebhookUpdateToDatabase(
     settlement: SettlementCase;
     ledgerEntries: LedgerEntry[];
   },
-): void {
-  // TODO: Wire this to RDS PostgreSQL via Prisma/Drizzle once the DB is provisioned.
-  // The `engineResult.state` contains the full updated settlement state.
-  // The `engineResult.settlement` is the specific settlement that was modified.
-  // The `engineResult.ledgerEntries` are the new append-only ledger entries.
-  console.log(
-    "[MT-WEBHOOK] persistWebhookUpdateToDatabase called — NOT YET PERSISTED",
-    JSON.stringify(
-      {
-        settlementId,
-        updatedSettlement: {
-          id: engineResult.settlement.id,
-          status: engineResult.settlement.status,
-          fundsConfirmedFinal: engineResult.settlement.fundsConfirmedFinal,
-          updatedAt: engineResult.settlement.updatedAt,
-        },
-        newLedgerEntries: engineResult.ledgerEntries.map((e) => ({
-          id: e.id,
-          type: e.type,
-          detail: e.detail,
-          timestamp: e.timestamp,
-        })),
-      },
-      null,
-      2,
-    ),
-  );
+): Promise<void> {
+  let client;
+  try {
+    client = await getDbClient();
+
+    // Update settlement status
+    await client.query(
+      "UPDATE settlement_cases SET status = $1 WHERE id = $2",
+      [engineResult.settlement.status, settlementId],
+    );
+
+    // Append ledger entries
+    for (const entry of engineResult.ledgerEntries) {
+      await client.query(
+        `INSERT INTO ledger_entries (id, settlement_id, type, timestamp, actor, actor_role, actor_user_id, detail)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (id) DO NOTHING`,
+        [
+          entry.id,
+          entry.settlementId,
+          entry.type,
+          entry.timestamp,
+          entry.actor,
+          entry.actorRole ?? null,
+          entry.actorUserId ?? null,
+          entry.detail,
+        ],
+      );
+    }
+
+    console.log(
+      `[MT-WEBHOOK] Persisted settlement ${settlementId} status → ${engineResult.settlement.status} (${engineResult.ledgerEntries.length} ledger entries)`,
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[MT-WEBHOOK] Database persistence error for ${settlementId}:`,
+      message,
+    );
+    // Fail-open: settlement engine state was updated in-memory already
+  } finally {
+    if (client) {
+      await client.end().catch(() => {});
+    }
+  }
 }
 
 /* ---------- Route Handler ---------- */
@@ -228,8 +248,38 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
   }
 
-  /* ── Step 6: Persist (placeholder) ── */
-  persistWebhookUpdateToDatabase(settlementId, result);
+  /* ── Step 6: Persist to PostgreSQL ── */
+  await persistWebhookUpdateToDatabase(settlementId, result);
+
+  /* ── Step 6b: Persist in-memory settlement state ── */
+  saveSettlementState(result.state);
+
+  /* ── Step 6c: Record settlement finality + update payout status ── */
+  const idemKey = data.metadata.idempotencyKey ?? `mt:${data.id}`;
+  const finalityStatus: "COMPLETED" | "FAILED" = completedSet.has(data.status)
+    ? "COMPLETED"
+    : "FAILED";
+
+  recordSettlementFinality({
+    settlementId,
+    rail: "modern_treasury",
+    externalTransferId: data.id,
+    idempotencyKey: idemKey,
+    finalityStatus,
+    amountCents: data.amount ?? 0,
+    leg: (data.metadata.leg as "seller_payout" | "fee_sweep") ?? "seller_payout",
+    isFallback: false,
+  }).catch((err) => {
+    console.error(`[MT-WEBHOOK] Failed to record settlement finality:`, err);
+  });
+
+  updatePayoutStatus({
+    idempotencyKey: idemKey,
+    status: finalityStatus,
+    externalId: data.id,
+  }).catch((err) => {
+    console.error(`[MT-WEBHOOK] Failed to update payout status:`, err);
+  });
 
   console.log(
     `[MT-WEBHOOK] CONFIRM_FUNDS_FINAL applied successfully for settlement ${settlementId}`,
