@@ -1,6 +1,39 @@
-"use client";
+import Image from "next/image";
+import { headers } from "next/headers";
 
-import { AppLogo } from "@/components/app-logo";
+/* ─── Context-aware back CTA ─── */
+async function getBackCta() {
+  const hdrs = await headers();
+  const ref = hdrs.get("referer") ?? "";
+
+  const fromMarketing =
+    ref.includes("aurumshield.vip") &&
+    !ref.includes("app.aurumshield.vip");
+
+  const fromApp =
+    ref.includes("app.aurumshield.vip") ||
+    ref.includes("/login") ||
+    ref.includes("/platform");
+
+  if (fromMarketing) {
+    return {
+      label: "Back to Home",
+      href: "https://aurumshield.vip/",
+    };
+  }
+
+  if (fromApp) {
+    return {
+      label: "Back to Platform",
+      href: "/login",
+    };
+  }
+
+  return {
+    label: "Back to Home",
+    href: "https://aurumshield.vip/",
+  };
+}
 
 /* ================================================================
    PLATFORM CAPABILITIES — v2.0.0 Investor-Grade Technical Overview
@@ -30,7 +63,9 @@ import { AppLogo } from "@/components/app-logo";
    20. Interactive Demo System
    ================================================================ */
 
-export default function PlatformCapabilitiesPage() {
+export default async function PlatformCapabilitiesPage() {
+  const back = await getBackCta();
+
   return (
     <div className="platform-page">
       {/* ─── Embedded Styles (unchanged brand system) ─── */}
@@ -96,6 +131,8 @@ export default function PlatformCapabilitiesPage() {
           align-items: center;
         }
         .plat-logo { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+        .plat-back-link { color: var(--text-faint); font-size: 0.8125rem; text-decoration: none; display: flex; align-items: center; gap: 0.25rem; transition: color 0.2s; }
+        .plat-back-link:hover { color: var(--gold); }
         .plat-badge {
           display: inline-block;
           padding: 0.25em 0.75em;
@@ -295,7 +332,13 @@ export default function PlatformCapabilitiesPage() {
       <header className="plat-header">
         <div className="plat-header-inner">
           <div className="plat-logo">
-            <AppLogo className="h-8 w-auto" variant="dark" />
+            <Image
+              src="/arum-logo-gold.svg"
+              alt="AurumShield"
+              width={180}
+              height={48}
+              priority
+            />
           </div>
           <div className="plat-meta">
             <span className="plat-badge">Confidential</span>
@@ -303,6 +346,13 @@ export default function PlatformCapabilitiesPage() {
           </div>
         </div>
       </header>
+
+      {/* ─── Context-aware Back Link ─── */}
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "1rem 2rem 0" }}>
+        <a href={back.href} className="plat-back-link">
+          ← {back.label}
+        </a>
+      </div>
 
       {/* ─── Container ─── */}
       <div className="plat-container">
