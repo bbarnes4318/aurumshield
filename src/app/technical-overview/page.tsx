@@ -247,7 +247,7 @@ export default async function TechnicalOverviewPage() {
           </div>
           <div className="to-meta">
             <span className="to-badge">Confidential</span>
-            <div>v2.0.0 · Feb 2026</div>
+            <div>v3.0.0 · Feb 2026</div>
           </div>
         </div>
       </header>
@@ -311,11 +311,12 @@ export default async function TechnicalOverviewPage() {
           <p>
             AurumShield&apos;s architecture is designed around three core principles:{" "}
             <strong>fail-closed security</strong> (every protected operation
-            requires DB-verified compliance approval),{" "}
+            requires DB-verified compliance approval and valid LEI/role),{" "}
             <strong>dual-rail settlement resilience</strong> (automatic failover
             between Modern Treasury Fedwire and Moov wallet-to-wallet rails), and{" "}
             <strong>forensic auditability</strong> (every state transition produces
-            tamper-evident, SHA-256 hashed audit events).
+            tamper-evident, SHA-256 hashed audit events with maker-checker
+            cryptographic binding via WebAuthn signatures).
           </p>
 
           <div className="to-kpi-row">
@@ -365,33 +366,31 @@ export default async function TechnicalOverviewPage() {
           <div className="to-pipeline">
             <div className="to-step">
               <div className="to-num">01</div>
-              <h4>Account Creation</h4>
+              <h4>Entity &amp; Account Creation</h4>
               <p>
-                Users register via <strong>Clerk</strong> with passkey-based
-                authentication. The middleware (<code>middleware.ts</code>) enforces
-                session protection on all non-public routes. Device fingerprinting
-                via <strong>Fingerprint.com</strong> establishes a trust baseline —
-                bot detection, velocity checks, and confidence scoring are applied
-                in real time.
+                Organizations register with a strictly required Legal Entity
+                Identifier (LEI), validated against the <strong>Global LEI
+                Foundation (GLEIF) API</strong> for deterministic entity resolution.
+                Authentication is enforced via <strong>Hardware Key/WebAuthn</strong>{" "}
+                and <strong>Enterprise SSO (SAML/OIDC via Okta/Entra ID)</strong>.
+                SMS OTP has been fully removed. Device fingerprinting
+                via <strong>Fingerprint.com</strong> establishes a trust baseline.
               </p>
-              <span className="to-tag to-tag-auth">Clerk · Fingerprint.com</span>
+              <span className="to-tag to-tag-auth">GLEIF · WebAuthn · Okta/Entra</span>
             </div>
 
             <div className="to-step">
               <div className="to-num">02</div>
-              <h4>Identity Verification (KYC/KYB)</h4>
+              <h4>Know-Your-Business (KYB) Verification</h4>
               <p>
                 The verification engine (<code>verification-engine.ts</code>)
-                orchestrates a multi-step identity perimeter.{" "}
-                <strong>KYC track:</strong> email/phone confirmation, government ID
-                capture via <strong>Persona</strong>, biometric liveness check, and
-                sanctions/PEP screening via <strong>OpenSanctions</strong>.{" "}
-                <strong>KYB track:</strong> business registration verification, UBO
-                declaration, proof of address, and source of funds analysis. Each
-                step transitions through PENDING → PROCESSING → PASSED/FAILED via
-                async webhook callbacks.
+                orchestrates a headless <strong>Persona KYB</strong> integration
+                accepting LEI/EIN to fetch registry data and map Ultimate Beneficial
+                Owners (UBOs). <strong>OpenSanctions</strong> screens against
+                OFAC, EU, UN, HMT, and DFAT watchlists. Retail KYC selfie-check
+                components have been removed — all counterparties are Corporate Entities.
               </p>
-              <span className="to-tag to-tag-kyc">Persona · OpenSanctions · Diro</span>
+              <span className="to-tag to-tag-kyc">Persona KYB · GLEIF LEI · OpenSanctions</span>
             </div>
 
             <div className="to-step">
@@ -425,49 +424,51 @@ export default async function TechnicalOverviewPage() {
 
             <div className="to-step">
               <div className="to-num">05</div>
-              <h4>Price Lock &amp; Atomic Checkout</h4>
+              <h4>Collateral Lock &amp; Price Lock</h4>
               <p>
                 The policy engine (<code>policy-engine.ts</code>) computes a{" "}
-                <strong>Transaction Risk Index (TRI)</strong> — a weighted composite
-                of counterparty risk, corridor risk, amount concentration, and
-                counterparty status. Capital validation ensures post-transaction ECR
-                and hardstop utilization remain within thresholds. The atomic
-                checkout (<code>executeAtomicCheckout</code>) collapses reserve +
-                convert into a single state transition with inventory invariant
-                enforcement — mirroring a SERIALIZABLE database transaction.
+                <strong>Transaction Risk Index (TRI)</strong>. Before price lock,
+                the buyer{`'`}s firm must post <strong>5% collateral</strong> from their
+                CorporateWallet via <code>capital-engine.ts</code>. Multi-oracle
+                medianized pricing (Bloomberg B-PIPE, Refinitiv, OANDA) with a
+                <strong> 15 bps circuit breaker</strong> that triggers FREEZE on divergence.
+                LOCK_PRICE transitions to PENDING_COLLATERAL then PENDING_CHECKER_APPROVAL.
               </p>
-              <span className="to-tag to-tag-engine">TRI Scoring · Inventory Invariants</span>
+              <span className="to-tag to-tag-engine">Collateral Lock · Multi-Oracle · Circuit Breaker</span>
             </div>
 
             <div className="to-step">
               <div className="to-num">06</div>
-              <h4>Settlement &amp; DvP Execution</h4>
+              <h4>Maker-Checker Approval &amp; DvP Execution</h4>
               <p>
-                Settlement opens via <code>settlement-engine.ts</code> with
-                double-entry clearing journals (RSK-006) — every fund movement
-                produces a balanced journal where debits equal credits. The
-                dual-rail router (<code>settlement-rail.ts</code>) selects between{" "}
-                <strong>Modern Treasury</strong> (Fedwire/RTGS for enterprise) and{" "}
-                <strong>Moov</strong> (wallet-to-wallet for standard), with
+                The TRADER (Maker) submits the order. The TREASURY (Checker)
+                reviews via the maker-checker workflow and clicks {`"`}Approve &amp; Execute
+                DvP{`"`}, triggering a JIT <strong>WebAuthn/Passkey</strong> signature
+                (<code>navigator.credentials.get()</code>) cryptographically bound
+                to the canonicalized SHA-256 payload. The{" "}
+                <strong>DocuSign CLM</strong> generates the Master Bill of Sale
+                natively. Dual-rail router selects between{" "}
+                <strong>Modern Treasury</strong> and <strong>Moov</strong> with
                 automatic fallback. Each payout carries a deterministic{" "}
-                <strong>SHA-256 idempotency key</strong> to prevent double-spend.
+                <strong>SHA-256 idempotency key</strong>. Approval stored in{" "}
+                <code>order_approvals</code> table.
               </p>
-              <span className="to-tag to-tag-settle">Dual-Rail DvP · Idempotent</span>
+              <span className="to-tag to-tag-settle">Maker-Checker · WebAuthn · DocuSign CLM</span>
             </div>
 
             <div className="to-step">
               <div className="to-num">07</div>
-              <h4>Secure Logistics &amp; Tracking</h4>
+              <h4>Sovereign Armored Logistics</h4>
               <p>
-                The EasyPost adapter (<code>easypost-adapter.ts</code>) quotes and
-                books <strong>USPS Registered Mail</strong> shipments from the
-                AurumShield vault facility (New York). Gold parcels are dimensioned
-                using industry-standard density calculations. For high-value
-                shipments, <strong>Brink&apos;s</strong> armored transport is available.
-                Full tracking events — pickup, in-transit, delivered — are streamed
-                back into the settlement lifecycle.
+                All standard mail and USPS shipping has been removed. Gold is
+                transported exclusively via sovereign-grade armored carriers:{" "}
+                <strong>Malca-Amit</strong> (primary) and{" "}
+                <strong>Brink&apos;s</strong> (secondary/failover).
+                Full vault-to-vault chain-of-custody tracking.
+                Carrier assignment is deterministic based on notional value,
+                corridor, and availability.
               </p>
-              <span className="to-tag to-tag-ship">EasyPost · USPS · Brink&apos;s</span>
+              <span className="to-tag to-tag-ship">Malca-Amit · Brink&apos;s Armored</span>
             </div>
 
             <div className="to-step">
@@ -508,28 +509,38 @@ export default async function TechnicalOverviewPage() {
               </thead>
               <tbody>
                 <tr>
-                  <td><code>PENDING_ALLOCATION</code></td>
-                  <td>→ PENDING_VERIFICATION, CANCELLED</td>
-                  <td>system, buyer</td>
+                  <td><code>DRAFT</code></td>
+                  <td>→ PENDING_COLLATERAL, CANCELLED</td>
+                  <td>TRADER (Maker)</td>
                 </tr>
                 <tr>
-                  <td><code>PENDING_VERIFICATION</code></td>
-                  <td>→ LOCKED_UNSETTLED, REJECTED_COMPLIANCE, CANCELLED</td>
-                  <td>system, compliance_officer</td>
+                  <td><code>PENDING_COLLATERAL</code></td>
+                  <td>→ PENDING_CHECKER_APPROVAL, CANCELLED</td>
+                  <td>system</td>
                 </tr>
                 <tr>
-                  <td><code>LOCKED_UNSETTLED</code></td>
-                  <td>→ SETTLEMENT_PENDING, CANCELLED</td>
-                  <td>system, treasury_admin</td>
+                  <td><code>PENDING_CHECKER_APPROVAL</code></td>
+                  <td>→ APPROVED_UNSETTLED, REJECTED_COMPLIANCE, CANCELLED</td>
+                  <td>TREASURY (Checker)</td>
+                </tr>
+                <tr>
+                  <td><code>APPROVED_UNSETTLED</code></td>
+                  <td>→ SETTLEMENT_PENDING</td>
+                  <td>system</td>
                 </tr>
                 <tr>
                   <td><code>SETTLEMENT_PENDING</code></td>
-                  <td>→ SETTLED, FAILED</td>
-                  <td>system, treasury_admin</td>
+                  <td>→ SETTLED, SLASH_COLLATERAL, FAILED</td>
+                  <td>system, TREASURY</td>
                 </tr>
                 <tr>
                   <td><code>SETTLED</code></td>
                   <td>— (terminal)</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td><code>SLASH_COLLATERAL</code></td>
+                  <td>— (terminal, T+1 wire failure)</td>
                   <td>—</td>
                 </tr>
                 <tr>
@@ -571,40 +582,41 @@ export default async function TechnicalOverviewPage() {
               <h3>🔐 Role-Based Access Control</h3>
               <p>
                 Implemented in <code>authz.ts</code>, the authorization system
-                defines a <strong>5-level capability ladder</strong> that maps KYC
-                verification status to permitted operations:
+                defines a <strong>maker-checker RBAC model</strong> with strict
+                role separation:
               </p>
               <p>
-                <strong>
-                  BROWSE → QUOTE → LOCK_PRICE → EXECUTE_PURCHASE → SETTLE
-                </strong>
+                <strong>TRADER (Maker):</strong> Can initiate orders and lock prices.
+                <br />
+                <strong>TREASURY (Checker/Approver):</strong> Reviews, approves, and
+                executes DvP via JIT WebAuthn signature.
               </p>
               <p>
-                Each capability implies all previous capabilities. Protected
-                capabilities (LOCK_PRICE+){" "}
+                <strong>Capability Ladder:</strong>{" "}
+                BROWSE → QUOTE → LOCK_PRICE → EXECUTE_PURCHASE → SETTLE
+              </p>
+              <p>
+                Protected capabilities (LOCK_PRICE+){" "}
                 <strong>
-                  require a database-verified APPROVED compliance case
+                  require a database-verified APPROVED compliance case, valid LEI,
+                  and correct organizational role
                 </strong>
-                . If the DB is unreachable, a 500 error is thrown — the system never
-                degrades to permissive. Six distinct roles govern settlement
-                operations:{" "}
-                <strong>
-                  buyer, seller, admin, treasury, compliance, vault_ops
-                </strong>
-                .
+                . If roles or LEIs are missing, access is denied by default.
+                Authentication enforced via <strong>Hardware Key/WebAuthn</strong>{" "}
+                and <strong>Enterprise SSO (SAML/OIDC)</strong>. SMS OTP removed.
               </p>
             </div>
 
             <div className="to-card">
-              <h3>🛡️ Step-Up Re-Verification</h3>
+              <h3>🛡️ JIT Biometric Execution Binding</h3>
               <p>
-                High-value, irreversible operations (LOCK_PRICE, EXECUTE_PURCHASE,
-                SETTLE) trigger <strong>step-up authentication</strong> via
-                Clerk&apos;s reverification mechanism. Sessions older than{" "}
-                <strong>5 minutes</strong> (300,000ms) require the user to
-                re-authenticate before proceeding. This is enforced server-side by{" "}
-                <code>requireReverification()</code>, preventing session hijacking
-                from being exploited for financial operations.
+                When the TREASURY (Checker) clicks {`"`}Approve &amp; Execute DvP{`"`},
+                a native <strong>WebAuthn/Passkey</strong> signature prompt
+                (<code>navigator.credentials.get()</code>) is triggered.
+                This signature is cryptographically bound to the canonicalized
+                SHA-256 payload of the settlement document and stored in the{" "}
+                <code>order_approvals</code> table with checker_user_id, signature_hash,
+                and timestamp.
               </p>
             </div>
 
@@ -671,8 +683,9 @@ export default async function TechnicalOverviewPage() {
             <div className="to-card">
               <h3>⚡ Capital Controls &amp; Breach Monitoring</h3>
               <p>
-                The capital controls engine evaluates real-time capital snapshots and
-                enforces <strong>5 escalating control modes</strong>:
+                The capital controls engine evaluates real-time capital snapshots,
+                pre-funded <strong>5% collateral locks</strong> from CorporateWallets,
+                and enforces <strong>5 escalating control modes</strong>:
               </p>
               <p>
                 <strong>
@@ -681,11 +694,11 @@ export default async function TechnicalOverviewPage() {
                 </strong>
               </p>
               <p>
-                The breach monitor generates deterministic, idempotent breach events
-                when ECR ratios or hardstop utilization exceed thresholds. Each
-                breach carries a <strong>FNV-1a hashed ID</strong> scoped to
-                minute-buckets for deduplication. CRITICAL breaches (≥95% hardstop)
-                trigger immediate governance alerts.
+                Failed T+1 wires transition to <strong>SLASH_COLLATERAL</strong>,
+                penalizing the defaulting organization. The multi-oracle
+                circuit breaker triggers FREEZE if pricing feed divergence
+                exceeds 15 bps. All financial values stored as BIGINT (cents/basis points)
+                — no floating-point math.
               </p>
             </div>
           </div>
@@ -764,12 +777,12 @@ export default async function TechnicalOverviewPage() {
                 <tr>
                   <td rowSpan={2}><strong>LBMA</strong></td>
                   <td>Refiner Verification</td>
-                  <td>Embedded 34+ refiner cache with fuzzy name matching</td>
-                  <td><code>lbma-service.ts</code></td>
+                  <td>Deterministic LEI resolution via GLEIF API, unique LEI constraint</td>
+                  <td><code>entity-validation.ts</code></td>
                 </tr>
                 <tr>
                   <td>Evidence Gate</td>
-                  <td>3 mandatory evidence types per listing: Assay, Chain of Custody, Attestation</td>
+                  <td>3 mandatory evidence types per listing: Assay, Chain of Custody, Attestation (DocuSign CLM)</td>
                   <td><code>marketplace-engine.ts</code></td>
                 </tr>
               </tbody>
@@ -797,7 +810,7 @@ export default async function TechnicalOverviewPage() {
                     <tr><td><strong>Data Fetching</strong></td><td>TanStack React Query v5</td></tr>
                     <tr><td><strong>Animation</strong></td><td>Framer Motion v12</td></tr>
                     <tr><td><strong>Typography</strong></td><td>IBM Plex Sans + Source Serif 4</td></tr>
-                    <tr><td><strong>Auth UI</strong></td><td>Clerk React (SignIn, SignUp, passkeys)</td></tr>
+                    <tr><td><strong>Auth UI</strong></td><td>WebAuthn/Hardware Keys + Enterprise SSO (Okta/Entra)</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -812,8 +825,8 @@ export default async function TechnicalOverviewPage() {
                     <tr><td><strong>Database</strong></td><td>PostgreSQL 15 (RDS, gp3, encrypted)</td></tr>
                     <tr><td><strong>DB Client</strong></td><td>node-postgres (pg v8), raw SQL migrations</td></tr>
                     <tr><td><strong>Schema</strong></td><td>10 sequential migrations (buyer_journey → risk_parameters)</td></tr>
-                    <tr><td><strong>Auth</strong></td><td>Clerk v6 (passkey-first, sessions)</td></tr>
-                    <tr><td><strong>KYC</strong></td><td>Persona v5 (ID verification, liveness)</td></tr>
+                    <tr><td><strong>Auth</strong></td><td>WebAuthn/Hardware Keys + Enterprise SSO (SAML/OIDC)</td></tr>
+                    <tr><td><strong>KYB</strong></td><td>Persona KYB + GLEIF LEI (deterministic entity resolution)</td></tr>
                     <tr><td><strong>AML</strong></td><td>OpenSanctions (OFAC, EU, UN, UK, AU)</td></tr>
                     <tr><td><strong>Device Trust</strong></td><td>Fingerprint.com Pro (bot detection, velocity)</td></tr>
                     <tr><td><strong>Docs</strong></td><td>AWS Textract (OCR verification)</td></tr>
@@ -845,9 +858,9 @@ export default async function TechnicalOverviewPage() {
               <div className="to-table-wrap">
                 <table className="to-table">
                   <tbody>
-                    <tr><td><strong>Standard</strong></td><td>EasyPost → USPS Registered Mail</td></tr>
-                    <tr><td><strong>High-Value</strong></td><td>Brink&apos;s armored transport</td></tr>
-                    <tr><td><strong>Parcels</strong></td><td>Computed from gold density (19.32 g/cm³)</td></tr>
+                    <tr><td><strong>Primary</strong></td><td>Malca-Amit armored transport (vault-to-vault)</td></tr>
+                    <tr><td><strong>Secondary</strong></td><td>Brink&apos;s armored transport (global failover)</td></tr>
+                    <tr><td><strong>Routing</strong></td><td>Deterministic: notional value + corridor + availability</td></tr>
                     <tr><td><strong>Origin</strong></td><td>AurumShield Vault, 1 Federal Reserve Plz, NY</td></tr>
                     <tr><td><strong>Tracking</strong></td><td>Real-time events → settlement lifecycle</td></tr>
                   </tbody>

@@ -331,7 +331,7 @@ export default async function PlatformCapabilitiesPage() {
           </div>
           <div className="plat-meta">
             <span className="plat-badge">Confidential</span>
-            <div>v2.0.0 · Feb 2026</div>
+            <div>v3.0.0 · Feb 2026</div>
           </div>
         </div>
       </header>
@@ -367,7 +367,7 @@ export default async function PlatformCapabilitiesPage() {
               <li><a href="#certificate-engine">15. Certificate Engine</a></li>
               <li><a href="#fee-model">16. Fee Model &amp; Pricing</a></li>
               <li><a href="#activation-gate">17. Activation Gate</a></li>
-              <li><a href="#security">18. Security Architecture</a></li>
+              <li><a href="#security">18. Tier-1 Infrastructure Hardening</a></li>
               <li><a href="#alignment">19. Strategic Alignment</a></li>
               <li><a href="#demo-system">20. Demo System</a></li>
             </ul>
@@ -417,11 +417,14 @@ export default async function PlatformCapabilitiesPage() {
             </p>
             <p>
               What began as a clearing engine has matured into a full-spectrum institutional
-              platform: identity verification powered by Persona, dual-rail settlement
+              platform: entity-level KYB verification with deterministic LEI matching via
+              the Global LEI Foundation (GLEIF), dual-rail settlement
               through Moov and Modern Treasury, actuarial transit insurance, real-time
-              gold pricing from OANDA and LBMA, passkey-based authentication via Clerk,
+              gold pricing from a Bloomberg/Refinitiv/OANDA multi-oracle medianizer,
+              hardware-key WebAuthn authentication with Enterprise SSO (SAML/OIDC),
               and document verification through AWS Textract — all governed by a
-              deterministic policy engine and append-only audit ledger.
+              maker-checker approval workflow, 5% pre-funded collateral locks,
+              and an append-only audit ledger.
             </p>
 
             <h3>Platform Capabilities</h3>
@@ -431,24 +434,28 @@ export default async function PlatformCapabilitiesPage() {
                 Title and payment transfer simultaneously in a single deterministic operation.
               </li>
               <li>
+                <strong>Maker-Checker Approval Workflow</strong><br />
+                Strict RBAC with TRADER (Maker) and TREASURY (Checker/Approver) roles. Every order requires dual authorization with cryptographically bound WebAuthn signatures.
+              </li>
+              <li>
+                <strong>Pre-Funded 5% Collateral Locks</strong><br />
+                LOCK_PRICE requires a verified 5% collateral hold from the firm{`'`}s CorporateWallet. Failed T+1 wires trigger automatic SLASH_COLLATERAL enforcement.
+              </li>
+              <li>
                 <strong>Dual-Rail Settlement</strong><br />
                 Moov for instant payouts with automatic failover to Modern Treasury wire/RTGS — both with cryptographic idempotency.
               </li>
               <li>
-                <strong>Persona-Powered Identity Verification</strong><br />
-                Production KYC via Persona with OpenSanctions AML screening, biometric liveness, and UBO disclosure.
+                <strong>Enterprise KYB &amp; LEI Entity Resolution</strong><br />
+                Deterministic entity verification via GLEIF API with strictly required, unique LEI codes. Persona KYB integration for UBO mapping and registry data.
               </li>
               <li>
-                <strong>Passkey Authentication &amp; Step-Up Reverification</strong><br />
-                Clerk-based passkey auth with a compliance capability ladder and 5-minute step-up windows for high-value operations.
+                <strong>Hardware Key Auth &amp; Enterprise SSO</strong><br />
+                WebAuthn/Passkey hardware keys and Enterprise SSO (SAML/OIDC via Okta/Entra ID) as the only permitted authentication factors.
               </li>
               <li>
-                <strong>Actuarial Transit Insurance</strong><br />
-                Zone-based risk pricing with Standard, Enhanced, and All-Risk coverage tiers powered by a deterministic insurance engine.
-              </li>
-              <li>
-                <strong>Real-Time Gold Pricing</strong><br />
-                Live XAU/USD spot from OANDA with LBMA AM/PM reference price feeds for institutional-grade price discovery.
+                <strong>Multi-Oracle Medianizer Pricing</strong><br />
+                Concurrent XAU/USD spot feeds from Bloomberg B-PIPE, Refinitiv, and OANDA with a medianizer algorithm. 15 bps divergence triggers a circuit breaker FREEZE.
               </li>
               <li>
                 <strong>Cryptographic Settlement Finality</strong><br />
@@ -467,8 +474,8 @@ export default async function PlatformCapabilitiesPage() {
                 <span>Computationally constrained — not advisory.</span>
               </div>
               <div className="plat-guarantee-box">
-                <strong>Identity Verified at Scale</strong>
-                <span>Persona KYC + OpenSanctions AML in production.</span>
+                <strong>Entity Identity Verified</strong>
+                <span>GLEIF LEI matching + Persona KYB + OpenSanctions AML.</span>
               </div>
               <div className="plat-guarantee-box">
                 <strong>Settlement Finality Verifiable</strong>
@@ -534,16 +541,16 @@ export default async function PlatformCapabilitiesPage() {
                 <span>Every state transition is governed by precondition logic. Settlements cannot advance without verified identity, packed evidence, and policy approval.</span>
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
-                <strong>Capital-Constrained Execution</strong>
-                <span>Real-time exposure monitoring prevents AurumShield from clearing more than its capital base supports. Hardstop limits enforce systemic solvency.</span>
+                <strong>Pre-Funded Collateral &amp; Capital Controls</strong>
+                <span>5% collateral locks from CorporateWallets, real-time exposure monitoring, and SLASH_COLLATERAL enforcement on T+1 wire failures. Hardstop limits enforce systemic solvency.</span>
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
                 <strong>Dual-Rail Settlement</strong>
                 <span>Moov for instant payouts and Modern Treasury for wire/RTGS execution — with automatic failover and deterministic idempotency.</span>
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
-                <strong>Insured Transit &amp; Logistics</strong>
-                <span>Actuarial insurance pricing, multi-carrier shipping via EasyPost, and tiered Brink{`'`}s armored logistics for high-value consignments.</span>
+                <strong>Sovereign Armored Logistics</strong>
+                <span>Actuarial insurance pricing with exclusively armored transport via Malca-Amit and Brink{`'`}s. All shipments are sovereign-grade — no standard mail carriers.</span>
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
                 <strong>Cryptographic Certification</strong>
@@ -596,19 +603,19 @@ export default async function PlatformCapabilitiesPage() {
             <div className="plat-arch">
               <div className="plat-layer">
                 <span className="plat-layer-title">Presentation Layer</span>
-                Dashboard · Marketplace · Checkout · Settlements · Capital Controls · Audit Console
+                Dashboard · Marketplace · Checkout · Settlements · Capital Controls · Audit Console · Maker-Checker Workflow
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Authentication &amp; Authorization</span>
-                Clerk Passkey Auth · Capability Ladder · Step-Up Reverification · RBAC
+                WebAuthn/Hardware Keys · Enterprise SSO (SAML/OIDC) · Capability Ladder · Maker-Checker RBAC (TRADER/TREASURY)
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Clearing Engines</span>
-                Settlement Engine · State Machine · Fee Engine · Certificate Engine
+                Settlement Engine · Collateral Lock Engine · State Machine · Fee Engine · Certificate Engine
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Capital &amp; Policy Engines</span>
-                Capital Adequacy · Breach Detection · Policy Gating · TRI Risk Scoring · Server-Side Risk Config
+                Capital Adequacy · Pre-Funded Collateral · Breach Detection · Policy Gating · TRI Risk Scoring · SLASH_COLLATERAL
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Settlement Rails</span>
@@ -616,15 +623,19 @@ export default async function PlatformCapabilitiesPage() {
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Identity &amp; Verification</span>
-                Persona KYC · OpenSanctions AML · Textract Document OCR · Dropbox Sign eSignature · Device Fingerprinting
+                GLEIF LEI Resolution · Persona KYB · OpenSanctions AML · Textract Document OCR · DocuSign CLM · Device Fingerprinting
               </div>
               <div className="plat-layer">
-                <span className="plat-layer-title">External Integrations</span>
-                OANDA XAU/USD Spot · LBMA Reference Price · EasyPost Shipping · Brink{`'`}s Armored · PostHog Analytics
+                <span className="plat-layer-title">Pricing Oracles</span>
+                Bloomberg B-PIPE · Refinitiv · OANDA · Multi-Oracle Medianizer · 15 bps Circuit Breaker
+              </div>
+              <div className="plat-layer">
+                <span className="plat-layer-title">Sovereign Logistics</span>
+                Malca-Amit Armored · Brink{`'`}s Armored · Actuarial Insurance · PostHog Analytics
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Audit &amp; Governance</span>
-                SHA-256 Signing · Append-Only Ledger · Supervisory Dossiers · Immutable Event Stream
+                SHA-256 Signing · Append-Only Ledger · Supervisory Dossiers · Immutable Event Stream · Order Approvals Table
               </div>
             </div>
           </section>
@@ -637,7 +648,7 @@ export default async function PlatformCapabilitiesPage() {
               every gold transaction through a deterministic lifecycle:
             </p>
             <div className="plat-flow">
-              ESCROW_OPEN → AWAITING_FUNDS → AWAITING_GOLD → AWAITING_VERIFICATION → READY_TO_SETTLE → AUTHORIZED → SETTLED
+              DRAFT → PENDING_COLLATERAL → PENDING_CHECKER_APPROVAL → APPROVED_UNSETTLED → SETTLEMENT_PENDING → SETTLED
             </div>
 
             <h3>Formalized State Machine</h3>
@@ -798,45 +809,40 @@ export default async function PlatformCapabilitiesPage() {
 
           {/* ─── 8. Onboarding & Identity Perimeter ─── */}
           <section id="onboarding" className="plat-section">
-            <h2>8. Onboarding &amp; Identity Perimeter</h2>
+            <h2>8. Enterprise Onboarding &amp; Entity Resolution</h2>
             <p>
-              AurumShield enforces a mandatory identity perimeter. No counterparty can access
-              clearing services without completing a structured verification track — powered
-              in production by <strong>Persona</strong> for KYC and <strong>OpenSanctions</strong> for
-              AML screening.
+              AurumShield enforces a mandatory entity identity perimeter. No counterparty can access
+              clearing services without completing structured KYB verification — powered
+              by <strong>deterministic LEI matching via the GLEIF API</strong>, <strong>Persona KYB</strong> for
+              registry data and UBO mapping, and <strong>OpenSanctions</strong> for AML screening.
             </p>
 
-            <h3>Progressive Disclosure Onboarding Wizard</h3>
+            <h3>Corporate Entity Onboarding</h3>
             <p>
-              New counterparties are guided through a three-step onboarding wizard with
-              Zod-validated forms, automatic state persistence, and a resume-later affordance
-              for multi-session completion:
+              All counterparties are onboarded as Corporate Entities (Organizations). Individual
+              retail accounts are not supported. The onboarding wizard collects:
             </p>
             <div className="plat-engine-grid">
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
-                <strong>Step 1: Entity Profile</strong>
-                <span>Organization type, legal name, jurisdiction, contact details. Zod-validated with real-time feedback.</span>
+                <strong>Step 1: LEI &amp; Entity Profile</strong>
+                <span>Legal Entity Identifier (LEI) is strictly required and unique. Validated against the GLEIF API for deterministic entity resolution. No fuzzy matching.</span>
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
-                <strong>Step 2: Document Upload</strong>
-                <span>Government ID, company registration, UBO declarations. Documents verified via AWS Textract OCR.</span>
+                <strong>Step 2: KYB Verification</strong>
+                <span>Headless Persona KYB integration accepting LEI/EIN to fetch registry data, map Ultimate Beneficial Owners (UBOs), and verify corporate structure.</span>
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
-                <strong>Step 3: Biometric &amp; Screening</strong>
-                <span>Persona-powered liveness check and OpenSanctions screening against OFAC, EU, UN, HMT, and DFAT lists.</span>
+                <strong>Step 3: AML Screening &amp; Approval</strong>
+                <span>OpenSanctions screening against OFAC, EU, UN, HMT, and DFAT lists. Organization provisioned with CorporateWallet upon approval.</span>
               </div>
             </div>
 
-            <h3>Verification Tracks</h3>
+            <h3>Organization Schema</h3>
             <ul>
-              <li><strong>KYC (Individuals):</strong> Government ID capture via Persona, biometric liveness verification, sanctions &amp; PEP screening via OpenSanctions.</li>
-              <li><strong>KYB (Entities):</strong> Company registration, UBO declaration (25%+ ownership threshold), proof of registered address, source of funds documentation.</li>
+              <li><strong>LEI Code:</strong> Strictly required, unique <span className="plat-code">lei_code</span> column on all Organizations and Refiner models. Queried against the Global LEI Foundation (GLEIF) API — all fuzzy matching has been removed.</li>
+              <li><strong>CorporateWallet:</strong> Each Organization tracks <span className="plat-code">available_balance_cents</span> and <span className="plat-code">locked_collateral_cents</span> (BIGINT, financial precision enforced).</li>
+              <li><strong>Maker-Checker Roles:</strong> TRADER (Maker) initiates orders; TREASURY (Checker/Approver) authorizes execution. Stored in the <span className="plat-code">order_approvals</span> table with checker_user_id, signature_hash, and timestamp.</li>
             </ul>
-            <p>
-              Every verification step produces an evidence stub with a deterministic
-              document ID and UTC timestamp. Verification status is enforced at reservation
-              creation, order conversion, and settlement activation.
-            </p>
 
             <h3>Onboarding State Persistence</h3>
             <p>
@@ -849,42 +855,54 @@ export default async function PlatformCapabilitiesPage() {
 
           {/* ─── 9. Authentication & Authorization ─── */}
           <section id="auth" className="plat-section">
-            <h2>9. Passkey Authentication &amp; Authorization</h2>
+            <h2>9. Enterprise Authentication &amp; Authorization</h2>
             <p>
               AurumShield implements a production-grade authentication and authorization
-              layer built on <strong>Clerk</strong> with passkey-based authentication as the
-              default credential mechanism.
+              layer with <strong>Hardware Key/WebAuthn</strong> and <strong>Enterprise SSO (SAML/OIDC
+              via Okta/Entra ID)</strong> as the only permitted authentication factors.
+              SMS OTP has been fully removed.
             </p>
 
-            <h3>Compliance Capability Ladder</h3>
+            <h3>Maker-Checker RBAC</h3>
             <p>
-              The authorization system implements a progressive capability model where each
-              capability implies all previous capabilities:
+              The authorization system enforces strict role separation between order
+              initiation and execution:
             </p>
+            <div className="plat-engine-grid">
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--gold)" }}>
+                <strong>TRADER (Maker)</strong>
+                <span>Can initiate orders, lock prices, and submit for approval. Cannot execute settlement.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
+                <strong>TREASURY (Checker/Approver)</strong>
+                <span>Reviews and approves/rejects orders submitted by Traders. Approves DvP execution via JIT WebAuthn signature.</span>
+              </div>
+            </div>
+
+            <h3>Compliance Capability Ladder</h3>
             <div className="plat-flow">
               BROWSE → QUOTE → LOCK_PRICE → EXECUTE_PURCHASE → SETTLE
             </div>
             <p>
-              Capabilities are mapped to KYC status — counterparties with incomplete
-              verification can browse and quote but cannot lock prices or execute purchases.
+              Capabilities are mapped to KYB verification status and organizational role — counterparties
+              with incomplete entity verification can browse and quote but cannot lock prices or execute.
             </p>
 
-            <h3>Step-Up Reverification</h3>
+            <h3>JIT Biometric Execution Binding</h3>
             <p>
-              High-value, irreversible operations (<span className="plat-code">LOCK_PRICE</span>,{" "}
-              <span className="plat-code">EXECUTE_PURCHASE</span>,{" "}
-              <span className="plat-code">SETTLE</span>) require step-up authentication.
-              Sessions older than 5 minutes must re-verify before proceeding — preventing
-              stale session exploitation.
+              When the Checker clicks {`"`}Approve &amp; Execute DvP{`"`}, a native WebAuthn/Passkey
+              signature prompt (<span className="plat-code">navigator.credentials.get()</span>) is triggered.
+              This signature is cryptographically bound to the canonicalized SHA-256 payload of the
+              settlement document and stored in the <span className="plat-code">order_approvals</span> table.
             </p>
 
             <h3>Fail-Closed Database Enforcement</h3>
             <div className="plat-callout">
               <span className="plat-callout-title">RSK-012: Fail-Closed Authorization</span>
               Protected capabilities require a database-verified <span className="plat-code">APPROVED</span> compliance
-              case. If the compliance database is unreachable, high-value operations are
-              blocked with a 500 error — never permitted by default. This prevents a database
-              outage from silently granting unauthorized access to settlement functions.
+              case. If roles (TRADER vs TREASURY) or LEIs are missing, access is denied by default.
+              If the compliance database is unreachable, high-value operations are
+              blocked with a 500 error — never permitted by default.
             </div>
           </section>
 
@@ -943,19 +961,25 @@ export default async function PlatformCapabilitiesPage() {
             </p>
             <div className="plat-engine-grid">
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
-                <strong>Step 1: Price Lock</strong>
-                <span>Live XAU/USD spot from OANDA is displayed alongside LBMA reference pricing. Buyer locks the price for a configurable window (default: 15 minutes). An urgency countdown timer ensures decision velocity.</span>
+                <strong>Step 1: Collateral Lock &amp; Price Lock</strong>
+                <span>Multi-oracle medianized XAU/USD spot (Bloomberg B-PIPE, Refinitiv, OANDA) is displayed. Buyer{`'`}s firm must post 5% collateral from their CorporateWallet before price lock. An urgency countdown timer ensures decision velocity.</span>
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
-                <strong>Step 2: Settlement Routing</strong>
-                <span>Fee summary, insurance options, and logistics preferences are confirmed. Settlement is routed to the dual-rail infrastructure. Upon confirmation, the order transitions to SETTLEMENT_PENDING.</span>
+                <strong>Step 2: Checker Approval &amp; DvP Execution</strong>
+                <span>Fee summary and logistics confirmed. Order submitted to TREASURY (Checker) for maker-checker approval. Checker approves via JIT WebAuthn signature. Order transitions through PENDING_CHECKER_APPROVAL → APPROVED_UNSETTLED → SETTLEMENT_PENDING.</span>
               </div>
             </div>
             <p>
-              <strong>Real-Time Pricing:</strong> Gold spot prices are sourced from the
-              OANDA FX API with LBMA AM/PM reference prices as institutional benchmarks.
-              Price data is refreshed at configurable intervals and displayed with full
-              bid/ask transparency.
+              <strong>Multi-Oracle Pricing:</strong> Gold spot prices are sourced concurrently
+              from Bloomberg B-PIPE, Refinitiv, and OANDA, then medianized. A 15 bps
+              divergence circuit breaker triggers a FREEZE state, halting all price locks until
+              feed reconciliation.
+            </p>
+            <p>
+              <strong>Collateral Enforcement:</strong> LOCK_PRICE requires a verified 5% collateral
+              hold from the firm{`'`}s CorporateWallet. If a T+1 wire fails, the state machine
+              transitions to <span className="plat-code">SLASH_COLLATERAL</span> — penalizing the
+              defaulting organization.
             </p>
             <p>
               <strong>Analytics Instrumentation:</strong> Each checkout step emits structured
@@ -1070,11 +1094,15 @@ export default async function PlatformCapabilitiesPage() {
               from ISO 3166-1 alpha-2 country codes. The engine enforces a $25 minimum premium floor.
             </p>
 
-            <h3>Logistics Infrastructure</h3>
+            <h3>Sovereign Armored Logistics</h3>
+            <p>
+              All standard mail and USPS shipping has been completely removed. AurumShield exclusively
+              uses sovereign-grade armored transport for every consignment:
+            </p>
             <ul>
-              <li><strong>EasyPost Integration:</strong> Multi-carrier shipping for standard-value consignments with rate comparison and tracking.</li>
-              <li><strong>Brink{`'`}s Armored Transit:</strong> High-value shipments are automatically routed to Brink{`'`}s for armored, insured logistics.</li>
-              <li><strong>Deterministic Routing:</strong> Tier assignment is computed from notional value thresholds — no manual carrier selection.</li>
+              <li><strong>Malca-Amit:</strong> Primary armored carrier for high-value precious metals logistics. Full chain-of-custody tracking with vault-to-vault service.</li>
+              <li><strong>Brink{`'`}s Armored:</strong> Secondary armored carrier with global coverage. Automatic failover when Malca-Amit capacity is constrained.</li>
+              <li><strong>Deterministic Routing:</strong> Carrier assignment is computed from notional value, destination corridor, and availability — no manual selection.</li>
             </ul>
           </section>
 
@@ -1095,11 +1123,13 @@ export default async function PlatformCapabilitiesPage() {
               from days to seconds.
             </p>
 
-            <h3>Dropbox Sign — eSignature</h3>
+            <h3>DocuSign CLM — Native Contract Generation</h3>
             <p>
-              Seller attestations and counterparty agreements are executed through Dropbox
-              Sign, producing legally binding electronic signatures with full audit trails.
-              Signed documents are permanently linked to the settlement record.
+              The Master Bill of Sale is rendered natively in the checkout review step
+              and generated in the background via DocuSign CLM (Contract Lifecycle Management).
+              When the Checker clicks {`"`}Approve &amp; Execute DvP{`"`}, a JIT WebAuthn/Passkey
+              signature is cryptographically bound to the canonicalized SHA-256 payload of the
+              document and stored in the <span className="plat-code">order_approvals</span> table.
             </p>
 
             <h3>Device Fingerprinting</h3>
@@ -1203,12 +1233,12 @@ export default async function PlatformCapabilitiesPage() {
             </p>
             <div className="plat-engine-grid">
               <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
-                <strong>Identity Verified</strong>
-                <span>Both counterparties have completed KYC/KYB verification via Persona.</span>
+                <strong>Entity &amp; LEI Verified</strong>
+                <span>Both counterparties have completed KYB verification via Persona with deterministic LEI matching via GLEIF.</span>
               </div>
               <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
                 <strong>Evidence Packed</strong>
-                <span>Assay report (Textract-verified), chain of custody, and seller attestation (Dropbox Sign) attached.</span>
+                <span>Assay report (Textract-verified), chain of custody, and seller attestation (DocuSign CLM) attached.</span>
               </div>
               <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
                 <strong>Policy Passed</strong>
@@ -1231,21 +1261,196 @@ export default async function PlatformCapabilitiesPage() {
             </p>
           </section>
 
-          {/* ─── 18. Security Architecture ─── */}
+          {/* ─── 18. Tier-1 Infrastructure Hardening ─── */}
           <section id="security" className="plat-section">
-            <h2>18. Security Architecture</h2>
-            <ul>
-              <li><strong>Passkey Authentication:</strong> Clerk-based passkey auth eliminates password-based attack vectors (phishing, credential stuffing, brute force).</li>
-              <li><strong>Step-Up Reverification:</strong> High-value operations require re-authentication within a 5-minute window, preventing stale session exploitation.</li>
-              <li><strong>Fail-Closed Authorization:</strong> Database-backed compliance checks. If the compliance DB is unreachable, protected operations are blocked — not permitted by default.</li>
-              <li><strong>No Settlement Gap:</strong> Atomic DvP execution eliminates temporal exposure between payment and delivery.</li>
-              <li><strong>Precondition Enforcement:</strong> Code-level validation of funds, gold status, and identity before any state transition.</li>
-              <li><strong>Role-Gated Actions:</strong> Deterministic role maps enforce that only authorized actors can perform specific operations.</li>
-              <li><strong>Frozen Snapshots:</strong> Capital and policy state recorded at moment of execution, creating an immutable audit trail.</li>
-              <li><strong>Append-Only Ledger:</strong> All state transitions produce immutable ledger entries. No record can be modified or deleted.</li>
-              <li><strong>Device Fingerprinting:</strong> Session integrity reinforced through device fingerprint association, detecting session hijacking and anomalous access.</li>
-              <li><strong>Idempotent Payouts:</strong> SHA-256 deterministic idempotency keys prevent duplicate payout execution across both settlement rails.</li>
-            </ul>
+            <h2>18. Tier-1 Infrastructure Hardening</h2>
+            <p style={{ color: "var(--text)", fontSize: "1rem" }}>
+              Standard software architecture is not sufficient for sovereign-grade clearing.
+              AurumShield has undergone a rigorous, preemptive architectural audit to identify
+              how our systems perform under extreme stress, massive concurrent load, and
+              sophisticated edge-case scenarios. The result is a sweeping series of enterprise-grade
+              upgrades that <strong>mathematically eliminate systemic risks</strong> and elevate
+              AurumShield into a provably deterministic, Tier-1 clearing infrastructure.
+            </p>
+
+            {/* 18.1 — Transaction Integrity */}
+            <h3>18.1 Transaction Integrity &amp; Settlement Certainty</h3>
+            <p>Standard platforms rely on optimistic logic. AurumShield relies on cryptographic certainty.</p>
+            <div className="plat-engine-grid">
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--success)" }}>
+                <strong>Unified Atomic Checkout</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Eliminates Inventory Gridlock</span>
+                <span>High traffic can cause {`"`}cart gridlock{`"`} where users hold items without buying, temporarily hiding inventory. AurumShield{`'`}s server-side <span className="plat-code">executeAtomicCheckout</span> locks physical inventory and processes the order in one mathematically indivisible database transaction. Inventory is never frozen by abandoned carts.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--success)" }}>
+                <strong>Deterministic Settlement Routing</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Zero Double-Spend</span>
+                <span>Banking APIs occasionally timeout after processing a payment. Our system cross-references every transaction directly with the settlement rail via cryptographic SHA-256 <span className="plat-code">idempotency keys</span> and asynchronous state polling before initiating any failover. Mathematically eliminates double-paying a seller.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--success)" }}>
+                <strong>Duplicate Event Rejection</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Lock-Tight Banking Sync</span>
+                <span>External banking partners occasionally send duplicate {`"`}success{`"`} notifications. Strict database row-level locking (<span className="plat-code">SELECT ... FOR UPDATE</span>) on all incoming webhooks ensures AurumShield{`'`}s ledger effortlessly recognizes and discards duplicates, preserving perfect ledger balance.</span>
+              </div>
+            </div>
+
+            {/* 18.2 — Compliance Perimeters */}
+            <h3>18.2 Ironclad Compliance &amp; Identity Perimeters</h3>
+            <p>Regulatory compliance is not a feature — it is the impenetrable moat that protects the business and its partners.</p>
+            <div className="plat-engine-grid">
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Zero-Trust Compliance Engine</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Server-Side Only</span>
+                <span>100% of KYC/KYB, AML, and risk-tier evaluation runs strictly on the secure server backend. No compliance logic executes in the user{`'`}s browser. It is impossible for a sophisticated user to spoof their compliance status to bypass sanctions checks or regulatory limits.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Strict Pathway Identity Lifecycle</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Cryptographic State Machine</span>
+                <span>A formalized state machine dictates exactly how an entity gets verified. The database structurally rejects any command that tries to skip a step via <span className="plat-code">IllegalStateTransitionError</span> with full forensic context. It is mechanically impossible for an unverified entity to execute trades.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Fail-Closed Authorization</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Fail-Safe Perimeter</span>
+                <span>If AurumShield cannot instantly and definitively verify a user{`'`}s live compliance status, all trading privileges are halted with a 500 error. The system never degrades to cached permissions. A recently suspended entity cannot execute during a split-second network delay.</span>
+              </div>
+            </div>
+
+            {/* 18.3 — Pricing Defenses */}
+            <h3>18.3 Financial Engineering &amp; Pricing Defenses</h3>
+            <p>Protecting margins and preventing market arbitrage through authoritative, server-side financial computing.</p>
+            <div className="plat-engine-grid">
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--info)" }}>
+                <strong>Authoritative Price Binding</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Anti-Latency Arbitrage</span>
+                <span>Price lock generation is fully decoupled from the client. AurumShield securely generates and holds all quotes on the backend, forcing the final trade to bind strictly to the server{`'`}s ledger. Regardless of how market conditions fluctuate, the execution price is deterministic and tamper-proof.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--info)" }}>
+                <strong>Immutable Oracle Pricing</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Infinite Margin Protection</span>
+                <span>All pricing math has been stripped from the client interface. Every fee, spot price, and premium is queried directly from trusted database records and the multi-oracle medianizer at the exact millisecond of execution. It is mathematically impossible for a user to force the platform to sell assets below designated market price.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--info)" }}>
+                <strong>Multi-Oracle Circuit Breaker</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Feed Integrity</span>
+                <span>Concurrent feeds from Bloomberg B-PIPE, Refinitiv, and OANDA are medianized. If divergence between the highest and lowest feed exceeds 15 basis points, an <span className="plat-code">OracleDivergenceError</span> triggers a FREEZE state — halting all price locks until feed reconciliation.</span>
+              </div>
+            </div>
+
+            {/* 18.4 — Institutional Ledger */}
+            <h3>18.4 Institutional Ledger &amp; Capital Scaling</h3>
+            <p>The foundation to seamlessly scale operations, manage risk dynamically, and audit flawlessly.</p>
+            <div className="plat-engine-grid">
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--warning)" }}>
+                <strong>Physical Asset Backing Guarantees</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>1:1 Vault Backing</span>
+                <span>Strict <span className="plat-code">locked_weight</span> vs. <span className="plat-code">available_weight</span> BIGINT schema constraints prevent overallocation. If two institutional buyers attempt to purchase the same gold bar at the exact same millisecond, the database physically prevents the double-allocation. We never sell {`"`}paper gold.{`"`}</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--warning)" }}>
+                <strong>Double-Entry Cryptographic Ledger</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Bank-Grade Accounting</span>
+                <span>Every single cent that moves is recorded as an immutable debit and credit in a true, bank-grade, double-entry clearing ledger (RSK-006). Operations are fully auditable, deeply transparent, and instantly ready for Tier-1 financial review. All values stored as BIGINT (cents/basis points) — zero floating-point math.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--warning)" }}>
+                <strong>Dynamic Risk Control Panel</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Zero-Deploy Risk Adjustment</span>
+                <span>A database-driven risk engine enables the Treasury team to adjust capital exposure limits, ECR maximums, and hardstops instantly via a control panel — no code changes or redeployment required. Response to global liquidity crises or market volatility in seconds.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--warning)" }}>
+                <strong>Advanced Clearing State Machine</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Granular Operational Visibility</span>
+                <span>Expanded operational vocabulary with granular states (<span className="plat-code">PENDING_COLLATERAL</span>, <span className="plat-code">PENDING_CHECKER_APPROVAL</span>, <span className="plat-code">SLASH_COLLATERAL</span>) that automatically flag the Treasury operations team when a counterparty delays. Total clarity on every dollar at every moment.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--warning)" }}>
+                <strong>Horizontally Scalable Event Bus</strong>
+                <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>Global Multi-Server</span>
+                <span>Real-time notifications (KYB approved, settlement confirmed, price locked) stream via a database-backed event bus that scales flawlessly across all global servers. Premium, uninterrupted user experience regardless of platform footprint.</span>
+              </div>
+            </div>
+
+            {/* 18.5 — Summary Table */}
+            <h3>18.5 Security Architecture Summary</h3>
+            <div className="plat-table-wrap">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "28%" }}>Safeguard</th>
+                    <th style={{ width: "37%" }}>Implementation</th>
+                    <th>Risk Eliminated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Atomic Checkout</strong></td>
+                    <td>Server-side indivisible inventory lock + order</td>
+                    <td><span className="plat-status-success">✓ Cart gridlock / phantom inventory</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Idempotency Keys</strong></td>
+                    <td>SHA-256 deterministic keys on all execution endpoints</td>
+                    <td><span className="plat-status-success">✓ Double-spend / duplicate payouts</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Row-Level Webhook Locking</strong></td>
+                    <td>SELECT FOR UPDATE on all inbound bank events</td>
+                    <td><span className="plat-status-success">✓ Duplicate event processing</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Server-Side Compliance</strong></td>
+                    <td>100% KYB/AML/risk-tier on backend — zero client logic</td>
+                    <td><span className="plat-status-success">✓ Compliance spoofing</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Fail-Closed Perimeter</strong></td>
+                    <td>500 on unreachable compliance DB — never permissive</td>
+                    <td><span className="plat-status-success">✓ Stale-cache privilege escalation</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Authoritative Price Binding</strong></td>
+                    <td>Server-generated quotes bound to ledger</td>
+                    <td><span className="plat-status-success">✓ Latency arbitrage</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Immutable Oracle Pricing</strong></td>
+                    <td>All pricing from DB/oracle — zero client-side math</td>
+                    <td><span className="plat-status-success">✓ Premium manipulation</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Multi-Oracle Circuit Breaker</strong></td>
+                    <td>15 bps divergence → FREEZE state</td>
+                    <td><span className="plat-status-success">✓ Stale/manipulated price feeds</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>1:1 Vault Backing</strong></td>
+                    <td>BIGINT locked_weight vs available_weight constraints</td>
+                    <td><span className="plat-status-success">✓ Overallocation / paper gold</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Double-Entry Ledger</strong></td>
+                    <td>Immutable debit/credit journals — BIGINT precision</td>
+                    <td><span className="plat-status-success">✓ Unbalanced books / audit gaps</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Maker-Checker WebAuthn</strong></td>
+                    <td>JIT biometric signature bound to SHA-256 payload</td>
+                    <td><span className="plat-status-success">✓ Unauthorized settlement execution</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Pre-Funded Collateral</strong></td>
+                    <td>5% CorporateWallet lock + SLASH_COLLATERAL on default</td>
+                    <td><span className="plat-status-success">✓ Counterparty default risk</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="plat-callout">
+              <span className="plat-callout-title">The Bottom Line</span>
+              AurumShield is not a marketplace — it is a financial fortress. By proactively hardening
+              concurrency controls, ledger integrity, compliance perimeters, pricing defenses, and
+              capital scaling, we have built a system that is fully prepared to securely process,
+              clear, and settle institutional volume from day one. Every safeguard listed above is
+              live in production and independently verifiable through the append-only audit ledger.
+            </div>
           </section>
 
           {/* ─── 19. Strategic Alignment ─── */}
@@ -1286,8 +1491,8 @@ export default async function PlatformCapabilitiesPage() {
                   </tr>
                   <tr>
                     <td><strong>Identity Assurance</strong></td>
-                    <td>Persona KYC + OpenSanctions AML + Passkey Auth</td>
-                    <td><span className="plat-status-success">✓ Production-Grade Identity</span></td>
+                    <td>GLEIF LEI + Persona KYB + WebAuthn + Enterprise SSO</td>
+                    <td><span className="plat-status-success">✓ Enterprise-Grade Identity</span></td>
                   </tr>
                   <tr>
                     <td><strong>Anonymity &amp; Privacy</strong></td>
