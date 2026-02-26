@@ -48,7 +48,7 @@ export function CapitalEfficiencySection() {
           <div>
             <p className="mk-overline mb-3">Capital Structure</p>
             <h2 className="mk-h2 mb-4">
-              Capital Efficiency &amp; Underwriteability
+              Engineered for Absolute Finality.
             </h2>
             <p className="mk-body max-w-xl">
               Structural clearing delivers measurable capital efficiencies.
@@ -57,38 +57,36 @@ export function CapitalEfficiencySection() {
             </p>
           </div>
           <div className="flex items-end">
-            <div
-              className="w-full p-6"
-              style={{
-                backgroundColor: "var(--mk-surface)",
-                border: "1px solid var(--mk-border)",
-                borderRadius: "0.75rem",
-              }}
-            >
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--mk-faint)] mb-4">
-                Capital Allocation Impact
-              </p>
-              <div className="space-y-3">
-                {[
-                  { label: "Bilateral Model", pct: 100, color: "rgba(209, 106, 93, 0.5)" },
-                  { label: "Centrally Cleared", pct: 35, color: "rgba(63, 174, 122, 0.5)" },
-                ].map((bar) => (
-                  <div key={bar.label}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-slate-300">{bar.label}</span>
-                      <span className="text-xs font-mono tabular-nums text-[var(--mk-faint)]">
-                        {bar.pct}%
-                      </span>
-                    </div>
-                    <div
-                      className="h-2 rounded-sm"
-                      style={{
-                        width: `${bar.pct}%`,
-                        backgroundColor: bar.color,
-                      }}
-                    />
-                  </div>
-                ))}
+            <div className="w-full space-y-5">
+              {/* 0.00% Stat Block */}
+              <div className="border-l-2 border-amber-500 pl-5 py-2">
+                <p className="text-3xl font-bold tabular-nums text-slate-100 sm:text-4xl">
+                  0.00%
+                </p>
+                <p className="mt-1 text-base font-bold text-slate-100">
+                  Fraud &amp; Default Exposure
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  Platform logic strictly prohibits non-delivery and
+                  non-payment. If a counterparty fails to fulfill their exact
+                  obligations, the atomic trade aborts before a single cent or
+                  ounce moves.
+                </p>
+              </div>
+
+              {/* 100% Stat Block */}
+              <div className="border-l-2 border-amber-500 pl-5 py-2">
+                <p className="text-3xl font-bold tabular-nums text-slate-100 sm:text-4xl">
+                  100%
+                </p>
+                <p className="mt-1 text-base font-bold text-slate-100">
+                  Capital Indemnification
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  Every active settlement is backed by our sovereign-grade
+                  actuarial policy. Transit loss, vault theft, and platform
+                  failure are fully underwritten.
+                </p>
               </div>
             </div>
           </div>

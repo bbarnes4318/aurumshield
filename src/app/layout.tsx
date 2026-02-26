@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
+import { IBM_Plex_Sans, Source_Serif_4, Inter, JetBrains_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { ClerkWrapper } from "@/providers/clerk-wrapper";
 import { FingerprintProvider } from "@/providers/fingerprint-provider";
@@ -30,6 +30,20 @@ const sourceSerif = Source_Serif_4({
   display: "swap",
 });
 
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+
 /* ----------------------------------------------------------------
    METADATA
    ---------------------------------------------------------------- */
@@ -53,7 +67,7 @@ export default function RootLayout({
       <html
         lang="en"
         suppressHydrationWarning
-        className={`${ibmPlexSans.variable} ${sourceSerif.variable}`}
+        className={`${ibmPlexSans.variable} ${sourceSerif.variable} ${inter.variable} ${jetbrainsMono.variable}`}
       >
         <body className="font-sans antialiased">
           <ChunkErrorRecovery />

@@ -78,7 +78,7 @@ const TXN_STATE_TEXT: Record<string, string> = {
 };
 
 const WORM_COLORS: Record<string, string> = {
-  verified: "bg-success",
+  verified: "bg-emerald-500",
   stored: "bg-info",
   pending: "bg-warning",
   quarantined: "bg-danger",
@@ -182,13 +182,13 @@ function CapitalCell({
       </div>
       <p
         className={cn(
-          "text-2xl font-semibold tabular-nums tracking-tight",
+          "text-2xl font-bold tabular-nums tracking-tight",
           highlight ? highlightColor[highlight] : "text-text"
         )}
       >
         {value}
       </p>
-      {sub && <p className="mt-1 text-[10px] tabular-nums text-text-faint/70">{sub}</p>}
+      {sub && <p className="mt-1 font-mono text-[10px] tabular-nums text-text-faint/70">{sub}</p>}
     </div>
   );
 }
@@ -436,10 +436,10 @@ function BlockedTransitionsPanel({
           <tbody>
             {transitions.map((t) => (
               <tr key={t.id} className="border-b border-border/50 last:border-b-0">
-                <td className="py-2.5 pr-4 typo-mono text-gold">{t.reference}</td>
+                <td className="py-2.5 pr-4 font-mono text-[11px] tracking-wider text-amber-500">{t.reference}</td>
                 <td className="py-2.5 pr-4 text-text">{t.counterparty}</td>
                 <td className="py-2.5 pr-4 text-text-muted max-w-xs">{t.reason}</td>
-                <td className="py-2.5 pr-4 tabular-nums text-text-faint whitespace-nowrap">
+                <td className="py-2.5 pr-4 font-mono text-[10px] text-slate-400 whitespace-nowrap">
                   {new Date(t.blockedSince).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
                 </td>
                 <td className="py-2.5 text-right">
@@ -489,7 +489,7 @@ function EvidenceValidationsPanel({
               </div>
               <div className="shrink-0 text-right">
                 <p className={cn("text-xs font-semibold uppercase", color)}>{v.result}</p>
-                <p className="mt-0.5 text-[10px] tabular-nums text-text-faint">
+                <p className="mt-0.5 font-mono text-[9px] tabular-nums text-slate-500 tracking-wider">
                   {new Date(v.checkedAt).toLocaleString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC
                 </p>
               </div>
@@ -579,7 +579,7 @@ function IntradayControlCard() {
     return (
       <section>
         <h2 className="typo-label mb-3">Intraday Capital</h2>
-        <div className="card-base px-5 py-4 animate-pulse">
+        <div className="rounded-xl border border-slate-700 bg-slate-900 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] px-6 py-5 relative overflow-hidden animate-pulse">
           <div className="h-5 w-48 rounded bg-surface-3" />
         </div>
       </section>
@@ -597,7 +597,11 @@ function IntradayControlCard() {
   return (
     <section data-tour="dashboard-intraday-card">
       <h2 className="typo-label mb-3">Intraday Capital</h2>
-      <div className="card-base px-5 py-4">
+      <div className="rounded-xl border border-slate-700 bg-slate-900 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] px-6 py-5 relative overflow-hidden">
+        {/* Warning strip for non-NORMAL modes */}
+        {decision.mode !== "NORMAL" && (
+          <div className={cn("absolute inset-x-0 top-0 h-[2px]", modeCfg.bg.split(" ")[0])} />
+        )}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
             {/* Breach Level */}
@@ -617,10 +621,10 @@ function IntradayControlCard() {
             </div>
 
             {/* KPI chips */}
-            <span className="text-xs tabular-nums text-text-faint">
+            <span className="font-mono text-xs text-amber-500/80 bg-slate-950 px-2 py-1 rounded border border-slate-800">
               ECR {snap.ecr.toFixed(2)}x
             </span>
-            <span className="text-xs tabular-nums text-text-faint">
+            <span className="font-mono text-xs text-amber-500/80 bg-slate-950 px-2 py-1 rounded border border-slate-800">
               HU {(snap.hardstopUtilization * 100).toFixed(1)}%
             </span>
           </div>
@@ -772,7 +776,7 @@ export default function DashboardPage() {
          SECTION 2: RISK DISTRIBUTION
          ============================================================ */}
       <section data-tour="dashboard-risk">
-        <h2 className="typo-label mb-3">Risk Distribution</h2>
+        <h2 className="typo-label mb-3">Systemic Risk & Exposure Distribution</h2>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <TRIBandPanel bands={d.triBands.bands} asOf={d.triBands.asOf} />
@@ -790,7 +794,7 @@ export default function DashboardPage() {
          SECTION 3: EVIDENCE HEALTH
          ============================================================ */}
       <section data-tour="dashboard-evidence">
-        <h2 className="typo-label mb-3">Evidence Health</h2>
+        <h2 className="typo-label mb-3">Cryptographic Provenance Health</h2>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <EvidenceValidationsPanel validations={d.evidenceValidations.validations} asOf={d.evidenceValidations.asOf} />

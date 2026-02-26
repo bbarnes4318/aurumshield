@@ -15,24 +15,28 @@ const STANDARDS = [
   {
     framework: "LBMA",
     scope: "Good Delivery Standards",
+    status: "Verified",
     implementation:
       "Refiner verification against 34+ accredited LBMA Good Delivery refiners with fuzzy name matching. Three mandatory evidence types required per listing.",
   },
   {
     framework: "OECD",
     scope: "Responsible Sourcing",
+    status: "Compliant",
     implementation:
       "Chain of custody documentation required per listing. Source-of-funds analysis during KYB onboarding. Provenance verified via structured document extraction.",
   },
   {
     framework: "KYC / KYB",
     scope: "Identity Perimeter",
+    status: "Verified",
     implementation:
       "Persona-powered government ID verification with biometric liveness detection. OpenSanctions screening across OFAC, EU, UN, UK HMT, and DFAT lists. UBO declaration for entities.",
   },
   {
     framework: "Audit",
     scope: "Immutable Record",
+    status: "Compliant",
     implementation:
       "Append-only event stream with SHA-256 deterministic event IDs. Tamper-evident verification enabled. Structured JSON for SIEM ingestion. Policy snapshots frozen at execution.",
   },
@@ -75,7 +79,7 @@ export function ComplianceSection() {
                       borderRadius: "0.375rem",
                     }}
                   >
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--mk-gold)] flex-shrink-0" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
                     <span className="text-xs font-semibold text-white">
                       {s.framework}
                     </span>
@@ -87,12 +91,12 @@ export function ComplianceSection() {
           <div className="order-1 lg:order-2">
             <p className="mk-overline mb-3">Compliance</p>
             <h2 className="mk-h2 mb-4">
-              Standards &amp; Compliance Alignment
+              Engineered for Institutional Compliance.
             </h2>
             <p className="mk-body max-w-xl">
-              Compliance is architecturally embedded — not bolted on. Each
-              standard is enforced through code-level constraints within the
-              settlement lifecycle, not through policy documents.
+              AurumShield maps to the most stringent regulatory and security
+              frameworks in global finance, ensuring your treasury operations
+              remain fully compliant.
             </p>
           </div>
         </motion.div>
@@ -107,7 +111,7 @@ export function ComplianceSection() {
         >
           {/* Header */}
           <div
-            className="grid grid-cols-[100px_1fr_2fr] gap-4 px-6 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--mk-faint)] sm:grid-cols-[120px_160px_1fr]"
+            className="grid grid-cols-[100px_1fr_90px_2fr] gap-4 px-6 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--mk-faint)] sm:grid-cols-[120px_160px_90px_1fr]"
             style={{
               backgroundColor: "#0F1623",
               borderBottom: "1px solid var(--mk-border)",
@@ -115,6 +119,7 @@ export function ComplianceSection() {
           >
             <span>Framework</span>
             <span>Scope</span>
+            <span>Status</span>
             <span>Implementation</span>
           </div>
 
@@ -132,7 +137,7 @@ export function ComplianceSection() {
                   transition: { delay: i * 0.06, duration: 0.4 },
                 },
               }}
-              className="grid grid-cols-[100px_1fr_2fr] gap-4 px-6 py-4 sm:grid-cols-[120px_160px_1fr]"
+              className="grid grid-cols-[100px_1fr_90px_2fr] gap-4 px-6 py-4 sm:grid-cols-[120px_160px_90px_1fr]"
               style={{
                 backgroundColor: i % 2 === 0 ? "#0F1623" : "var(--mk-surface)",
                 borderBottom:
@@ -146,6 +151,11 @@ export function ComplianceSection() {
               </span>
               <span className="text-sm font-medium text-white">
                 {s.scope}
+              </span>
+              <span>
+                <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 font-mono text-xs font-bold uppercase tracking-widest text-emerald-400">
+                  {s.status}
+                </span>
               </span>
               <span className="text-sm leading-relaxed text-slate-300">
                 {s.implementation}

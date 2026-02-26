@@ -1,6 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Lock, ShieldCheck, Fingerprint } from "lucide-react";
+
+/* ================================================================
+   THE ANATOMY OF A FRAUD-PROOF TRADE — 3-Column Layout
+   ================================================================
+   Replaces the old "Market Weakness" 5-card grid.
+   Two outer pillars (Capital Confinement / Asset Provenance) with
+   a visually elevated center nexus (Atomic Settlement).
+   ================================================================ */
 
 const reveal = {
   hidden: { opacity: 0, y: 16 },
@@ -11,26 +20,27 @@ const reveal = {
   },
 };
 
-const WEAKNESSES = [
+const PILLARS = [
   {
-    heading: "Bilateral Principal Exposure",
-    body: "Each counterparty bears the full notional value as principal risk. Default by either party exposes the other to complete loss — no systemic backstop exists.",
+    icon: Lock,
+    title: "Capital Confinement",
+    subtitle: "Buyer Fraud Eliminated",
+    body: "Funds are cryptographically verified and locked in secure escrow before a single ounce moves. Zero risk of non-payment, chargebacks, or phantom capital.",
+    highlight: false,
   },
   {
-    heading: "Non-Atomic Settlement",
-    body: "Payment and delivery occur as discrete events separated by time. This settlement gap creates temporal exposure where capital is committed but finality is not achieved.",
+    icon: ShieldCheck,
+    title: "Atomic Settlement",
+    subtitle: "The Nexus",
+    body: "Ownership of the gold and release of the funds happen simultaneously—and only when all conditions are met. If either party fails, the trade aborts. If the system fails, our actuarially-backed policy fully indemnifies the loss.",
+    highlight: true,
   },
   {
-    heading: "Duplicated Capital Requirements",
-    body: "Without centralized clearing, each bilateral relationship requires independent collateral. Capital requirements multiply across counterparties, reducing deployment efficiency.",
-  },
-  {
-    heading: "Fragmented Execution Paths",
-    body: "Trade execution flows through intermediary chains without standardized transparency. Provenance, pricing basis, and settlement timing remain opaque.",
-  },
-  {
-    heading: "Manual Operational Surface",
-    body: "Identity verification, document exchange, and settlement confirmation rely on manual processes. Each handoff introduces latency, error surface, and audit gaps.",
+    icon: Fingerprint,
+    title: "Asset Provenance",
+    subtitle: "Seller Fraud Eliminated",
+    body: "Physical bullion is authenticated at LBMA-aligned hubs and locked into our chain of custody. Zero risk of counterfeit assets or non-delivery.",
+    highlight: false,
   },
 ] as const;
 
@@ -38,61 +48,96 @@ export function MarketWeaknessSection() {
   return (
     <section
       id="market-weakness"
-      className="mk-section border-t border-[var(--mk-border)]"
+      className="py-24 lg:py-32"
+      style={{ backgroundColor: "#0A1128" }}
     >
-      <div className="mk-container">
-        {/* ── Intro: 2-column grid ── */}
+      <div className="mx-auto max-w-7xl px-6">
+        {/* ── Section Header ── */}
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
           variants={reveal}
-          className="grid lg:grid-cols-2 gap-16 mb-16"
+          className="mb-16 max-w-3xl"
         >
-          <div>
-            <p className="mk-overline mb-3">Market Structure</p>
-            <h2 className="mk-h2">
-              The Physical Gold Market Operates Without Centralized Clearing
-            </h2>
-          </div>
-          <div className="flex items-end">
-            <p className="mk-body max-w-xl">
-              Every bilateral transaction carries full principal risk. No
-              institutional mechanism equivalent to what equities and derivatives
-              markets have had for decades exists for physical gold settlement.
-            </p>
-          </div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-gold">
+            Trade Architecture
+          </p>
+          <h2 className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-4xl">
+            The Anatomy of a Fraud-Proof Trade
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+            Two structural pillars eliminate fraud on both sides of every
+            transaction. At the center, atomic settlement binds them into a
+            single indemnified event.
+          </p>
         </motion.div>
 
-        {/* ── Weakness Cards: 2-column grid ── */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          {WEAKNESSES.map((w, i) => (
-            <motion.div
-              key={w.heading}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-40px" }}
-              variants={{
-                hidden: { opacity: 0, y: 12 },
-                visible: {
-                  opacity: 1,
-                  y: 0,
-                  transition: { delay: i * 0.08, duration: 0.5 },
-                },
-              }}
-              className="mk-card space-y-4"
-            >
-              <span className="block font-mono text-xs font-bold text-[var(--mk-gold)] tabular-nums">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <h3 className="text-[0.9375rem] font-semibold text-white">
-                {w.heading}
-              </h3>
-              <p className="text-sm leading-relaxed text-slate-300">
-                {w.body}
-              </p>
-            </motion.div>
-          ))}
+        {/* ── 3-Column Grid ── */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {PILLARS.map((pillar, i) => {
+            const Icon = pillar.icon;
+            return (
+              <motion.div
+                key={pillar.title}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-40px" }}
+                variants={{
+                  hidden: { opacity: 0, y: 18 },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    transition: { delay: i * 0.12, duration: 0.6 },
+                  },
+                }}
+                className={`relative rounded-2xl border p-8 transition-all duration-300 ${
+                  pillar.highlight
+                    ? "border-amber-500/30 bg-amber-500/[0.04] shadow-[0_0_40px_rgba(212,175,55,0.06)]"
+                    : "border-white/[0.08] bg-white/[0.02] hover:border-[#D4AF37]/30"
+                }`}
+              >
+                {/* Icon */}
+                <div
+                  className={`mb-5 flex h-12 w-12 items-center justify-center rounded-xl border ${
+                    pillar.highlight
+                      ? "border-amber-500/30 bg-amber-500/10"
+                      : "border-white/[0.08] bg-white/[0.03]"
+                  }`}
+                >
+                  <Icon
+                    className={`h-5 w-5 ${
+                      pillar.highlight ? "text-gold" : "text-gold"
+                    }`}
+                  />
+                </div>
+
+                {/* Subtitle tag */}
+                <span
+                  className={`mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] ${
+                    pillar.highlight ? "text-amber-500/70" : "text-slate-500"
+                  }`}
+                >
+                  {pillar.subtitle}
+                </span>
+
+                {/* Title */}
+                <h3 className="mb-3 text-lg font-semibold text-white">
+                  {pillar.title}
+                </h3>
+
+                {/* Body */}
+                <p className="text-sm leading-relaxed text-slate-400">
+                  {pillar.body}
+                </p>
+
+                {/* Highlight accent bar */}
+                {pillar.highlight && (
+                  <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-2xl bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

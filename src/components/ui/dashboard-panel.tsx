@@ -42,13 +42,13 @@ export function DashboardPanel({
   return (
     <div
       className={cn(
-        "card-base flex flex-col overflow-hidden print:break-inside-avoid",
+        "card-base flex flex-col overflow-hidden print:break-inside-avoid border border-slate-800/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] bg-[#0f1219]",
         fullWidth ? "col-span-full" : "",
         className
       )}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-border px-6 py-3">
+      <div className="flex items-center gap-2 border-b border-slate-800/80 bg-[#0a0d14] px-6 py-3">
         <h3 className="typo-label">{title}</h3>
         <InfoTooltip content={tooltip} side="right" />
       </div>
@@ -58,7 +58,7 @@ export function DashboardPanel({
 
       {/* Footer — timestamp */}
       <div className="border-t border-border px-6 py-2">
-        <p className="text-[10px] tabular-nums text-text-faint">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-slate-500 tabular-nums">
           As of {formattedTime}
         </p>
       </div>

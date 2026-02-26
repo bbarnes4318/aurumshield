@@ -1,12 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { ClearingSeal } from "../ClearingSeal";
 
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://app.aurumshield.vip";
 
 const fade = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 14 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
@@ -18,32 +21,41 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative min-h-[80vh] py-36"
-      style={{ backgroundColor: "var(--mk-bg)" }}
+      className="relative min-h-[85vh] overflow-hidden"
+      style={{ backgroundColor: "#0A1128" }}
     >
-      <div className="mx-auto max-w-6xl px-6 grid lg:grid-cols-2 gap-16 items-center">
-        {/* ── Left Column: Text ── */}
-        <div>
-          <motion.span
+      {/* ── Radial gold gradient anchored behind CTA area ── */}
+      <div
+        className="pointer-events-none absolute left-[20%] top-[60%] h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(212,175,55,0.05) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center py-12 lg:py-24 max-w-7xl mx-auto px-6">
+        {/* ── Left Column ── */}
+        <div className="flex flex-col justify-center space-y-6 lg:space-y-8 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
+          {/* Eyebrow Badge */}
+          <motion.div
             custom={0}
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="mb-6 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--mk-faint)]"
           >
-            Institutional Clearing Infrastructure
-          </motion.span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-sm font-medium text-gold">
+              Institutional Clearing Infrastructure
+            </span>
+          </motion.div>
 
           <motion.h1
             custom={1}
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="mb-6 font-serif text-5xl lg:text-6xl font-semibold tracking-tight leading-tight text-white"
+            className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-white tracking-tight leading-[1.15]"
           >
-            Physical Gold.
-            <br />
-            Cleared Deterministically.
+            Eliminate <span className="text-gold">Counterparty Fraud</span> in Physical Gold Trading.
           </motion.h1>
 
           <motion.p
@@ -51,10 +63,9 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="mb-10 max-w-xl text-lg leading-relaxed text-slate-300"
+            className="text-base md:text-lg text-slate-400 leading-relaxed"
           >
-            Atomic Delivery-versus-Payment infrastructure for institutions that
-            refuse bilateral principal risk.
+            AurumShield replaces bilateral trust with mathematically enforced <span className="text-gold font-semibold">Delivery-versus-Payment (DvP)</span>. Capital and bullion are confined, verified, and settled atomically—eliminating principal risk by architectural design.
           </motion.p>
 
           <motion.div
@@ -62,83 +73,29 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="flex flex-col gap-4 sm:flex-row"
+            className="flex flex-col gap-4 sm:flex-row justify-center lg:justify-start"
           >
-            <a href={`${APP_URL}/signup`} className="mk-btn-primary">
-              Apply for Institutional Access
+            <a
+              href={`${APP_URL}/signup`}
+              className="inline-flex items-center justify-center gap-2 bg-action-gold hover:bg-action-gold/90 text-slate-950 font-bold px-8 py-4 rounded-lg transition-all duration-200"
+            >
+              Request Institutional Access
+              <ArrowRight className="h-4 w-4" />
             </a>
-            <a href="#clearing-architecture" className="mk-btn-secondary">
-              Review Settlement Architecture
-            </a>
+
+            <Link
+              href="/technical-overview"
+              className="inline-flex items-center justify-center gap-2 bg-transparent border border-gold/40 hover:border-gold text-gold font-bold px-8 py-4 rounded-lg transition-all duration-200"
+            >
+              Review Actuarial Model
+            </Link>
           </motion.div>
         </div>
 
-        {/* ── Right Column: Settlement Lifecycle Diagram ── */}
-        <motion.div
-          custom={2}
-          initial="hidden"
-          animate="visible"
-          variants={fade}
-          className="hidden lg:block"
-        >
-          <div
-            className="p-8 space-y-0"
-            style={{
-              backgroundColor: "var(--mk-surface)",
-              border: "1px solid var(--mk-border)",
-              borderRadius: "0.75rem",
-            }}
-          >
-            <p className="mb-6 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--mk-faint)]">
-              Settlement Lifecycle
-            </p>
-            {[
-              {
-                step: "01",
-                label: "Asset Verified",
-                detail: "LBMA Good Delivery verified, evidence packed",
-              },
-              {
-                step: "02",
-                label: "Price Locked",
-                detail: "Spot rate captured, inventory concurrency guard",
-              },
-              {
-                step: "03",
-                label: "Payment Confirmed",
-                detail: "Dual-rail settlement, SHA-256 idempotency key",
-              },
-              {
-                step: "04",
-                label: "Atomic DvP",
-                detail: "Title and funds transfer simultaneously",
-              },
-              {
-                step: "05",
-                label: "Finality Issued",
-                detail: "Clearing certificate signed, ledger sealed",
-              },
-            ].map((item, i) => (
-              <div
-                key={item.step}
-                className="flex items-start gap-4 py-4"
-                style={{
-                  borderBottom: i < 4 ? "1px solid var(--mk-border)" : "none",
-                }}
-              >
-                <span className="flex-shrink-0 font-mono text-xs font-bold tabular-nums text-[var(--mk-gold)]">
-                  {item.step}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-white">
-                    {item.label}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">{item.detail}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        {/* ── Right Column — Clearing Seal ── */}
+        <div className="hidden lg:block">
+          <ClearingSeal />
+        </div>
       </div>
     </section>
   );

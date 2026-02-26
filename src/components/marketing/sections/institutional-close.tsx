@@ -35,10 +35,8 @@ export function InstitutionalCloseSection() {
             structural infrastructure.
           </h2>
           <p className="mx-auto mb-12 max-w-[520px] text-base leading-relaxed text-slate-300">
-            AurumShield is purpose-built clearing infrastructure for
-            institutional physical gold. If your organization requires
-            deterministic settlement, capital transparency, and forensic
-            auditability — apply for access.
+            Institutional participants are migrating to deterministic bullion
+            clearing. Access is restricted to qualified entities.
           </p>
           <a href={`${APP_URL}/signup`} className="mk-btn-primary">
             Apply for Institutional Access

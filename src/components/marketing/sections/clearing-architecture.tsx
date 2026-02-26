@@ -13,40 +13,19 @@ const reveal = {
 
 const PILLARS = [
   {
-    label: "DvP",
-    heading: "Atomic Delivery-versus-Payment",
-    bullets: [
-      "Title and payment transfer in a single deterministic operation",
-      "No intermediate state where value is exposed",
-      "Settlement finality is computational, not procedural",
-    ],
-  },
-  {
-    label: "Capital",
-    heading: "Continuous Capital Monitoring",
-    bullets: [
-      "Real-time Exposure Coverage Ratio tracking",
-      "Deterministic breach detection with escalating control modes",
-      "Hardstop limits enforced before execution, not after",
-    ],
-  },
-  {
-    label: "Finality",
-    heading: "Cryptographic Settlement Finality",
-    bullets: [
-      "SHA-256 signed clearing certificates per settlement",
-      "Canonical payload serialization for independent verification",
-      "Immutable append-only audit ledger",
-    ],
-  },
-  {
     label: "Provenance",
-    heading: "Vault & Asset Provenance Integrity",
-    bullets: [
-      "LBMA Good Delivery refiner verification",
-      "Three mandatory evidence types per listing",
-      "AWS Textract OCR with structured field extraction",
-    ],
+    heading: "Cryptographic Asset Provenance",
+    body: "Direct integration with LBMA-certified hubs ensures every ounce is cryptographically authenticated before entering the clearing ledger.",
+  },
+  {
+    label: "Escrow",
+    heading: "Atomic Escrow Engine",
+    body: "Capital is mathematically confined and locked. Funds cannot be released until asset delivery is irrevocably confirmed.",
+  },
+  {
+    label: "Audit",
+    heading: "Real-Time Audit Telemetry",
+    body: "Provide your compliance and treasury teams with instantaneous, immutable cryptographic receipts for every cleared transaction.",
   },
 ] as const;
 
@@ -117,7 +96,7 @@ export function ClearingArchitectureSection() {
           </div>
           <div className="order-1 lg:order-2 flex flex-col justify-center">
             <p className="mk-overline mb-3">Architecture</p>
-            <h2 className="mk-h2 mb-4">The Clearing Architecture</h2>
+            <h2 className="mk-h2 mb-4">Military-Grade Settlement Infrastructure.</h2>
             <p className="mk-body max-w-xl">
               AurumShield interposes as the central counterparty between buyers
               and sellers. Bilateral trust relationships are replaced with
@@ -126,8 +105,8 @@ export function ClearingArchitectureSection() {
           </div>
         </motion.div>
 
-        {/* ── Pillar Cards: 4-column grid ── */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* ── Pillar Cards: 3-column grid ── */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PILLARS.map((p, i) => (
             <motion.div
               key={p.label}
@@ -147,20 +126,12 @@ export function ClearingArchitectureSection() {
               <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--mk-gold)]">
                 {p.label}
               </span>
-              <h3 className="text-[0.9375rem] font-semibold leading-snug text-white">
+              <h3 className="text-[0.9375rem] font-semibold leading-snug text-amber-400">
                 {p.heading}
               </h3>
-              <ul className="space-y-2.5">
-                {p.bullets.map((b) => (
-                  <li
-                    key={b}
-                    className="flex items-start gap-2.5 text-sm leading-relaxed text-slate-300"
-                  >
-                    <span className="mt-[7px] block h-px w-3 flex-shrink-0 bg-[var(--mk-gold)] opacity-50" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
+              <p className="text-sm leading-relaxed text-slate-300">
+                {p.body}
+              </p>
             </motion.div>
           ))}
         </div>
