@@ -143,7 +143,8 @@ export const config = {
      * - _next/image (image optimization)
      * - favicon.ico, sitemap.xml, robots.txt
      * - Public assets in /images, /fonts, etc.
+     * - Static file extensions (.svg, .png, .jpg, .gif, .webp, .ico, .css, .js, .woff, .woff2, .ttf, .eot)
      */
-    "/((?!_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt|images/|fonts/).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt|images/|fonts/|.*\\.svg$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.webp$|.*\\.ico$|.*\\.css$|.*\\.woff2?$|.*\\.ttf$|.*\\.eot$).*)",
   ],
 };
