@@ -17,21 +17,10 @@ async function getBackCta() {
   const hdrs = await headers();
   const ref = hdrs.get("referer") ?? "";
 
-  const fromMarketing =
-    ref.includes("aurumshield.vip") &&
-    !ref.includes("app.aurumshield.vip");
-
   const fromApp =
     ref.includes("app.aurumshield.vip") ||
     ref.includes("/login") ||
     ref.includes("/platform");
-
-  if (fromMarketing) {
-    return {
-      label: "Back to Home",
-      href: "https://aurumshield.vip/",
-    };
-  }
 
   if (fromApp) {
     return {
@@ -42,7 +31,7 @@ async function getBackCta() {
 
   return {
     label: "Back to Home",
-    href: "https://aurumshield.vip/",
+    href: "/",
   };
 }
 

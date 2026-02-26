@@ -12,9 +12,7 @@
 
 import Link from "next/link";
 import {
-  ShieldCheck,
   AlertTriangle,
-  Lock,
   Timer,
   Layers,
   Eye,
@@ -23,7 +21,6 @@ import {
   Globe,
   FileText,
   Code,
-  Terminal,
   Monitor,
   Cpu,
 } from "lucide-react";
@@ -43,11 +40,8 @@ function Navigation() {
     <nav className="fixed top-0 z-50 w-full bg-[#050A14]/80 backdrop-blur-xl border-b border-white/[0.06]">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <ShieldCheck className="h-6 w-6 text-[#D4AF37]" />
-          <span className="text-lg font-bold tracking-tight text-white">
-            AurumShield
-          </span>
+        <Link href="/" className="flex items-center">
+          <img src="/arum-logo-gold.svg" alt="AurumShield" className="h-8 w-auto" />
         </Link>
 
         {/* Center Links */}
@@ -740,8 +734,7 @@ function SiteFooter() {
     <footer className="border-t border-white/[0.06] px-6 py-8">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
         <div className="flex items-center gap-3 text-sm text-slate-500">
-          <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
-          <span className="font-semibold text-white">AurumShield</span>
+          <img src="/arum-logo-gold.svg" alt="AurumShield" className="h-6 w-auto" />
           <span className="h-3 w-px bg-white/[0.08]" />
           <span>&copy; {new Date().getFullYear()}</span>
         </div>
