@@ -600,7 +600,6 @@ export default async function PlatformCapabilitiesPage() {
             </div>
 
             <h3>4.2 System Architecture</h3>
-            <div className="w-full h-64 sm:h-96 my-8 border border-slate-800 bg-[#0B0E14] rounded-md flex items-center justify-center text-gold/40 font-mono text-sm">[ Architecture Schematic Diagram Placeholder ]</div>
             <div className="plat-arch">
               <div className="plat-layer">
                 <span className="plat-layer-title">Presentation Layer</span>
@@ -659,7 +658,6 @@ export default async function PlatformCapabilitiesPage() {
               full forensic context — previous state, attempted state, entity ID, actor ID, and role — which is
               automatically emitted to the audit log for governance review.
             </p>
-            <div className="w-full h-48 sm:h-64 my-8 border border-slate-800 bg-[#0B0E14] rounded-md flex items-center justify-center text-gold/40 font-mono text-sm">[ State Machine Flowchart Placeholder ]</div>
 
             <h3>Atomic DvP Execution</h3>
             <p>The centerpiece is the two-step DvP mechanism:</p>
@@ -1023,7 +1021,6 @@ export default async function PlatformCapabilitiesPage() {
                 </tbody>
               </table>
             </div>
-            <div className="w-full h-48 sm:h-64 my-8 border border-slate-800 bg-[#0B0E14] rounded-md flex items-center justify-center text-gold/40 font-mono text-sm">[ Dual-Rail Routing Diagram Placeholder ]</div>
 
             <h3>Rail Selection Logic</h3>
             <p>

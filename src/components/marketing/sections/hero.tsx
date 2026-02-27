@@ -65,7 +65,7 @@ export function HeroSection() {
             variants={fade}
             className="text-base md:text-lg text-slate-400 leading-relaxed"
           >
-            AurumShield replaces bilateral trust with mathematically enforced <span className="text-gold font-semibold">Delivery-versus-Payment (DvP)</span>. Capital and bullion are confined, verified, and settled atomically—eliminating principal risk by architectural design.
+            AurumShield replaces bilateral trust with mathematically enforced <span className="text-gold font-semibold">Delivery-versus-Payment (DvP)</span>. Capital and bullion are confined, verified, and settled atomically—eliminating principal risk and <span className="text-gold font-semibold">fully indemnifying loss from fraud or logistical failure</span> by architectural design.
           </motion.p>
 
           <motion.div
