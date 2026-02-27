@@ -23,8 +23,8 @@ export function TrustBand() {
               key={item.label}
               className="flex items-center gap-2.5"
             >
-              <Icon className="h-4 w-4 text-gold" strokeWidth={1.5} />
-              <span className="font-mono text-xs sm:text-sm font-bold tracking-[0.15em] uppercase text-gray-200">
+              <Icon className="h-4 w-4 text-gold/70" strokeWidth={1.5} />
+              <span className="font-mono text-[10px] sm:text-xs font-semibold tracking-widest uppercase text-gray-300">
                 {item.label}
               </span>
             </div>
