@@ -344,42 +344,25 @@ function KineticRiskSection() {
 
         <div className="mt-16 grid gap-6 lg:grid-cols-12">
           {/* Large Feature - Spans 8 columns */}
-          <div
-            className={`lg:col-span-8 ${GLASS_CARD} p-8 sm:p-10 flex flex-col justify-center`}
-          >
-            <h3 className="text-xl font-bold text-white mb-4">
-              Sovereign Vault Confinement
-            </h3>
-            <p className="text-base leading-relaxed text-gray-300 max-w-2xl">
-              Certified bullion remains locked in secure, insured facilities
-              operated exclusively by Tier-1 partners including Malca-Amit and
-              Brink&apos;s. Counterparties never manage armed logistics or enter
-              volatile territories. Physical reality is maintained; kinetic
-              exposure is bypassed.
+          <div className={`lg:col-span-8 ${GLASS_CARD} p-8 sm:p-10 flex flex-col justify-center`}>
+            <h3 className="text-xl font-bold text-white mb-4">Sovereign Vault Confinement</h3>
+            <p className="text-base leading-relaxed text-slate-400 max-w-2xl">
+              Certified bullion remains locked in secure, insured facilities operated exclusively by Tier-1 logistics partners including Malca-Amit and Brink&apos;s. Counterparties never touch the physical rail. Physical reality is maintained; kinetic exposure is bypassed.
             </p>
           </div>
-
+          
           {/* Stacked Side Features - Span 4 columns */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             <div className={`${GLASS_CARD} p-6 flex-1`}>
-              <h3 className="text-base font-bold text-white mb-2">
-                Asset Provenance
-              </h3>
-              <p className="text-sm leading-relaxed text-gray-300">
-                Independent LBMA-certified partners conduct physical assays
-                prior to digital allocation, structurally eliminating
-                counterfeit asset risk.
+              <h3 className="text-base font-bold text-white mb-2">Armored Transit Eliminated</h3>
+              <p className="text-sm leading-relaxed text-slate-400">
+                Because settlement occurs atomically at the vault level, participants never need to manage armed transport or supply chain security.
               </p>
             </div>
-            <div
-              className={`${GLASS_CARD} p-6 flex-1 border-gold/30 bg-gold/5`}
-            >
-              <h3 className="text-base font-bold text-gold mb-2">
-                100% Indemnification
-              </h3>
-              <p className="text-sm leading-relaxed text-gray-300">
-                Every ounce settled is fully underwritten against theft, loss,
-                and catastrophic fraud.
+            <div className={`${GLASS_CARD} p-6 flex-1`}>
+              <h3 className="text-base font-bold text-white mb-2">Geopolitical Insulation</h3>
+              <p className="text-sm leading-relaxed text-slate-400">
+                Assets remain sequestered in highly stable jurisdictions, eliminating the risk of local extortion, confiscation, or transit interception.
               </p>
             </div>
           </div>
@@ -685,10 +668,10 @@ export function MarketingLanding() {
       <HeroSection />
       <TrustBand />
       <MarketWeaknessSection />
+      <KineticRiskSection />
       <SettlementLifecycleSection />
       <ExposureSection />
       <RiskModelSection />
-      <KineticRiskSection />
       <ArchitectureSection />
       <ComplianceSection />
       <ComplianceGate />
