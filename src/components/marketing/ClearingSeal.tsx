@@ -69,7 +69,7 @@ export function ClearingSeal({
             
             {/* Left Column (Buyer) */}
             <div className="flex-1 space-y-4 text-center md:text-left bg-slate-900/40 p-5 rounded-lg border border-slate-800/50">
-              <h3 className="text-slate-400 tracking-widest text-xs uppercase font-mono">
+              <h3 className="text-gray-300 tracking-widest text-xs uppercase font-mono">
                 Capital Confinement
               </h3>
               <p className="text-slate-100 text-sm md:text-base font-semibold tracking-wide">
@@ -115,7 +115,7 @@ export function ClearingSeal({
 
             {/* Right Column (Seller) */}
             <div className="flex-1 space-y-4 text-center md:text-right bg-slate-900/40 p-5 rounded-lg border border-slate-800/50">
-              <h3 className="text-slate-400 tracking-widest text-xs uppercase font-mono">
+              <h3 className="text-gray-300 tracking-widest text-xs uppercase font-mono">
                 Asset Provenance
               </h3>
               <p className="text-slate-100 text-sm md:text-base font-semibold tracking-wide">
@@ -132,7 +132,7 @@ export function ClearingSeal({
           </div>
 
           {/* Footer & Dynamic Props */}
-          <div className="mt-auto pt-8 border-t border-slate-800/60 flex flex-col md:flex-row justify-between items-end gap-6 font-mono text-xs text-slate-500">
+          <div className="mt-auto pt-8 border-t border-slate-800/60 flex flex-col md:flex-row justify-between items-end gap-6 font-mono text-xs text-gray-400">
             
             <div className="flex flex-col space-y-2 w-full md:w-auto">
               <div>TXN HASH: <span className="text-slate-300">{transactionHash}</span></div>

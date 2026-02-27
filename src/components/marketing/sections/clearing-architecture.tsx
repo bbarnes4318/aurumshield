@@ -89,7 +89,7 @@ export function ClearingArchitectureSection() {
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-xs text-slate-400">
+              <p className="mt-4 text-xs text-gray-300">
                 Bilateral trust replaced with engineered infrastructure
               </p>
             </div>

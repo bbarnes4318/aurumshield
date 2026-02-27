@@ -19,6 +19,7 @@ import {
   Code,
   Monitor,
   Cpu,
+  Fingerprint,
 } from "lucide-react";
 
 /* ── Section Imports ── */
@@ -54,7 +55,7 @@ function Navigation() {
               <a
                 key={link}
                 href={`#${link.toLowerCase()}`}
-                className="text-sm font-medium text-slate-400 transition-colors hover:text-white"
+                className="text-sm font-medium text-gray-300 transition-colors hover:text-white"
               >
                 {link}
               </a>
@@ -66,7 +67,7 @@ function Navigation() {
         <div className="flex items-center gap-4">
           <a
             href={`${APP_URL}/login`}
-            className="hidden sm:inline-block text-sm font-medium text-slate-400 transition-colors hover:text-white"
+            className="hidden sm:inline-block text-sm font-medium text-gray-300 transition-colors hover:text-white"
           >
             Client Portal
           </a>
@@ -125,7 +126,7 @@ function SettlementLifecycleSection() {
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           Deterministic Settlement Lifecycle
         </h2>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
           Every transaction traverses a strict, irreversible state machine. Each transition is role-gated, audited, and deterministic.
         </p>
 
@@ -146,7 +147,7 @@ function SettlementLifecycleSection() {
                 <h3 className="text-base font-bold uppercase tracking-wide text-white mb-2">
                   {s.label}
                 </h3>
-                <p className="text-sm leading-relaxed text-slate-400">
+                <p className="text-sm leading-relaxed text-gray-300">
                   {s.description}
                 </p>
               </div>
@@ -179,8 +180,8 @@ function ExposureSection() {
             {/* Title Bar */}
             <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
               <div className="flex items-center gap-2">
-                <Monitor className="h-4 w-4 text-slate-500" />
-                <span className="text-xs font-medium text-slate-500">
+                <Monitor className="h-4 w-4 text-gray-400" />
+                <span className="text-xs font-medium text-gray-400">
                   Risk Dashboard — Exposure Monitor
                 </span>
               </div>
@@ -196,12 +197,12 @@ function ExposureSection() {
               {/* Stats Row */}
               <div className="grid grid-cols-3 gap-4 mb-8">
                 {[
-                  { label: "Bilateral Exposure", value: "$4.2M", status: "text-slate-400" },
+                  { label: "Bilateral Exposure", value: "$4.2M", status: "text-gray-300" },
                   { label: "Cleared Exposure", value: "$0.00", status: "text-gold" },
                   { label: "Risk Reduction", value: "100%", status: "text-gold" },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-4">
-                    <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-1">
+                    <p className="text-[11px] uppercase tracking-wider text-gray-400 mb-1">
                       {stat.label}
                     </p>
                     <p className={`text-xl font-bold font-mono tracking-tight tabular-nums ${stat.status}`}>
@@ -212,13 +213,13 @@ function ExposureSection() {
               </div>
 
               {/* Bar Chart */}
-              <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-4">
+              <p className="text-[11px] uppercase tracking-wider text-gray-400 mb-4">
                 Exposure by Lifecycle Stage
               </p>
               <div className="space-y-3">
                 {exposureData.map((d) => (
                   <div key={d.stage} className="flex items-center gap-4">
-                    <span className="w-20 text-xs text-slate-500 text-right tabular-nums">
+                    <span className="w-20 text-xs text-gray-400 text-right tabular-nums">
                       {d.stage}
                     </span>
                     <div className="flex-1 flex gap-1 h-5">
@@ -241,11 +242,11 @@ function ExposureSection() {
                   <span className="w-20" />
                   <div className="flex-1 flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-sm bg-slate-800" />
-                    <span className="text-[11px] text-slate-500">Bilateral</span>
+                    <span className="text-[11px] text-gray-400">Bilateral</span>
                   </div>
                   <div className="flex-1 flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-sm bg-gold/60" />
-                    <span className="text-[11px] text-slate-500">Centrally Cleared</span>
+                    <span className="text-[11px] text-gray-400">Centrally Cleared</span>
                   </div>
                 </div>
               </div>
@@ -260,12 +261,12 @@ function ExposureSection() {
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
               Exposure Compressed to Zero at Settlement
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Bilateral principal exposure is structurally removed from the
               transaction lifecycle. Central clearing replaces counterparty
               trust with deterministic, capital-monitored infrastructure.
             </p>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Continuous Exposure Coverage Ratio monitoring and hardstop limits
               are enforced computationally before execution — not applied
               retroactively through margin calls.
@@ -304,7 +305,7 @@ function KineticRiskSection() {
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           The Sovereign Custody Layer: Kinetic Risk Eliminated
         </h2>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
           Physical transport of bullion exposes participants to severe kinetic
           threats—supply chain interception, transport extortion, and counterfeit
           asset injection. AurumShield bypasses the physical rail entirely.
@@ -312,35 +313,29 @@ function KineticRiskSection() {
           ownership is settled atomically.
         </p>
 
-        <div className="mt-16 grid gap-6 sm:grid-cols-3">
-          <div className={`${GLASS_CARD} p-8`}>
-            <h3 className="text-lg font-bold text-white mb-3">
-              Vault Network Confinement
-            </h3>
-            <p className="text-sm leading-relaxed text-slate-400">
-              Certified bullion remains locked in secure, insured facilities.
-              Counterparties never enter volatile territories or manage armed
-              logistics.
+        <div className="mt-16 grid gap-6 lg:grid-cols-12">
+          {/* Large Feature - Spans 8 columns */}
+          <div className={`lg:col-span-8 ${GLASS_CARD} p-8 sm:p-10 flex flex-col justify-center`}>
+            <h3 className="text-xl font-bold text-white mb-4">Sovereign Vault Confinement</h3>
+            <p className="text-base leading-relaxed text-gray-300 max-w-2xl">
+              Certified bullion remains locked in secure, insured facilities operated exclusively by Tier-1 partners including Malca-Amit and Brink&apos;s. Counterparties never manage armed logistics or enter volatile territories. Physical reality is maintained; kinetic exposure is bypassed.
             </p>
           </div>
-          <div className={`${GLASS_CARD} p-8`}>
-            <h3 className="text-lg font-bold text-white mb-3">
-              Asset Provenance Layer
-            </h3>
-            <p className="text-sm leading-relaxed text-slate-400">
-              Independent LBMA-certified partners conduct physical assays prior
-              to digital allocation, structurally eliminating counterfeit gold
-              risk.
-            </p>
-          </div>
-          <div className={`${GLASS_CARD} p-8`}>
-            <h3 className="text-lg font-bold text-white mb-3">
-              100% Loss Indemnification
-            </h3>
-            <p className="text-sm leading-relaxed text-slate-400">
-              Every ounce settled on AurumShield is fully insured and indemnified
-              against theft, physical loss, and catastrophic fraud.
-            </p>
+
+          {/* Stacked Side Features - Span 4 columns */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            <div className={`${GLASS_CARD} p-6 flex-1`}>
+              <h3 className="text-base font-bold text-white mb-2">Asset Provenance</h3>
+              <p className="text-sm leading-relaxed text-gray-300">
+                Independent LBMA-certified partners conduct physical assays prior to digital allocation, structurally eliminating counterfeit asset risk.
+              </p>
+            </div>
+            <div className={`${GLASS_CARD} p-6 flex-1 border-gold/30 bg-gold/5`}>
+              <h3 className="text-base font-bold text-gold mb-2">100% Indemnification</h3>
+              <p className="text-sm leading-relaxed text-gray-300">
+                Every ounce settled is fully underwritten against theft, loss, and catastrophic fraud.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -364,13 +359,13 @@ function ArchitectureSection() {
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
               Military-Grade Settlement Infrastructure
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               AurumShield interposes as the central counterparty between buyers
               and sellers. The platform provides two primary access vectors:
               a full-featured institutional web application and a programmatic
               REST API for integration into existing trading systems.
             </p>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Both interfaces connect to the same deterministic settlement
               engine, clearing ledger, and compliance perimeter. Every
               transaction follows the identical lifecycle regardless of
@@ -401,20 +396,21 @@ function ArchitectureSection() {
             <div className="absolute top-8 bottom-8 left-8 w-px bg-white/[0.08] hidden lg:block" />
 
             <div className="space-y-5">
-              {/* Web App Card */}
+              {/* Maker-Checker Card */}
               <div className={`${GLASS_CARD} p-8 relative`}>
                 <div className="flex items-start gap-5">
                   <div className="flex h-14 w-14 items-center justify-center rounded-md bg-gold/10 border border-gold/20 shrink-0">
-                    <Monitor className="h-6 w-6 text-gold" />
+                    <Fingerprint className="h-6 w-6 text-gold" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-2">
-                      Cryptographic Asset Provenance
+                      Maker-Checker Biometric Authorization
                     </h3>
-                    <p className="text-base leading-relaxed text-slate-400 max-w-md">
-                      Full marketplace, order management, settlement tracking,
-                      capital controls dashboard, and supervisory interface.
-                      Role-gated access with biometric identity verification.
+                    <p className="text-base leading-relaxed text-gray-300 max-w-md">
+                      Structurally prevents unauthorized &ldquo;rogue trader&rdquo; execution.
+                      Strict RBAC separates order origination (Trader) from
+                      execution (Treasury). Final settlement requires a
+                      cryptographically bound WebAuthn hardware signature.
                     </p>
                   </div>
                 </div>
@@ -430,7 +426,7 @@ function ArchitectureSection() {
                     <h3 className="text-lg font-semibold text-white mb-2">
                       Atomic Escrow Engine
                     </h3>
-                    <p className="text-base leading-relaxed text-slate-400 max-w-md">
+                    <p className="text-base leading-relaxed text-gray-300 max-w-md">
                       Atomic DvP settlement, SHA-256 clearing certificates,
                       dual-rail payment routing (Moov / Modern Treasury),
                       and append-only audit ledger with tamper-evident hashing.
@@ -449,7 +445,7 @@ function ArchitectureSection() {
                     <h3 className="text-lg font-semibold text-white mb-2">
                       Real-Time Audit Telemetry
                     </h3>
-                    <p className="text-base leading-relaxed text-slate-400 max-w-md">
+                    <p className="text-base leading-relaxed text-gray-300 max-w-md">
                       REST API for trade origination, settlement status polling,
                       certificate verification, and capital monitoring. Designed
                       for integration into existing OMS and EMS platforms.
@@ -510,7 +506,7 @@ function ComplianceSection() {
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           Engineered for Institutional Compliance
         </h2>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
           AurumShield maps to the most stringent regulatory and security
           frameworks in global finance, ensuring your treasury operations
           remain fully compliant.
@@ -519,7 +515,7 @@ function ComplianceSection() {
         {/* Data Table */}
         <div className={`mt-14 ${GLASS_CARD} overflow-hidden`}>
           {/* Header */}
-          <div className="grid grid-cols-[100px_1fr_100px_2fr] gap-4 border-b border-white/[0.06] bg-white/[0.02] px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 sm:grid-cols-[120px_180px_100px_1fr]">
+          <div className="grid grid-cols-[100px_1fr_100px_2fr] gap-4 border-b border-white/[0.06] bg-white/[0.02] px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 sm:grid-cols-[120px_180px_100px_1fr]">
             <span>Framework</span>
             <span>Scope</span>
             <span>Status</span>
@@ -548,7 +544,7 @@ function ComplianceSection() {
                   {row.status}
                 </span>
               </span>
-              <span className="text-sm leading-relaxed text-slate-400">
+              <span className="text-sm leading-relaxed text-gray-300">
                 {row.detail}
               </span>
             </div>
@@ -564,28 +560,29 @@ function ComplianceSection() {
    ================================================================ */
 function FinalCTA() {
   return (
-    <section className="relative py-24 lg:py-32 overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-[#D4AF37]/5 blur-[120px] pointer-events-none" />
+    <section className="py-24 lg:py-32 bg-[#0A1128]">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between border border-slate-800 bg-[#0B0E14] rounded-md p-10 sm:p-16">
+          
+          <div className="max-w-2xl">
+            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white mb-4">
+              Structural markets require structural infrastructure.
+            </h2>
+            <p className="text-lg text-gray-300 leading-relaxed">
+              Institutional participants are migrating to deterministic bullion clearing. Access is restricted to qualified entities.
+            </p>
+          </div>
 
-      <div className="relative mx-auto max-w-4xl px-6 text-center">
-        <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
-          Structural markets require
-          <br />
-          structural infrastructure.
-        </h2>
-        <p className="mt-6 mx-auto max-w-2xl text-lg leading-relaxed text-slate-400">
-          Institutional participants are migrating to deterministic bullion
-          clearing. Access is restricted to qualified entities.
-        </p>
-        <div className="mt-10">
-          <a
-            href={`${APP_URL}/signup`}
-            className="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-[#D4AF37] hover:bg-[#D4AF37]/90 px-10 py-4 text-lg font-bold text-slate-950 transition-all hover:shadow-2xl hover:shadow-[#D4AF37]/25"
-          >
-            <span>Request Institutional Access</span>
-            <ArrowRight className="h-5 w-5" />
-          </a>
+          <div className="mt-8 lg:mt-0 flex-shrink-0">
+            <a
+              href={`${APP_URL}/signup`}
+              className="inline-flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-slate-950 font-bold px-8 py-4 rounded-md transition-all duration-200"
+            >
+              Request Institutional Access
+              <ArrowRight className="h-5 w-5" />
+            </a>
+          </div>
+
         </div>
       </div>
     </section>
@@ -599,12 +596,12 @@ function SiteFooter() {
   return (
     <footer className="border-t border-white/[0.06] px-6 py-8">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
-        <div className="flex items-center gap-3 text-sm text-slate-500">
+        <div className="flex items-center gap-3 text-sm text-gray-400">
           <img src="/arum-logo-gold.svg" alt="AurumShield" className="h-6 w-auto" />
           <span className="h-3 w-px bg-white/[0.08]" />
           <span>&copy; {new Date().getFullYear()}</span>
         </div>
-        <div className="flex gap-6 text-sm text-slate-500">
+        <div className="flex gap-6 text-sm text-gray-400">
           <Link
             href="/platform-overview"
             className="transition-colors hover:text-slate-300"

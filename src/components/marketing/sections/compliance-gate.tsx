@@ -51,13 +51,13 @@ export function ComplianceGate() {
           variants={reveal}
           className="mb-16 max-w-2xl"
         >
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
             Infrastructure Readiness
           </p>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
             Regulatory Conformity by Design
           </h2>
-          <p className="text-base leading-relaxed text-slate-400">
+          <p className="text-base leading-relaxed text-gray-300">
             Every counterparty is verified, every bank account is
             authenticated, and every payment is routed through licensed,
             regulated infrastructure. Compliance is enforced architecturally
@@ -115,7 +115,7 @@ export function ComplianceGate() {
                 </p>
 
                 {/* Description */}
-                <p className="text-sm leading-relaxed text-slate-400">
+                <p className="text-sm leading-relaxed text-gray-300">
                   {integration.description}
                 </p>
               </motion.div>

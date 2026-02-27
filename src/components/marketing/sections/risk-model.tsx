@@ -48,13 +48,13 @@ export function RiskModelSection() {
           variants={reveal}
           className="mb-16 max-w-2xl"
         >
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
             Actuarial Proof
           </p>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
             Principal Exposure: Structurally Neutralized
           </h2>
-          <p className="text-base leading-relaxed text-slate-400">
+          <p className="text-base leading-relaxed text-gray-300">
             Counterparty exposure is structurally removed from the settlement
             lifecycle. Each metric is derived from the deterministic constraints
             enforced by the clearing engine — not estimated from historical
@@ -104,7 +104,7 @@ export function RiskModelSection() {
               <div className="mb-4 h-px w-12 bg-white/[0.08] transition-all duration-300 group-hover:w-full group-hover:bg-gold/30" />
 
               {/* Description */}
-              <p className="text-sm leading-relaxed text-slate-400">
+              <p className="text-sm leading-relaxed text-gray-300">
                 {metric.description}
               </p>
             </motion.div>

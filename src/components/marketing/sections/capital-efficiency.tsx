@@ -66,7 +66,7 @@ export function CapitalEfficiencySection() {
                 <p className="mt-1 text-base font-bold text-slate-100">
                   Fraud &amp; Default Exposure
                 </p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                <p className="mt-2 text-sm leading-relaxed text-gray-300">
                   Platform logic strictly prohibits non-delivery and
                   non-payment. If a counterparty fails to fulfill their exact
                   obligations, the atomic trade aborts before a single cent or
@@ -82,7 +82,7 @@ export function CapitalEfficiencySection() {
                 <p className="mt-1 text-base font-bold text-slate-100">
                   Capital Indemnification
                 </p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                <p className="mt-2 text-sm leading-relaxed text-gray-300">
                   Every active settlement is backed by our sovereign-grade
                   actuarial policy. Transit loss, vault theft, and platform
                   failure are fully underwritten.

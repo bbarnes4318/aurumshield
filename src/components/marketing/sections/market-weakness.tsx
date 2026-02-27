@@ -66,7 +66,7 @@ export function MarketWeaknessSection() {
           <h2 className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-4xl">
             The Anatomy of a Fraud-Proof Trade
           </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
             Two structural pillars eliminate fraud on both sides of every
             transaction. At the center, atomic settlement binds them into a
             single indemnified event.
@@ -115,7 +115,7 @@ export function MarketWeaknessSection() {
                 {/* Subtitle tag */}
                 <span
                   className={`mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] ${
-                    pillar.highlight ? "text-[#D0A85C]/70" : "text-slate-500"
+                    pillar.highlight ? "text-[#D0A85C]/70" : "text-gray-400"
                   }`}
                 >
                   {pillar.subtitle}
@@ -132,7 +132,7 @@ export function MarketWeaknessSection() {
                     pillar.highlight ? "border-l-2 border-[#D0A85C] pl-4" : ""
                   }
                 >
-                  <p className="text-sm leading-relaxed text-slate-400">
+                  <p className="text-sm leading-relaxed text-gray-300">
                     {pillar.body}
                   </p>
                 </div>
