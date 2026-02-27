@@ -20,6 +20,7 @@ import {
   Monitor,
   Cpu,
   Fingerprint,
+  Lock,
 } from "lucide-react";
 
 /* ── Section Imports ── */
@@ -129,9 +130,7 @@ function SettlementLifecycleSection() {
   return (
     <section id="architecture" className="py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#D4AF37] mb-4">
-          Settlement
-        </p>
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}SETTLEMENT</p>
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           Deterministic Settlement Lifecycle
         </h2>
@@ -173,14 +172,6 @@ function SettlementLifecycleSection() {
    EXPOSURE COMPRESSION — Dashboard Mockup
    ================================================================ */
 function ExposureSection() {
-  const exposureData = [
-    { stage: "Pre-Trade", bilateral: 100, cleared: 100 },
-    { stage: "Locked", bilateral: 85, cleared: 60 },
-    { stage: "Quoted", bilateral: 85, cleared: 35 },
-    { stage: "Committed", bilateral: 85, cleared: 15 },
-    { stage: "Settled", bilateral: 85, cleared: 0 },
-  ];
-
   return (
     <section className="py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6">
@@ -203,90 +194,44 @@ function ExposureSection() {
               </div>
             </div>
 
-            <div className="p-6">
-              {/* Stats Row */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
-                {[
-                  {
-                    label: "Bilateral Exposure",
-                    value: "$4.2M",
-                    status: "text-gray-300",
-                  },
-                  {
-                    label: "Cleared Exposure",
-                    value: "$0.00",
-                    status: "text-gold",
-                  },
-                  {
-                    label: "Risk Reduction",
-                    value: "100%",
-                    status: "text-gold",
-                  },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-4"
-                  >
-                    <p className="text-[11px] uppercase tracking-wider text-gray-400 mb-1">
-                      {stat.label}
-                    </p>
-                    <p
-                      className={`text-xl font-bold font-mono tracking-tight tabular-nums ${stat.status}`}
-                    >
-                      {stat.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Bar Chart */}
-              <p className="text-[11px] uppercase tracking-wider text-gray-400 mb-4">
-                Exposure by Lifecycle Stage
-              </p>
-              <div className="space-y-3">
-                {exposureData.map((d) => (
-                  <div key={d.stage} className="flex items-center gap-4">
-                    <span className="w-20 text-xs text-gray-400 text-right tabular-nums">
-                      {d.stage}
-                    </span>
-                    <div className="flex-1 flex gap-1 h-5">
-                      {/* Bilateral */}
-                      <div
-                        className="h-full rounded-sm bg-slate-800 transition-all duration-700"
-                        style={{ width: `${d.bilateral}%` }}
-                      />
-                    </div>
-                    <div className="flex-1 flex gap-1 h-5">
-                      {/* Cleared */}
-                      <div
-                        className="h-full rounded-sm bg-gold/60 transition-all duration-700"
-                        style={{ width: `${Math.max(d.cleared, 2)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-                <div className="flex items-center gap-4 mt-2 pt-3 border-t border-white/[0.06]">
-                  <span className="w-20" />
-                  <div className="flex-1 flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-slate-800" />
-                    <span className="text-[11px] text-gray-400">Bilateral</span>
-                  </div>
-                  <div className="flex-1 flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-gold/60" />
-                    <span className="text-[11px] text-gray-400">
-                      Centrally Cleared
-                    </span>
-                  </div>
-                </div>
-              </div>
+            <div className="p-0 overflow-x-auto">
+              <table className="w-full text-left font-mono text-xs sm:text-sm whitespace-nowrap">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-[#0A1128]">
+                    <th className="px-6 py-4 font-semibold text-slate-500 uppercase tracking-widest">Lifecycle State</th>
+                    <th className="px-6 py-4 font-semibold text-slate-500 uppercase tracking-widest">Bilateral Risk</th>
+                    <th className="px-6 py-4 font-semibold text-gold uppercase tracking-widest">AurumShield DvP</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50">
+                  <tr className="bg-white/[0.01]">
+                    <td className="px-6 py-4 text-slate-400">01. Quote & Lock</td>
+                    <td className="px-6 py-4 text-slate-300">$4.2M Exposed</td>
+                    <td className="px-6 py-4 text-gold">Escrow Confirmed</td>
+                  </tr>
+                  <tr>
+                    <td className="px-6 py-4 text-slate-400">02. Capital Transit</td>
+                    <td className="px-6 py-4 text-slate-300">$4.2M Exposed</td>
+                    <td className="px-6 py-4 text-gold">Capital Sequestered</td>
+                  </tr>
+                  <tr className="bg-white/[0.01]">
+                    <td className="px-6 py-4 text-slate-400">03. Physical Release</td>
+                    <td className="px-6 py-4 text-rose-400 font-semibold">Maximum Exposure</td>
+                    <td className="px-6 py-4 text-gold">Title Blocked</td>
+                  </tr>
+                  <tr className="bg-[#D0A85C]/5 border-t border-gold/20">
+                    <td className="px-6 py-4 text-white font-bold">04. Final Settlement</td>
+                    <td className="px-6 py-4 text-rose-400 font-bold">Default Risk Active</td>
+                    <td className="px-6 py-4 text-gold font-bold tracking-widest">$0.00 (ATOMIC DvP)</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
           {/* Right: Copy */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-gold mb-4">
-              Risk Architecture
-            </p>
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}RISK ARCHITECTURE</p>
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
               Exposure Compressed to Zero at Settlement
             </h2>
@@ -328,9 +273,7 @@ function KineticRiskSection() {
   return (
     <section className="py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gold mb-4">
-          Physical Perimeter
-        </p>
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}PHYSICAL PERIMETER</p>
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           The Sovereign Custody Layer: Kinetic Risk Eliminated
         </h2>
@@ -382,9 +325,7 @@ function ArchitectureSection() {
         <div className="grid lg:grid-cols-2 gap-16 items-start">
           {/* Left: Copy */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-gold mb-4">
-              Infrastructure
-            </p>
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}INFRASTRUCTURE</p>
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
               Military-Grade Settlement Infrastructure
             </h2>
@@ -487,12 +428,6 @@ function ArchitectureSection() {
           </div>
         </div>
       </div>
-      <div className="mt-16 w-full bg-[#D0A85C]/5 border-y border-[#D0A85C]/20 py-4 flex items-center justify-center px-4">
-        <p className="text-center font-mono text-xs sm:text-sm text-[#D0A85C] tracking-[0.2em] uppercase">
-          [ VERIFIED ]: ALL ARCHITECTURAL STATE TRANSITIONS ARE BOUND BY
-          COMPREHENSIVE UNDERWRITTEN INDEMNIFICATION.
-        </p>
-      </div>
     </section>
   );
 }
@@ -535,9 +470,7 @@ function ComplianceSection() {
   return (
     <section id="compliance" className="py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gold mb-4">
-          Compliance
-        </p>
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}COMPLIANCE</p>
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           Engineered for Institutional Compliance
         </h2>
@@ -595,28 +528,35 @@ function ComplianceSection() {
    ================================================================ */
 function FinalCTA() {
   return (
-    <section className="relative py-24 lg:py-32 overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-[#D4AF37]/5 blur-[120px] pointer-events-none" />
+    <section className="py-24 lg:py-32 bg-[#0A1128]">
+      <div className="mx-auto max-w-4xl px-6">
+        <div className="border border-slate-800 bg-[#0B0E14] rounded-md overflow-hidden shadow-2xl">
+          
+          <div className="p-10 sm:p-16 text-center flex flex-col items-center">
+            <Lock className="h-10 w-10 text-gold mb-6 opacity-80" />
+            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white mb-4">
+              Infrastructure Access is Strictly Gated.
+            </h2>
+            <p className="text-base text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
+              AurumShield is private clearing infrastructure reserved for qualified institutional participants, sovereign entities, and tier-1 liquidity providers.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <a
+                href={`${APP_URL}/signup`}
+                className="inline-flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-slate-950 font-bold px-10 py-4 rounded-md transition-all duration-200"
+              >
+                Request Institutional Access
+                <ArrowRight className="h-5 w-5" />
+              </a>
+            </div>
+          </div>
 
-      <div className="relative mx-auto max-w-4xl px-6 text-center">
-        <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
-          Structural markets require
-          <br />
-          structural infrastructure.
-        </h2>
-        <p className="mt-6 mx-auto max-w-2xl text-lg leading-relaxed text-gray-300">
-          Institutional participants are migrating to deterministic bullion
-          clearing. Access is restricted to qualified entities.
-        </p>
-        <div className="mt-10">
-          <a
-            href={`${APP_URL}/signup`}
-            className="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-[#D4AF37] hover:bg-[#D4AF37]/90 px-10 py-4 text-lg font-bold text-slate-950 transition-all hover:shadow-2xl hover:shadow-[#D4AF37]/25"
-          >
-            <span>Request Institutional Access</span>
-            <ArrowRight className="h-5 w-5" />
-          </a>
+          <div className="border-t border-slate-800 bg-white/[0.02] px-6 py-5 text-center">
+            <p className="font-mono text-[10px] sm:text-xs text-gold tracking-[0.15em] uppercase font-semibold">
+              [ VERIFIED ]: All architectural state transitions are bound by comprehensive underwritten indemnification.
+            </p>
+          </div>
+
         </div>
       </div>
     </section>

@@ -12,8 +12,7 @@ const TRUST_ITEMS = [
 export function TrustBand() {
   return (
     <section
-      className="w-full border-y border-white/[0.04] py-5"
-      style={{ backgroundColor: "#0A1128" }}
+      className="w-full border-y border-slate-800 bg-[#0B0E14] py-4"
     >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-3 px-6">
         {TRUST_ITEMS.map((item) => {
@@ -21,10 +20,10 @@ export function TrustBand() {
           return (
             <div
               key={item.label}
-              className="flex items-center gap-2.5"
+              className="flex items-center gap-3 px-6 border-r border-slate-800/50 last:border-r-0"
             >
               <Icon className="h-4 w-4 text-gold/70" strokeWidth={1.5} />
-              <span className="font-mono text-[10px] sm:text-xs font-semibold tracking-widest uppercase text-gray-300">
+              <span className="font-mono text-[10px] lg:text-xs font-bold tracking-[0.15em] uppercase text-gray-400">
                 {item.label}
               </span>
             </div>

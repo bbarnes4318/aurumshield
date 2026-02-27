@@ -36,17 +36,7 @@ export function HeroSection() {
       <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center py-12 lg:py-24 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
         <div className="flex flex-col justify-center space-y-6 lg:space-y-8 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
-          {/* Eyebrow Badge */}
-          <motion.div
-            custom={0}
-            initial="hidden"
-            animate="visible"
-            variants={fade}
-          >
-            <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-sm font-medium text-gold">
-              Institutional Clearing Infrastructure
-            </span>
-          </motion.div>
+          <motion.p custom={0} initial="hidden" animate="visible" variants={fade} className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-6">{"// "}INSTITUTIONAL CLEARING INFRASTRUCTURE</motion.p>
 
           <motion.h1
             custom={1}
