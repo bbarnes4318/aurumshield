@@ -34,7 +34,7 @@ const APP_URL =
 
 /* ── Shared animation for scroll reveal (CSS-only) ── */
 const GLASS_CARD =
-  "bg-[#0B0E14] border border-slate-800 rounded-md hover:border-gold/30 transition-all duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]";
+  "bg-white/[0.02] border border-slate-800 rounded-md hover:border-gold/30 transition-all duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]";
 
 /* ================================================================
    NAVIGATION
@@ -149,7 +149,7 @@ function SettlementLifecycleSection() {
             {LIFECYCLE_STEPS.map((s) => (
               <div key={s.step} className="relative">
                 {/* Badge */}
-                <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-md border-2 border-gold/40 bg-[#0B0E14]">
+                <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-md border-2 border-gold/40 bg-[#0A1128]">
                   <span className="font-mono text-sm font-bold text-gold">
                     {s.step}
                   </span>

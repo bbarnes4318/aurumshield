@@ -99,7 +99,7 @@ export function ComplianceGate() {
                     },
                   },
                 }}
-                className="rounded-md border border-slate-800 bg-[#0B0E14] p-8 transition-all duration-300 hover:border-gold/30"
+                className="rounded-md border border-slate-800 bg-white/[0.02] p-8 transition-all duration-300 hover:border-gold/30"
               >
                 {/* Icon */}
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-md border border-gold/20 bg-gold/10">

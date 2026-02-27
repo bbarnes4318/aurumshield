@@ -82,7 +82,7 @@ export function RiskModelSection() {
                   },
                 },
               }}
-              className="group rounded-md border border-slate-800 bg-[#0B0E14] p-8 transition-all duration-300 hover:border-gold/30"
+              className="group rounded-md border border-slate-800 bg-white/[0.02] p-8 transition-all duration-300 hover:border-gold/30"
             >
               {/* Figure — monospace for precision */}
               <p
