@@ -183,6 +183,7 @@ export default async function PlatformCapabilitiesPage() {
           margin-bottom: 2rem;
         }
         .plat-card h1 { font-size: 2.25rem; letter-spacing: -0.02em; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-top: 0; }
+        .plat-section { scroll-margin-top: 6rem; }
         .plat-section h2 { font-size: 1.6rem; letter-spacing: -0.01em; color: var(--gold); margin-top: 2.5rem; margin-bottom: 1rem; }
         .plat-section h3 { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.75rem; }
         .plat-section p { margin-bottom: 1rem; color: var(--text-muted); font-size: 0.925rem; }
