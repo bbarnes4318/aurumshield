@@ -3,27 +3,38 @@ import { z } from "zod";
 /* ================================================================
    ONBOARDING WIZARD — Zod Validation Schemas
    ================================================================
-   Three-step progressive disclosure for KYC/KYB verification.
+   Six-step enterprise onboarding flow for institutional KYB
+   verification, WebAuthn enrollment, maker-checker role
+   assignment, and DocuSign CLM attestation.
+
    Each step has its own sub-schema; the combined schema is used
    by react-hook-form with zodResolver to validate per-step.
    ================================================================ */
 
 /* ----------------------------------------------------------------
-   Step 1: Corporate Identity & Contact
+   Step 1: Entity Registration & LEI
    ---------------------------------------------------------------- */
-export const stepCorporateIdentitySchema = z.object({
+export const stepEntityRegistrationSchema = z.object({
   companyName: z
     .string()
     .min(2, "Company name must be at least 2 characters")
     .max(255, "Company name must be under 255 characters"),
+  leiNumber: z
+    .string()
+    .min(1, "LEI is required for institutional onboarding")
+    .regex(
+      /^[A-Z0-9]{20}$/,
+      "LEI must be exactly 20 alphanumeric characters (e.g. 5493001KJTIIGC8Y1R12)",
+    ),
+  leiVerified: z.literal(true, {
+    message: "LEI must be verified via GLEIF before proceeding",
+  }),
   registrationNumber: z
     .string()
     .max(100, "Registration number must be under 100 characters")
     .optional()
     .or(z.literal("")),
-  jurisdiction: z
-    .string()
-    .min(1, "Jurisdiction is required"),
+  jurisdiction: z.string().min(1, "Jurisdiction is required"),
   contactEmail: z
     .string()
     .min(1, "Email is required")
@@ -38,50 +49,118 @@ export const stepCorporateIdentitySchema = z.object({
 });
 
 /* ----------------------------------------------------------------
-   Step 2: UBO Documents
+   Step 2: KYB & Sanctions Screening
    ---------------------------------------------------------------- */
-export const stepUBODocumentsSchema = z.object({
-  uboDocumentName: z
-    .string()
-    .min(1, "A UBO document is required"),
-  uboDeclarationAccepted: z
-    .literal(true, {
-      message: "You must confirm the UBO declaration",
-    }),
+export const stepKYBScreeningSchema = z.object({
+  uboDocumentName: z.string().min(1, "A UBO document is required"),
+  uboDeclarationAccepted: z.literal(true, {
+    message: "You must confirm the UBO declaration",
+  }),
+  sanctionsScreeningPassed: z.literal(true, {
+    message: "Sanctions screening must be completed",
+  }),
 });
 
 /* ----------------------------------------------------------------
-   Step 3: Biometric Liveness Check
+   Step 3: WebAuthn & SSO Enrollment
    ---------------------------------------------------------------- */
-export const stepLivenessCheckSchema = z.object({
-  livenessCompleted: z
-    .literal(true, {
-      message: "Biometric verification must be completed",
-    }),
+export const stepWebAuthnSchema = z.object({
+  webauthnEnrolled: z.literal(true, {
+    message: "A hardware security key must be registered",
+  }),
+  ssoProvider: z.enum(["okta", "entra_id", "custom_saml", "none"], {
+    message: "Select an SSO provider or choose 'None'",
+  }),
+});
+
+/* ----------------------------------------------------------------
+   Step 4: Maker-Checker Role Assignment
+   ---------------------------------------------------------------- */
+export const stepMakerCheckerSchema = z.object({
+  primaryRole: z.enum(["TRADER", "TREASURY"], {
+    message: "Select either TRADER (Maker) or TREASURY (Checker)",
+  }),
+  dualAuthAcknowledged: z.literal(true, {
+    message: "You must acknowledge the dual-authorization policy",
+  }),
+});
+
+/* ----------------------------------------------------------------
+   Step 5: DocuSign CLM & Attestation
+   ---------------------------------------------------------------- */
+export const stepDocuSignSchema = z.object({
+  agreementSigned: z.literal(true, {
+    message: "The Master Participation Agreement must be signed",
+  }),
+  complianceAttested: z.literal(true, {
+    message: "You must attest to AML/compliance obligations",
+  }),
+});
+
+/* ----------------------------------------------------------------
+   Step 6: Verification Complete (no additional validation)
+   ---------------------------------------------------------------- */
+export const stepVerificationCompleteSchema = z.object({
+  verificationAcknowledged: z.literal(true, {
+    message: "Please acknowledge the verification summary",
+  }),
 });
 
 /* ----------------------------------------------------------------
    Combined Schema
    ---------------------------------------------------------------- */
-export const onboardingSchema = stepCorporateIdentitySchema
-  .merge(stepUBODocumentsSchema)
-  .merge(stepLivenessCheckSchema);
+export const onboardingSchema = stepEntityRegistrationSchema
+  .merge(stepKYBScreeningSchema)
+  .merge(stepWebAuthnSchema)
+  .merge(stepMakerCheckerSchema)
+  .merge(stepDocuSignSchema)
+  .merge(stepVerificationCompleteSchema);
 
 /* ----------------------------------------------------------------
    Inferred Types
    ---------------------------------------------------------------- */
-export type StepCorporateIdentityData = z.infer<typeof stepCorporateIdentitySchema>;
-export type StepUBODocumentsData = z.infer<typeof stepUBODocumentsSchema>;
-export type StepLivenessCheckData = z.infer<typeof stepLivenessCheckSchema>;
+export type StepEntityRegistrationData = z.infer<typeof stepEntityRegistrationSchema>;
+export type StepKYBScreeningData = z.infer<typeof stepKYBScreeningSchema>;
+export type StepWebAuthnData = z.infer<typeof stepWebAuthnSchema>;
+export type StepMakerCheckerData = z.infer<typeof stepMakerCheckerSchema>;
+export type StepDocuSignData = z.infer<typeof stepDocuSignSchema>;
+export type StepVerificationCompleteData = z.infer<typeof stepVerificationCompleteSchema>;
 export type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
 /* ----------------------------------------------------------------
    Step Metadata — used by the progress bar
    ---------------------------------------------------------------- */
 export const ONBOARDING_STEPS = [
-  { id: 1, label: "Corporate Identity", fields: ["companyName", "registrationNumber", "jurisdiction", "contactEmail", "contactPhone"] as const },
-  { id: 2, label: "UBO Documents",      fields: ["uboDocumentName", "uboDeclarationAccepted"] as const },
-  { id: 3, label: "Biometric Verification", fields: ["livenessCompleted"] as const },
+  {
+    id: 1,
+    label: "Entity & LEI",
+    fields: ["companyName", "leiNumber", "leiVerified", "registrationNumber", "jurisdiction", "contactEmail", "contactPhone"] as const,
+  },
+  {
+    id: 2,
+    label: "KYB & AML",
+    fields: ["uboDocumentName", "uboDeclarationAccepted", "sanctionsScreeningPassed"] as const,
+  },
+  {
+    id: 3,
+    label: "WebAuthn & SSO",
+    fields: ["webauthnEnrolled", "ssoProvider"] as const,
+  },
+  {
+    id: 4,
+    label: "Roles",
+    fields: ["primaryRole", "dualAuthAcknowledged"] as const,
+  },
+  {
+    id: 5,
+    label: "Agreement",
+    fields: ["agreementSigned", "complianceAttested"] as const,
+  },
+  {
+    id: 6,
+    label: "Complete",
+    fields: ["verificationAcknowledged"] as const,
+  },
 ] as const;
 
 /** Jurisdiction options for the dropdown */

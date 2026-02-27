@@ -1,11 +1,11 @@
 "use client";
 
 /* ================================================================
-   ONBOARDING WIZARD — Orchestrator (with save-and-resume)
+   ONBOARDING WIZARD — Orchestrator (6-step enterprise flow)
    ================================================================
-   3-step progressive disclosure flow for KYC/KYB verification.
-   Manages form state via react-hook-form + Zod, renders the
-   active step, and provides a persistent progress bar.
+   Six-step progressive disclosure for institutional KYB enrollment,
+   WebAuthn credential registration, maker-checker role assignment,
+   DocuSign CLM attestation, and verification completion.
 
    Save-and-Resume:
      • On mount: loads saved state from /api/compliance/state
@@ -14,9 +14,12 @@
      • On final submit: marks state as COMPLETED
 
    Steps:
-     1. Corporate Identity & Contact
-     2. UBO Document Upload
-     3. Biometric Liveness Check
+     1. Entity Registration & LEI
+     2. KYB & Sanctions Screening
+     3. WebAuthn & SSO Enrollment
+     4. Maker-Checker Role Assignment
+     5. DocuSign CLM & Attestation
+     6. Verification Complete
    ================================================================ */
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -33,6 +36,9 @@ import {
 
 import { StepCorporateIdentity } from "./StepCorporateIdentity";
 import { StepUBODocuments } from "./StepUBODocuments";
+import { StepWebAuthnEnrollment } from "./StepWebAuthnEnrollment";
+import { StepMakerChecker } from "./StepMakerChecker";
+import { StepDocuSignCLM } from "./StepDocuSignCLM";
 import { StepLivenessCheck } from "./StepLivenessCheck";
 
 import {
@@ -41,7 +47,7 @@ import {
 } from "@/hooks/use-onboarding-state";
 
 /* ----------------------------------------------------------------
-   Progress Bar
+   Progress Bar — 6-step
    ---------------------------------------------------------------- */
 
 function ProgressBar({ currentStep }: { currentStep: number }) {
@@ -59,8 +65,8 @@ function ProgressBar({ currentStep }: { currentStep: number }) {
             <div key={step.id} className="flex flex-col items-center gap-1.5">
               <div
                 className={`
-                  flex h-8 w-8 items-center justify-center rounded-full
-                  text-xs font-semibold transition-all duration-300
+                  flex h-7 w-7 items-center justify-center rounded-full
+                  text-[10px] font-bold transition-all duration-300
                   ${
                     isCompleted
                       ? "bg-color-2 text-color-1"
@@ -71,14 +77,14 @@ function ProgressBar({ currentStep }: { currentStep: number }) {
                 `}
               >
                 {isCompleted ? (
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                 ) : (
                   step.id
                 )}
               </div>
               <span
                 className={`
-                  text-[10px] font-medium tracking-wide uppercase
+                  text-[9px] font-semibold tracking-wide uppercase max-w-[60px] text-center leading-tight
                   ${isActive ? "text-color-2" : isCompleted ? "text-color-3/70" : "text-color-5/60"}
                 `}
               >
@@ -119,13 +125,22 @@ export function OnboardingWizard() {
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       companyName: "",
+      leiNumber: "",
+      leiVerified: false as unknown as true,
       registrationNumber: "",
       jurisdiction: "",
       contactEmail: "",
       contactPhone: "",
       uboDocumentName: "",
       uboDeclarationAccepted: false as unknown as true,
-      livenessCompleted: false as unknown as true,
+      sanctionsScreeningPassed: false as unknown as true,
+      webauthnEnrolled: false as unknown as true,
+      ssoProvider: "none",
+      primaryRole: undefined,
+      dualAuthAcknowledged: false as unknown as true,
+      agreementSigned: false as unknown as true,
+      complianceAttested: false as unknown as true,
+      verificationAcknowledged: false as unknown as true,
     },
     mode: "onTouched",
   });
@@ -143,7 +158,7 @@ export function OnboardingWizard() {
       const saved = savedStateQ.data;
 
       // Restore wizard step
-      if (saved.currentStep >= 1 && saved.currentStep <= 3) {
+      if (saved.currentStep >= 1 && saved.currentStep <= 6) {
         setCurrentStep(saved.currentStep);
       }
 
@@ -152,13 +167,22 @@ export function OnboardingWizard() {
       if (meta && typeof meta === "object") {
         reset({
           companyName: meta.companyName ?? "",
+          leiNumber: meta.leiNumber ?? "",
+          leiVerified: (meta.leiVerified ?? false) as unknown as true,
           registrationNumber: meta.registrationNumber ?? "",
           jurisdiction: meta.jurisdiction ?? "",
           contactEmail: meta.contactEmail ?? "",
           contactPhone: meta.contactPhone ?? "",
           uboDocumentName: meta.uboDocumentName ?? "",
           uboDeclarationAccepted: (meta.uboDeclarationAccepted ?? false) as unknown as true,
-          livenessCompleted: (meta.livenessCompleted ?? false) as unknown as true,
+          sanctionsScreeningPassed: (meta.sanctionsScreeningPassed ?? false) as unknown as true,
+          webauthnEnrolled: (meta.webauthnEnrolled ?? false) as unknown as true,
+          ssoProvider: meta.ssoProvider ?? "none",
+          primaryRole: meta.primaryRole,
+          dualAuthAcknowledged: (meta.dualAuthAcknowledged ?? false) as unknown as true,
+          agreementSigned: (meta.agreementSigned ?? false) as unknown as true,
+          complianceAttested: (meta.complianceAttested ?? false) as unknown as true,
+          verificationAcknowledged: (meta.verificationAcknowledged ?? false) as unknown as true,
         });
       }
     }
@@ -215,12 +239,11 @@ export function OnboardingWizard() {
       setIsSubmitting(true);
 
       // TODO: POST to /api/onboarding with the verified data
-      // For now, simulate a 1.5s network call
       console.log("[AurumShield] Onboarding data submitted:", data);
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Mark onboarding as completed
-      saveProgress(3, "COMPLETED");
+      saveProgress(6, "COMPLETED");
 
       setIsSubmitting(false);
       router.push("/buyer");
@@ -237,6 +260,12 @@ export function OnboardingWizard() {
       case 2:
         return <StepUBODocuments />;
       case 3:
+        return <StepWebAuthnEnrollment />;
+      case 4:
+        return <StepMakerChecker />;
+      case 5:
+        return <StepDocuSignCLM />;
+      case 6:
         return <StepLivenessCheck />;
       default:
         return null;
@@ -263,10 +292,10 @@ export function OnboardingWizard() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-color-3 tracking-tight">
-              Identity Verification
+              Institutional Onboarding
             </h1>
             <p className="text-xs text-color-3/50">
-              Institutional KYC/KYB · AurumShield Clearing
+              Enterprise KYB · WebAuthn · Maker-Checker · DocuSign CLM
             </p>
           </div>
         </div>
@@ -275,7 +304,7 @@ export function OnboardingWizard() {
         <ProgressBar currentStep={currentStep} />
 
         {/* Active step */}
-        <div className="min-h-[320px]">{renderStep()}</div>
+        <div className="min-h-[380px]">{renderStep()}</div>
 
         {/* Navigation */}
         <div className="flex items-center justify-between mt-8 pt-6 border-t border-color-5/20">
@@ -333,10 +362,10 @@ export function OnboardingWizard() {
               {isSubmitting ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-color-1 border-t-transparent" />
-                  Processing…
+                  Finalizing…
                 </>
               ) : (
-                "Complete Verification ✓"
+                "Complete Onboarding ✓"
               )}
             </button>
           )}
