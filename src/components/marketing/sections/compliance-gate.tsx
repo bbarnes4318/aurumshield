@@ -15,24 +15,24 @@ const reveal = {
 const INTEGRATIONS = [
   {
     icon: Fingerprint,
-    name: "Vault Network Confinement",
-    role: "Sovereign Custody",
+    name: "Persona",
+    role: "KYC / Identity Verification",
     description:
-      "Certified bullion is locked in secure, insured facilities. Never enters dangerous or volatile territories.",
+      "Government ID verification with biometric liveness detection. OpenSanctions screening across OFAC, EU, UN, UK HMT, and DFAT.",
   },
   {
     icon: Landmark,
-    name: "Asset Provenance Layer",
-    role: "Counterfeit Elimination",
+    name: "Plaid",
+    role: "Bank Account Linking",
     description:
-      "Independent partners conduct physical assays before tokenization. Eliminates counterfeit gold risk.",
+      "Institutional-grade account verification and balance confirmation. Source-of-funds validation against declared counterparty profiles.",
   },
   {
     icon: CreditCard,
-    name: "Loss Indemnification",
-    role: "Full Coverage",
+    name: "Moov",
+    role: "Payment Rail Orchestration",
     description:
-      "Every ounce on AurumShield is fully insured and indemnified against theft, loss, and catastrophic fraud.",
+      "Dual-rail settlement routing with SHA-256 idempotency keys. Multi-rail confirmation gating before state advancement.",
   },
 ] as const;
 
@@ -52,16 +52,16 @@ export function ComplianceGate() {
           className="mb-16 max-w-2xl"
         >
           <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
-            Physical Risk Elimination
+            Infrastructure Readiness
           </p>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
-            The Sovereign Custody Layer: Physical Risk Elimination.
+            Regulatory Conformity by Design
           </h2>
           <p className="text-base leading-relaxed text-slate-400">
-            Managing physical gold logistics exposes entities to extortion,
-            kidnapping, and fake gold. AurumShield confines certified bullion
-            within sovereign-grade vaults, settling the ownership layer
-            atomically to eliminate logistical danger.
+            Every counterparty is verified, every bank account is
+            authenticated, and every payment is routed through licensed,
+            regulated infrastructure. Compliance is enforced architecturally
+            — not applied retrospectively.
           </p>
         </motion.div>
 

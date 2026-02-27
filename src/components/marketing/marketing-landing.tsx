@@ -185,8 +185,8 @@ function ExposureSection() {
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] uppercase tracking-wider text-emerald-500 font-semibold">
+                <span className="h-2 w-2 rounded-full bg-gold/70" />
+                <span className="text-[10px] uppercase tracking-wider text-gold/70 font-semibold">
                   Live
                 </span>
               </div>
@@ -254,7 +254,7 @@ function ExposureSection() {
 
           {/* Right: Copy */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#D4AF37] mb-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gold mb-4">
               Risk Architecture
             </p>
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
@@ -284,6 +284,63 @@ function ExposureSection() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ================================================================
+   KINETIC RISK — Sovereign Custody Layer
+   ================================================================ */
+function KineticRiskSection() {
+  return (
+    <section className="py-24 lg:py-32">
+      <div className="mx-auto max-w-7xl px-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gold mb-4">
+          Physical Perimeter
+        </p>
+        <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
+          The Sovereign Custody Layer: Kinetic Risk Eliminated
+        </h2>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+          Physical transport of bullion exposes participants to severe kinetic
+          threats—supply chain interception, transport extortion, and counterfeit
+          asset injection. AurumShield bypasses the physical rail entirely.
+          Bullion is confined within sovereign-grade vault networks, and
+          ownership is settled atomically.
+        </p>
+
+        <div className="mt-16 grid gap-6 sm:grid-cols-3">
+          <div className={`${GLASS_CARD} p-8`}>
+            <h3 className="text-lg font-bold text-white mb-3">
+              Vault Network Confinement
+            </h3>
+            <p className="text-sm leading-relaxed text-slate-400">
+              Certified bullion remains locked in secure, insured facilities.
+              Counterparties never enter volatile territories or manage armed
+              logistics.
+            </p>
+          </div>
+          <div className={`${GLASS_CARD} p-8`}>
+            <h3 className="text-lg font-bold text-white mb-3">
+              Asset Provenance Layer
+            </h3>
+            <p className="text-sm leading-relaxed text-slate-400">
+              Independent LBMA-certified partners conduct physical assays prior
+              to digital allocation, structurally eliminating counterfeit gold
+              risk.
+            </p>
+          </div>
+          <div className={`${GLASS_CARD} p-8`}>
+            <h3 className="text-lg font-bold text-white mb-3">
+              100% Loss Indemnification
+            </h3>
+            <p className="text-sm leading-relaxed text-slate-400">
+              Every ounce settled on AurumShield is fully insured and indemnified
+              against theft, physical loss, and catastrophic fraud.
+            </p>
           </div>
         </div>
       </div>
@@ -404,6 +461,11 @@ function ArchitectureSection() {
           </div>
         </div>
       </div>
+      <div className="mt-16 w-full bg-[#D0A85C]/5 border-y border-[#D0A85C]/20 py-4 flex items-center justify-center px-4">
+        <p className="text-center font-mono text-xs sm:text-sm text-[#D0A85C] tracking-[0.2em] uppercase">
+          [ VERIFIED ]: ALL ARCHITECTURAL STATE TRANSITIONS ARE BOUND BY COMPREHENSIVE UNDERWRITTEN INDEMNIFICATION.
+        </p>
+      </div>
     </section>
   );
 }
@@ -519,7 +581,7 @@ function FinalCTA() {
         <div className="mt-10">
           <a
             href={`${APP_URL}/signup`}
-            className="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-[#D4AF37] hover:bg-[#D4AF37]/90 px-10 py-4 text-lg font-bold text-black transition-all hover:shadow-2xl hover:shadow-[#D4AF37]/25"
+            className="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-[#D4AF37] hover:bg-[#D4AF37]/90 px-10 py-4 text-lg font-bold text-slate-950 transition-all hover:shadow-2xl hover:shadow-[#D4AF37]/25"
           >
             <span>Request Institutional Access</span>
             <ArrowRight className="h-5 w-5" />
@@ -574,6 +636,7 @@ export function MarketingLanding() {
       <SettlementLifecycleSection />
       <ExposureSection />
       <RiskModelSection />
+      <KineticRiskSection />
       <ArchitectureSection />
       <ComplianceSection />
       <ComplianceGate />
