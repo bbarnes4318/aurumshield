@@ -61,7 +61,7 @@ export function ClearingArchitectureSection() {
                   <div key={node}>
                     <div className="flex items-center gap-3">
                       <span
-                        className="flex h-8 w-8 items-center justify-center text-xs font-bold tabular-nums"
+                        className="flex h-8 w-8 items-center justify-center text-xs font-bold font-mono tabular-nums"
                         style={{
                           border: "1px solid var(--mk-border)",
                           borderRadius: "0.375rem",
@@ -121,12 +121,12 @@ export function ClearingArchitectureSection() {
                   transition: { delay: i * 0.1, duration: 0.55 },
                 },
               }}
-              className="mk-card space-y-4"
+              className="rounded-md border border-slate-800 bg-[#0B0E14] p-6 sm:p-8 transition-colors hover:border-[#D0A85C]/30 space-y-4"
             >
-              <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--mk-gold)]">
+              <span className="block text-[10px] font-bold font-mono uppercase tracking-[0.14em] text-[#D0A85C]">
                 {p.label}
               </span>
-              <h3 className="text-[0.9375rem] font-semibold leading-snug text-amber-400">
+              <h3 className="text-[0.9375rem] font-semibold leading-snug text-white">
                 {p.heading}
               </h3>
               <p className="text-sm leading-relaxed text-slate-300">
@@ -134,6 +134,13 @@ export function ClearingArchitectureSection() {
               </p>
             </motion.div>
           ))}
+        </div>
+
+        {/* ── Actuarial Trust Band ── */}
+        <div className="mt-16 w-full bg-[#D0A85C]/5 border-y border-[#D0A85C]/20 py-4 flex items-center justify-center px-4">
+          <p className="text-center font-mono text-xs sm:text-sm text-[#D0A85C] tracking-[0.2em] uppercase">
+            [ VERIFIED ]: ALL ARCHITECTURAL STATE TRANSITIONS ARE BOUND BY COMPREHENSIVE UNDERWRITTEN INDEMNIFICATION.
+          </p>
         </div>
       </div>
     </section>

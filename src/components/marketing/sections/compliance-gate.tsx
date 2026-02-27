@@ -55,7 +55,7 @@ export function ComplianceGate() {
             Infrastructure Readiness
           </p>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
-            Built on Regulated Rails
+            Regulatory Conformity by Design
           </h2>
           <p className="text-base leading-relaxed text-slate-400">
             Every counterparty is verified, every bank account is
@@ -99,18 +99,18 @@ export function ComplianceGate() {
                     },
                   },
                 }}
-                className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8 backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37]/30"
+                className="rounded-md border border-slate-800 bg-[#0B0E14] p-8 transition-all duration-300 hover:border-gold/30"
               >
                 {/* Icon */}
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/10">
-                  <Icon className="h-5 w-5 text-[#D4AF37]" />
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-md border border-gold/20 bg-gold/10">
+                  <Icon className="h-5 w-5 text-gold" />
                 </div>
 
                 {/* Name + Role */}
                 <h3 className="mb-1 text-lg font-semibold text-white">
                   {integration.name}
                 </h3>
-                <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-[#D4AF37]">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gold">
                   {integration.role}
                 </p>
 

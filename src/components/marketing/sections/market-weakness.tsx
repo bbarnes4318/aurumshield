@@ -91,18 +91,18 @@ export function MarketWeaknessSection() {
                     transition: { delay: i * 0.12, duration: 0.6 },
                   },
                 }}
-                className={`relative rounded-2xl border p-8 transition-all duration-300 ${
+                className={`relative rounded-md border p-8 transition-all duration-300 ${
                   pillar.highlight
-                    ? "border-amber-500/30 bg-amber-500/[0.04] shadow-[0_0_40px_rgba(212,175,55,0.06)]"
-                    : "border-white/[0.08] bg-white/[0.02] hover:border-[#D4AF37]/30"
+                    ? "border-[#D0A85C]/30 bg-[#D0A85C]/[0.04]"
+                    : "border-slate-800 bg-white/[0.02] hover:border-[#D0A85C]/30"
                 }`}
               >
                 {/* Icon */}
                 <div
-                  className={`mb-5 flex h-12 w-12 items-center justify-center rounded-xl border ${
+                  className={`mb-5 flex h-12 w-12 items-center justify-center rounded-md border ${
                     pillar.highlight
-                      ? "border-amber-500/30 bg-amber-500/10"
-                      : "border-white/[0.08] bg-white/[0.03]"
+                      ? "border-[#D0A85C]/30 bg-[#D0A85C]/10"
+                      : "border-slate-800 bg-white/[0.03]"
                   }`}
                 >
                   <Icon
@@ -115,7 +115,7 @@ export function MarketWeaknessSection() {
                 {/* Subtitle tag */}
                 <span
                   className={`mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] ${
-                    pillar.highlight ? "text-amber-500/70" : "text-slate-500"
+                    pillar.highlight ? "text-[#D0A85C]/70" : "text-slate-500"
                   }`}
                 >
                   {pillar.subtitle}
@@ -127,13 +127,19 @@ export function MarketWeaknessSection() {
                 </h3>
 
                 {/* Body */}
-                <p className="text-sm leading-relaxed text-slate-400">
-                  {pillar.body}
-                </p>
+                <div
+                  className={
+                    pillar.highlight ? "border-l-2 border-[#D0A85C] pl-4" : ""
+                  }
+                >
+                  <p className="text-sm leading-relaxed text-slate-400">
+                    {pillar.body}
+                  </p>
+                </div>
 
                 {/* Highlight accent bar */}
                 {pillar.highlight && (
-                  <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-2xl bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-md bg-gradient-to-r from-transparent via-[#D0A85C]/50 to-transparent" />
                 )}
               </motion.div>
             );

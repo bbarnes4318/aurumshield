@@ -14,13 +14,13 @@ const reveal = {
 const METRICS = [
   {
     figure: "0.00%",
-    label: "Counterparty Default Rate",
+    label: "Bilateral Principal Risk",
     description:
       "Atomic DvP settlement eliminates bilateral principal exposure. No counterparty holds unrecovered notional value at any lifecycle stage.",
   },
   {
     figure: "100%",
-    label: "Collateralization via Escrow",
+    label: "Capital Indemnification",
     description:
       "Full collateral is locked in deterministic escrow before execution. Settlement proceeds only after capital adequacy is computationally verified.",
   },
@@ -52,7 +52,7 @@ export function RiskModelSection() {
             Actuarial Proof
           </p>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
-            Risk Eliminated by Architecture
+            Principal Exposure: Structurally Neutralized
           </h2>
           <p className="text-base leading-relaxed text-slate-400">
             Counterparty exposure is structurally removed from the settlement
@@ -82,7 +82,7 @@ export function RiskModelSection() {
                   },
                 },
               }}
-              className="group rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8 backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37]/30"
+              className="group rounded-md border border-slate-800 bg-[#0B0E14] p-8 transition-all duration-300 hover:border-gold/30"
             >
               {/* Figure — monospace for precision */}
               <p
@@ -96,12 +96,12 @@ export function RiskModelSection() {
               </p>
 
               {/* Label */}
-              <p className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#D4AF37]">
+              <p className="mb-4 text-sm font-semibold uppercase tracking-wider text-gold">
                 {metric.label}
               </p>
 
               {/* Divider */}
-              <div className="mb-4 h-px w-12 bg-white/[0.08] transition-all duration-300 group-hover:w-full group-hover:bg-[#D4AF37]/30" />
+              <div className="mb-4 h-px w-12 bg-white/[0.08] transition-all duration-300 group-hover:w-full group-hover:bg-gold/30" />
 
               {/* Description */}
               <p className="text-sm leading-relaxed text-slate-400">

@@ -70,10 +70,10 @@ export default async function PlatformCapabilitiesPage() {
           --text: #e7ecf4;
           --text-muted: #aab6c8;
           --text-faint: #7f8ca3;
-          --gold: #c6a86b;
-          --gold-hover: #d3b77d;
+          --gold: #D0A85C;
+          --gold-hover: #D4AF37;
           --success: #3fae7a;
-          --warning: #d0a85c;
+          --warning: #D0A85C;
           --danger: #d16a5d;
           --info: #5a8ccb;
           --radius: 12px;
@@ -242,12 +242,12 @@ export default async function PlatformCapabilitiesPage() {
           padding: 1rem;
           border-radius: 4px;
         }
-        .plat-engine-box strong { display: block; color: var(--text); margin-bottom: 0.5rem; font-size: 0.9rem; }
+        .plat-engine-box strong { display: block; color: var(--text); margin-bottom: 0.5rem; font-size: 0.9rem; font-family: var(--font-mono); }
         .plat-engine-box span { display: block; font-size: 0.75rem; color: var(--text-faint); margin-bottom: 0.25rem; }
 
         .plat-callout {
           border-left: 4px solid var(--gold);
-          background: rgba(198, 168, 107, 0.05);
+          background: rgba(208, 168, 92, 0.05);
           padding: 1.5rem;
           border-radius: 0 var(--radius) var(--radius) 0;
           margin: 2rem 0;
@@ -256,7 +256,7 @@ export default async function PlatformCapabilitiesPage() {
 
         .plat-takeaway {
           border-left: 4px solid var(--gold);
-          background: rgba(198, 168, 107, 0.08);
+          background: rgba(208, 168, 92, 0.08);
           padding: 1rem 1.5rem;
           border-radius: 0 var(--radius) var(--radius) 0;
           margin: 2rem 0;
@@ -600,6 +600,7 @@ export default async function PlatformCapabilitiesPage() {
             </div>
 
             <h3>4.2 System Architecture</h3>
+            <div className="w-full h-64 sm:h-96 my-8 border border-slate-800 bg-[#0B0E14] rounded-md flex items-center justify-center text-gold/40 font-mono text-sm">[ Architecture Schematic Diagram Placeholder ]</div>
             <div className="plat-arch">
               <div className="plat-layer">
                 <span className="plat-layer-title">Presentation Layer</span>
@@ -658,6 +659,7 @@ export default async function PlatformCapabilitiesPage() {
               full forensic context — previous state, attempted state, entity ID, actor ID, and role — which is
               automatically emitted to the audit log for governance review.
             </p>
+            <div className="w-full h-48 sm:h-64 my-8 border border-slate-800 bg-[#0B0E14] rounded-md flex items-center justify-center text-gold/40 font-mono text-sm">[ State Machine Flowchart Placeholder ]</div>
 
             <h3>Atomic DvP Execution</h3>
             <p>The centerpiece is the two-step DvP mechanism:</p>
@@ -1021,6 +1023,7 @@ export default async function PlatformCapabilitiesPage() {
                 </tbody>
               </table>
             </div>
+            <div className="w-full h-48 sm:h-64 my-8 border border-slate-800 bg-[#0B0E14] rounded-md flex items-center justify-center text-gold/40 font-mono text-sm">[ Dual-Rail Routing Diagram Placeholder ]</div>
 
             <h3>Rail Selection Logic</h3>
             <p>

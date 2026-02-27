@@ -3,10 +3,10 @@
 import { Shield, CheckCircle2, Award, Lock } from "lucide-react";
 
 const TRUST_ITEMS = [
-  { icon: Shield, label: "Secured by Tier 1 Insurers" },
-  { icon: CheckCircle2, label: "SOC 2 Type II Certified" },
-  { icon: Award, label: "LBMA Good Delivery Compliant" },
-  { icon: Lock, label: "Bank-Grade Encryption" },
+  { icon: Shield, label: "Tier-1 Actuarial Indemnification" },
+  { icon: CheckCircle2, label: "SOC 2 Type II / ISO 27001" },
+  { icon: Award, label: "LBMA Good Delivery Enforced" },
+  { icon: Lock, label: "Cryptographic Escrow Confinement" },
 ] as const;
 
 export function TrustBand() {
@@ -21,10 +21,10 @@ export function TrustBand() {
           return (
             <div
               key={item.label}
-              className="flex items-center gap-2.5 opacity-40"
+              className="flex items-center gap-2.5"
             >
-              <Icon className="h-4 w-4 text-slate-400" strokeWidth={1.5} />
-              <span className="text-xs font-medium tracking-wide text-slate-400">
+              <Icon className="h-4 w-4 text-gold/70" strokeWidth={1.5} />
+              <span className="font-mono text-[10px] sm:text-xs font-semibold tracking-widest uppercase text-slate-400">
                 {item.label}
               </span>
             </div>

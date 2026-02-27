@@ -33,18 +33,18 @@ const APP_URL =
 
 /* ── Shared animation for scroll reveal (CSS-only) ── */
 const GLASS_CARD =
-  "bg-white/[0.02] border border-white/[0.08] backdrop-blur-md rounded-2xl hover:border-[#D4AF37]/30 transition-all duration-300";
+  "bg-[#0B0E14] border border-slate-800 rounded-md hover:border-gold/30 transition-all duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]";
 
 /* ================================================================
    NAVIGATION
    ================================================================ */
 function Navigation() {
   return (
-    <nav className="fixed top-0 z-50 w-full bg-[#0A1128]/80 backdrop-blur-xl border-b border-white/[0.06]">
+    <nav className="fixed top-0 z-50 w-full bg-[#0A1128]/80 backdrop-blur-xl border-b border-slate-800">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center">
-          <img src="/arum-logo-gold.svg" alt="AurumShield" className="h-8 w-auto" />
+          <img src="/arum-logo-gold.svg" alt="AurumShield" className="h-6 lg:h-7 w-auto" />
         </Link>
 
         {/* Center Links */}
@@ -68,14 +68,11 @@ function Navigation() {
             href={`${APP_URL}/login`}
             className="hidden sm:inline-block text-sm font-medium text-slate-400 transition-colors hover:text-white"
           >
-            Client Login
+            Client Portal
           </a>
           <a
             href={`${APP_URL}/signup`}
-            className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-black transition-all hover:shadow-lg hover:shadow-[#D4AF37]/20"
-            style={{
-              background: "linear-gradient(135deg, #D4AF37, #B68D29)",
-            }}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#D4AF37] hover:bg-[#D4AF37]/90 px-5 py-2.5 text-sm font-semibold text-slate-950 transition-colors"
           >
             Request Access
           </a>
@@ -141,8 +138,8 @@ function SettlementLifecycleSection() {
             {LIFECYCLE_STEPS.map((s) => (
               <div key={s.step} className="relative">
                 {/* Badge */}
-                <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#D4AF37]/40 bg-[#0A1128]">
-                  <span className="font-mono text-sm font-bold text-[#D4AF37]">
+                <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-md border-2 border-gold/40 bg-[#0B0E14]">
+                  <span className="font-mono text-sm font-bold text-gold">
                     {s.step}
                   </span>
                 </div>
@@ -199,15 +196,15 @@ function ExposureSection() {
               {/* Stats Row */}
               <div className="grid grid-cols-3 gap-4 mb-8">
                 {[
-                  { label: "Bilateral Exposure", value: "$4.2M", status: "text-amber-500" },
-                  { label: "Cleared Exposure", value: "$0.00", status: "text-emerald-400" },
-                  { label: "Risk Reduction", value: "100%", status: "text-[#D4AF37]" },
+                  { label: "Bilateral Exposure", value: "$4.2M", status: "text-slate-400" },
+                  { label: "Cleared Exposure", value: "$0.00", status: "text-gold" },
+                  { label: "Risk Reduction", value: "100%", status: "text-gold" },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-4">
                     <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-1">
                       {stat.label}
                     </p>
-                    <p className={`text-xl font-bold tabular-nums ${stat.status}`}>
+                    <p className={`text-xl font-bold font-mono tracking-tight tabular-nums ${stat.status}`}>
                       {stat.value}
                     </p>
                   </div>
@@ -227,23 +224,15 @@ function ExposureSection() {
                     <div className="flex-1 flex gap-1 h-5">
                       {/* Bilateral */}
                       <div
-                        className="h-full rounded-sm bg-amber-500/40 transition-all duration-700"
+                        className="h-full rounded-sm bg-slate-800 transition-all duration-700"
                         style={{ width: `${d.bilateral}%` }}
                       />
                     </div>
                     <div className="flex-1 flex gap-1 h-5">
                       {/* Cleared */}
                       <div
-                        className="h-full rounded-sm transition-all duration-700"
-                        style={{
-                          width: `${Math.max(d.cleared, 2)}%`,
-                          backgroundColor:
-                            d.cleared === 0
-                              ? "rgba(16, 185, 129, 0.5)"
-                              : d.cleared < 30
-                                ? "rgba(212, 175, 55, 0.4)"
-                                : "rgba(212, 175, 55, 0.4)",
-                        }}
+                        className="h-full rounded-sm bg-gold/60 transition-all duration-700"
+                        style={{ width: `${Math.max(d.cleared, 2)}%` }}
                       />
                     </div>
                   </div>
@@ -251,11 +240,11 @@ function ExposureSection() {
                 <div className="flex items-center gap-4 mt-2 pt-3 border-t border-white/[0.06]">
                   <span className="w-20" />
                   <div className="flex-1 flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-amber-500/40" />
+                    <span className="h-2.5 w-2.5 rounded-sm bg-slate-800" />
                     <span className="text-[11px] text-slate-500">Bilateral</span>
                   </div>
                   <div className="flex-1 flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/50" />
+                    <span className="h-2.5 w-2.5 rounded-sm bg-gold/60" />
                     <span className="text-[11px] text-slate-500">Centrally Cleared</span>
                   </div>
                 </div>
@@ -312,11 +301,11 @@ function ArchitectureSection() {
         <div className="grid lg:grid-cols-2 gap-16 items-start">
           {/* Left: Copy */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#D4AF37] mb-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gold mb-4">
               Infrastructure
             </p>
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
-              Full Platform Architecture
+              Military-Grade Settlement Infrastructure
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
               AurumShield interposes as the central counterparty between buyers
@@ -358,12 +347,12 @@ function ArchitectureSection() {
               {/* Web App Card */}
               <div className={`${GLASS_CARD} p-8 relative`}>
                 <div className="flex items-start gap-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex-shrink-0">
-                    <Monitor className="h-6 w-6 text-[#D4AF37]" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-md bg-gold/10 border border-gold/20 shrink-0">
+                    <Monitor className="h-6 w-6 text-gold" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-2">
-                      Institutional Web Application
+                      Cryptographic Asset Provenance
                     </h3>
                     <p className="text-base leading-relaxed text-slate-400 max-w-md">
                       Full marketplace, order management, settlement tracking,
@@ -377,12 +366,12 @@ function ArchitectureSection() {
               {/* Clearing Engine */}
               <div className={`${GLASS_CARD} p-8 relative`}>
                 <div className="flex items-start gap-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex-shrink-0">
-                    <Cpu className="h-6 w-6 text-[#D4AF37]" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-md bg-gold/10 border border-gold/20 shrink-0">
+                    <Cpu className="h-6 w-6 text-gold" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-2">
-                      Deterministic Clearing Engine
+                      Atomic Escrow Engine
                     </h3>
                     <p className="text-base leading-relaxed text-slate-400 max-w-md">
                       Atomic DvP settlement, SHA-256 clearing certificates,
@@ -396,12 +385,12 @@ function ArchitectureSection() {
               {/* API Access */}
               <div className={`${GLASS_CARD} p-8 relative`}>
                 <div className="flex items-start gap-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex-shrink-0">
-                    <Code className="h-6 w-6 text-[#D4AF37]" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-md bg-gold/10 border border-gold/20 shrink-0">
+                    <Code className="h-6 w-6 text-gold" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-2">
-                      Programmatic API Access
+                      Real-Time Audit Telemetry
                     </h3>
                     <p className="text-base leading-relaxed text-slate-400 max-w-md">
                       REST API for trade origination, settlement status polling,
@@ -453,16 +442,16 @@ function ComplianceSection() {
   return (
     <section id="compliance" className="py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#D4AF37] mb-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gold mb-4">
           Compliance
         </p>
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
-          Standards &amp; Compliance Alignment
+          Engineered for Institutional Compliance
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
-          Compliance posture is architecturally embedded into the settlement
-          lifecycle. Each standard is enforced through code-level constraints,
-          not policy documents.
+          AurumShield maps to the most stringent regulatory and security
+          frameworks in global finance, ensuring your treasury operations
+          remain fully compliant.
         </p>
 
         {/* Data Table */}
@@ -485,15 +474,15 @@ function ComplianceSection() {
                   : ""
               } ${i % 2 === 1 ? "bg-white/[0.01]" : ""}`}
             >
-              <span className="text-sm font-semibold text-[#D4AF37]">
+              <span className="text-sm font-semibold text-gold">
                 {row.framework}
               </span>
               <span className="text-sm font-medium text-white">
                 {row.scope}
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-xs font-semibold text-emerald-500">
+                <CheckCircle className="h-3.5 w-3.5 text-gold" />
+                <span className="text-xs font-semibold text-gold">
                   {row.status}
                 </span>
               </span>
@@ -524,20 +513,16 @@ function FinalCTA() {
           structural infrastructure.
         </h2>
         <p className="mt-6 mx-auto max-w-2xl text-lg leading-relaxed text-slate-400">
-          Join the prime brokerages and liquidity providers moving to
-          deterministic gold settlement.
+          Institutional participants are migrating to deterministic bullion
+          clearing. Access is restricted to qualified entities.
         </p>
         <div className="mt-10">
           <a
             href={`${APP_URL}/signup`}
-            className="group relative inline-flex items-center justify-center gap-2 rounded-xl px-10 py-4 text-lg font-bold text-black transition-all hover:shadow-2xl hover:shadow-[#D4AF37]/25"
-            style={{
-              background: "linear-gradient(135deg, #D4AF37, #B68D29)",
-            }}
+            className="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-[#D4AF37] hover:bg-[#D4AF37]/90 px-10 py-4 text-lg font-bold text-black transition-all hover:shadow-2xl hover:shadow-[#D4AF37]/25"
           >
-            <span className="absolute inset-0 rounded-xl bg-[#D4AF37] animate-ping opacity-[0.08]" />
-            <span className="relative">Request Institutional Access</span>
-            <ArrowRight className="relative h-5 w-5" />
+            <span>Request Institutional Access</span>
+            <ArrowRight className="h-5 w-5" />
           </a>
         </div>
       </div>
