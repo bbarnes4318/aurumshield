@@ -92,6 +92,7 @@ jobs:
             --cluster $ECS_CLUSTER \
             --service $ECS_SERVICE \
             --task-definition ${{ steps.update-task-def.outputs.task-def-arn }} \
+            --deployment-configuration "minimumHealthyPercent=0,maximumPercent=100" \
             --force-new-deployment \
             --region $AWS_REGION
 
