@@ -130,7 +130,12 @@ function SettlementLifecycleSection() {
   return (
     <section id="architecture" className="py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}SETTLEMENT</p>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-px w-8 bg-[#D0A85C]/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+            SETTLEMENT LIFECYCLE
+          </p>
+        </div>
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           Deterministic Settlement Lifecycle
         </h2>
@@ -231,7 +236,12 @@ function ExposureSection() {
 
           {/* Right: Copy */}
           <div>
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}RISK ARCHITECTURE</p>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-px w-8 bg-[#D0A85C]/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+            RISK ARCHITECTURE
+          </p>
+        </div>
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
               Exposure Compressed to Zero at Settlement
             </h2>
@@ -274,11 +284,18 @@ function ExposureSection() {
    ================================================================ */
 function KineticRiskSection() {
   return (
-    <section className="py-24 lg:py-32">
+    <section className="pb-24 lg:pb-32 pt-4 lg:pt-8">
+      {/* Architectural Divider */}
+      <div className="mx-auto max-w-7xl px-6 mb-16 lg:mb-20">
+        <div className="h-px w-full bg-gradient-to-r from-slate-800 via-slate-800/50 to-transparent" />
+      </div>
       <div className="mx-auto max-w-7xl px-6">
-        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C] mb-4">
-          {"// PHYSICAL PERIMETER"}
-        </p>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-px w-8 bg-[#D0A85C]/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+            PHYSICAL PERIMETER
+          </p>
+        </div>
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           The Sovereign Custody Layer: Kinetic Risk Eliminated
         </h2>
@@ -330,7 +347,12 @@ function ArchitectureSection() {
         <div className="grid lg:grid-cols-2 gap-16 items-start">
           {/* Left: Copy */}
           <div>
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}INFRASTRUCTURE</p>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-px w-8 bg-[#D0A85C]/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+            CLEARING INFRASTRUCTURE
+          </p>
+        </div>
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
               Military-Grade Settlement Infrastructure
             </h2>
@@ -590,9 +612,12 @@ function SiteFooter() {
 
           {/* Col 2: Infrastructure */}
           <div>
-            <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C] mb-6">
-              {"// Infrastructure"}
-            </h4>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-px w-6 bg-[#D0A85C]/50" />
+              <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+                Infrastructure
+              </h4>
+            </div>
             <ul className="space-y-4 text-sm font-medium text-gray-400">
               <li><Link href="/platform-overview" className="hover:text-white transition-colors">Platform Dossier</Link></li>
               <li><Link href="/technical-overview" className="hover:text-white transition-colors">System Architecture</Link></li>
@@ -602,9 +627,12 @@ function SiteFooter() {
 
           {/* Col 3: Legal & Compliance */}
           <div>
-            <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C] mb-6">
-              {"// Compliance"}
-            </h4>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-px w-6 bg-[#D0A85C]/50" />
+              <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+                Compliance
+              </h4>
+            </div>
             <ul className="space-y-4 text-sm font-medium text-gray-400">
               <li><Link href="/legal/terms" className="hover:text-white transition-colors">Terms &amp; Conditions</Link></li>
               <li><Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
@@ -615,9 +643,12 @@ function SiteFooter() {
 
           {/* Col 4: Operations Desk (Phone Number) */}
           <div>
-            <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C] mb-6">
-              {"// Global Operations"}
-            </h4>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-px w-6 bg-[#D0A85C]/50" />
+              <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+                Global Operations
+              </h4>
+            </div>
             <div className="bg-[#0B0E14] border border-slate-800 rounded-md p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="h-2 w-2 rounded-full bg-[#D0A85C]/70 animate-pulse" />

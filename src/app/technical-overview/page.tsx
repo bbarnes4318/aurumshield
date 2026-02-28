@@ -46,21 +46,21 @@ export default async function TechnicalOverviewPage() {
           __html: `
         .tech-overview-page {
           --bg: #0A1128;
-          --surface-1: #0B0E14;
-          --surface-2: rgba(255, 255, 255, 0.02);
-          --surface-3: #182b46;
-          --border: #243653;
-          --text: #e7ecf4;
-          --text-muted: #aab6c8;
-          --text-faint: #7f8ca3;
+          --surface-1: rgba(255, 255, 255, 0.02);
+          --surface-2: rgba(255, 255, 255, 0.04);
+          --surface-3: rgba(255, 255, 255, 0.06);
+          --border: #1e293b;
+          --text: #cbd5e1;
+          --text-muted: #94a3b8;
+          --text-faint: #64748b;
           --gold: #D0A85C;
           --gold-hover: #D4AF37;
           --success: #3fae7a;
-          --warning: #d0a85c;
+          --warning: #D0A85C;
           --danger: #d16a5d;
           --info: #5a8ccb;
           --radius: 6px;
-          --radius-sm: 8px;
+          --radius-sm: 4px;
           --font-sans: 'IBM Plex Sans', var(--font-ibm-plex-sans), system-ui, sans-serif;
           --font-serif: 'Source Serif 4', var(--font-source-serif), Georgia, serif;
           --font-mono: 'Cascadia Code', 'Source Code Pro', Consolas, monospace;
