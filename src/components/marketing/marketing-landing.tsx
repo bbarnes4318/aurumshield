@@ -498,7 +498,10 @@ function ComplianceSection() {
   return (
     <section id="compliance" className="py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}COMPLIANCE</p>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-px w-8 bg-gold/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">COMPLIANCE</p>
+        </div>
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           Engineered for Institutional Compliance
         </h2>

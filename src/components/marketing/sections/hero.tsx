@@ -36,7 +36,10 @@ export function HeroSection() {
       <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center py-12 lg:py-24 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
         <div className="flex flex-col justify-center space-y-6 lg:space-y-8 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
-          <motion.p custom={0} initial="hidden" animate="visible" variants={fade} className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-6">{"// "}INSTITUTIONAL CLEARING INFRASTRUCTURE</motion.p>
+          <motion.div custom={0} initial="hidden" animate="visible" variants={fade} className="flex items-center gap-4 mb-6">
+            <div className="h-px w-8 bg-gold/50" />
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">INSTITUTIONAL CLEARING INFRASTRUCTURE</p>
+          </motion.div>
 
           <motion.h1
             custom={1}

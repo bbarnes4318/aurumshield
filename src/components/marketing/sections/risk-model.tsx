@@ -48,7 +48,10 @@ export function RiskModelSection() {
           variants={reveal}
           className="mb-16 max-w-2xl"
         >
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}ACTUARIAL PROOF</p>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="h-px w-8 bg-gold/50" />
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">ACTUARIAL PROOF</p>
+          </div>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
             Principal Exposure: Structurally Neutralized
           </h2>

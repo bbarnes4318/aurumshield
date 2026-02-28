@@ -60,7 +60,10 @@ export function MarketWeaknessSection() {
           variants={reveal}
           className="mb-16 max-w-3xl"
         >
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}TRADE ARCHITECTURE</p>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="h-px w-8 bg-gold/50" />
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">TRADE ARCHITECTURE</p>
+          </div>
           <h2 className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-4xl">
             The Anatomy of a Fraud-Proof Trade
           </h2>
