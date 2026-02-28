@@ -70,10 +70,10 @@ export default async function PlatformCapabilitiesPage() {
           --text: #e7ecf4;
           --text-muted: #aab6c8;
           --text-faint: #7f8ca3;
-          --gold: #D0A85C;
-          --gold-hover: #D4AF37;
+          --gold: #c6a86b;
+          --gold-hover: #d3b77d;
           --success: #3fae7a;
-          --warning: #D0A85C;
+          --warning: #c6a86b;
           --danger: #d16a5d;
           --info: #5a8ccb;
           --radius: 12px;

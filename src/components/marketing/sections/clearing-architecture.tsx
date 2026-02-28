@@ -121,9 +121,9 @@ export function ClearingArchitectureSection() {
                   transition: { delay: i * 0.1, duration: 0.55 },
                 },
               }}
-              className="rounded-md border border-slate-800 bg-[#0B0E14] p-6 sm:p-8 transition-colors hover:border-[#D0A85C]/30 space-y-4"
+              className="rounded-md border border-slate-800 bg-[#0B0E14] p-6 sm:p-8 transition-colors hover:border-gold/30 space-y-4"
             >
-              <span className="block text-[10px] font-bold font-mono uppercase tracking-[0.14em] text-[#D0A85C]">
+              <span className="block text-[10px] font-bold font-mono uppercase tracking-[0.14em] text-gold">
                 {p.label}
               </span>
               <h3 className="text-[0.9375rem] font-semibold leading-snug text-white">
@@ -137,8 +137,8 @@ export function ClearingArchitectureSection() {
         </div>
 
         {/* ── Actuarial Trust Band ── */}
-        <div className="mt-16 w-full bg-[#D0A85C]/5 border-y border-[#D0A85C]/20 py-4 flex items-center justify-center px-4">
-          <p className="text-center font-mono text-xs sm:text-sm text-[#D0A85C] tracking-[0.2em] uppercase">
+        <div className="mt-16 w-full bg-gold/5 border-y border-gold/20 py-4 flex items-center justify-center px-4">
+          <p className="text-center font-mono text-xs sm:text-sm text-gold tracking-[0.2em] uppercase">
             [ VERIFIED ]: ALL ARCHITECTURAL STATE TRANSITIONS ARE BOUND BY COMPREHENSIVE UNDERWRITTEN INDEMNIFICATION.
           </p>
         </div>

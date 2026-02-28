@@ -107,7 +107,7 @@ export default function DemoWalkthroughPage() {
           --gold: #c6a86b;
           --gold-hover: #d3b77d;
           --success: #3fae7a;
-          --warning: #d0a85c;
+          --warning: #c6a86b;
           --danger: #d16a5d;
           --info: #5a8ccb;
           --radius: 14px;

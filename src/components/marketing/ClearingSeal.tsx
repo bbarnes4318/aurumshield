@@ -37,9 +37,9 @@ export function ClearingSeal({
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="guilloche" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 0 30 Q 15 0 30 30 T 60 30" fill="none" stroke="#D4AF37" strokeWidth="0.5"/>
-                <path d="M 0 30 Q 15 60 30 30 T 60 30" fill="none" stroke="#D4AF37" strokeWidth="0.5"/>
-                <circle cx="30" cy="30" r="10" fill="none" stroke="#D4AF37" strokeWidth="0.25" />
+                <path d="M 0 30 Q 15 0 30 30 T 60 30" fill="none" stroke="#c6a86b" strokeWidth="0.5"/>
+                <path d="M 0 30 Q 15 60 30 30 T 60 30" fill="none" stroke="#c6a86b" strokeWidth="0.5"/>
+                <circle cx="30" cy="30" r="10" fill="none" stroke="#c6a86b" strokeWidth="0.25" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#guilloche)" />

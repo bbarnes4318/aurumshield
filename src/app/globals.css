@@ -25,7 +25,7 @@
   --gold-hover: #d3b77d;
   --gold-pressed: #c49a4a;
   --gold-muted: #9f8a4c;
-  --action-gold: #d4af37;
+  --action-gold: #c6a86b;
   --active-bg: #1a2540;
   --active-text: #c8d4e4;
   --success: #3fae7a;
@@ -125,7 +125,7 @@
 
   /* CRO — Institutional Trust Palette */
   --color-navy-base: #0a1128;
-  --color-gold-primary: #d4af37;
+  --color-gold-primary: #c6a86b;
   --color-gold-dark: #b68d29;
   --color-action-gold: var(--action-gold);
   --color-trust-cyan: #20a4f3;
@@ -651,7 +651,7 @@ body.presentation-mode .typo-mono {
   --mk-text: #f8fafc;
   --mk-muted: #cbd5e1;
   --mk-faint: #94a3b8;
-  --mk-gold: #d0a85c;
+  --mk-gold: #c6a86b;
   --mk-gold-hover: #d9b96e;
   --mk-gold-muted: #9f8a4c;
 }

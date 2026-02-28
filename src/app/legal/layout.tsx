@@ -27,7 +27,7 @@ export default function LegalLayout({
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#D0A85C] transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-gold transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Return to Home

@@ -6,7 +6,7 @@
    Deterministic clearing layer for physical gold.
    Target: prime brokerages, UHNWIs, asset managers.
 
-   Design system: #0A1128 navy-base + #D4AF37 gold accent.
+   Design system: #0A1128 navy-base + #c6a86b gold accent.
    Glassmorphism cards, DvP visualization, metric cards.
    ================================================================ */
 

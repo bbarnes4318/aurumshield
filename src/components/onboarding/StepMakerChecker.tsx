@@ -189,7 +189,7 @@ export function StepMakerChecker() {
             mt-0.5 h-4 w-4 rounded border-color-5/40
             bg-color-1/80 text-color-2
             focus:ring-2 focus:ring-color-2/30 focus:ring-offset-0
-            accent-[#D0A85C]
+            accent-gold
           "
         />
         <span className="text-xs leading-relaxed text-color-3/60 group-hover:text-color-3/80 transition-colors">

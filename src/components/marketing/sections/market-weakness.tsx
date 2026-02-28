@@ -95,15 +95,15 @@ export function MarketWeaknessSection() {
                 }}
                 className={`relative rounded-md border p-8 transition-all duration-300 ${
                   pillar.highlight
-                    ? "border-[#D0A85C]/30 bg-[#D0A85C]/[0.04]"
-                    : "border-slate-800 bg-white/[0.02] hover:border-[#D0A85C]/30"
+                    ? "border-gold/30 bg-gold/[0.04]"
+                    : "border-slate-800 bg-white/[0.02] hover:border-gold/30"
                 }`}
               >
                 {/* Icon */}
                 <div
                   className={`mb-5 flex h-12 w-12 items-center justify-center rounded-md border ${
                     pillar.highlight
-                      ? "border-[#D0A85C]/30 bg-[#D0A85C]/10"
+                      ? "border-gold/30 bg-gold/10"
                       : "border-slate-800 bg-white/[0.03]"
                   }`}
                 >
@@ -117,7 +117,7 @@ export function MarketWeaknessSection() {
                 {/* Subtitle tag */}
                 <span
                   className={`mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] ${
-                    pillar.highlight ? "text-[#D0A85C]/70" : "text-gray-400"
+                    pillar.highlight ? "text-gold/70" : "text-gray-400"
                   }`}
                 >
                   {pillar.subtitle}
@@ -131,7 +131,7 @@ export function MarketWeaknessSection() {
                 {/* Body */}
                 <div
                   className={
-                    pillar.highlight ? "border-l-2 border-[#D0A85C] pl-4" : ""
+                    pillar.highlight ? "border-l-2 border-gold pl-4" : ""
                   }
                 >
                   <p className="text-sm leading-relaxed text-gray-300">
@@ -141,7 +141,7 @@ export function MarketWeaknessSection() {
 
                 {/* Highlight accent bar */}
                 {pillar.highlight && (
-                  <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-md bg-gradient-to-r from-transparent via-[#D0A85C]/50 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-md bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
                 )}
               </motion.div>
             );
