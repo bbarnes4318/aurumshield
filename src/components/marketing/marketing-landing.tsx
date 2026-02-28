@@ -574,56 +574,78 @@ function FinalCTA() {
    ================================================================ */
 function SiteFooter() {
   return (
-    <footer className="border-t border-white/[0.06] px-6 py-8">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 sm:flex-row sm:items-start">
-        <div className="flex items-center gap-3 text-sm text-gray-400">
-          <img
-            src="/arum-logo-gold.svg"
-            alt="AurumShield"
-            className="h-6 w-auto"
-          />
-          <span className="h-3 w-px bg-white/[0.08]" />
-          <span>&copy; {new Date().getFullYear()}</span>
+    <footer className="border-t border-slate-800 bg-[#0A1128] pt-16 pb-8 px-6">
+      <div className="mx-auto max-w-7xl">
+        
+        {/* Top Grid: Columns */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+          
+          {/* Col 1: Brand */}
+          <div className="md:col-span-1">
+            <img src="/arum-logo-gold.svg" alt="AurumShield" className="h-7 w-auto mb-4" />
+            <p className="text-sm leading-relaxed text-slate-500">
+              Deterministic clearing layer and sovereign custody infrastructure for physical bullion.
+            </p>
+          </div>
+
+          {/* Col 2: Infrastructure */}
+          <div>
+            <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C] mb-6">
+              {"// Infrastructure"}
+            </h4>
+            <ul className="space-y-4 text-sm font-medium text-gray-400">
+              <li><Link href="/platform-overview" className="hover:text-white transition-colors">Platform Dossier</Link></li>
+              <li><Link href="/technical-overview" className="hover:text-white transition-colors">System Architecture</Link></li>
+              <li><a href={`${APP_URL}/login`} className="hover:text-white transition-colors">Client Portal</a></li>
+            </ul>
+          </div>
+
+          {/* Col 3: Legal & Compliance */}
+          <div>
+            <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C] mb-6">
+              {"// Compliance"}
+            </h4>
+            <ul className="space-y-4 text-sm font-medium text-gray-400">
+              <li><Link href="/legal/terms" className="hover:text-white transition-colors">Terms &amp; Conditions</Link></li>
+              <li><Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/legal/aml-kyc" className="hover:text-white transition-colors">AML &amp; KYC Policy</Link></li>
+              <li><Link href="/legal/risk-reinsurance" className="hover:text-white transition-colors">Risk &amp; Reinsurance</Link></li>
+            </ul>
+          </div>
+
+          {/* Col 4: Operations Desk (Phone Number) */}
+          <div>
+            <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C] mb-6">
+              {"// Global Operations"}
+            </h4>
+            <div className="bg-[#0B0E14] border border-slate-800 rounded-md p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-2 w-2 rounded-full bg-[#D0A85C]/70 animate-pulse" />
+                <span className="text-[10px] uppercase tracking-widest text-[#D0A85C]/70 font-semibold">
+                  24/7 Automated Desk
+                </span>
+              </div>
+              <a href="tel:+18652757300" className="text-lg font-mono font-bold text-white hover:text-[#D0A85C] transition-colors block mt-1">
+                +1.865.275.7300
+              </a>
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                Voice-automated clearing concierge.
+              </p>
+            </div>
+          </div>
+
         </div>
-        <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-gray-400">
-          <Link
-            href="/platform-overview"
-            className="transition-colors hover:text-slate-300"
-          >
-            Platform Overview
-          </Link>
-          <Link
-            href="/technical-overview"
-            className="transition-colors hover:text-slate-300"
-          >
-            Technical Overview
-          </Link>
-          <span className="hidden sm:inline h-3 w-px bg-white/[0.08] self-center" />
-          <Link
-            href="/legal/terms"
-            className="transition-colors hover:text-gold"
-          >
-            Terms &amp; Conditions
-          </Link>
-          <Link
-            href="/legal/privacy"
-            className="transition-colors hover:text-gold"
-          >
-            Privacy Policy
-          </Link>
-          <Link
-            href="/legal/aml-kyc"
-            className="transition-colors hover:text-gold"
-          >
-            AML / KYC Policy
-          </Link>
-          <Link
-            href="/legal/risk-reinsurance"
-            className="transition-colors hover:text-gold"
-          >
-            Risk &amp; Reinsurance
-          </Link>
+
+        {/* Bottom Strip: Copyright */}
+        <div className="pt-8 border-t border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-slate-600 font-mono">
+            &copy; {new Date().getFullYear()} AurumShield Platform. All rights reserved.
+          </p>
+          <p className="text-xs text-slate-600 font-mono uppercase tracking-widest">
+            Institutional Access Only
+          </p>
         </div>
+
       </div>
     </footer>
   );
