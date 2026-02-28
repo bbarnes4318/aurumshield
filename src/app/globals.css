@@ -11,6 +11,8 @@
    1. DESIGN TOKENS — Dark Theme (default)
    ---------------------------------------------------------------- */
 :root {
+  color-scheme: dark;
+
   --bg: #0b1220;
   --surface-1: #0f1a2b;
   --surface-2: #13233a;
@@ -19,11 +21,11 @@
   --text: #e7ecf4;
   --text-muted: #aab6c8;
   --text-faint: #7f8ca3;
-  --gold: #D0A85C;
+  --gold: #d0a85c;
   --gold-hover: #d9b96e;
   --gold-pressed: #c49a4a;
   --gold-muted: #9f8a4c;
-  --action-gold: #D4AF37;
+  --action-gold: #d4af37;
   --active-bg: #1a2540;
   --active-text: #c8d4e4;
   --success: #3fae7a;
@@ -122,11 +124,11 @@
   --font-mono: var(--font-jetbrains-mono);
 
   /* CRO — Institutional Trust Palette */
-  --color-navy-base: #0A1128;
-  --color-gold-primary: #D4AF37;
-  --color-gold-dark: #B68D29;
+  --color-navy-base: #0a1128;
+  --color-gold-primary: #d4af37;
+  --color-gold-dark: #b68d29;
   --color-action-gold: var(--action-gold);
-  --color-trust-cyan: #20A4F3;
+  --color-trust-cyan: #20a4f3;
 }
 
 /* ----------------------------------------------------------------
@@ -144,6 +146,7 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  forced-color-adjust: none;
 }
 
 /* ----------------------------------------------------------------
@@ -642,13 +645,13 @@ body.presentation-mode .typo-mono {
 
 /* ── Marketing Design Tokens ── */
 :root {
-  --mk-bg: #0A1128;
+  --mk-bg: #0a1128;
   --mk-surface: #111827;
   --mk-border: #1f2937;
   --mk-text: #f8fafc;
   --mk-muted: #cbd5e1;
   --mk-faint: #94a3b8;
-  --mk-gold: #D0A85C;
+  --mk-gold: #d0a85c;
   --mk-gold-hover: #d9b96e;
   --mk-gold-muted: #9f8a4c;
 }
