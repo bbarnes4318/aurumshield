@@ -11,9 +11,10 @@ export default function RiskReinsurancePage() {
     <>
       {/* ── Document Header ── */}
       <div className="border-b border-slate-800 pb-8 mb-12">
-        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">
-          {"// "}LEGAL INFRASTRUCTURE
-        </p>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-px w-8 bg-gold/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">LEGAL INFRASTRUCTURE</p>
+        </div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-6">
           Risk Management &amp; Reinsurance Protocol
         </h1>
