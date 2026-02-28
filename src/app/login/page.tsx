@@ -562,6 +562,17 @@ export default function LoginPage() {
                     Status: Pending Review
                   </span>
                 </div>
+
+                {/* Return to Homepage */}
+                <div className="mt-8">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center justify-center gap-2 w-full rounded-md border border-gold/30 bg-transparent px-6 py-3 text-sm font-semibold text-gold hover:bg-gold/5 transition-colors"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Return to Homepage
+                  </Link>
+                </div>
               </div>
             )}
           </div>

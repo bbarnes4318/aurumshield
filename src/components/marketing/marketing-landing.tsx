@@ -42,48 +42,47 @@ const GLASS_CARD =
    ================================================================ */
 function Navigation() {
   return (
-    <nav className="fixed top-0 z-50 w-full bg-[#0A1128]/80 backdrop-blur-xl border-b border-slate-800">
+    <nav className="fixed top-0 z-50 w-full bg-[#0A1128]/90 backdrop-blur-xl border-b border-slate-800">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center">
-          <img
-            src="/arum-logo-gold.svg"
-            alt="AurumShield"
-            className="h-6 lg:h-7 w-auto"
-          />
-        </Link>
-
-        {/* Center Links - Strictly reserved for external dossiers */}
-        <div className="hidden lg:flex items-center gap-10">
-          <Link
-            href="/platform-overview"
-            className="text-sm font-medium text-gray-300 transition-colors hover:text-white"
-          >
-            Platform
+        
+        {/* LEFT: Structural Anchors (Logo + Dossiers) */}
+        <div className="flex items-center gap-8 lg:gap-12">
+          <Link href="/" className="flex items-center flex-shrink-0">
+            <img src="/arum-logo-gold.svg" alt="AurumShield" className="h-6 lg:h-7 w-auto" />
           </Link>
-          <Link
-            href="/technical-overview"
-            className="text-sm font-medium text-gray-300 transition-colors hover:text-white"
-          >
-            Architecture
-          </Link>
+          
+          <div className="hidden lg:flex items-center gap-8 border-l border-slate-800 pl-8">
+            <Link
+              href="/platform-overview"
+              className="text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
+            >
+              Platform Dossier
+            </Link>
+            <Link
+              href="/technical-overview"
+              className="text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
+            >
+              System Architecture
+            </Link>
+          </div>
         </div>
 
-        {/* Right CTAs */}
-        <div className="flex items-center gap-4">
+        {/* RIGHT: Access Gateways */}
+        <div className="flex items-center gap-5 flex-shrink-0">
           <a
             href={`${APP_URL}/login`}
-            className="hidden sm:inline-block text-sm font-medium text-gray-300 transition-colors hover:text-white"
+            className="hidden sm:inline-block text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
           >
             Client Portal
           </a>
           <a
             href={`${APP_URL}/signup`}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#D4AF37] hover:bg-[#D4AF37]/90 px-5 py-2.5 text-sm font-semibold text-slate-950 transition-colors"
+            className="inline-flex items-center gap-2 rounded-md bg-[#D4AF37] hover:bg-[#D4AF37]/90 px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors"
           >
             Request Access
           </a>
         </div>
+
       </div>
     </nav>
   );
@@ -195,35 +194,35 @@ function ExposureSection() {
               </div>
             </div>
 
-            <div className="p-0 overflow-x-auto">
-              <table className="w-full text-left font-mono text-xs sm:text-sm whitespace-nowrap">
+            <div className="p-0">
+              <table className="w-full text-left font-mono text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-slate-800 bg-[#0A1128]">
-                    <th className="px-6 py-4 font-semibold text-slate-500 uppercase tracking-widest">Lifecycle State</th>
-                    <th className="px-6 py-4 font-semibold text-slate-500 uppercase tracking-widest">Bilateral Risk</th>
-                    <th className="px-6 py-4 font-semibold text-gold uppercase tracking-widest">AurumShield DvP</th>
+                    <th className="px-4 py-4 font-semibold text-slate-500 uppercase tracking-widest">State</th>
+                    <th className="px-4 py-4 font-semibold text-slate-500 uppercase tracking-widest">Bilateral Risk</th>
+                    <th className="px-4 py-4 font-semibold text-gold uppercase tracking-widest">AurumShield DvP</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
                   <tr className="bg-white/[0.01]">
-                    <td className="px-6 py-4 text-slate-400">01. Quote & Lock</td>
-                    <td className="px-6 py-4 text-slate-300">$4.2M Exposed</td>
-                    <td className="px-6 py-4 text-gold">Escrow Confirmed</td>
+                    <td className="px-4 py-4 text-slate-400">01. Quote &amp; Lock</td>
+                    <td className="px-4 py-4 text-slate-300">$4.2M Exposed</td>
+                    <td className="px-4 py-4 text-gold">Escrow Confirmed</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 text-slate-400">02. Capital Transit</td>
-                    <td className="px-6 py-4 text-slate-300">$4.2M Exposed</td>
-                    <td className="px-6 py-4 text-gold">Capital Sequestered</td>
+                    <td className="px-4 py-4 text-slate-400">02. Capital Transit</td>
+                    <td className="px-4 py-4 text-slate-300">$4.2M Exposed</td>
+                    <td className="px-4 py-4 text-gold">Capital Sequestered</td>
                   </tr>
                   <tr className="bg-white/[0.01]">
-                    <td className="px-6 py-4 text-slate-400">03. Physical Release</td>
-                    <td className="px-6 py-4 text-rose-400 font-semibold">Maximum Exposure</td>
-                    <td className="px-6 py-4 text-gold">Title Blocked</td>
+                    <td className="px-4 py-4 text-slate-400">03. Physical Release</td>
+                    <td className="px-4 py-4 text-rose-400 font-semibold">Max Exposure</td>
+                    <td className="px-4 py-4 text-gold">Title Blocked</td>
                   </tr>
                   <tr className="bg-[#D0A85C]/5 border-t border-gold/20">
-                    <td className="px-6 py-4 text-white font-bold">04. Final Settlement</td>
-                    <td className="px-6 py-4 text-rose-400 font-bold">Default Risk Active</td>
-                    <td className="px-6 py-4 text-gold font-bold tracking-widest">$0.00 (ATOMIC DvP)</td>
+                    <td className="px-4 py-4 text-white font-bold">04. Settlement</td>
+                    <td className="px-4 py-4 text-rose-400 font-bold">Default Risk</td>
+                    <td className="px-4 py-4 text-gold font-bold tracking-wider">$0.00 (DvP)</td>
                   </tr>
                 </tbody>
               </table>
@@ -277,7 +276,9 @@ function KineticRiskSection() {
   return (
     <section className="py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold mb-4">{"// "}PHYSICAL PERIMETER</p>
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C] mb-4">
+          {"// PHYSICAL PERIMETER"}
+        </p>
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
           The Sovereign Custody Layer: Kinetic Risk Eliminated
         </h2>
