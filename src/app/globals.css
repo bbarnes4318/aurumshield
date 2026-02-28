@@ -140,6 +140,12 @@
   border-color: var(--border);
 }
 
+/* Prevent horizontal scrolling globally — mobile-critical */
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   background-color: var(--bg);
   color: var(--text);
@@ -147,6 +153,49 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   forced-color-adjust: none;
+}
+
+/* ----------------------------------------------------------------
+   4b. MOBILE TOUCH-TARGET UTILITY
+   ----------------------------------------------------------------
+   WCAG 2.5.8 — minimum 44×44 CSS pixel target size.
+   Apply via class or use as a baseline for interactive elements.
+   ---------------------------------------------------------------- */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ----------------------------------------------------------------
+   4c. TOUCH DEVICE — Disable hover effects
+   ----------------------------------------------------------------
+   On pure touch devices, hover states can get "stuck" after tap.
+   This strips hover styling on devices that don't support hover.
+   ---------------------------------------------------------------- */
+@media (hover: none) {
+  .card-base[data-interactive]:hover,
+  a.card-base:hover {
+    box-shadow: none;
+  }
+  .mk-card:hover {
+    border-color: var(--mk-border);
+    box-shadow: none;
+  }
+}
+
+/* ----------------------------------------------------------------
+   4d. FORM INPUT — Prevent iOS Safari auto-zoom
+   ----------------------------------------------------------------
+   iOS Safari zooms the viewport when focusing an input with
+   font-size < 16px. This rule forces all inputs to >= 16px.
+   ---------------------------------------------------------------- */
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
 }
 
 /* ----------------------------------------------------------------

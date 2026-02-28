@@ -79,7 +79,7 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
         {/* Mobile hamburger — visible below md */}
         <button
           onClick={onOpenMobileMenu}
-          className="block md:hidden rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+          className="block md:hidden touch-target rounded-[var(--radius-sm)] p-2.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text active:scale-95"
           aria-label="Open navigation menu"
         >
           <Menu className="h-5 w-5" />
@@ -99,7 +99,7 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
       <div className="flex items-center gap-2">
         {/* Search */}
         <button
-          className="rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+          className="touch-target rounded-[var(--radius-sm)] p-2.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text active:scale-95"
           aria-label="Search"
         >
           <Search className="h-4 w-4" />
@@ -107,18 +107,18 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
 
         {/* Notifications */}
         <button
-          className="relative rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+          className="relative touch-target rounded-[var(--radius-sm)] p-2.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text active:scale-95"
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-info" />
+          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-info" />
         </button>
 
         {/* Theme toggle */}
         {mounted && (
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+            className="touch-target rounded-[var(--radius-sm)] p-2.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text active:scale-95"
             aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

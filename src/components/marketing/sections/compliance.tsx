@@ -101,7 +101,7 @@ export function ComplianceSection() {
           </div>
         </motion.div>
 
-        {/* ── Compliance Table ── */}
+        {/* ── Compliance Table — Card layout on mobile, grid on desktop ── */}
         <div
           className="overflow-hidden"
           style={{
@@ -109,9 +109,9 @@ export function ComplianceSection() {
             borderRadius: "0.75rem",
           }}
         >
-          {/* Header */}
+          {/* Desktop Grid Header — hidden on mobile */}
           <div
-            className="grid grid-cols-[100px_1fr_90px_2fr] gap-4 px-6 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--mk-faint)] sm:grid-cols-[120px_160px_90px_1fr]"
+            className="hidden md:grid grid-cols-[120px_160px_90px_1fr] gap-4 px-6 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--mk-faint)]"
             style={{
               backgroundColor: "#0F1623",
               borderBottom: "1px solid var(--mk-border)",
@@ -123,7 +123,7 @@ export function ComplianceSection() {
             <span>Implementation</span>
           </div>
 
-          {/* Rows */}
+          {/* Desktop Grid Rows — hidden on mobile */}
           {STANDARDS.map((s, i) => (
             <motion.div
               key={s.framework}
@@ -137,7 +137,7 @@ export function ComplianceSection() {
                   transition: { delay: i * 0.06, duration: 0.4 },
                 },
               }}
-              className="grid grid-cols-[100px_1fr_90px_2fr] gap-4 px-6 py-4 sm:grid-cols-[120px_160px_90px_1fr]"
+              className="hidden md:grid grid-cols-[120px_160px_90px_1fr] gap-4 px-6 py-4"
               style={{
                 backgroundColor: i % 2 === 0 ? "#0F1623" : "var(--mk-surface)",
                 borderBottom:
@@ -162,6 +162,38 @@ export function ComplianceSection() {
               </span>
             </motion.div>
           ))}
+
+          {/* Mobile Card Layout — hidden on desktop */}
+          <div className="md:hidden divide-y" style={{ borderColor: "var(--mk-border)" }}>
+            {STANDARDS.map((s, i) => (
+              <motion.div
+                key={s.framework}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-20px" }}
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: { delay: i * 0.06, duration: 0.4 },
+                  },
+                }}
+                className="px-5 py-5"
+                style={{
+                  backgroundColor: i % 2 === 0 ? "#0F1623" : "var(--mk-surface)",
+                }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-[var(--mk-gold)]">{s.framework}</span>
+                  <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 font-mono text-xs font-bold uppercase tracking-widest text-emerald-400">
+                    {s.status}
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-white mb-2">{s.scope}</p>
+                <p className="text-sm leading-relaxed text-slate-300">{s.implementation}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

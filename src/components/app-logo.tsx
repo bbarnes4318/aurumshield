@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 /* ================================================================
    AppLogo — Theme-aware static SVG logo wrapper
@@ -17,17 +18,27 @@ import React from "react";
 interface AppLogoProps {
   className?: string;
   variant?: "light" | "dark";
+  /** Mark as priority for above-the-fold LCP optimization */
+  priority?: boolean;
 }
 
 export function AppLogo({
   className = "h-8 w-auto",
   variant = "dark",
+  priority = false,
 }: AppLogoProps) {
   const src =
     variant === "dark" ? "/arum-logo-gold.svg" : "/arum-logo-navy.svg";
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="AurumShield Logo" className={className} />
+    <Image
+      src={src}
+      alt="AurumShield Logo"
+      width={160}
+      height={40}
+      className={className}
+      priority={priority}
+      unoptimized /* SVGs don't benefit from image optimization */
+    />
   );
 }

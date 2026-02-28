@@ -10,7 +10,9 @@
    Glassmorphism cards, DvP visualization, metric cards.
    ================================================================ */
 
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   CheckCircle,
@@ -21,6 +23,8 @@ import {
   Cpu,
   Fingerprint,
   Lock,
+  Menu,
+  X,
 } from "lucide-react";
 
 /* ── Section Imports ── */
@@ -38,53 +42,189 @@ const GLASS_CARD =
   "bg-white/[0.02] border border-slate-800 rounded-md hover:border-gold/30 transition-all duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]";
 
 /* ================================================================
-   NAVIGATION
+   NAVIGATION — Mobile-optimized with hamburger menu
    ================================================================ */
 function Navigation() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Body scroll lock when mobile menu is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  // Escape key closes menu
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [mobileOpen]);
+
+  // Focus trap — keep tab within mobile menu
+  useEffect(() => {
+    if (!mobileOpen || !menuRef.current) return;
+    const focusable = menuRef.current.querySelectorAll<HTMLElement>(
+      'a, button, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    first.focus();
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener("keydown", trap);
+    return () => document.removeEventListener("keydown", trap);
+  }, [mobileOpen]);
+
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
   return (
-    <nav className="fixed top-0 z-50 w-full bg-[#0A1128]/90 backdrop-blur-xl border-b border-slate-800">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        
-        {/* LEFT: Structural Anchors (Logo + Dossiers) */}
-        <div className="flex items-center gap-8 lg:gap-12">
-          <Link href="/" className="flex items-center flex-shrink-0">
-            <img src="/arum-logo-gold.svg" alt="AurumShield" className="h-6 lg:h-7 w-auto" />
-          </Link>
+    <>
+      <nav className="fixed top-0 z-50 w-full bg-[#0A1128]/90 backdrop-blur-xl border-b border-slate-800">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
           
-          <div className="hidden lg:flex items-center gap-8 border-l border-slate-800 pl-8">
-            <Link
-              href="/platform-overview"
-              className="text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
-            >
-              Platform Dossier
+          {/* LEFT: Logo + Desktop links */}
+          <div className="flex items-center gap-8 lg:gap-12">
+            <Link href="/" className="flex items-center flex-shrink-0">
+              <Image
+                src="/arum-logo-gold.svg"
+                alt="AurumShield"
+                width={120}
+                height={28}
+                className="h-6 lg:h-7 w-auto"
+                priority
+                unoptimized
+              />
             </Link>
-            <Link
-              href="/technical-overview"
-              className="text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
+            
+            <div className="hidden lg:flex items-center gap-8 border-l border-slate-800 pl-8">
+              <Link
+                href="/platform-overview"
+                className="text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
+              >
+                Platform Dossier
+              </Link>
+              <Link
+                href="/technical-overview"
+                className="text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
+              >
+                System Architecture
+              </Link>
+            </div>
+          </div>
+
+          {/* RIGHT: Desktop actions + Mobile hamburger */}
+          <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
+            <a
+              href={`${APP_URL}/login`}
+              className="hidden sm:inline-block text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
             >
-              System Architecture
-            </Link>
+              Client Portal
+            </a>
+            <a
+              href={`${APP_URL}/signup`}
+              className="hidden sm:inline-flex items-center gap-2 rounded-md bg-gold hover:bg-gold/90 px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors"
+            >
+              Request Access
+            </a>
+
+            {/* Mobile hamburger — visible below lg */}
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="lg:hidden touch-target rounded-md text-gray-400 hover:text-white transition-colors active:scale-95"
+              aria-label="Open navigation menu"
+              aria-expanded={mobileOpen}
+            >
+              <Menu className="h-6 w-6" />
+            </button>
           </div>
         </div>
+      </nav>
 
-        {/* RIGHT: Access Gateways */}
-        <div className="flex items-center gap-5 flex-shrink-0">
+      {/* ── Mobile Menu Overlay ── */}
+      <div
+        className={`fixed inset-0 z-[60] bg-black/80 transition-opacity duration-200 lg:hidden ${
+          mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={closeMobile}
+        aria-hidden="true"
+      />
+
+      {/* ── Mobile Menu Panel ── */}
+      <div
+        ref={menuRef}
+        className={`fixed inset-y-0 right-0 z-[60] w-72 max-w-[85vw] bg-[#0A1128] border-l border-slate-800 shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
+          mobileOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile navigation"
+      >
+        {/* Close button */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-gold">Navigation</span>
+          <button
+            onClick={closeMobile}
+            className="touch-target rounded-md text-gray-400 hover:text-white transition-colors active:scale-95"
+            aria-label="Close navigation menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Links */}
+        <nav className="flex flex-col px-5 py-6 gap-1">
+          <Link
+            href="/platform-overview"
+            onClick={closeMobile}
+            className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <Globe className="h-4 w-4 text-gold" />
+            Platform Dossier
+          </Link>
+          <Link
+            href="/technical-overview"
+            onClick={closeMobile}
+            className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <FileText className="h-4 w-4 text-gold" />
+            System Architecture
+          </Link>
+
+          <div className="h-px bg-slate-800 my-3" />
+
           <a
             href={`${APP_URL}/login`}
-            className="hidden sm:inline-block text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
+            onClick={closeMobile}
+            className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
           >
             Client Portal
           </a>
           <a
             href={`${APP_URL}/signup`}
-            className="inline-flex items-center gap-2 rounded-md bg-gold hover:bg-gold/90 px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors"
+            onClick={closeMobile}
+            className="mt-4 flex items-center justify-center gap-2 rounded-md bg-gold hover:bg-gold/90 px-5 py-3 text-sm font-bold text-slate-950 transition-colors active:scale-[0.98]"
           >
             Request Access
+            <ArrowRight className="h-4 w-4" />
           </a>
-        </div>
-
+        </nav>
       </div>
-    </nav>
+    </>
   );
 }
 
@@ -136,7 +276,7 @@ function SettlementLifecycleSection() {
             SETTLEMENT LIFECYCLE
           </p>
         </div>
-        <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
+        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
           Deterministic Settlement Lifecycle
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
@@ -199,8 +339,9 @@ function ExposureSection() {
               </div>
             </div>
 
-            <div className="p-0">
-              <table className="w-full text-left font-mono text-xs sm:text-sm">
+            {/* Responsive scroll wrapper — prevents table from breaking mobile viewport */}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px] text-left font-mono text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-slate-800 bg-[#0A1128]">
                     <th className="px-4 py-4 font-semibold text-slate-500 uppercase tracking-widest">State</th>
@@ -242,7 +383,7 @@ function ExposureSection() {
             RISK ARCHITECTURE
           </p>
         </div>
-            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
+            <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-xl">
               Exposure Compressed to Zero at Settlement
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
@@ -296,7 +437,7 @@ function KineticRiskSection() {
             PHYSICAL PERIMETER
           </p>
         </div>
-        <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
+        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
           The Sovereign Custody Layer: Kinetic Risk Eliminated
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
@@ -353,7 +494,7 @@ function ArchitectureSection() {
             CLEARING INFRASTRUCTURE
           </p>
         </div>
-            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-xl">
+            <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-xl">
               Military-Grade Settlement Infrastructure
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
@@ -502,7 +643,7 @@ function ComplianceSection() {
           <div className="h-px w-8 bg-gold/50" />
           <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">COMPLIANCE</p>
         </div>
-        <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white max-w-3xl">
+        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
           Engineered for Institutional Compliance
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
@@ -511,21 +652,21 @@ function ComplianceSection() {
           fully compliant.
         </p>
 
-        {/* Data Table */}
+        {/* Data Table — Card layout on mobile, grid on desktop */}
         <div className={`mt-14 ${GLASS_CARD} overflow-hidden`}>
-          {/* Header */}
-          <div className="grid grid-cols-[100px_1fr_100px_2fr] gap-4 border-b border-white/[0.06] bg-white/[0.02] px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 sm:grid-cols-[120px_180px_100px_1fr]">
+          {/* Desktop Grid Header — hidden on mobile */}
+          <div className="hidden md:grid grid-cols-[120px_180px_100px_1fr] gap-4 border-b border-white/[0.06] bg-white/[0.02] px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400">
             <span>Framework</span>
             <span>Scope</span>
             <span>Status</span>
             <span>Implementation</span>
           </div>
 
-          {/* Rows */}
+          {/* Desktop Grid Rows — hidden on mobile */}
           {COMPLIANCE_DATA.map((row, i) => (
             <div
               key={row.framework}
-              className={`grid grid-cols-[100px_1fr_100px_2fr] gap-4 px-6 py-5 sm:grid-cols-[120px_180px_100px_1fr] ${
+              className={`hidden md:grid grid-cols-[120px_180px_100px_1fr] gap-4 px-6 py-5 ${
                 i < COMPLIANCE_DATA.length - 1
                   ? "border-b border-white/[0.04]"
                   : ""
@@ -548,6 +689,23 @@ function ComplianceSection() {
               </span>
             </div>
           ))}
+
+          {/* Mobile Card Layout — hidden on desktop */}
+          <div className="md:hidden divide-y divide-white/[0.04]">
+            {COMPLIANCE_DATA.map((row, i) => (
+              <div key={row.framework} className={`px-5 py-5 ${i % 2 === 1 ? "bg-white/[0.01]" : ""}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-gold">{row.framework}</span>
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle className="h-3.5 w-3.5 text-gold" />
+                    <span className="text-xs font-semibold text-gold">{row.status}</span>
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-white mb-2">{row.scope}</p>
+                <p className="text-sm leading-relaxed text-gray-300">{row.detail}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -565,7 +723,7 @@ function FinalCTA() {
           
           <div className="p-10 sm:p-16 text-center flex flex-col items-center">
             <Lock className="h-10 w-10 text-gold mb-6 opacity-80" />
-            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white mb-4">
+            <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white mb-4">
               Infrastructure Access is Strictly Gated.
             </h2>
             <p className="text-base text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
@@ -607,7 +765,7 @@ function SiteFooter() {
           
           {/* Col 1: Brand */}
           <div className="md:col-span-1">
-            <img src="/arum-logo-gold.svg" alt="AurumShield" className="h-7 w-auto mb-4" />
+            <Image src="/arum-logo-gold.svg" alt="AurumShield" width={120} height={28} className="h-7 w-auto mb-4" unoptimized />
             <p className="text-sm leading-relaxed text-slate-500">
               Deterministic clearing layer and sovereign custody infrastructure for physical bullion.
             </p>

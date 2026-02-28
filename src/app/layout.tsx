@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   IBM_Plex_Sans,
   Source_Serif_4,
@@ -57,6 +57,15 @@ export const metadata: Metadata = {
   description:
     "Institutional gold clearing, custody, and compliance. Deterministic risk-first execution for sovereign-grade counterparties.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
+};
+
+/* ----------------------------------------------------------------
+   VIEWPORT — Mobile-optimized viewport configuration
+   ---------------------------------------------------------------- */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 /* ----------------------------------------------------------------

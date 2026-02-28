@@ -101,9 +101,9 @@ const USE_CASES = [
 
 /* ── Shared Input Styles ── */
 const INPUT_CLASS =
-  "w-full rounded-md border border-border bg-surface-2 px-4 py-3 text-sm text-text placeholder:text-text-faint/50 outline-none transition-all focus:border-gold focus:ring-1 focus:ring-gold/30";
+  "w-full rounded-md border border-border bg-surface-2 px-4 py-3 text-base text-text placeholder:text-text-faint/50 outline-none transition-all focus:border-gold focus:ring-1 focus:ring-gold/30";
 const SELECT_CLASS =
-  "w-full rounded-md border border-border bg-surface-2 px-4 py-3 text-sm text-text outline-none transition-all focus:border-gold focus:ring-1 focus:ring-gold/30 appearance-none cursor-pointer";
+  "w-full rounded-md border border-border bg-surface-2 px-4 py-3 text-base text-text outline-none transition-all focus:border-gold focus:ring-1 focus:ring-gold/30 appearance-none cursor-pointer";
 const LABEL_CLASS =
   "block text-xs font-semibold uppercase tracking-wider text-text-muted mb-2";
 const ERROR_CLASS = "mt-1.5 text-xs text-rose-400";
@@ -268,6 +268,7 @@ export default function LoginPage() {
                     <input
                       id="fullName"
                       type="text"
+                      autoComplete="name"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="As registered with governing authority"
@@ -286,6 +287,8 @@ export default function LoginPage() {
                     <input
                       id="email"
                       type="email"
+                      autoComplete="email"
+                      inputMode="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@institution.com"
