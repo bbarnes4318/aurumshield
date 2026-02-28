@@ -45,21 +45,21 @@ export default async function TechnicalOverviewPage() {
         dangerouslySetInnerHTML={{
           __html: `
         .tech-overview-page {
-          --bg: #0b1220;
-          --surface-1: #0f1a2b;
-          --surface-2: #13233a;
+          --bg: #0A1128;
+          --surface-1: #0B0E14;
+          --surface-2: rgba(255, 255, 255, 0.02);
           --surface-3: #182b46;
           --border: #243653;
           --text: #e7ecf4;
           --text-muted: #aab6c8;
           --text-faint: #7f8ca3;
-          --gold: #c6a86b;
-          --gold-hover: #d3b77d;
+          --gold: #D0A85C;
+          --gold-hover: #D4AF37;
           --success: #3fae7a;
           --warning: #d0a85c;
           --danger: #d16a5d;
           --info: #5a8ccb;
-          --radius: 12px;
+          --radius: 6px;
           --radius-sm: 8px;
           --font-sans: 'IBM Plex Sans', var(--font-ibm-plex-sans), system-ui, sans-serif;
           --font-serif: 'Source Serif 4', var(--font-source-serif), Georgia, serif;
@@ -159,7 +159,7 @@ export default async function TechnicalOverviewPage() {
 
         /* Pipeline */
         .to-pipeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
-        .to-step { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; position: relative; overflow: hidden; }
+        .to-step { background: var(--surface-1); border: 1px solid var(--border); border-left: 2px solid var(--gold); border-radius: 0; padding: 1.25rem; position: relative; overflow: hidden; }
         .to-step::before { content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--gold); }
         .to-step .to-num { font-family: var(--font-serif); font-size: 1.6rem; font-weight: 700; color: var(--gold); opacity: 0.35; position: absolute; top: 0.5rem; right: 0.75rem; }
         .to-step h4 { font-family: var(--font-sans); font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -360,7 +360,10 @@ export default async function TechnicalOverviewPage() {
             (<code>state-machine.ts</code>), role-based access controls
             (<code>authz.ts</code>), and capital adequacy checks
             (<code>capital-controls.ts</code>) — ensuring no step can be bypassed or
-            executed out of order.
+            executed out of order. This deterministic escrow mechanism
+            mathematically eliminates Herstatt Risk (asynchronous settlement
+            exposure), ensuring neither counterparty holds unrecovered notional
+            value during transit.
           </p>
 
           <div className="to-pipeline">
@@ -433,6 +436,10 @@ export default async function TechnicalOverviewPage() {
                 medianized pricing (Bloomberg B-PIPE, Refinitiv, OANDA) with a
                 <strong> 15 bps circuit breaker</strong> that triggers FREEZE on divergence.
                 LOCK_PRICE transitions to PENDING_COLLATERAL then PENDING_CHECKER_APPROVAL.
+                This fractional collateral requirement replaces legacy 100%
+                pre-funding models, drastically unlocking capital efficiency and
+                Return on Equity (ROE) for participating trading desks without
+                compromising the escrow&apos;s integrity.
               </p>
               <span className="to-tag to-tag-engine">Collateral Lock · Multi-Oracle · Circuit Breaker</span>
             </div>

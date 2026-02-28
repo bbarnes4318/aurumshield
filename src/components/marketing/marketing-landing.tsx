@@ -53,19 +53,20 @@ function Navigation() {
           />
         </Link>
 
-        {/* Center Links */}
-        <div className="hidden lg:flex items-center gap-8">
-          {["Platform", "Architecture", "Compliance", "Developers"].map(
-            (link) => (
-              <a
-                key={link}
-                href={`#${link.toLowerCase()}`}
-                className="text-sm font-medium text-gray-300 transition-colors hover:text-white"
-              >
-                {link}
-              </a>
-            ),
-          )}
+        {/* Center Links - Strictly reserved for external dossiers */}
+        <div className="hidden lg:flex items-center gap-10">
+          <Link
+            href="/platform-overview"
+            className="text-sm font-medium text-gray-300 transition-colors hover:text-white"
+          >
+            Platform
+          </Link>
+          <Link
+            href="/technical-overview"
+            className="text-sm font-medium text-gray-300 transition-colors hover:text-white"
+          >
+            Architecture
+          </Link>
         </div>
 
         {/* Right CTAs */}
@@ -573,7 +574,7 @@ function FinalCTA() {
 function SiteFooter() {
   return (
     <footer className="border-t border-white/[0.06] px-6 py-8">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 sm:flex-row sm:items-start">
         <div className="flex items-center gap-3 text-sm text-gray-400">
           <img
             src="/arum-logo-gold.svg"
@@ -583,7 +584,7 @@ function SiteFooter() {
           <span className="h-3 w-px bg-white/[0.08]" />
           <span>&copy; {new Date().getFullYear()}</span>
         </div>
-        <div className="flex gap-6 text-sm text-gray-400">
+        <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-gray-400">
           <Link
             href="/platform-overview"
             className="transition-colors hover:text-slate-300"
@@ -595,6 +596,31 @@ function SiteFooter() {
             className="transition-colors hover:text-slate-300"
           >
             Technical Overview
+          </Link>
+          <span className="hidden sm:inline h-3 w-px bg-white/[0.08] self-center" />
+          <Link
+            href="/legal/terms"
+            className="transition-colors hover:text-gold"
+          >
+            Terms &amp; Conditions
+          </Link>
+          <Link
+            href="/legal/privacy"
+            className="transition-colors hover:text-gold"
+          >
+            Privacy Policy
+          </Link>
+          <Link
+            href="/legal/aml-kyc"
+            className="transition-colors hover:text-gold"
+          >
+            AML / KYC Policy
+          </Link>
+          <Link
+            href="/legal/risk-reinsurance"
+            className="transition-colors hover:text-gold"
+          >
+            Risk &amp; Reinsurance
           </Link>
         </div>
       </div>
