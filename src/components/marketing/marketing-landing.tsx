@@ -239,6 +239,9 @@ function ExposureSection() {
               Bilateral principal exposure is structurally removed from the
               transaction lifecycle. Central clearing replaces counterparty
               trust with deterministic, capital-monitored infrastructure.
+              By replacing 100% pre-funding requirements with cryptographically
+              verified 5% collateral locks, AurumShield drastically unlocks
+              capital efficiency and liquidity for participating trading desks.
             </p>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Continuous Exposure Coverage Ratio monitoring and hardstop limits
@@ -414,12 +417,13 @@ function ArchitectureSection() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-2">
-                      Real-Time Audit Telemetry
+                      Immutable Settlement Finality
                     </h3>
                     <p className="text-base leading-relaxed text-gray-300 max-w-md">
-                      REST API for trade origination, settlement status polling,
-                      certificate verification, and capital monitoring. Designed
-                      for integration into existing OMS and EMS platforms.
+                      Upon execution, the platform issues a SHA-256 signed
+                      clearing certificate on an append-only ledger. This
+                      provides regulators and internal auditors with an
+                      unalterable, mathematically proven record of execution.
                     </p>
                   </div>
                 </div>

@@ -14,15 +14,15 @@ const reveal = {
 const METRICS = [
   {
     figure: "0.00%",
-    label: "Bilateral Principal Risk",
+    label: "Principal & Herstatt Risk",
     description:
       "Atomic DvP settlement eliminates bilateral principal exposure. No counterparty holds unrecovered notional value at any lifecycle stage.",
   },
   {
     figure: "100%",
-    label: "Capital Indemnification",
+    label: "Pre-Execution Capital Efficiency",
     description:
-      "Full collateral is locked in deterministic escrow before execution. Settlement proceeds only after capital adequacy is computationally verified.",
+      "Only a fractional collateral lock is required prior to execution, freeing trading liquidity while the escrow engine mathematically guarantees full indemnification.",
   },
   {
     figure: "<$250M",

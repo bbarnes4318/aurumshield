@@ -65,9 +65,10 @@ export function MarketWeaknessSection() {
             The Anatomy of a Fraud-Proof Trade
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-            Two structural pillars eliminate fraud on both sides of every
-            transaction. At the center, atomic settlement binds them into a
-            single indemnified event.
+            Legacy physical trading relies on asynchronous delivery and payment
+            rails. This creates severe Herstatt Risk (Settlement Risk) and
+            temporal exposure, leaving capital vulnerable to both counterparty
+            fraud and sudden insolvency during transit.
           </p>
         </motion.div>
 
