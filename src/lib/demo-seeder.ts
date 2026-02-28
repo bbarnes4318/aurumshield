@@ -266,6 +266,69 @@ export function ensureDemoAccounts(): void {
   // Ensure demo seller has a VERIFIED verification case
   // (required for publish gate — must match org type + track)
   seedVerificationCase(DEMO_IDS.seller);
+
+  // Seed KYB compliance cases for demo accounts
+  seedKybComplianceCases();
+}
+
+/**
+ * Seed KYB-aware compliance cases for demo users.
+ *
+ * Demo Buyer: UNDER_REVIEW with parallel_engagement_enabled = true
+ *   → Demonstrates the parallel engagement banner and mock checkout access
+ *
+ * Demo Seller: APPROVED with entity_type = company
+ *   → Full access for listing and settlement operations
+ */
+function seedKybComplianceCases(): void {
+  // Only seed if createComplianceCase is available; for pure client-side
+  // demo mode, we seed into the API-backed mock via fetch
+  if (typeof window === "undefined") return;
+
+  // Store KYB case metadata in sessionStorage for client-side hooks
+  // The real pipeline is: createComplianceCase() → /api/compliance/cases/me → hook
+  // For demo mode, we pre-populate the mock response
+
+  const buyerCase = {
+    id: "demo-cc-buyer",
+    userId: DEMO_IDS.buyer,
+    orgId: DEMO_IDS.orgBuyer,
+    status: "UNDER_REVIEW",
+    tier: "BROWSE",
+    orgType: "company",
+    jurisdiction: "Luxembourg",
+    providerInquiryId: null,
+    entityType: "company",
+    veriffSessionId: "veriff-demo-sess-001",
+    parallelEngagementEnabled: true,
+    createdAt: "2026-02-15T08:00:00Z",
+    updatedAt: "2026-02-18T09:30:00Z",
+  };
+
+  const sellerCase = {
+    id: "demo-cc-seller",
+    userId: DEMO_IDS.seller,
+    orgId: DEMO_IDS.orgSeller,
+    status: "APPROVED",
+    tier: "EXECUTE",
+    orgType: "company",
+    jurisdiction: "Switzerland",
+    providerInquiryId: null,
+    entityType: "company",
+    veriffSessionId: "veriff-demo-sess-002",
+    parallelEngagementEnabled: false,
+    createdAt: "2025-12-01T00:00:00Z",
+    updatedAt: "2025-12-15T10:00:00Z",
+  };
+
+  try {
+    sessionStorage.setItem(
+      "aurumshield:demo-compliance-cases",
+      JSON.stringify({ buyer: buyerCase, seller: sellerCase }),
+    );
+  } catch {
+    // sessionStorage may not be available in some contexts
+  }
 }
 
 /** Seed a VERIFIED verification case for a user if not present. */

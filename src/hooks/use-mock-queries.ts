@@ -518,7 +518,6 @@ import { notifyPartiesOfSettlement } from "@/actions/notifications";
 import { triggerSettlementPayouts } from "@/actions/banking";
 
 /* ---------- Placeholder contact data for demo users ---------- */
-/* ⚠️ SMS DEPRECATED — phone numbers removed (D7 directive) */
 const DEMO_CONTACTS: Record<string, { email: string }> = {
   "user-1": { email: "buyer@aurumshield.vip" },
   "user-2": { email: "ops@aurumshield.vip" },
@@ -612,7 +611,6 @@ export function useApplySettlementAction() {
       });
 
       // ── Notify buyer & seller when settlement reaches SETTLED ──
-      // ⚠️ SMS DEPRECATED (D7) — email only
       if (data.settlement.status === "SETTLED") {
         const buyer = DEMO_CONTACTS[data.settlement.buyerUserId] ?? DEFAULT_CONTACT;
         const seller = DEMO_CONTACTS[data.settlement.sellerUserId] ?? DEFAULT_CONTACT;

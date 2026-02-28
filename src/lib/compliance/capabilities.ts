@@ -6,6 +6,16 @@
    user *can do* based on their KYC status, and expose a React
    hook for components to consume.
 
+   Progressive Profiling:
+     BROWSE access is granted upon Passkey + Email registration.
+     Identity verification prompts are deferred until the user
+     attempts QUOTE or LOCK_PRICE operations.
+
+   Parallel Engagement:
+     Users in UNDER_REVIEW status with parallel_engagement_enabled
+     retain BROWSE access for mock checkouts and live indicative
+     pricing while their KYB review is in progress.
+
    IMPORTANT: This is for UI rendering only. Server-side
    enforcement via requireComplianceCapability() in authz.ts
    remains the authoritative gate for all privileged actions.
@@ -56,6 +66,7 @@ const STATUS_MAP: Record<string, ComplianceStatus> = {
   NOT_STARTED: "NOT_STARTED",
   PENDING: "IN_PROGRESS",
   IN_REVIEW: "MANUAL_REVIEW",
+  UNDER_REVIEW: "MANUAL_REVIEW",
   DOCUMENTS_REQUIRED: "IN_PROGRESS",
   ELEVATED: "MANUAL_REVIEW",
   APPROVED: "APPROVED",
@@ -69,6 +80,7 @@ const KYC_CAPABILITY_MAP: Record<string, ComplianceCapability> = {
   PENDING: "BROWSE",
   DOCUMENTS_REQUIRED: "BROWSE",
   IN_REVIEW: "QUOTE",
+  UNDER_REVIEW: "BROWSE",  // Parallel engagement may grant BROWSE access
   ELEVATED: "QUOTE",
   APPROVED: "SETTLE",
   REJECTED: "BROWSE",
@@ -120,6 +132,10 @@ export interface ComplianceCapabilities {
   isApproved: boolean;
   /** Active compliance case tier (null if no case exists) */
   caseTier: string | null;
+  /** Whether parallel engagement is enabled (UNDER_REVIEW users get mock checkout) */
+  parallelEngagementEnabled: boolean;
+  /** Whether identity verification is needed (progressive profiling gate) */
+  needsVerification: boolean;
 }
 
 /* ── Tier → Capability (mirrors server-side tiering.ts) ── */
@@ -148,7 +164,7 @@ export function useComplianceCapabilities(): ComplianceCapabilities {
   const kycQ = useKycStatus(user?.id ?? undefined);
 
   // Fetch the user's active ComplianceCase for tier-based capability
-  const caseQ = useQuery<{ case: { tier: string; status: string } | null }>({
+  const caseQ = useQuery<{ case: { tier: string; status: string; parallel_engagement_enabled?: boolean } | null }>({
     queryKey: ["compliance-case-me"],
     queryFn: async () => {
       const res = await fetch("/api/compliance/cases/me");
@@ -162,17 +178,29 @@ export function useComplianceCapabilities(): ComplianceCapabilities {
   const rawKycStatus = kycQ.data?.kycStatus ?? "NOT_STARTED";
   const caseTier = caseQ.data?.case?.tier ?? null;
   const caseStatus = caseQ.data?.case?.status ?? null;
+  const parallelEngagementEnabled = caseQ.data?.case?.parallel_engagement_enabled ?? false;
 
   return useMemo(() => {
     const status = deriveComplianceStatus(rawKycStatus);
 
-    // If a case exists and is APPROVED, use the tier-based capability
+    // Capability resolution priority:
+    //   1. APPROVED case → full tier-based capability
+    //   2. UNDER_REVIEW + parallel engagement → BROWSE (mock checkout access)
+    //   3. Otherwise → KYC_CAPABILITY_MAP fallback
     let maxCapability: ComplianceCapability;
     if (caseTier && caseStatus === "APPROVED") {
       maxCapability = TIER_CAPABILITY_MAP[caseTier] ?? "BROWSE";
+    } else if (caseStatus === "UNDER_REVIEW" && parallelEngagementEnabled) {
+      // Parallel Engagement: UNDER_REVIEW users get BROWSE for mock checkout
+      maxCapability = "BROWSE";
     } else {
       maxCapability = deriveMaxCapability(rawKycStatus);
     }
+
+    // Progressive Profiling: user has BROWSE but hasn't started KYC
+    const needsVerification =
+      status === "NOT_STARTED" ||
+      (rawKycStatus === "NOT_STARTED" && maxCapability === "BROWSE");
 
     return {
       status,
@@ -182,6 +210,8 @@ export function useComplianceCapabilities(): ComplianceCapabilities {
       isLoading: kycQ.isLoading || caseQ.isLoading,
       isApproved: status === "APPROVED",
       caseTier,
+      parallelEngagementEnabled,
+      needsVerification,
     };
-  }, [rawKycStatus, kycQ.isLoading, caseQ.isLoading, caseTier, caseStatus]);
+  }, [rawKycStatus, kycQ.isLoading, caseQ.isLoading, caseTier, caseStatus, parallelEngagementEnabled]);
 }

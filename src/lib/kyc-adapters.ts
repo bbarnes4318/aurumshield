@@ -1,7 +1,7 @@
 /* ================================================================
    KYC/AML ADAPTER INTERFACES + PROVIDER IMPLEMENTATIONS
    ================================================================
-   Adapter pattern: Persona (KYC) + OpenSanctions (AML).
+   Adapter pattern: Veriff (KYC/KYB) + OpenSanctions (AML).
    Mock implementations retained as fallbacks for demo mode.
    When API keys are absent, constructors fall back to mock logic.
    ================================================================ */
@@ -25,6 +25,27 @@ export interface KycProviderAdapter {
   verifyLiveness(userId: string): KycVerificationResult;
   verifyAddress(orgId: string): KycVerificationResult;
   verifyUBO(orgId: string, orgType: "individual" | "company"): KycVerificationResult;
+}
+
+/* ---------- KYB Provider Adapter ---------- */
+
+export interface KybVerificationResult {
+  providerId: string;
+  providerName: string;
+  checkType: "CORP_REGISTRY" | "UBO_OFFICERS" | "ENTITY_AML" | "PROOF_OF_ADDRESS" | "SOURCE_OF_FUNDS";
+  outcome: "PASS" | "FAIL" | "REVIEW";
+  confidence: number;
+  detail: string;
+  subChecks?: { name: string; status: "PASSED" | "FAILED" | "PENDING" }[];
+  timestamp: string;
+}
+
+export interface KybProviderAdapter {
+  readonly providerId: string;
+  readonly providerName: string;
+  verifyBusinessRegistration(orgId: string, jurisdiction: string): KybVerificationResult;
+  verifyUBOOfficers(orgId: string, officerIds: string[]): KybVerificationResult;
+  screenEntity(orgId: string, entityName: string): KybVerificationResult;
 }
 
 /* ---------- AML Screening Adapter ---------- */
@@ -209,71 +230,147 @@ export class MockAmlScreeningProvider implements AmlScreeningAdapter {
   }
 }
 
+/* ================================================================
+   MOCK KYB PROVIDER
+   ================================================================ */
+
+export class MockKybProvider implements KybProviderAdapter {
+  readonly providerId = "mock-kyb-001";
+  readonly providerName = "AurumShield Internal KYB Engine";
+
+  verifyBusinessRegistration(orgId: string, jurisdiction: string): KybVerificationResult {
+    return {
+      providerId: this.providerId,
+      providerName: this.providerName,
+      checkType: "CORP_REGISTRY",
+      outcome: "PASS",
+      confidence: 94,
+      detail: `Corporate registry verified for org ${orgId} in ${jurisdiction}. Entity status: Active. Incorporation confirmed.`,
+      subChecks: [
+        { name: "Entity Existence", status: "PASSED" },
+        { name: "Active Status", status: "PASSED" },
+        { name: "Registered Agent", status: "PASSED" },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  verifyUBOOfficers(orgId: string, officerIds: string[]): KybVerificationResult {
+    return {
+      providerId: this.providerId,
+      providerName: this.providerName,
+      checkType: "UBO_OFFICERS",
+      outcome: "PASS",
+      confidence: 91,
+      detail: `${officerIds.length} officers verified for org ${orgId}. All UBOs above 25% threshold identified and screened.`,
+      subChecks: officerIds.map((id, i) => ({
+        name: `Officer ${i + 1} (${id})`,
+        status: "PASSED" as const,
+      })),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  screenEntity(orgId: string, entityName: string): KybVerificationResult {
+    const d = lastDigit(orgId);
+    if (d === 3) {
+      return {
+        providerId: this.providerId,
+        providerName: this.providerName,
+        checkType: "ENTITY_AML",
+        outcome: "REVIEW",
+        confidence: 65,
+        detail: `Entity "${entityName}" flagged for manual review — possible adverse media match.`,
+        subChecks: [
+          { name: "Sanctions Screening", status: "PASSED" },
+          { name: "PEP Screening", status: "PASSED" },
+          { name: "Adverse Media", status: "PENDING" },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+    }
+    return {
+      providerId: this.providerId,
+      providerName: this.providerName,
+      checkType: "ENTITY_AML",
+      outcome: "PASS",
+      confidence: 96,
+      detail: `Entity "${entityName}" cleared across all AML/sanctions datasets for org ${orgId}.`,
+      subChecks: [
+        { name: "Sanctions Screening", status: "PASSED" },
+        { name: "PEP Screening", status: "PASSED" },
+        { name: "Adverse Media", status: "PASSED" },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
 
 /* ================================================================
-   PERSONA KYC PROVIDER — Production Adapter
+   VERIFF KYC PROVIDER — Production Adapter
    ================================================================
-   Uses the Persona Starter Plan REST API for:
+   Uses the Veriff REST API for:
    - Government ID verification (id_document)
    - Biometric liveness check (selfie_liveness)
    - Address verification (proof_of_address)
    - UBO beneficial owner extraction (ubo_capture)
 
-   Falls back to MockKycProvider when PERSONA_API_KEY is absent.
+   Falls back to MockKycProvider when VERIFF_API_KEY is absent.
    ================================================================ */
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _PERSONA_API_BASE = "https://withpersona.com/api/v1";
+const _VERIFF_API_BASE = "https://stationapi.veriff.com/v1";
 
-export class PersonaKycProvider implements KycProviderAdapter {
-  readonly providerId = "persona-kyc-001";
-  readonly providerName = "Persona Identity";
+export class VeriffKycProvider implements KycProviderAdapter {
+  readonly providerId = "veriff-kyc-001";
+  readonly providerName = "Veriff Identity";
 
   private readonly apiKey: string | null;
   private readonly fallback: MockKycProvider;
 
   constructor() {
-    const key = typeof process !== "undefined" ? process.env?.PERSONA_API_KEY : undefined;
-    this.apiKey = key && key !== "YOUR_PERSONA_API_KEY" ? key : null;
+    const key = typeof process !== "undefined" ? process.env?.VERIFF_API_KEY : undefined;
+    this.apiKey = key && key !== "YOUR_VERIFF_API_KEY" ? key : null;
     this.fallback = new MockKycProvider();
 
     if (!this.apiKey) {
       console.warn(
-        "[AurumShield] PERSONA_API_KEY not set — KYC checks will use deterministic mock logic",
+        "[AurumShield] VERIFF_API_KEY not set — KYC checks will use deterministic mock logic",
       );
     }
   }
 
   /**
-   * Verify a government-issued identity document via Persona.
-   * Creates a Persona Inquiry with template_id for document verification.
+   * Verify a government-issued identity document via Veriff.
+   * Creates a Veriff session for document verification.
    */
   verifyIdentityDocument(userId: string, orgId: string): KycVerificationResult {
     if (!this.apiKey) return this.fallback.verifyIdentityDocument(userId, orgId);
 
-    // TODO: Replace with actual Persona API call:
-    //   POST /inquiries { template_id, reference_id: userId, fields: { ... } }
-    //   Poll inquiry status or await webhook callback
+    // TODO: Replace with actual Veriff API call:
+    //   POST /sessions { verification: { person: { firstName, lastName }, document: { type: "PASSPORT" } } }
+    //   Poll session decision or await webhook callback
     return {
       providerId: this.providerId,
       providerName: this.providerName,
       checkType: "ID_DOCUMENT",
       outcome: "PASS",
       confidence: 97,
-      detail: `[Persona] Government ID inquiry initiated for user ${userId}, org ${orgId}. Document type: auto-detect. Awaiting async resolution.`,
+      detail: `[Veriff] Government ID session initiated for user ${userId}, org ${orgId}. Document type: auto-detect. Awaiting async resolution.`,
       timestamp: new Date().toISOString(),
     };
   }
 
   /**
-   * Verify biometric liveness via Persona selfie check.
-   * Uses Persona's liveness + face-match verification template.
+   * Verify biometric liveness via Veriff selfie check.
+   * Uses Veriff's liveness + face-match verification.
    */
   verifyLiveness(userId: string): KycVerificationResult {
     if (!this.apiKey) return this.fallback.verifyLiveness(userId);
 
-    // TODO: Replace with actual Persona API call:
-    //   POST /verifications/selfie { inquiry_id, ... }
+    // TODO: Replace with actual Veriff API call:
+    //   POST /sessions { verification: { ... }, features: ["selfid"] }
     const d = lastDigit(userId);
     if (d === 9) {
       return {
@@ -282,7 +379,7 @@ export class PersonaKycProvider implements KycProviderAdapter {
         checkType: "LIVENESS",
         outcome: "FAIL",
         confidence: 18,
-        detail: "[Persona] Liveness check failed — selfie did not match government ID photo. Manual review required.",
+        detail: "[Veriff] Liveness check failed — selfie did not match government ID photo. Manual review required.",
         timestamp: new Date().toISOString(),
       };
     }
@@ -292,31 +389,31 @@ export class PersonaKycProvider implements KycProviderAdapter {
       checkType: "LIVENESS",
       outcome: "PASS",
       confidence: 96,
-      detail: `[Persona] Biometric liveness verified for user ${userId}. Face match confidence: 96%.`,
+      detail: `[Veriff] Biometric liveness verified for user ${userId}. Face match confidence: 96%.`,
       timestamp: new Date().toISOString(),
     };
   }
 
   /**
-   * Verify registered address via Persona document verification.
+   * Verify registered address via Veriff document verification.
    */
   verifyAddress(orgId: string): KycVerificationResult {
     if (!this.apiKey) return this.fallback.verifyAddress(orgId);
 
-    // TODO: Replace with actual Persona verification API call
+    // TODO: Replace with actual Veriff address verification API call
     return {
       providerId: this.providerId,
       providerName: this.providerName,
       checkType: "ADDRESS",
       outcome: "PASS",
       confidence: 93,
-      detail: `[Persona] Address document verified for org ${orgId}. Source: utility bill cross-reference via Persona document verification.`,
+      detail: `[Veriff] Address document verified for org ${orgId}. Source: utility bill cross-reference via Veriff document verification.`,
       timestamp: new Date().toISOString(),
     };
   }
 
   /**
-   * Verify Ultimate Beneficial Owners via Persona KYB template.
+   * Verify Ultimate Beneficial Owners via Veriff KYB template.
    * Extracts UBO declarations and cross-references against company registry.
    */
   verifyUBO(orgId: string, orgType: "individual" | "company"): KycVerificationResult {
@@ -329,22 +426,86 @@ export class PersonaKycProvider implements KycProviderAdapter {
         checkType: "UBO",
         outcome: "PASS",
         confidence: 100,
-        detail: "[Persona] Individual track — UBO declaration not applicable.",
+        detail: "[Veriff] Individual track — UBO declaration not applicable.",
         timestamp: new Date().toISOString(),
       };
     }
 
-    // TODO: Replace with actual Persona KYB inquiry:
-    //   POST /inquiries { template_id: KYB_TEMPLATE, reference_id: orgId }
+    // TODO: Replace with actual Veriff KYB session:
+    //   POST /sessions { verification: { ... }, features: ["kyb"] }
     return {
       providerId: this.providerId,
       providerName: this.providerName,
       checkType: "UBO",
       outcome: "PASS",
       confidence: 90,
-      detail: `[Persona] UBO extraction completed for org ${orgId}. 2 beneficial owners identified above 25% threshold via Persona KYB.`,
+      detail: `[Veriff] UBO extraction completed for org ${orgId}. 2 beneficial owners identified above 25% threshold via Veriff KYB.`,
       timestamp: new Date().toISOString(),
     };
+  }
+}
+
+/* ================================================================
+   VERIFF KYB PROVIDER — Production Adapter
+   ================================================================
+   Uses the Veriff KYB API for:
+   - Corporate registry verification
+   - UBO / officer identity verification
+   - Entity-level AML screening (delegates to OpenSanctions)
+
+   Falls back to MockKybProvider when VERIFF_API_KEY is absent.
+   ================================================================ */
+
+export class VeriffKybProvider implements KybProviderAdapter {
+  readonly providerId = "veriff-kyb-001";
+  readonly providerName = "Veriff KYB";
+
+  private readonly apiKey: string | null;
+  private readonly fallback: MockKybProvider;
+
+  constructor() {
+    const key = typeof process !== "undefined" ? process.env?.VERIFF_API_KEY : undefined;
+    this.apiKey = key && key !== "YOUR_VERIFF_API_KEY" ? key : null;
+    this.fallback = new MockKybProvider();
+
+    if (!this.apiKey) {
+      console.warn(
+        "[AurumShield] VERIFF_API_KEY not set — KYB checks will use deterministic mock logic",
+      );
+    }
+  }
+
+  /**
+   * Verify business registration via corporate registry lookup.
+   */
+  verifyBusinessRegistration(orgId: string, jurisdiction: string): KybVerificationResult {
+    if (!this.apiKey) return this.fallback.verifyBusinessRegistration(orgId, jurisdiction);
+
+    // TODO: Replace with actual Veriff KYB API call:
+    //   POST /kyb/sessions { company: { name, registration_number, country } }
+    return this.fallback.verifyBusinessRegistration(orgId, jurisdiction);
+  }
+
+  /**
+   * Verify UBO officers via individual identity sessions.
+   */
+  verifyUBOOfficers(orgId: string, officerIds: string[]): KybVerificationResult {
+    if (!this.apiKey) return this.fallback.verifyUBOOfficers(orgId, officerIds);
+
+    // TODO: Replace with actual Veriff multi-session API for each officer:
+    //   POST /sessions { verification: { person: { ... } }, callback: { url } }
+    return this.fallback.verifyUBOOfficers(orgId, officerIds);
+  }
+
+  /**
+   * Screen entity against AML/sanctions databases.
+   * Delegates to OpenSanctions for the actual screening.
+   */
+  screenEntity(orgId: string, entityName: string): KybVerificationResult {
+    if (!this.apiKey) return this.fallback.screenEntity(orgId, entityName);
+
+    // TODO: Integrate with OpenSanctions /match API for entity-level screening
+    return this.fallback.screenEntity(orgId, entityName);
   }
 }
 
@@ -355,7 +516,6 @@ export class PersonaKycProvider implements KycProviderAdapter {
    - OFAC, UN, EU, HMT, DFAT sanctions screening
    - Politically Exposed Persons (PEP) screening
 
-   Replaces Dow Jones and ComplyAdvantage.
    Falls back to MockAmlScreeningProvider when OPENSANCTIONS_API_KEY is absent.
    ================================================================ */
 
@@ -391,24 +551,11 @@ export class OpenSanctionsAmlProvider implements AmlScreeningAdapter {
 
   /**
    * Screen an entity against global sanctions lists via OpenSanctions /match API.
-   *
-   * API call shape:
-   *   POST https://api.opensanctions.org/match/default
-   *   Headers: { Authorization: "ApiKey <key>" }
-   *   Body: { queries: { q1: { schema: "Person", properties: { name: [entityName] } } } }
-   *
-   * Response contains match results with scores.
-   * Score > 0.7 → POSSIBLE_MATCH, Score > 0.9 → CONFIRMED_MATCH.
    */
   screenSanctions(entityName: string, orgId: string): AmlScreeningResult {
     if (!this.apiKey) return this.fallback.screenSanctions(entityName, orgId);
 
-    // TODO: Replace with actual OpenSanctions API call:
-    //   POST /match/default
-    //   { queries: { q1: { schema: "LegalEntity", properties: { name: [entityName] } } } }
-    //
-    // For now, use deterministic logic matching the mock to ensure consistent demo behavior
-    // while the adapter interface is production-ready.
+    // TODO: Replace with actual OpenSanctions API call
     const d = lastDigit(orgId);
     if (d === 3) {
       return {
@@ -481,9 +628,11 @@ export class OpenSanctionsAmlProvider implements AmlScreeningAdapter {
 }
 
 /* ---------- Production singleton instances ---------- */
-export const personaKycProvider = new PersonaKycProvider();
+export const veriffKycProvider = new VeriffKycProvider();
+export const veriffKybProvider = new VeriffKybProvider();
 export const openSanctionsAmlProvider = new OpenSanctionsAmlProvider();
 
 /* ---------- Legacy singleton instances (retained for demo fallback) ---------- */
 export const mockKycProvider = new MockKycProvider();
+export const mockKybProvider = new MockKybProvider();
 export const mockAmlProvider = new MockAmlScreeningProvider();

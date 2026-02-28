@@ -65,7 +65,7 @@ export default function PrivacyPage() {
       <p className="text-gray-300 leading-relaxed mb-4 font-semibold border-l-2 border-gold pl-4">AurumShield does not and will never sell Counterparty data.</p>
       <p className="text-gray-300 leading-relaxed mb-4">We share data strictly with certified enterprise sub-processors required to operate the Platform&apos;s infrastructure:</p>
       <ul className="list-disc pl-6 text-gray-300 space-y-2 mb-8">
-        <li><strong className="text-white">Identity &amp; Compliance Verification:</strong> Data is shared with Persona and Diro to execute automated biometric liveness checks, forensic document verification, and continuous AML screening.</li>
+        <li><strong className="text-white">Identity &amp; Compliance Verification:</strong> Data is shared with Veriff and Diro to execute automated biometric liveness checks, forensic document verification, and continuous AML screening.</li>
         <li><strong className="text-white">Banking &amp; Escrow Routing:</strong> Financial data is transmitted via secure APIs to Moov (and associated banking partners) to facilitate fiat capital holds, escrow locking, and final settlement routing.</li>
         <li><strong className="text-white">Physical Logistics:</strong> Necessary delivery manifests, containing physical addresses and authorized receiving personnel contact details, are shared with secure transit providers, including Brink&apos;s and EasyPost.</li>
         <li><strong className="text-white">Contract Management:</strong> Authorized signatory data is processed via DocuSign CLM for the execution of institutional agreements and Maker/Checker authorizations.</li>

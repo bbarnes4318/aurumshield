@@ -1,9 +1,12 @@
 /* ================================================================
    COMMUNICATIONS ADAPTER — Server-Side Only
    
-   Wraps Resend (email) and Fractel (SMS) APIs.
+   Wraps the Resend SDK for transactional email delivery.
    MUST NOT be imported in client components.
    All API keys are read from process.env at call time.
+
+   NOTE: SMS OTP has been permanently removed from AurumShield.
+   The only notification channel is Resend email.
    ================================================================ */
 
 import { Resend } from "resend";
@@ -53,23 +56,3 @@ export async function sendEmail(
     return { success: false, error: message };
   }
 }
-
-/* ---------- SMS (DEPRECATED — D7 Directive) ---------- */
-
-/**
- * @deprecated SMS functionality has been removed per D7 system directive.
- * Fractel API integration is no longer active. This function is a no-op
- * preserved for backward compatibility with any residual imports.
- *
- * The ONLY notification channel is Resend email.
- */
-export async function sendText(
-  _to: string,
-  _message: string,
-): Promise<SendResult> {
-  console.warn(
-    "[AurumShield] sendText() is DEPRECATED — SMS functionality removed per D7 directive. Use sendEmail() instead.",
-  );
-  return { success: false, error: "SMS_DEPRECATED" };
-}
-

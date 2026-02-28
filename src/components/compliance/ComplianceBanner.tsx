@@ -7,6 +7,15 @@
    user's compliance status ≠ APPROVED. Shows current status,
    a contextual message, and actionable CTAs.
 
+   Parallel Engagement:
+     UNDER_REVIEW users with parallel_engagement_enabled see an
+     informational banner encouraging mock checkout and live
+     pricing exploration while KYB review proceeds.
+
+   Progressive Profiling:
+     NOT_STARTED users are informed they have BROWSE access and
+     can explore before completing identity verification.
+
    Renders nothing when the user is fully approved — the banner
    silently disappears once KYC is complete.
    ================================================================ */
@@ -20,6 +29,7 @@ import {
   XCircle,
   ChevronRight,
   HelpCircle,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -48,7 +58,7 @@ const BANNER_CONFIG: Record<ComplianceStatus, BannerConfig | null> = {
     iconColor: "text-gold",
     textColor: "text-gold",
     message:
-      "Complete identity verification to unlock trading capabilities",
+      "You have BROWSE access — explore the marketplace. Complete verification to unlock trading.",
     ctaLabel: "Start Verification",
     ctaHref: "/onboarding/compliance",
   },
@@ -72,7 +82,6 @@ const BANNER_CONFIG: Record<ComplianceStatus, BannerConfig | null> = {
     message:
       "Your verification is under manual review by our compliance team",
     ctaLabel: "Contact Compliance",
-    // TODO: Phase 2 — route to /compliance/case when Compliance Case page is built
     ctaHref: "/compliance/case",
   },
   REJECTED: {
@@ -84,21 +93,46 @@ const BANNER_CONFIG: Record<ComplianceStatus, BannerConfig | null> = {
     message:
       "Your verification requires attention — please contact our compliance team",
     ctaLabel: "Contact Compliance",
-    // TODO: Phase 2 — route to /compliance/case when Compliance Case page is built
     ctaHref: "/compliance/case",
   },
   APPROVED: null, // No banner when approved
 };
 
+/** Parallel Engagement banner — shown for UNDER_REVIEW + parallel_engagement_enabled */
+const PARALLEL_ENGAGEMENT_CONFIG: BannerConfig = {
+  icon: Sparkles,
+  bg: "bg-info/5",
+  border: "border-info/15",
+  iconColor: "text-info",
+  textColor: "text-info",
+  message:
+    "Your KYB review is in progress — explore live indicative pricing and mock checkouts while you wait",
+  ctaLabel: "Browse Marketplace",
+  ctaHref: "/buyer",
+};
+
 /* ── Component ── */
 
 export function ComplianceBanner() {
-  const { status, isLoading, isApproved } = useComplianceCapabilities();
+  const {
+    status,
+    isLoading,
+    isApproved,
+    parallelEngagementEnabled,
+    rawKycStatus,
+  } = useComplianceCapabilities();
 
   // Don't render while loading or when approved
   if (isLoading || isApproved) return null;
 
-  const config = BANNER_CONFIG[status];
+  // Parallel Engagement: UNDER_REVIEW users with the flag get a special banner
+  const isParallelEngagement =
+    rawKycStatus === "UNDER_REVIEW" && parallelEngagementEnabled;
+
+  const config = isParallelEngagement
+    ? PARALLEL_ENGAGEMENT_CONFIG
+    : BANNER_CONFIG[status];
+
   if (!config) return null;
 
   const Icon = config.icon;
@@ -139,9 +173,11 @@ export function ComplianceBanner() {
           "inline-flex items-center gap-1.5 rounded-[var(--radius-input)]",
           "px-3 py-1 text-xs font-semibold",
           "transition-all hover:opacity-90 active:scale-[0.98]",
-          status === "REJECTED" || status === "MANUAL_REVIEW"
-            ? "bg-surface-1 border border-border text-text"
-            : "bg-gold text-bg hover:bg-gold-hover",
+          isParallelEngagement
+            ? "bg-info/15 border border-info/25 text-info"
+            : status === "REJECTED" || status === "MANUAL_REVIEW"
+              ? "bg-surface-1 border border-border text-text"
+              : "bg-gold text-bg hover:bg-gold-hover",
         )}
       >
         {status === "APPROVED" ? (

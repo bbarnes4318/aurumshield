@@ -1,15 +1,15 @@
 "use server";
 
 /* ================================================================
-   SETTLEMENT NOTIFICATION — Server Action (D7 Revised)
+   SETTLEMENT NOTIFICATION — Server Action
    
    Bridges the client-side TanStack Query hooks to the server-side
    communications adapter. This file runs ENTIRELY on the server —
    no API keys are ever exposed to the client boundary.
 
-   ⚠️  SMS DEPRECATED — All Fractel/sendText functionality removed.
-       Only Resend email notifications are dispatched post-settlement.
+   Notification channel: Resend email only.
    ================================================================ */
+
 
 import { sendEmail } from "@/lib/communications-adapter";
 

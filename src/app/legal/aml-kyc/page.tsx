@@ -59,7 +59,7 @@ export default function AmlKycPage() {
       <h2 className="text-xl font-bold text-white mt-12 mb-4">ARTICLE 3: FORENSIC AND BIOMETRIC VERIFICATION INFRASTRUCTURE</h2>
       <p className="text-gray-300 leading-relaxed mb-4">To mitigate the risks of synthetic identities and forged corporate documentation, AurumShield employs advanced, third-party forensic sub-processors during the onboarding and re-verification lifecycles:</p>
       <ul className="list-disc pl-6 text-gray-300 space-y-2 mb-8">
-        <li><strong className="text-white">3.1. Biometric Liveness:</strong> Utilizing our identity partner Persona, authorized officers and UBOs are subjected to active biometric facial geometry mapping and liveness checks, checked against government-issued identity documents to definitively prove identity.</li>
+        <li><strong className="text-white">3.1. Biometric Liveness:</strong> Utilizing our identity partner Veriff, authorized officers and UBOs are subjected to active biometric facial geometry mapping and liveness checks, checked against government-issued identity documents to definitively prove identity.</li>
         <li><strong className="text-white">3.2. Document Forensics:</strong> Utilizing our cryptographic validation partner Diro, all uploaded bank statements, utility bills, and corporate filings are subjected to origin tracing and cryptographic forgery analysis to ensure data provenance directly from the issuing institution.</li>
       </ul>
 

@@ -387,13 +387,13 @@ export default async function TechnicalOverviewPage() {
               <h4>Know-Your-Business (KYB) Verification</h4>
               <p>
                 The verification engine (<code>verification-engine.ts</code>)
-                orchestrates a headless <strong>Persona KYB</strong> integration
+                orchestrates a headless <strong>Veriff KYB</strong> integration
                 accepting LEI/EIN to fetch registry data and map Ultimate Beneficial
                 Owners (UBOs). <strong>OpenSanctions</strong> screens against
                 OFAC, EU, UN, HMT, and DFAT watchlists. Retail KYC selfie-check
                 components have been removed — all counterparties are Corporate Entities.
               </p>
-              <span className="to-tag to-tag-kyc">Persona KYB · GLEIF LEI · OpenSanctions</span>
+              <span className="to-tag to-tag-kyc">Veriff KYB · GLEIF LEI · OpenSanctions</span>
             </div>
 
             <div className="to-step">
@@ -725,7 +725,7 @@ export default async function TechnicalOverviewPage() {
                 <tr>
                   <td rowSpan={3}><strong>KYC / AML</strong></td>
                   <td>Identity Verification</td>
-                  <td>Persona: government ID, biometric liveness, multi-step workflow</td>
+                  <td>Veriff: government ID, biometric liveness, multi-step workflow</td>
                   <td><code>kyc-adapters.ts</code></td>
                 </tr>
                 <tr>
@@ -833,7 +833,7 @@ export default async function TechnicalOverviewPage() {
                     <tr><td><strong>DB Client</strong></td><td>node-postgres (pg v8), raw SQL migrations</td></tr>
                     <tr><td><strong>Schema</strong></td><td>10 sequential migrations (buyer_journey → risk_parameters)</td></tr>
                     <tr><td><strong>Auth</strong></td><td>WebAuthn/Hardware Keys + Enterprise SSO (SAML/OIDC)</td></tr>
-                    <tr><td><strong>KYB</strong></td><td>Persona KYB + GLEIF LEI (deterministic entity resolution)</td></tr>
+                    <tr><td><strong>KYB</strong></td><td>Veriff KYB + GLEIF LEI (deterministic entity resolution)</td></tr>
                     <tr><td><strong>AML</strong></td><td>OpenSanctions (OFAC, EU, UN, UK, AU)</td></tr>
                     <tr><td><strong>Device Trust</strong></td><td>Fingerprint.com Pro (bot detection, velocity)</td></tr>
                     <tr><td><strong>Docs</strong></td><td>AWS Textract (OCR verification)</td></tr>
@@ -913,7 +913,7 @@ export default async function TechnicalOverviewPage() {
             <code>X-Signature</code> header, timing-safe comparison via{" "}
             <code>timingSafeEqual()</code>.
             <br />
-            <strong>Persona:</strong> Idempotent processing via{" "}
+            <strong>Veriff:</strong> Idempotent processing via{" "}
             <code>webhookId</code> tracking — duplicates safely ignored.
             <br />
             <strong>Clerk:</strong> Svix-signed payloads verified by the

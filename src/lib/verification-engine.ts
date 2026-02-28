@@ -138,12 +138,12 @@ export function isAsyncStep(stepId: string): boolean {
 /* ---------- Provider Mapping (cosmetic for UI) ---------- */
 
 export const STEP_PROVIDER_MAP: Record<string, { name: string; label: string }> = {
-  id_document: { name: "Persona", label: "Government ID Verification" },
-  selfie_liveness: { name: "Persona", label: "Biometric Liveness Check" },
+  id_document: { name: "Veriff", label: "Government ID Verification" },
+  selfie_liveness: { name: "Veriff", label: "Biometric Liveness Check" },
   sanctions_pep: { name: "OpenSanctions", label: "AML & Sanctions Screening" },
-  business_registration: { name: "Middesk", label: "Business Registry Verification" },
-  ubo_capture: { name: "Persona", label: "Beneficial Owner Verification" },
-  proof_of_address: { name: "Diro", label: "Address Document Verification" },
+  business_registration: { name: "Veriff", label: "Business Registry Verification" },
+  ubo_capture: { name: "Veriff", label: "Beneficial Owner Verification" },
+  proof_of_address: { name: "Veriff", label: "Address Document Verification" },
   source_of_funds: { name: "OpenSanctions", label: "Source of Funds / PEP Check" },
 };
 

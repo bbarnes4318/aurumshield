@@ -1,11 +1,12 @@
 "use client";
 
 /* ================================================================
-   ONBOARDING WIZARD — Orchestrator (6-step enterprise flow)
+   ONBOARDING WIZARD — Orchestrator (8-step enterprise flow)
    ================================================================
-   Six-step progressive disclosure for institutional KYB enrollment,
-   WebAuthn credential registration, maker-checker role assignment,
-   DocuSign CLM attestation, and verification completion.
+   Eight-step progressive disclosure for institutional KYB enrollment,
+   TOTP/WebAuthn MFA credential registration, maker-checker role
+   assignment, KYB entity verification, DocuSign CLM attestation,
+   and verification completion.
 
    Save-and-Resume:
      • On mount: loads saved state from /api/compliance/state
@@ -17,9 +18,11 @@
      1. Entity Registration & LEI
      2. KYB & Sanctions Screening
      3. WebAuthn & SSO Enrollment
-     4. Maker-Checker Role Assignment
-     5. DocuSign CLM & Attestation
-     6. Verification Complete
+     4. TOTP Authenticator Enrollment
+     5. Maker-Checker Role Assignment
+     6. DocuSign CLM & Attestation
+     7. KYB Entity Verification
+     8. Verification Complete
    ================================================================ */
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -37,8 +40,10 @@ import {
 import { StepCorporateIdentity } from "./StepCorporateIdentity";
 import { StepUBODocuments } from "./StepUBODocuments";
 import { StepWebAuthnEnrollment } from "./StepWebAuthnEnrollment";
+import { StepTOTPEnrollment } from "./StepTOTPEnrollment";
 import { StepMakerChecker } from "./StepMakerChecker";
 import { StepDocuSignCLM } from "./StepDocuSignCLM";
+import { StepKYBEntityVerification } from "./StepKYBEntityVerification";
 import { StepLivenessCheck } from "./StepLivenessCheck";
 
 import {
@@ -47,7 +52,7 @@ import {
 } from "@/hooks/use-onboarding-state";
 
 /* ----------------------------------------------------------------
-   Progress Bar — 6-step
+   Progress Bar — 8-step
    ---------------------------------------------------------------- */
 
 function ProgressBar({ currentStep }: { currentStep: number }) {
@@ -136,10 +141,12 @@ export function OnboardingWizard() {
       sanctionsScreeningPassed: false as unknown as true,
       webauthnEnrolled: false as unknown as true,
       ssoProvider: "none",
+      totpEnrolled: false as unknown as true,
       primaryRole: undefined,
       dualAuthAcknowledged: false as unknown as true,
       agreementSigned: false as unknown as true,
       complianceAttested: false as unknown as true,
+      kybVerificationPassed: false as unknown as true,
       verificationAcknowledged: false as unknown as true,
     },
     mode: "onTouched",
@@ -158,7 +165,7 @@ export function OnboardingWizard() {
       const saved = savedStateQ.data;
 
       // Restore wizard step
-      if (saved.currentStep >= 1 && saved.currentStep <= 6) {
+      if (saved.currentStep >= 1 && saved.currentStep <= 8) {
         setCurrentStep(saved.currentStep);
       }
 
@@ -178,10 +185,12 @@ export function OnboardingWizard() {
           sanctionsScreeningPassed: (meta.sanctionsScreeningPassed ?? false) as unknown as true,
           webauthnEnrolled: (meta.webauthnEnrolled ?? false) as unknown as true,
           ssoProvider: meta.ssoProvider ?? "none",
+          totpEnrolled: (meta.totpEnrolled ?? false) as unknown as true,
           primaryRole: meta.primaryRole,
           dualAuthAcknowledged: (meta.dualAuthAcknowledged ?? false) as unknown as true,
           agreementSigned: (meta.agreementSigned ?? false) as unknown as true,
           complianceAttested: (meta.complianceAttested ?? false) as unknown as true,
+          kybVerificationPassed: (meta.kybVerificationPassed ?? false) as unknown as true,
           verificationAcknowledged: (meta.verificationAcknowledged ?? false) as unknown as true,
         });
       }
@@ -243,7 +252,7 @@ export function OnboardingWizard() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Mark onboarding as completed
-      saveProgress(6, "COMPLETED");
+      saveProgress(8, "COMPLETED");
 
       setIsSubmitting(false);
       router.push("/buyer");
@@ -262,10 +271,14 @@ export function OnboardingWizard() {
       case 3:
         return <StepWebAuthnEnrollment />;
       case 4:
-        return <StepMakerChecker />;
+        return <StepTOTPEnrollment />;
       case 5:
-        return <StepDocuSignCLM />;
+        return <StepMakerChecker />;
       case 6:
+        return <StepDocuSignCLM />;
+      case 7:
+        return <StepKYBEntityVerification />;
+      case 8:
         return <StepLivenessCheck />;
       default:
         return null;

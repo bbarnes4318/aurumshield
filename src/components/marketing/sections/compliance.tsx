@@ -31,7 +31,7 @@ const STANDARDS = [
     scope: "Identity Perimeter",
     status: "Verified",
     implementation:
-      "Persona-powered government ID verification with biometric liveness detection. OpenSanctions screening across OFAC, EU, UN, UK HMT, and DFAT lists. UBO declaration for entities.",
+      "Veriff-powered government ID verification with biometric liveness detection. OpenSanctions screening across OFAC, EU, UN, UK HMT, and DFAT lists. UBO declaration for entities.",
   },
   {
     framework: "Audit",

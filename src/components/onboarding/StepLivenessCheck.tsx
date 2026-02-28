@@ -35,7 +35,7 @@ const SUMMARY_ITEMS = [
   {
     icon: FileCheck2,
     label: "KYB & AML Screening Passed",
-    detail: "Persona KYB + OpenSanctions (OFAC, EU, UN, HMT, DFAT)",
+    detail: "Veriff KYB + OpenSanctions (OFAC, EU, UN, HMT, DFAT)",
   },
   {
     icon: KeyRound,

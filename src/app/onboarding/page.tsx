@@ -30,7 +30,7 @@ export default function OnboardingPage() {
       {/* Footer trust line */}
       <p className="mt-6 text-center text-[10px] text-color-3/25 tracking-wide">
         AurumShield Clearing · Sovereign Financial Infrastructure · All data
-        encrypted in transit and at rest · GLEIF · Persona · DocuSign CLM
+        encrypted in transit and at rest · GLEIF · Veriff · DocuSign CLM
       </p>
     </div>
   );

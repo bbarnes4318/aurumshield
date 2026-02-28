@@ -99,7 +99,7 @@ describe("RSK-008: Distributed Event Bus (PG LISTEN/NOTIFY)", () => {
     it("includes full event data in the NOTIFY payload", async () => {
       const event = makeEvent({
         action: "INQUIRY_COMPLETED",
-        details: { provider: "Persona", outcome: "APPROVED" },
+        details: { provider: "Veriff", outcome: "APPROVED" },
       });
 
       await publishCaseEvent("user-789", "case-003", event);
@@ -112,7 +112,7 @@ describe("RSK-008: Distributed Event Bus (PG LISTEN/NOTIFY)", () => {
       expect(payload.userId).toBe("user-789");
       expect(payload.caseId).toBe("case-003");
       expect(payload.event.action).toBe("INQUIRY_COMPLETED");
-      expect(payload.event.details.provider).toBe("Persona");
+      expect(payload.event.details.provider).toBe("Veriff");
     });
 
     it("closes the DB client after publish", async () => {

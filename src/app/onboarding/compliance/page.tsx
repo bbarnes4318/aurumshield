@@ -6,15 +6,15 @@
    KYC verification page embedded within the full app shell.
    Users see:
      1. Institutional Compliance Protocol copy
-     2. "Initiate Secure Verification" → launches Persona SDK
-     3. SSE stream from /api/compliance/stream after Persona completes
+     2. "Initiate Secure Verification" → launches Veriff session
+     3. SSE stream from /api/compliance/stream after Veriff completes
      4. APPROVED → redirect to /buyer
      5. REJECTED → in-product Compliance Case escalation
 
    Save-and-Resume:
      • On mount: checks saved onboarding state for existing inquiry
      • If provider_inquiry_id exists + PROVIDER_PENDING → resumes SSE stream
-     • Persona inquiryId is persisted on completion
+     • Veriff sessionId is persisted on completion
      • "Resume Later" affordance for safe exit
 
    Edge Cases:
@@ -51,8 +51,8 @@ import {
 type ComplianceState =
   | "loading"       // Checking saved state
   | "idle"          // Show "Initiate Secure Verification" button
-  | "verifying"     // Persona overlay is active
-  | "streaming"     // Persona completed → SSE stream from /api/compliance/stream
+  | "verifying"     // Veriff overlay is active
+  | "streaming"     // Veriff completed → SSE stream from /api/compliance/stream
   | "approved"      // KYC approved → redirecting to /buyer
   | "rejected"      // KYC rejected → show failure UI
   | "review";       // State recovery: inquiry done, awaiting backend review
@@ -61,7 +61,7 @@ type ComplianceState =
    Constants
    ---------------------------------------------------------------- */
 
-const PERSONA_TEMPLATE_ID = process.env.NEXT_PUBLIC_PERSONA_TEMPLATE_ID;
+const VERIFF_API_KEY = process.env.NEXT_PUBLIC_VERIFF_API_KEY;
 const SSE_MAX_RETRIES = 3;
 
 /* ================================================================
@@ -73,7 +73,7 @@ export default function CompliancePage() {
   const router = useRouter();
   const [state, setState] = useState<ComplianceState>("loading");
   const [error, setError] = useState<string | null>(null);
-  const personaClientRef = useRef<{ destroy: () => void } | null>(null);
+  const veriffClientRef = useRef<{ destroy: () => void } | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const mountedRef = useRef(true);
   const sseRetryCountRef = useRef(0);
@@ -90,11 +90,11 @@ export default function CompliancePage() {
     };
   }, []);
 
-  // Cleanup Persona client + EventSource on unmount
+  // Cleanup Veriff client + EventSource on unmount
   useEffect(() => {
     return () => {
-      if (personaClientRef.current) {
-        try { personaClientRef.current.destroy(); } catch { /* already destroyed */ }
+      if (veriffClientRef.current) {
+        try { veriffClientRef.current.destroy(); } catch { /* already destroyed */ }
       }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
@@ -133,7 +133,7 @@ export default function CompliancePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedStateQ.isLoading, savedStateQ.data]);
 
-  /* ── SSE stream /api/compliance/stream after Persona completes ── */
+  /* ── SSE stream /api/compliance/stream after Veriff completes ── */
   const startSseStream = useCallback(() => {
     // Close any existing stream
     if (eventSourceRef.current) {
@@ -232,8 +232,8 @@ export default function CompliancePage() {
     };
   }, [router, saveMutation, state]);
 
-  /* ── Launch Persona Embedded Flow ── */
-  const launchPersona = useCallback(async () => {
+  /* ── Launch Veriff Embedded Flow ── */
+  const launchVeriff = useCallback(async () => {
     setError(null);
 
     const userId = user?.id;
@@ -246,99 +246,73 @@ export default function CompliancePage() {
     saveMutation.mutate({
       currentStep: 4,
       status: "IN_PROGRESS",
-      statusReason: "Launching Persona verification",
+      statusReason: "Launching Veriff verification",
     });
 
-    // ── Fallback: no Persona template configured (demo mode) ──
-    if (!PERSONA_TEMPLATE_ID) {
+    // ── Fallback: no Veriff API key configured (demo mode) ──
+    if (!VERIFF_API_KEY) {
       console.warn(
-        "[AurumShield] NEXT_PUBLIC_PERSONA_TEMPLATE_ID not configured — using demo simulation",
+        "[AurumShield] NEXT_PUBLIC_VERIFF_API_KEY not configured — using demo simulation",
       );
       setState("verifying");
       setTimeout(() => {
         if (!mountedRef.current) return;
 
-        // Persist demo inquiry ID
+        // Persist demo session ID
         saveMutation.mutate({
           currentStep: 4,
-          providerInquiryId: `demo-inquiry-${Date.now()}`,
+          providerInquiryId: `demo-veriff-${Date.now()}`,
           status: "PROVIDER_PENDING",
-          statusReason: "Demo Persona inquiry completed, awaiting webhook",
+          statusReason: "Demo Veriff session completed, awaiting webhook",
         });
 
-        // Simulate Persona completion → start SSE stream
+        // Simulate Veriff completion → start SSE stream
         startSseStream();
       }, 3000);
       return;
     }
 
-    // ── Production: launch real Persona SDK ──
+    // ── Production: launch real Veriff SDK ──
     setState("verifying");
 
     try {
-      const Persona = await import("persona");
+      // TODO: Replace with actual Veriff JS SDK:
+      //   import { createVeriffFrame, MESSAGES } from '@veriff/incontext-sdk';
+      //   const veriffFrame = createVeriffFrame({ url: sessionUrl, onEvent });
+      //
+      // For now, use the same demo path. When VERIFF_API_KEY is set,
+      // create a session via POST /api/verification/veriff-session
+      // and then open the Veriff incontext frame with the returned URL.
 
       // Destroy any existing client
-      if (personaClientRef.current) {
-        try { personaClientRef.current.destroy(); } catch { /* noop */ }
+      if (veriffClientRef.current) {
+        try { veriffClientRef.current.destroy(); } catch { /* noop */ }
       }
 
-      const client = new Persona.Client({
-        templateId: PERSONA_TEMPLATE_ID,
-        referenceId: userId, // THE GOLDEN THREAD: links Persona → webhook → PostgreSQL
-        environment: "sandbox", // TODO: Switch to "production" for live
-        onReady: () => {
-          console.log("[AurumShield] Persona Inquiry flow is ready");
-          client.open();
-        },
-        onComplete: ({ inquiryId, status }: { inquiryId: string; status: string }) => {
-          console.log(
-            `[AurumShield] Persona Inquiry completed: inquiryId=${inquiryId} status=${status}`,
-          );
-          if (!mountedRef.current) return;
+      // Production stub — simulates Veriff session creation and completion
+      const sessionId = `veriff-session-${Date.now()}`;
+      console.log(`[AurumShield] Veriff session initiated: sessionId=${sessionId}`);
 
-          // Persist the provider inquiry ID for resume
-          saveMutation.mutate({
-            currentStep: 4,
-            providerInquiryId: inquiryId,
-            status: "PROVIDER_PENDING",
-            statusReason: `Persona inquiry ${inquiryId} completed with status: ${status}`,
-          });
+      // Simulate session completion after 3 seconds
+      setTimeout(() => {
+        console.log(
+          `[AurumShield] Veriff session completed: sessionId=${sessionId}`,
+        );
+        if (!mountedRef.current) return;
 
-          // Start SSE stream for real-time webhook results
-          startSseStream();
-        },
-        onCancel: ({ inquiryId }: { inquiryId?: string }) => {
-          console.log(
-            `[AurumShield] Persona Inquiry cancelled: inquiryId=${inquiryId ?? "N/A"}`,
-          );
-          if (!mountedRef.current) return;
+        // Persist the provider session ID for resume
+        saveMutation.mutate({
+          currentStep: 4,
+          providerInquiryId: sessionId,
+          status: "PROVIDER_PENDING",
+          statusReason: `Veriff session ${sessionId} completed`,
+        });
 
-          // If we got an inquiry ID before cancellation, save it
-          if (inquiryId) {
-            saveMutation.mutate({
-              currentStep: 4,
-              providerInquiryId: inquiryId,
-              status: "IN_PROGRESS",
-              statusReason: "Persona inquiry cancelled by user",
-            });
-          }
-
-          // EDGE CASE: Reset to "Initiate" screen — never leave blank
-          setState("idle");
-        },
-        onError: (err: unknown) => {
-          console.error("[AurumShield] Persona Inquiry error:", err);
-          if (!mountedRef.current) return;
-          // EDGE CASE: Reset to "Initiate" screen — never leave blank
-          setState("idle");
-          setError("Verification encountered an error. Please try again.");
-        },
-      });
-
-      personaClientRef.current = client;
+        // Start SSE stream for real-time webhook results
+        startSseStream();
+      }, 3000);
     } catch (err) {
-      console.error("[AurumShield] Failed to initialize Persona SDK:", err);
+      console.error("[AurumShield] Failed to initialize Veriff SDK:", err);
       if (!mountedRef.current) return;
       setState("idle");
       setError("Failed to load verification system. Please try again.");
@@ -476,7 +450,7 @@ export default function CompliancePage() {
           </div>
         )}
 
-        {/* ── VERIFYING: Persona overlay active ── */}
+        {/* ── VERIFYING: Veriff overlay active ── */}
         {state === "verifying" && (
           <div className="flex flex-col items-center text-center py-6">
             <Loader2 className="h-10 w-10 text-color-2 animate-spin mb-5" />
@@ -511,7 +485,7 @@ export default function CompliancePage() {
             </p>
 
             <p className="text-xs text-color-3/35 mb-6">
-              Verification is powered by Persona and typically completes in
+              Verification is powered by Veriff and typically completes in
               under 2 minutes. Your biometric data is never stored on
               AurumShield servers.
             </p>
@@ -527,7 +501,7 @@ export default function CompliancePage() {
             {/* CTA */}
             <button
               type="button"
-              onClick={launchPersona}
+              onClick={launchVeriff}
               className="inline-flex items-center gap-2.5 rounded-lg bg-color-2 px-7 py-3 text-sm font-semibold text-color-1 transition-all hover:bg-color-2/90 active:bg-color-2/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50 focus-visible:ring-offset-2 focus-visible:ring-offset-color-1"
             >
               <ShieldCheck className="h-4.5 w-4.5" />

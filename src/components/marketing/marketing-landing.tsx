@@ -33,6 +33,7 @@ import { TrustBand } from "./sections/trust-band";
 import { MarketWeaknessSection } from "./sections/market-weakness";
 import { RiskModelSection } from "./sections/risk-model";
 import { ComplianceGate } from "./sections/compliance-gate";
+import { TelemetryTerminal } from "./telemetry-terminal";
 
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://app.aurumshield.vip";
@@ -617,7 +618,7 @@ const COMPLIANCE_DATA = [
     scope: "Identity Perimeter",
     status: "Enforced",
     detail:
-      "Persona-powered biometric ID verification. OpenSanctions screening across OFAC, EU, UN, UK HMT, DFAT. UBO declaration for entities.",
+      "Veriff-powered biometric ID verification. OpenSanctions screening across OFAC, EU, UN, UK HMT, DFAT. UBO declaration for entities.",
   },
   {
     framework: "OECD",
@@ -851,6 +852,21 @@ export function MarketingLanding() {
     <div className="min-h-screen bg-[#0A1128] text-white antialiased font-sans">
       <Navigation />
       <HeroSection />
+
+      {/* ── Live Engine Telemetry ── */}
+      <section className="py-16 bg-[#0A1128] border-b border-slate-800/50">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="flex items-center gap-4 mb-8 justify-center">
+            <div className="h-px w-8 bg-[#c6a86b]/50" />
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#c6a86b]">
+              LIVE ENGINE TELEMETRY
+            </p>
+            <div className="h-px w-8 bg-[#c6a86b]/50" />
+          </div>
+          <TelemetryTerminal />
+        </div>
+      </section>
+
       <TrustBand />
       <MarketWeaknessSection />
       <KineticRiskSection />

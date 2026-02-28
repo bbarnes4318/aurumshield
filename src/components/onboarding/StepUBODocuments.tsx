@@ -120,7 +120,7 @@ export function StepUBODocuments() {
           </strong>{" "}
           Regulatory requirement under EU AMLD / BSA AML. AurumShield verifies
           all entities and Ultimate Beneficial Owners (UBOs) with 25%+
-          ownership via Persona KYB. OpenSanctions screens against 5 global
+          ownership via Veriff KYB. OpenSanctions screens against 5 global
           watchlists in real time.
         </p>
       </div>
@@ -312,7 +312,7 @@ export function StepUBODocuments() {
       {/* Trust badge */}
       <div className="flex items-center gap-2 pt-1 text-[10px] text-color-3/30">
         <ShieldCheck className="h-3.5 w-3.5 text-color-2/40" />
-        <span>Persona KYB · OpenSanctions · AES-256 at rest</span>
+        <span>Veriff KYB · OpenSanctions · AES-256 at rest</span>
       </div>
     </div>
   );

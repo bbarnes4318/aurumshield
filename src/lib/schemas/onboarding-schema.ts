@@ -3,9 +3,9 @@ import { z } from "zod";
 /* ================================================================
    ONBOARDING WIZARD — Zod Validation Schemas
    ================================================================
-   Six-step enterprise onboarding flow for institutional KYB
-   verification, WebAuthn enrollment, maker-checker role
-   assignment, and DocuSign CLM attestation.
+   Eight-step enterprise onboarding flow for institutional KYB
+   verification, TOTP/WebAuthn MFA enrollment, maker-checker role
+   assignment, KYB entity verification, and DocuSign CLM attestation.
 
    Each step has its own sub-schema; the combined schema is used
    by react-hook-form with zodResolver to validate per-step.
@@ -74,7 +74,16 @@ export const stepWebAuthnSchema = z.object({
 });
 
 /* ----------------------------------------------------------------
-   Step 4: Maker-Checker Role Assignment
+   Step 4: TOTP Authenticator Enrollment
+   ---------------------------------------------------------------- */
+export const stepTOTPEnrollmentSchema = z.object({
+  totpEnrolled: z.literal(true, {
+    message: "An authenticator app must be enrolled for enterprise MFA",
+  }),
+});
+
+/* ----------------------------------------------------------------
+   Step 5: Maker-Checker Role Assignment
    ---------------------------------------------------------------- */
 export const stepMakerCheckerSchema = z.object({
   primaryRole: z.enum(["TRADER", "TREASURY"], {
@@ -86,7 +95,7 @@ export const stepMakerCheckerSchema = z.object({
 });
 
 /* ----------------------------------------------------------------
-   Step 5: DocuSign CLM & Attestation
+   Step 6: DocuSign CLM & Attestation
    ---------------------------------------------------------------- */
 export const stepDocuSignSchema = z.object({
   agreementSigned: z.literal(true, {
@@ -98,7 +107,16 @@ export const stepDocuSignSchema = z.object({
 });
 
 /* ----------------------------------------------------------------
-   Step 6: Verification Complete (no additional validation)
+   Step 7: KYB Entity Verification (company track)
+   ---------------------------------------------------------------- */
+export const stepKYBEntitySchema = z.object({
+  kybVerificationPassed: z.literal(true, {
+    message: "Entity verification must complete before proceeding",
+  }),
+});
+
+/* ----------------------------------------------------------------
+   Step 8: Verification Complete (no additional validation)
    ---------------------------------------------------------------- */
 export const stepVerificationCompleteSchema = z.object({
   verificationAcknowledged: z.literal(true, {
@@ -112,8 +130,10 @@ export const stepVerificationCompleteSchema = z.object({
 export const onboardingSchema = stepEntityRegistrationSchema
   .merge(stepKYBScreeningSchema)
   .merge(stepWebAuthnSchema)
+  .merge(stepTOTPEnrollmentSchema)
   .merge(stepMakerCheckerSchema)
   .merge(stepDocuSignSchema)
+  .merge(stepKYBEntitySchema)
   .merge(stepVerificationCompleteSchema);
 
 /* ----------------------------------------------------------------
@@ -122,8 +142,10 @@ export const onboardingSchema = stepEntityRegistrationSchema
 export type StepEntityRegistrationData = z.infer<typeof stepEntityRegistrationSchema>;
 export type StepKYBScreeningData = z.infer<typeof stepKYBScreeningSchema>;
 export type StepWebAuthnData = z.infer<typeof stepWebAuthnSchema>;
+export type StepTOTPEnrollmentData = z.infer<typeof stepTOTPEnrollmentSchema>;
 export type StepMakerCheckerData = z.infer<typeof stepMakerCheckerSchema>;
 export type StepDocuSignData = z.infer<typeof stepDocuSignSchema>;
+export type StepKYBEntityData = z.infer<typeof stepKYBEntitySchema>;
 export type StepVerificationCompleteData = z.infer<typeof stepVerificationCompleteSchema>;
 export type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
@@ -143,21 +165,31 @@ export const ONBOARDING_STEPS = [
   },
   {
     id: 3,
-    label: "WebAuthn & SSO",
+    label: "WebAuthn",
     fields: ["webauthnEnrolled", "ssoProvider"] as const,
   },
   {
     id: 4,
+    label: "TOTP MFA",
+    fields: ["totpEnrolled"] as const,
+  },
+  {
+    id: 5,
     label: "Roles",
     fields: ["primaryRole", "dualAuthAcknowledged"] as const,
   },
   {
-    id: 5,
+    id: 6,
     label: "Agreement",
     fields: ["agreementSigned", "complianceAttested"] as const,
   },
   {
-    id: 6,
+    id: 7,
+    label: "Entity KYB",
+    fields: ["kybVerificationPassed"] as const,
+  },
+  {
+    id: 8,
     label: "Complete",
     fields: ["verificationAcknowledged"] as const,
   },

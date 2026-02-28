@@ -448,7 +448,7 @@ export default async function PlatformCapabilitiesPage() {
               </li>
               <li>
                 <strong>Enterprise KYB &amp; LEI Entity Resolution</strong><br />
-                Deterministic entity verification via GLEIF API with strictly required, unique LEI codes. Persona KYB integration for UBO mapping and registry data.
+                Deterministic entity verification via GLEIF API with strictly required, unique LEI codes. Veriff KYB integration for UBO mapping and registry data.
               </li>
               <li>
                 <strong>Hardware Key Auth &amp; Enterprise SSO</strong><br />
@@ -476,7 +476,7 @@ export default async function PlatformCapabilitiesPage() {
               </div>
               <div className="plat-guarantee-box">
                 <strong>Entity Identity Verified</strong>
-                <span>GLEIF LEI matching + Persona KYB + OpenSanctions AML.</span>
+                <span>GLEIF LEI matching + Veriff KYB + OpenSanctions AML.</span>
               </div>
               <div className="plat-guarantee-box">
                 <strong>Settlement Finality Verifiable</strong>
@@ -624,7 +624,7 @@ export default async function PlatformCapabilitiesPage() {
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Identity &amp; Verification</span>
-                GLEIF LEI Resolution · Persona KYB · OpenSanctions AML · Textract Document OCR · DocuSign CLM · Device Fingerprinting
+                GLEIF LEI Resolution · Veriff KYB · OpenSanctions AML · Textract Document OCR · DocuSign CLM · Device Fingerprinting
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Pricing Oracles</span>
@@ -814,7 +814,7 @@ export default async function PlatformCapabilitiesPage() {
             <p>
               AurumShield enforces a mandatory entity identity perimeter. No counterparty can access
               clearing services without completing structured KYB verification — powered
-              by <strong>deterministic LEI matching via the GLEIF API</strong>, <strong>Persona KYB</strong> for
+              by <strong>deterministic LEI matching via the GLEIF API</strong>, <strong>Veriff KYB</strong> for
               registry data and UBO mapping, and <strong>OpenSanctions</strong> for AML screening.
             </p>
 
@@ -830,7 +830,7 @@ export default async function PlatformCapabilitiesPage() {
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
                 <strong>Step 2: KYB Verification</strong>
-                <span>Headless Persona KYB integration accepting LEI/EIN to fetch registry data, map Ultimate Beneficial Owners (UBOs), and verify corporate structure.</span>
+                <span>Headless Veriff KYB integration accepting LEI/EIN to fetch registry data, map Ultimate Beneficial Owners (UBOs), and verify corporate structure.</span>
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
                 <strong>Step 3: AML Screening &amp; Approval</strong>
@@ -1235,7 +1235,7 @@ export default async function PlatformCapabilitiesPage() {
             <div className="plat-engine-grid">
               <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
                 <strong>Entity &amp; LEI Verified</strong>
-                <span>Both counterparties have completed KYB verification via Persona with deterministic LEI matching via GLEIF.</span>
+                <span>Both counterparties have completed KYB verification via Veriff with deterministic LEI matching via GLEIF.</span>
               </div>
               <div className="plat-engine-box" style={{ borderLeft: "3px solid var(--success)" }}>
                 <strong>Evidence Packed</strong>
@@ -1492,7 +1492,7 @@ export default async function PlatformCapabilitiesPage() {
                   </tr>
                   <tr>
                     <td><strong>Identity Assurance</strong></td>
-                    <td>GLEIF LEI + Persona KYB + WebAuthn + Enterprise SSO</td>
+                    <td>GLEIF LEI + Veriff KYB + WebAuthn + Enterprise SSO</td>
                     <td><span className="plat-status-success">✓ Enterprise-Grade Identity</span></td>
                   </tr>
                   <tr>

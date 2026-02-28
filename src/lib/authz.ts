@@ -6,6 +6,14 @@
    capability requirements. Falls back to mock auth when Clerk
    is not configured.
 
+   Progressive Profiling:
+     BROWSE is granted on Passkey + Email registration only.
+     Identity verification is deferred until QUOTE or LOCK_PRICE.
+
+   Parallel Engagement:
+     UNDER_REVIEW users with parallel_engagement_enabled get BROWSE
+     access for mock checkouts and live indicative pricing.
+
    Usage in server actions / API routes:
      const session = await requireSession();
      const buyer   = await requireBuyer();
@@ -50,6 +58,7 @@ const KYC_CAPABILITY_MAP: Record<string, ComplianceCapability> = {
   PENDING: "BROWSE",
   DOCUMENTS_REQUIRED: "BROWSE",
   IN_REVIEW: "QUOTE",
+  UNDER_REVIEW: "BROWSE",  // Parallel engagement may elevate within BROWSE
   APPROVED: "SETTLE", // Full access
   REJECTED: "BROWSE",
 };
@@ -214,11 +223,29 @@ export async function requireComplianceCapability(
     const { TIER_TO_CAPABILITY_MAP } = await import("@/lib/compliance/tiering");
     const cc = await getComplianceCaseByUserId(session.userId);
 
-    if (!cc || cc.status !== "APPROVED" || !TIER_TO_CAPABILITY_MAP[cc.tier]) {
+    if (!cc || !TIER_TO_CAPABILITY_MAP[cc.tier]) {
+      // Parallel Engagement: UNDER_REVIEW with parallel_engagement_enabled
+      // allows BROWSE access for mock checkouts, but not protected capabilities
+      if (cc && cc.status === "UNDER_REVIEW") {
+        throw new AuthError(
+          403,
+          `COMPLIANCE_UNDER_REVIEW: Capability "${capability}" is pending compliance review. ` +
+            `Your application is being processed. You may browse and access indicative pricing.`,
+        );
+      }
+
       throw new AuthError(
         403,
         `COMPLIANCE_DENIED: Capability "${capability}" requires an APPROVED compliance case. ` +
           `No valid compliance record found for user ${session.userId}.`,
+      );
+    }
+
+    if (cc.status !== "APPROVED") {
+      throw new AuthError(
+        403,
+        `COMPLIANCE_NOT_APPROVED: Capability "${capability}" requires APPROVED status. ` +
+          `Current status: ${cc.status} for user ${session.userId}.`,
       );
     }
 

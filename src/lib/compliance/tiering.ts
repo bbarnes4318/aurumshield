@@ -7,13 +7,15 @@
      2. What capabilities the user unlocks
 
    Tier ladder (cumulative):
-     BROWSE  → browse marketplace
-     QUOTE   → request price quotes
-     LOCK    → lock price for 60 seconds
-     EXECUTE → execute purchase + settle + deliver
+     BROWSE  → browse marketplace (email + passkey only)
+     QUOTE   → request price quotes (+ government ID)
+     LOCK    → lock price for 60 seconds (+ full KYC)
+     EXECUTE → execute purchase + settle + deliver (+ KYB for companies)
 
-   The tiering system replaces the hard-coded KYC_CAPABILITY_MAP
-   with a more granular, risk-proportionate model.
+   Progressive Profiling:
+     BROWSE access is granted upon Passkey/Email registration.
+     Identity verification is deferred until QUOTE or LOCK_PRICE
+     operations are attempted.
 
    Server-side only — do not import in client components.
    ================================================================ */
@@ -48,18 +50,22 @@ export const TIER_DEFINITIONS: TierDefinition[] = [
   {
     tier: "BROWSE",
     label: "Browse Marketplace",
-    requiredSteps: ["email_phone"],
+    // Progressive Profiling: only email verification + WebAuthn passkey
+    // required for initial access. KYC deferred to QUOTE/LOCK operations.
+    requiredSteps: ["email_verified", "webauthn_enrolled"],
   },
   {
     tier: "QUOTE",
     label: "Request Quotes",
-    requiredSteps: ["email_phone", "id_document"],
+    // Triggers identity verification prompt on first QUOTE attempt
+    requiredSteps: ["email_verified", "webauthn_enrolled", "id_document"],
   },
   {
     tier: "LOCK",
     label: "Lock Prices",
     requiredSteps: [
-      "email_phone",
+      "email_verified",
+      "webauthn_enrolled",
       "id_document",
       "selfie_liveness",
       "sanctions_pep",
@@ -69,7 +75,8 @@ export const TIER_DEFINITIONS: TierDefinition[] = [
     tier: "EXECUTE",
     label: "Execute Trades",
     requiredSteps: [
-      "email_phone",
+      "email_verified",
+      "webauthn_enrolled",
       "id_document",
       "selfie_liveness",
       "sanctions_pep",
@@ -150,12 +157,22 @@ export function getRequiredSteps(tier: ComplianceTier): string[] {
  * Evaluate the maximum tier a user has earned based on their
  * case status and the set of completed verification steps.
  *
- * If the case is not APPROVED, returns BROWSE regardless of steps.
+ * Progressive Profiling rules:
+ *   - APPROVED cases: full tier evaluation based on completed steps
+ *   - UNDER_REVIEW with parallel_engagement_enabled: grants BROWSE
+ *     (allows mock checkout + live indicative pricing)
+ *   - All other non-approved statuses: restricted to BROWSE
  */
 export function evaluateTierFromCase(
   caseStatus: ComplianceCaseStatus,
   completedStepIds: string[],
+  parallelEngagementEnabled?: boolean,
 ): ComplianceTier {
+  // UNDER_REVIEW with parallel engagement → BROWSE (mock checkout access)
+  if (caseStatus === "UNDER_REVIEW" && parallelEngagementEnabled) {
+    return "BROWSE";
+  }
+
   // Non-approved cases are restricted to BROWSE
   if (caseStatus !== "APPROVED") return "BROWSE";
 

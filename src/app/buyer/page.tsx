@@ -488,7 +488,7 @@ function VerificationDrawerBody() {
             </p>
             <p className="text-xs text-text-muted mt-0.5">
               {kycStatus === "APPROVED"
-                ? "Your identity has been verified by Persona."
+                ? "Your identity has been verified by Veriff."
                 : kycStatus === "REJECTED"
                   ? "Verification was rejected. Please contact support or re-verify."
                   : "Verification has not been completed yet."}

@@ -109,7 +109,7 @@ export default function TermsPage() {
           Counterparty agrees to submit to rigorous continuous identity and
           compliance verification. This includes providing exhaustive Ultimate
           Beneficial Owner (UBO) documentation, biometric liveness checks (via
-          providers such as Persona and Diro), and corporate forensics.
+          providers such as Veriff and Diro), and corporate forensics.
           AurumShield reserves the absolute right to reject any application or
           suspend any active account that fails to meet our proprietary
           compliance gating standards or triggers adverse media/sanctions

@@ -41,6 +41,7 @@ const isPublicRoute = createRouteMatcher([
   "/health(.*)",
   "/api/webhooks/(.*)",
   "/demo/(.*)",
+  "/dev/(.*)",
   "/",
   "/platform-overview(.*)",
   "/technical-overview(.*)",

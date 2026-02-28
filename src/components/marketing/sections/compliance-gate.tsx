@@ -15,7 +15,7 @@ const reveal = {
 const INTEGRATIONS = [
   {
     icon: Fingerprint,
-    name: "Persona",
+    name: "Veriff",
     role: "KYC / Identity Verification",
     description:
       "Government ID verification with biometric liveness detection. OpenSanctions screening across OFAC, EU, UN, UK HMT, and DFAT.",
