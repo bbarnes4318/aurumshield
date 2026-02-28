@@ -24,6 +24,7 @@ const PUBLIC_ROUTES = [
   "/platform-overview",
   "/technical-overview",
   "/demo/walkthrough",
+  "/legal",
 ];
 
 interface AppShellProps {

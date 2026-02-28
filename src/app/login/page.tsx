@@ -61,7 +61,7 @@ const step1Schema = z
       message:
         "Institutional email required for this entity type — consumer providers are not accepted",
       path: ["email"],
-    }
+    },
   );
 
 const step2Schema = z.object({
@@ -72,7 +72,6 @@ const step2Schema = z.object({
     .min(20, "Minimum 20 characters required")
     .max(500, "Maximum 500 characters"),
 });
-
 
 /* ── Constants ── */
 const ENTITY_TYPES = [
@@ -207,6 +206,17 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-12">
       <div className="w-full max-w-lg">
+        {/* ── Back to Home (Top) ── */}
+        <div className="mb-6 text-center">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs text-text-faint hover:text-gold transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Return to Home
+          </Link>
+        </div>
+
         {/* ── Brand ── */}
         <div className="mb-10 flex flex-col items-center">
           <div className="mb-4">
