@@ -48,7 +48,7 @@ export function MarketWeaknessSection() {
   return (
     <section
       id="market-weakness"
-      className="py-24 lg:py-32"
+      className="pt-24 lg:pt-32 pb-24 lg:pb-32"
       style={{ backgroundColor: "#0A1128" }}
     >
       <div className="mx-auto max-w-7xl px-6">

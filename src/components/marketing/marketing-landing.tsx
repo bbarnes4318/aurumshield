@@ -281,8 +281,7 @@ function SettlementLifecycleSection() {
           Deterministic Settlement Lifecycle
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-          Every transaction traverses a strict, irreversible state machine. Each
-          transition is role-gated, audited, and deterministic.
+          Whether sourcing from vetted mine originators or institutional sellers, every trade traverses a strict, irreversible state machine. Each transition is role-gated, audited, and deterministic.
         </p>
 
         {/* Horizontal Pipeline */}
@@ -389,11 +388,10 @@ function ExposureSection() {
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Bilateral principal exposure is structurally removed from the
-              transaction lifecycle. Central clearing replaces counterparty
-              trust with deterministic, capital-monitored infrastructure.
-              By replacing 100% pre-funding requirements with cryptographically
-              verified 5% collateral locks, AurumShield drastically unlocks
-              capital efficiency and liquidity for participating trading desks.
+              transaction lifecycle. As a closed-loop exchange, AurumShield
+              100% underwrites the trade. If a counterparty defaults or a
+              delivery fails, your capital and physical allocation are fully
+              guaranteed.
             </p>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Continuous Exposure Coverage Ratio monitoring and hardstop limits
@@ -454,7 +452,7 @@ function KineticRiskSection() {
           <div className={`lg:col-span-8 ${GLASS_CARD} p-8 sm:p-10 flex flex-col justify-center`}>
             <h3 className="text-xl font-bold text-white mb-4">Sovereign Vault Confinement</h3>
             <p className="text-base leading-relaxed text-slate-400 max-w-2xl">
-              Certified bullion remains locked in secure, insured facilities operated exclusively by Tier-1 logistics partners including Malca-Amit and Brink&apos;s. Counterparties never touch the physical rail. Physical reality is maintained; kinetic exposure is bypassed.
+              From vetted mine extraction to final settlement, assets remain locked in secure, insured facilities operated exclusively by Tier-1 logistics partners like Malca-Amit and Brink&apos;s. Asset provenance is cryptographically verified, and physical reality is maintained without kinetic exposure.
             </p>
           </div>
           
@@ -854,15 +852,26 @@ export function MarketingLanding() {
       <HeroSection />
 
       {/* ── Live Engine Telemetry ── */}
-      <section className="py-16 bg-[#0A1128] border-b border-slate-800/50">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex items-center gap-4 mb-8 justify-center">
-            <div className="h-px w-8 bg-[#c6a86b]/50" />
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#c6a86b]">
-              LIVE ENGINE TELEMETRY
+      <section className="py-24 lg:py-32 bg-[#0A1128] border-b border-slate-800/50 flex flex-col items-center justify-center relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(198,168,107,0.03)_0%,transparent_70%)] pointer-events-none" />
+        
+        <div className="mx-auto max-w-7xl px-6 w-full relative z-10">
+          <div className="text-center mb-12 max-w-3xl mx-auto">
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <div className="h-px w-8 bg-[#c6a86b]/50" />
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#c6a86b]">
+                LIVE ENGINE TELEMETRY
+              </p>
+              <div className="h-px w-8 bg-[#c6a86b]/50" />
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
+              Cryptographic Settlement Proof
+            </h2>
+            <p className="text-gray-400 text-sm md:text-base leading-relaxed">
+              AurumShield does not rely on bilateral trust. Watch the live simulation of our state machine locking collateral, verifying sovereign vault provenance, and executing an atomic Delivery-versus-Payment (DvP) swap in real-time.
             </p>
-            <div className="h-px w-8 bg-[#c6a86b]/50" />
           </div>
+          
           <TelemetryTerminal />
         </div>
       </section>

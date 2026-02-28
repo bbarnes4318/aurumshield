@@ -21,7 +21,7 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative min-h-[85vh] overflow-hidden"
+      className="relative pb-16 lg:pb-20 overflow-hidden"
       style={{ backgroundColor: "#0A1128" }}
     >
       {/* ── Radial gold gradient anchored behind CTA area ── */}
@@ -36,9 +36,17 @@ export function HeroSection() {
       <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center py-12 lg:py-24 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
         <div className="flex flex-col justify-center space-y-6 lg:space-y-8 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
-          <motion.div custom={0} initial="hidden" animate="visible" variants={fade} className="flex items-center gap-4 mb-6">
+          <motion.div
+            custom={0}
+            initial="hidden"
+            animate="visible"
+            variants={fade}
+            className="flex items-center gap-4 mb-6"
+          >
             <div className="h-px w-8 bg-gold/50" />
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">INSTITUTIONAL CLEARING INFRASTRUCTURE</p>
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
+              INSTITUTIONAL CLEARING INFRASTRUCTURE
+            </p>
           </motion.div>
 
           <motion.h1
@@ -48,7 +56,8 @@ export function HeroSection() {
             variants={fade}
             className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-white tracking-tight leading-[1.15]"
           >
-            Eliminate <span className="text-gold">Counterparty Fraud</span> in Physical Gold Trading.
+            The <span className="text-[#c6a86b]">Zero-Risk Exchange</span> for
+            Physical Gold.
           </motion.h1>
 
           <motion.p
@@ -58,7 +67,10 @@ export function HeroSection() {
             variants={fade}
             className="text-base md:text-lg text-gray-300 leading-relaxed"
           >
-            AurumShield replaces bilateral trust with mathematically enforced <span className="text-gold font-semibold">Delivery-versus-Payment (DvP)</span>. Capital and bullion are confined, verified, and settled atomically—eliminating principal risk and <span className="text-gold font-semibold">fully indemnifying loss from fraud or logistical failure</span> by architectural design.
+            Access vetted mine originators and institutional sellers. Execute
+            physical bullion trades with 100% capital and asset
+            coverage—guaranteeing your investment is secure from execution to
+            sovereign vaulting.
           </motion.p>
 
           <motion.div
