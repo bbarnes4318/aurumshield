@@ -53,8 +53,8 @@ export default async function TechnicalOverviewPage() {
           --text: #cbd5e1;
           --text-muted: #94a3b8;
           --text-faint: #64748b;
-          --gold: #D0A85C;
-          --gold-hover: #D4AF37;
+          --gold: #c6a86b;
+          --gold-hover: #d3b77d;
           --success: #3fae7a;
           --warning: #D0A85C;
           --danger: #d16a5d;

@@ -77,7 +77,7 @@ function Navigation() {
           </a>
           <a
             href={`${APP_URL}/signup`}
-            className="inline-flex items-center gap-2 rounded-md bg-[#D4AF37] hover:bg-[#D4AF37]/90 px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors"
+            className="inline-flex items-center gap-2 rounded-md bg-gold hover:bg-gold/90 px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors"
           >
             Request Access
           </a>
@@ -131,8 +131,8 @@ function SettlementLifecycleSection() {
     <section id="architecture" className="py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex items-center gap-4 mb-4">
-          <div className="h-px w-8 bg-[#D0A85C]/50" />
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+          <div className="h-px w-8 bg-gold/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
             SETTLEMENT LIFECYCLE
           </p>
         </div>
@@ -224,7 +224,7 @@ function ExposureSection() {
                     <td className="px-4 py-4 text-rose-400 font-semibold">Max Exposure</td>
                     <td className="px-4 py-4 text-gold">Title Blocked</td>
                   </tr>
-                  <tr className="bg-[#D0A85C]/5 border-t border-gold/20">
+                  <tr className="bg-gold/5 border-t border-gold/20">
                     <td className="px-4 py-4 text-white font-bold">04. Settlement</td>
                     <td className="px-4 py-4 text-rose-400 font-bold">Default Risk</td>
                     <td className="px-4 py-4 text-gold font-bold tracking-wider">$0.00 (DvP)</td>
@@ -237,8 +237,8 @@ function ExposureSection() {
           {/* Right: Copy */}
           <div>
         <div className="flex items-center gap-4 mb-4">
-          <div className="h-px w-8 bg-[#D0A85C]/50" />
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+          <div className="h-px w-8 bg-gold/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
             RISK ARCHITECTURE
           </p>
         </div>
@@ -267,7 +267,7 @@ function ExposureSection() {
                 "Defined failure states with structured recovery",
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-[#D4AF37] mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-5 w-5 text-gold mt-0.5 flex-shrink-0" />
                   <span className="text-base text-slate-300">{item}</span>
                 </div>
               ))}
@@ -291,8 +291,8 @@ function KineticRiskSection() {
       </div>
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex items-center gap-4 mb-4">
-          <div className="h-px w-8 bg-[#D0A85C]/50" />
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+          <div className="h-px w-8 bg-gold/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
             PHYSICAL PERIMETER
           </p>
         </div>
@@ -348,8 +348,8 @@ function ArchitectureSection() {
           {/* Left: Copy */}
           <div>
         <div className="flex items-center gap-4 mb-4">
-          <div className="h-px w-8 bg-[#D0A85C]/50" />
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+          <div className="h-px w-8 bg-gold/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
             CLEARING INFRASTRUCTURE
           </p>
         </div>
@@ -372,14 +372,14 @@ function ArchitectureSection() {
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
               <Link
                 href="/platform-overview"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#D4AF37] px-6 py-3 text-sm font-semibold text-[#0A1128] transition-all hover:bg-[#E5C54B]"
+                className="inline-flex items-center gap-2 rounded-lg bg-gold px-6 py-3 text-sm font-semibold text-[#0A1128] transition-all hover:bg-gold-hover"
               >
                 <Globe className="h-4 w-4" />
                 Platform Overview
               </Link>
               <Link
                 href="/technical-overview"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] px-6 py-3 text-sm font-medium text-white transition-all hover:border-[#D4AF37]/40"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] px-6 py-3 text-sm font-medium text-white transition-all hover:border-gold/40"
               >
                 <FileText className="h-4 w-4" />
                 Technical Overview
@@ -571,7 +571,7 @@ function FinalCTA() {
             <div className="flex flex-col sm:flex-row gap-4">
               <a
                 href={`${APP_URL}/signup`}
-                className="inline-flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-slate-950 font-bold px-10 py-4 rounded-md transition-all duration-200"
+                className="inline-flex items-center justify-center gap-2 bg-gold hover:bg-gold/90 text-slate-950 font-bold px-10 py-4 rounded-md transition-all duration-200"
               >
                 Request Institutional Access
                 <ArrowRight className="h-5 w-5" />
@@ -613,8 +613,8 @@ function SiteFooter() {
           {/* Col 2: Infrastructure */}
           <div>
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-px w-6 bg-[#D0A85C]/50" />
-              <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+              <div className="h-px w-6 bg-gold/50" />
+              <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
                 Infrastructure
               </h4>
             </div>
@@ -628,8 +628,8 @@ function SiteFooter() {
           {/* Col 3: Legal & Compliance */}
           <div>
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-px w-6 bg-[#D0A85C]/50" />
-              <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+              <div className="h-px w-6 bg-gold/50" />
+              <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
                 Compliance
               </h4>
             </div>
@@ -644,19 +644,19 @@ function SiteFooter() {
           {/* Col 4: Operations Desk (Phone Number) */}
           <div>
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-px w-6 bg-[#D0A85C]/50" />
-              <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#D0A85C]">
+              <div className="h-px w-6 bg-gold/50" />
+              <h4 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
                 Global Operations
               </h4>
             </div>
             <div className="bg-[#0B0E14] border border-slate-800 rounded-md p-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-2 w-2 rounded-full bg-[#D0A85C]/70 animate-pulse" />
-                <span className="text-[10px] uppercase tracking-widest text-[#D0A85C]/70 font-semibold">
+                <div className="h-2 w-2 rounded-full bg-gold/70 animate-pulse" />
+                <span className="text-[10px] uppercase tracking-widest text-gold/70 font-semibold">
                   24/7 Automated Desk
                 </span>
               </div>
-              <a href="tel:+18652757300" className="text-lg font-mono font-bold text-white hover:text-[#D0A85C] transition-colors block mt-1">
+              <a href="tel:+18652757300" className="text-lg font-mono font-bold text-white hover:text-gold transition-colors block mt-1">
                 +1.865.275.7300
               </a>
               <p className="text-xs text-slate-500 mt-2 leading-relaxed">

@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, Source_Serif_4, Inter, JetBrains_Mono } from "next/font/google";
+import {
+  IBM_Plex_Sans,
+  Source_Serif_4,
+  Inter,
+  JetBrains_Mono,
+} from "next/font/google";
 import { Suspense } from "react";
 import { ClerkWrapper } from "@/providers/clerk-wrapper";
 import { FingerprintProvider } from "@/providers/fingerprint-provider";
@@ -52,11 +57,6 @@ export const metadata: Metadata = {
   description:
     "Institutional gold clearing, custody, and compliance. Deterministic risk-first execution for sovereign-grade counterparties.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
-  other: {
-    "color-scheme": "dark",
-    "theme-color": "#0A1128",
-    "forced-colors": "none",
-  },
 };
 
 /* ----------------------------------------------------------------
@@ -74,10 +74,6 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${ibmPlexSans.variable} ${sourceSerif.variable} ${inter.variable} ${jetbrainsMono.variable}`}
       >
-        <head>
-          <meta name="color-scheme" content="dark" />
-          <meta name="theme-color" content="#0A1128" />
-        </head>
         <body className="font-sans antialiased">
           <ChunkErrorRecovery />
           <ThemeProvider attribute="class" defaultTheme="dark">
@@ -89,7 +85,11 @@ export default function RootLayout({
                       <TourProvider>
                         <AppShell>{children}</AppShell>
                       </TourProvider>
-                      <Toaster theme="dark" position="bottom-right" richColors />
+                      <Toaster
+                        theme="dark"
+                        position="bottom-right"
+                        richColors
+                      />
                     </DemoProvider>
                   </Suspense>
                 </FingerprintProvider>
