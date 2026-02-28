@@ -21,22 +21,22 @@
   --text: #e7ecf4;
   --text-muted: #aab6c8;
   --text-faint: #7f8ca3;
-  --gold: #d0a85c;
-  --gold-hover: #d9b96e;
+  --gold: #c6a86b;
+  --gold-hover: #d3b77d;
   --gold-pressed: #c49a4a;
   --gold-muted: #9f8a4c;
   --action-gold: #d4af37;
   --active-bg: #1a2540;
   --active-text: #c8d4e4;
   --success: #3fae7a;
-  --warning: #d0a85c;
+  --warning: #c6a86b;
   --danger: #d16a5d;
   --info: #5a8ccb;
   --focus-ring: #7fa6ff;
 
   /* ── Buyer Journey Palette (4-Phase) ── */
   --color-1: #13233a;
-  --color-2: #d0a85c;
+  --color-2: #c6a86b;
   --color-3: #e7ecf4;
   --color-4: #d16a5d;
   --color-5: #6a5d2b;
