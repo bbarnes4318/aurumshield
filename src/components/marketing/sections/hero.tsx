@@ -21,9 +21,9 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative w-full min-h-screen flex items-center bg-[url('/hero-bullion-bg.png')] bg-cover bg-center bg-no-repeat"
+      className="relative w-full min-h-screen flex items-center"
+      style={{ backgroundColor: "#0A1128" }}
     >
-      <div className="absolute inset-0 bg-slate-950/[0.94] z-0"></div>
 
       {/* ── Radial gold gradient anchored behind CTA area ── */}
       <div
