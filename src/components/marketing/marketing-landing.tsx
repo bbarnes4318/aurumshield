@@ -987,13 +987,13 @@ export function MarketingLanding() {
               <div className="h-px w-8 bg-[#c6a86b]/50" />
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
-              Cryptographic Settlement Proof
+              Deterministic Settlement. Zero Counterparty Risk.
             </h2>
-            <p className="text-gray-400 text-sm md:text-base leading-relaxed">
-              AurumShield does not rely on bilateral trust. Watch the live
-              simulation of our state machine locking collateral, verifying
-              sovereign vault provenance, and executing an atomic
-              Delivery-versus-Payment (DvP) swap in real-time.
+            <p className="text-gray-300 text-sm md:text-base leading-relaxed">
+              Trust is a liability in physical markets. Watch our clearing engine
+              in real-time as it locks capital, verifies sovereign vault
+              provenance, and executes a flawless Delivery-versus-Payment (DvP)
+              swap with absolute finality.
             </p>
           </div>
 
