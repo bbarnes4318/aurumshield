@@ -47,7 +47,7 @@ export function TelemetryTerminal() {
   }, [logs]);
 
   return (
-    <div className="w-full max-w-4xl lg:max-w-5xl mx-auto rounded-md bg-[#0A1128] border border-slate-800 shadow-[0_0_60px_-15px_rgba(198,168,107,0.15)] overflow-hidden font-mono text-sm relative">
+    <div className="w-full max-w-4xl lg:max-w-5xl rounded-md bg-[#0A1128] border border-slate-800 shadow-[0_0_60px_-15px_rgba(198,168,107,0.15)] overflow-hidden font-mono text-sm relative">
       {/* Terminal Header */}
       <div className="bg-[#0B0E14] border-b border-slate-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">

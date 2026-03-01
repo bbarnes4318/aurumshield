@@ -21,11 +21,9 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative pb-16 lg:pb-20 overflow-hidden bg-[url('/hero-bullion-bg.png')] bg-cover bg-center bg-no-repeat"
-      style={{ backgroundColor: "#0A1128" }}
+      className="relative w-full min-h-screen flex items-center bg-[url('/hero-bullion-bg.png')] bg-cover bg-center bg-no-repeat"
     >
-      {/* ── Heavy dark overlay — texture barely registers, text stays readable ── */}
-      <div className="absolute inset-0 bg-slate-950/85 z-0" />
+      <div className="absolute inset-0 bg-slate-950/85 z-0"></div>
 
       {/* ── Radial gold gradient anchored behind CTA area ── */}
       <div

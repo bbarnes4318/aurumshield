@@ -838,24 +838,10 @@ function ComplianceSection() {
    ================================================================ */
 function VaultDivider() {
   return (
-    <div className="w-full h-64 overflow-hidden relative">
+    <div className="w-full h-[400px] relative overflow-hidden border-y border-white/10">
+      <div className="absolute inset-0 bg-slate-950/60 z-10"></div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/vault-divider-bg.png"
-        alt=""
-        className="object-cover w-full h-full opacity-40 grayscale"
-        aria-hidden="true"
-      />
-      {/* Navy tint overlay */}
-      <div className="absolute inset-0 bg-[#0A1128]/50 pointer-events-none" />
-      {/* Bottom gradient bleed */}
-      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0A1128] to-transparent pointer-events-none" />
-      {/* Top gradient bleed */}
-      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0A1128] to-transparent pointer-events-none" />
-      {/* Center accent line */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="h-px w-32 bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-      </div>
+      <img src="/vault-divider-bg.png" alt="Vault Infrastructure" className="absolute inset-0 w-full h-full object-cover grayscale opacity-50 z-0" />
     </div>
   );
 }
@@ -1149,11 +1135,11 @@ export function MarketingLanding() {
       <SettlementLifecycleSection />
 
       {/* ── Live Engine Telemetry ── */}
-      <section className="py-24 lg:py-32 bg-[#0A1128] border-b border-slate-800/50 flex flex-col items-start justify-center relative">
+      <section className="py-16 lg:py-24 bg-[#0A1128] border-b border-slate-800/50 relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(198,168,107,0.03)_0%,transparent_70%)] pointer-events-none" />
 
         <div className="mx-auto max-w-7xl px-6 w-full relative z-10">
-          <div className="mb-12 max-w-3xl">
+          <div className="flex flex-col items-start text-left max-w-2xl mb-12">
             <div className="flex items-center gap-4 mb-6">
               <div className="h-px w-8 bg-gold/50" />
               <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">

@@ -84,7 +84,7 @@ export function RiskModelSection() {
                   },
                 },
               }}
-              className="group rounded-md border border-slate-800 bg-white/[0.02] p-8 transition-all duration-300 hover:border-gold/30"
+              className="bg-slate-900/40 border border-white/10 rounded-2xl p-8 backdrop-blur-md shadow-2xl hover:bg-slate-900/60 transition-all"
             >
               {/* Index + Tag — subtle monospace identifier */}
               <span className="font-mono text-sm text-gold/70 mb-4 block tracking-wide">
