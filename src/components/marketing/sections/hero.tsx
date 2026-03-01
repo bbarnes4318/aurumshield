@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { ClearingSeal } from "../ClearingSeal";
 
@@ -24,6 +25,19 @@ export function HeroSection() {
       className="relative pb-16 lg:pb-20 overflow-hidden"
       style={{ backgroundColor: "#0A1128" }}
     >
+      {/* ── Cinematic bullion background — macro gold texture ── */}
+      <Image
+        src="/hero-bullion-bg.png"
+        alt=""
+        fill
+        className="object-cover pointer-events-none select-none"
+        style={{ objectPosition: "center 40%" }}
+        priority
+        aria-hidden="true"
+      />
+      {/* ── Heavy dark overlay — texture barely registers ── */}
+      <div className="absolute inset-0 bg-black/82 pointer-events-none" />
+
       {/* ── Radial gold gradient anchored behind CTA area ── */}
       <div
         className="pointer-events-none absolute left-[20%] top-[60%] h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full"
@@ -56,7 +70,7 @@ export function HeroSection() {
             variants={fade}
             className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-white tracking-tight leading-[1.15]"
           >
-            The <span className="text-[#c6a86b]">Zero-Risk Exchange</span> for
+            The <span className="text-gold">Zero-Risk Exchange</span> for
             Physical Gold.
           </motion.h1>
 

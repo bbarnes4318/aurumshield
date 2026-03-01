@@ -14,21 +14,21 @@ const reveal = {
 const METRICS = [
   {
     figure: "0.00%",
-    label: "Principal & Herstatt Risk",
+    label: "NO BROKER RISK",
     description:
-      "Atomic DvP settlement eliminates bilateral principal exposure. No counterparty holds unrecovered notional value at any lifecycle stage.",
+      "We are pure clearing infrastructure, not a market maker. We facilitate direct execution with zero intermediary markup and zero broker risk.",
   },
   {
     figure: "100%",
-    label: "Pre-Execution Capital Efficiency",
+    label: "NO PAPER GOLD",
     description:
-      "Only a fractional collateral lock is required prior to execution, freeing trading liquidity while the escrow engine mathematically guarantees full indemnification.",
+      "No synthetic exposure. Every execution on our network settles in fully allocated, physically unencumbered gold that is immediately deliverable upon request.",
   },
   {
     figure: "<$250M",
-    label: "Transaction Capacity",
+    label: "NO FRACTIONAL RESERVE",
     description:
-      "Per-settlement capacity governed by deterministic Exposure Coverage Ratio limits, tier-1 indemnification, and continuous capital monitoring.",
+      "We mathematically enforce a strict 1:1 ratio. Zero fractional reserve practices. Zero rehypothecation. The gold you clear is cryptographically proven to exist.",
   },
 ] as const;
 
@@ -53,13 +53,11 @@ export function RiskModelSection() {
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">ACTUARIAL PROOF</p>
           </div>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
-            Principal Exposure: Structurally Neutralized
+            Engineered for Absolute Integrity.
           </h2>
-          <p className="text-base leading-relaxed text-gray-300">
-            Counterparty exposure is structurally removed from the settlement
-            lifecycle. Each metric is derived from the deterministic constraints
-            enforced by the clearing engine — not estimated from historical
-            performance data.
+          <p className="text-base leading-relaxed text-gray-200">
+            Legacy clearing relies on intermediaries and synthetic IOUs.
+            AurumShield&apos;s architecture enforces physical reality through code.
           </p>
         </motion.div>
 

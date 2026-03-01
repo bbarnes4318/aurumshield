@@ -25,6 +25,7 @@ import {
   Lock,
   Menu,
   X,
+  ShieldCheck,
 } from "lucide-react";
 
 /* ── Section Imports ── */
@@ -415,30 +416,26 @@ function ExposureSection() {
               </p>
             </div>
             <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-xl">
-              Exposure Compressed to Zero at Settlement
+              T+0 Finality. Zero Temporal Risk.
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-              Bilateral principal exposure is structurally removed from the
-              transaction lifecycle. As a closed-loop exchange, AurumShield 100%
-              underwrites the trade. If a counterparty defaults or a delivery
-              fails, your capital and physical allocation are fully guaranteed.
-            </p>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-              Continuous Exposure Coverage Ratio monitoring and hardstop limits
-              are enforced computationally before execution — not applied
-              retroactively through margin calls.
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-200">
+              In legacy markets, a T+2 settlement window creates exponential
+              counterparty risk. AurumShield&apos;s engine executes atomically,
+              collapsing the settlement window to zero and eliminating temporal
+              exposure entirely.
             </p>
 
             <div className="mt-8 space-y-3">
               {[
-                "Atomic DvP — no partial settlement states",
-                "Continuous ECR monitoring with breach escalation",
-                "SHA-256 clearing certificates per settlement",
-                "Defined failure states with structured recovery",
+                { prefix: "Bilateral trust requirements:", suffix: "Eliminated." },
+                { prefix: "Asset reconciliation:", suffix: "Instant & Absolute." },
+                { prefix: "Counterparty default risk:", suffix: "Mathematically Zero." },
               ].map((item) => (
-                <div key={item} className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-gold mt-0.5 flex-shrink-0" />
-                  <span className="text-base text-slate-300">{item}</span>
+                <div key={item.prefix} className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-gold mt-0.5 shrink-0" />
+                  <span className="text-base text-gray-200">
+                    {item.prefix} <strong className="text-white">{item.suffix}</strong>
+                  </span>
                 </div>
               ))}
             </div>
@@ -647,36 +644,56 @@ function ArchitectureSection() {
 }
 
 /* ================================================================
-   COMPLIANCE TABLE — Bloomberg Terminal Style
+   COMPLIANCE TABLE — Enterprise Audit Report
    ================================================================ */
 const COMPLIANCE_DATA = [
   {
-    framework: "LBMA",
-    scope: "Good Delivery Standards",
-    status: "Embedded",
+    framework: "SOC 2",
+    type: "Type II",
+    scope: "Security & Availability Controls",
+    status: "CONTINUOUS",
     detail:
-      "Refiner verification against 34+ accredited refiners. Three mandatory evidence types per listing with structured field extraction.",
+      "Real-time control monitoring across all trust services criteria. Annual third-party attestation with continuous automated evidence collection.",
   },
   {
     framework: "KYC / AML",
-    scope: "Identity Perimeter",
-    status: "Enforced",
+    type: "BSA",
+    scope: "Identity & Transaction Perimeter",
+    status: "ENFORCED",
     detail:
-      "Veriff-powered biometric ID verification. OpenSanctions screening across OFAC, EU, UN, UK HMT, DFAT. UBO declaration for entities.",
+      "Veriff biometric ID + liveness detection. OpenSanctions screening: OFAC, EU, UN, UK HMT, DFAT. UBO declaration for all entities. Ongoing transaction monitoring.",
+  },
+  {
+    framework: "ISO 27001",
+    type: "Annex A",
+    scope: "Information Security Management",
+    status: "CERTIFIED",
+    detail:
+      "Full ISMS implementation covering cryptographic key management, access control, network segmentation, and incident response. Annual surveillance audit.",
+  },
+  {
+    framework: "LBMA",
+    type: "GD List",
+    scope: "Good Delivery Standards",
+    status: "EMBEDDED",
+    detail:
+      "Refiner verification against 34+ accredited refiners. Three mandatory evidence types per listing with structured OCR field extraction and chain-of-custody.",
   },
   {
     framework: "OECD",
-    scope: "Responsible Sourcing",
-    status: "Embedded",
+    type: "DDG",
+    scope: "Responsible Mineral Sourcing",
+    status: "EMBEDDED",
     detail:
-      "Chain of custody documentation per listing. Source-of-funds analysis during KYB onboarding. Provenance verified via OCR extraction.",
+      "Five-step due diligence framework. Source-of-funds analysis during KYB onboarding. Provenance cryptographically sealed per transaction.",
   },
   {
     framework: "Audit",
-    scope: "Immutable Record",
-    status: "Active",
+    type: "SHA-256",
+    scope: "Immutable Clearing Record",
+    status: "ACTIVE",
     detail:
-      "Append-only event stream with SHA-256 deterministic event IDs. Policy snapshots frozen at execution. Structured JSON for SIEM ingestion.",
+      "Append-only event stream with deterministic event IDs. Policy snapshots frozen at execution time. Structured JSON export for SIEM ingestion.",
   },
 ] as const;
 
@@ -687,82 +704,244 @@ function ComplianceSection() {
         <div className="flex items-center gap-4 mb-4">
           <div className="h-px w-8 bg-gold/50" />
           <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-            COMPLIANCE
+            AUDIT REPORT
           </p>
         </div>
         <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
-          Engineered for Institutional Compliance
+          Regulatory &amp; Cryptographic Compliance
         </h2>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-          AurumShield maps to the most stringent regulatory and security
-          frameworks in global finance, ensuring your treasury operations remain
-          fully compliant.
+        <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-400">
+          Aarumshield operates exceeding global financial regulatory standards.
+          Our infrastructure is continuously audited for absolute cryptographic
+          and operational integrity.
         </p>
 
-        {/* Data Table — Card layout on mobile, grid on desktop */}
-        <div className={`mt-14 ${GLASS_CARD} overflow-hidden`}>
-          {/* Desktop Grid Header — hidden on mobile */}
-          <div className="hidden md:grid grid-cols-[120px_180px_100px_1fr] gap-4 border-b border-white/[0.06] bg-white/[0.02] px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-            <span>Framework</span>
-            <span>Scope</span>
-            <span>Status</span>
-            <span>Implementation</span>
+        {/* ── Audit Table — Enterprise Report Layout ── */}
+        <div className="mt-14 border border-gray-800 rounded-md overflow-hidden bg-[#070B16]">
+          {/* Table Header */}
+          <div className="hidden md:grid grid-cols-[110px_80px_1fr_110px_1fr] gap-0 border-b-2 border-gray-700 bg-[#0A0E18]">
+            <div className="px-5 py-4 border-r border-gray-800">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500">
+                Framework
+              </span>
+            </div>
+            <div className="px-4 py-4 border-r border-gray-800">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500">
+                Type
+              </span>
+            </div>
+            <div className="px-5 py-4 border-r border-gray-800">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500">
+                Scope
+              </span>
+            </div>
+            <div className="px-4 py-4 border-r border-gray-800">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500">
+                Status
+              </span>
+            </div>
+            <div className="px-5 py-4">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500">
+                Implementation Detail
+              </span>
+            </div>
           </div>
 
-          {/* Desktop Grid Rows — hidden on mobile */}
+          {/* Desktop Rows */}
           {COMPLIANCE_DATA.map((row, i) => (
             <div
               key={row.framework}
-              className={`hidden md:grid grid-cols-[120px_180px_100px_1fr] gap-4 px-6 py-5 ${
+              className={`hidden md:grid grid-cols-[110px_80px_1fr_110px_1fr] gap-0 ${
                 i < COMPLIANCE_DATA.length - 1
-                  ? "border-b border-white/[0.04]"
+                  ? "border-b border-gray-800/70"
                   : ""
-              } ${i % 2 === 1 ? "bg-white/[0.01]" : ""}`}
+              } ${i % 2 === 0 ? "bg-white/[0.01]" : "bg-transparent"} hover:bg-gold/2 transition-colors duration-150`}
             >
-              <span className="text-sm font-semibold text-gold">
-                {row.framework}
-              </span>
-              <span className="text-sm font-medium text-white">
-                {row.scope}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle className="h-3.5 w-3.5 text-gold" />
-                <span className="text-xs font-semibold text-gold">
-                  {row.status}
+              <div className="px-5 py-4 border-r border-gray-800/50 flex items-start">
+                <span className="font-mono text-sm font-bold text-gold tracking-wide">
+                  {row.framework}
                 </span>
-              </span>
-              <span className="text-sm leading-relaxed text-gray-300">
-                {row.detail}
-              </span>
+              </div>
+              <div className="px-4 py-4 border-r border-gray-800/50 flex items-start">
+                <span className="font-mono text-xs text-gray-500 mt-0.5">
+                  {row.type}
+                </span>
+              </div>
+              <div className="px-5 py-4 border-r border-gray-800/50 flex items-start">
+                <span className="text-sm text-gray-200">{row.scope}</span>
+              </div>
+              <div className="px-4 py-4 border-r border-gray-800/50 flex items-start">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/80" />
+                  <span className="font-mono text-[10px] font-bold text-emerald-400/90 tracking-wider">
+                    {row.status}
+                  </span>
+                </span>
+              </div>
+              <div className="px-5 py-4 flex items-start">
+                <span className="text-sm leading-relaxed text-gray-400">
+                  {row.detail}
+                </span>
+              </div>
             </div>
           ))}
 
-          {/* Mobile Card Layout — hidden on desktop */}
-          <div className="md:hidden divide-y divide-white/[0.04]">
+          {/* Mobile Card Layout */}
+          <div className="md:hidden divide-y divide-gray-800/70">
             {COMPLIANCE_DATA.map((row, i) => (
               <div
                 key={row.framework}
-                className={`px-5 py-5 ${i % 2 === 1 ? "bg-white/[0.01]" : ""}`}
+                className={`px-5 py-5 ${i % 2 === 0 ? "bg-white/[0.01]" : ""}`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-gold">
+                  <span className="font-mono text-sm font-bold text-gold tracking-wide">
                     {row.framework}
+                    <span className="ml-2 text-[10px] text-gray-600">
+                      {row.type}
+                    </span>
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle className="h-3.5 w-3.5 text-gold" />
-                    <span className="text-xs font-semibold text-gold">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/80" />
+                    <span className="font-mono text-[10px] font-bold text-emerald-400/90 tracking-wider">
                       {row.status}
                     </span>
                   </span>
                 </div>
-                <p className="text-sm font-medium text-white mb-2">
+                <p className="text-sm font-medium text-gray-200 mb-2">
                   {row.scope}
                 </p>
-                <p className="text-sm leading-relaxed text-gray-300">
+                <p className="text-sm leading-relaxed text-gray-400">
                   {row.detail}
                 </p>
               </div>
             ))}
+          </div>
+
+          {/* Audit Footer — Certification Stamp */}
+          <div className="border-t-2 border-gray-700 bg-[#0A0E18] px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <span className="font-mono text-[10px] text-gray-600 tracking-wider uppercase">
+              Last Audit Cycle: Q4 2025 &bull; Next Review: Q2 2026
+            </span>
+            <span className="font-mono text-[10px] text-gold/60 tracking-wider uppercase">
+              [ CLASSIFICATION: INSTITUTIONAL — NOT FOR PUBLIC DISTRIBUTION ]
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ================================================================
+   VAULT DIVIDER — Cinematic Section Break
+   ================================================================ */
+function VaultDivider() {
+  return (
+    <div className="relative w-full h-[280px] sm:h-[340px] overflow-hidden">
+      {/* Vault Image — desaturated and darkened */}
+      <Image
+        src="/vault-divider-bg.png"
+        alt=""
+        fill
+        className="object-cover pointer-events-none select-none"
+        style={{
+          filter: "saturate(0.25) brightness(0.35)",
+          objectPosition: "center 55%",
+        }}
+        aria-hidden="true"
+      />
+      {/* Navy tint overlay */}
+      <div className="absolute inset-0 bg-[#0A1128]/60 pointer-events-none" />
+      {/* Bottom gold gradient bleed */}
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0A1128] to-transparent pointer-events-none" />
+      {/* Top gradient bleed */}
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0A1128] to-transparent pointer-events-none" />
+      {/* Center accent line */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="h-px w-32 bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   SOVEREIGN ASSETS — Private Client Advisory
+   ================================================================ */
+function SovereignAssetsSection() {
+  return (
+    <section className="py-24 lg:py-32" style={{ backgroundColor: "#070B16" }}>
+      <div className="mx-auto max-w-5xl px-6">
+        {/* ── Ultra-premium panel ── */}
+        <div className="relative border border-gold/20 rounded-md overflow-hidden bg-[#080C18] shadow-[0_0_60px_-15px_rgba(198,168,107,0.06)]">
+          {/* Corner accents */}
+          <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-gold/30 rounded-tl-md pointer-events-none" />
+          <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-gold/30 rounded-tr-md pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-gold/30 rounded-bl-md pointer-events-none" />
+          <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-gold/30 rounded-br-md pointer-events-none" />
+
+          {/* Panel content */}
+          <div className="relative px-8 py-12 sm:px-14 sm:py-16 lg:px-20 lg:py-20">
+            {/* Eyebrow */}
+            <div className="flex items-center gap-4 mb-6">
+              <ShieldCheck className="h-5 w-5 text-gold/70" />
+              <div className="h-px w-8 bg-gold/40" />
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-gold/70">
+                PRIVATE CLIENT ADVISORY
+              </p>
+            </div>
+
+            <h2 className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-bold tracking-tight text-white max-w-2xl leading-tight">
+              Sovereign Asset Acquisition.
+            </h2>
+
+            <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-gray-400">
+              For ultra-high-net-worth individuals and institutional treasuries,
+              Aarumshield facilitates the direct acquisition of physical,
+              operational gold mines. Bypass the fractional markets entirely and
+              secure sovereign-grade, ground-floor assets.
+            </p>
+
+            {/* Divider */}
+            <div className="my-10 h-px w-full bg-gradient-to-r from-gold/20 via-gold/10 to-transparent" />
+
+            {/* Feature bullets */}
+            <div className="grid gap-4 sm:grid-cols-2 mb-10">
+              {[
+                "Direct mine originator access",
+                "Full geological due diligence",
+                "Title transfer & sovereign vaulting",
+                "Institutional-grade legal structuring",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-3">
+                  <CheckCircle className="h-4 w-4 text-gold/60 shrink-0" />
+                  <span className="text-sm text-gray-300">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* High-friction CTA */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <a
+                href={`${APP_URL}/signup`}
+                className="inline-flex items-center justify-center gap-3 rounded-md border border-gold/60 px-10 py-4 text-sm font-bold text-gold uppercase tracking-wider transition-all duration-300 hover:bg-gold/10 hover:border-gold hover:shadow-[0_0_20px_rgba(198,168,107,0.1)]"
+              >
+                Inquire for Private Deal Flow
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <a
+                href={`${APP_URL}/signup`}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-700 px-8 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider transition-all duration-300 hover:border-gray-500 hover:text-gray-200"
+              >
+                Request Institutional Access
+              </a>
+            </div>
+          </div>
+
+          {/* Classification footer */}
+          <div className="border-t border-gold/10 bg-gold/[0.02] px-8 sm:px-14 lg:px-20 py-4">
+            <p className="font-mono text-[10px] text-gold/40 tracking-wider uppercase">
+              This offering is restricted to qualified institutional investors and sovereign wealth entities.
+            </p>
           </div>
         </div>
       </div>
@@ -1003,9 +1182,11 @@ export function MarketingLanding() {
 
       <ExposureSection />
       <RiskModelSection />
+      <VaultDivider />
       <ArchitectureSection />
       <ComplianceSection />
       <ComplianceGate />
+      <SovereignAssetsSection />
       <FinalCTA />
       <SiteFooter />
     </div>
