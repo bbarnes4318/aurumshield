@@ -6,17 +6,20 @@
    capability requirements. Falls back to mock auth when Clerk
    is not configured.
 
-   Progressive Profiling:
-     BROWSE is granted on Passkey + Email registration only.
-     Identity verification is deferred until QUOTE or LOCK_PRICE.
+   Institutional Role Model:
+     INSTITUTION_TRADER    — Executes trades on behalf of an institution
+     INSTITUTION_TREASURY  — Manages settlement & capital for institution
+     BROKER_DEALER_API     — Programmatic API access for broker-dealers
+     admin / compliance / vault_ops — Internal platform roles (unchanged)
 
-   Parallel Engagement:
-     UNDER_REVIEW users with parallel_engagement_enabled get BROWSE
-     access for mock checkouts and live indicative pricing.
+   LEI Enforcement:
+     All institutional and broker-dealer roles MUST have a valid LEI
+     (Legal Entity Identifier) in their organization metadata.
+     Operations are blocked if LEI is missing or invalid.
 
    Usage in server actions / API routes:
      const session = await requireSession();
-     const buyer   = await requireBuyer();
+     const trader  = await requireRole("INSTITUTION_TRADER");
      const cap     = await requireComplianceCapability("LOCK_PRICE");
    ================================================================ */
 
@@ -26,11 +29,15 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 
 export type UserRole =
   | "admin"
+  | "INSTITUTION_TRADER"
+  | "INSTITUTION_TREASURY"
+  | "BROKER_DEALER_API"
+  | "compliance"
+  | "vault_ops"
+  // Legacy aliases — retained for backward compatibility during UI migration
   | "buyer"
   | "seller"
-  | "treasury"
-  | "compliance"
-  | "vault_ops";
+  | "treasury";
 
 /**
  * Compliance capabilities — ordered by privilege escalation.
@@ -77,11 +84,15 @@ const PROTECTED_CAPABILITIES: ReadonlySet<ComplianceCapability> = new Set([
 /** Clerk org role → AurumShield role */
 const CLERK_ROLE_MAP: Record<string, UserRole> = {
   "org:admin": "admin",
-  "org:buyer": "buyer",
-  "org:seller": "seller",
-  "org:treasury": "treasury",
+  "org:institution_trader": "INSTITUTION_TRADER",
+  "org:institution_treasury": "INSTITUTION_TREASURY",
+  "org:broker_dealer_api": "BROKER_DEALER_API",
   "org:compliance": "compliance",
   "org:vault_ops": "vault_ops",
+  // Legacy mappings for backward compatibility during transition
+  "org:buyer": "INSTITUTION_TRADER",
+  "org:seller": "INSTITUTION_TRADER",
+  "org:treasury": "INSTITUTION_TREASURY",
 };
 
 /* ── Check if Clerk is configured ── */
@@ -100,6 +111,8 @@ export interface AuthSession {
   kycStatus: string;
   orgId: string | null;
   email: string | null;
+  /** LEI code from organization metadata (required for institutional roles) */
+  leiCode: string | null;
 }
 
 /**
@@ -109,13 +122,13 @@ export interface AuthSession {
 export async function requireSession(): Promise<AuthSession> {
   if (!CLERK_ENABLED) {
     // Demo mode — return a mock session for server-side checks.
-    // In demo mode, actual auth is handled client-side by auth-provider.
     return {
       userId: "demo-user",
-      role: "buyer",
+      role: "INSTITUTION_TRADER",
       kycStatus: "APPROVED",
       orgId: null,
       email: "demo@aurumshield.io",
+      leiCode: "MOCK00DEMO00LEI00001",
     };
   }
 
@@ -127,13 +140,15 @@ export async function requireSession(): Promise<AuthSession> {
 
   // Resolve role from org membership
   const role: UserRole = orgRole
-    ? (CLERK_ROLE_MAP[orgRole] ?? "buyer")
-    : "buyer";
+    ? (CLERK_ROLE_MAP[orgRole] ?? "INSTITUTION_TRADER")
+    : "INSTITUTION_TRADER";
 
-  // Get KYC status from user's public metadata
+  // Get KYC status and LEI from user/org metadata
   const user = await currentUser();
   const kycStatus =
     (user?.publicMetadata?.kycStatus as string) ?? "NOT_STARTED";
+  const leiCode =
+    (user?.publicMetadata?.leiCode as string) ?? null;
 
   return {
     userId,
@@ -141,6 +156,7 @@ export async function requireSession(): Promise<AuthSession> {
     kycStatus,
     orgId: orgId ?? null,
     email: user?.primaryEmailAddress?.emailAddress ?? null,
+    leiCode,
   };
 }
 
@@ -164,19 +180,47 @@ export async function requireRole(
   return session;
 }
 
-/** Convenience: require buyer role */
-export async function requireBuyer(): Promise<AuthSession> {
-  return requireRole("buyer");
+/** Convenience: require institution trader role */
+export async function requireTrader(): Promise<AuthSession> {
+  return requireRole("INSTITUTION_TRADER");
 }
 
-/** Convenience: require seller role */
-export async function requireSeller(): Promise<AuthSession> {
-  return requireRole("seller");
+/** Convenience: require institution treasury role */
+export async function requireTreasury(): Promise<AuthSession> {
+  return requireRole("INSTITUTION_TREASURY");
 }
 
 /** Convenience: require admin role */
 export async function requireAdmin(): Promise<AuthSession> {
-  return requireRole("admin", "treasury", "compliance", "vault_ops");
+  return requireRole("admin", "INSTITUTION_TREASURY", "compliance", "vault_ops");
+}
+
+/**
+ * Require a valid LEI code on the session.
+ * All institutional and broker-dealer operations MUST have an LEI.
+ * Blocks execution if LEI is missing.
+ */
+export async function requireLEI(): Promise<AuthSession> {
+  const session = await requireSession();
+  if (!session.leiCode) {
+    throw new AuthError(
+      403,
+      `LEI_REQUIRED: A valid Legal Entity Identifier (LEI) is required for this operation. ` +
+        `No LEI found in organization metadata for user ${session.userId}. ` +
+        `Contact your compliance officer to register an LEI via GLEIF.`,
+    );
+  }
+  return session;
+}
+
+/** @deprecated Use requireTrader() */
+export async function requireBuyer(): Promise<AuthSession> {
+  return requireTrader();
+}
+
+/** @deprecated Use requireTrader() */
+export async function requireSeller(): Promise<AuthSession> {
+  return requireTrader();
 }
 
 /* ================================================================

@@ -1,104 +1,148 @@
 /* ================================================================
-   ANALYTICS — Centralized Telemetry Module
+   ANALYTICS — Server-Side Telemetry Module (PostHog Node)
    ================================================================
-   Fire-and-forget event tracker backed by PostHog. Degrades
-   gracefully: uses console.debug when PostHog is unavailable or
-   during SSR. All calls are wrapped in try/catch so tracking
-   failures never block user interactions.
+   Server-side event tracker backed by PostHog Node SDK.
+   Fires backend events for settlement, compliance, and capital
+   operations. All tracking is fire-and-forget — failures never
+   block business logic.
+
+   IMPORTANT: No client-side analytics scripts are included.
+   This module runs ENTIRELY on the server.
+
+   Datadog handles APM/infra/log monitoring via the ECS sidecar.
+   PostHog handles product analytics and business events.
 
    Usage:
-     import { trackEvent } from "@/lib/analytics";
-     trackEvent("PriceLocked", { listingId, lockedPrice });
+     import { trackServerEvent } from "@/lib/analytics";
+     trackServerEvent("Trade Executed", { notionalValue, entityType });
    ================================================================ */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import "server-only";
 
-let posthogInstance: any = null;
-let initAttempted = false;
+/* ---------- Types ---------- */
+
+interface PostHogClient {
+  capture(params: {
+    distinctId: string;
+    event: string;
+    properties?: Record<string, unknown>;
+  }): void;
+  shutdown(): Promise<void>;
+}
+
+/* ---------- Singleton ---------- */
+
+let _client: PostHogClient | null = null;
+let _initAttempted = false;
 
 /**
- * Initialize PostHog analytics (client-side only, idempotent).
- * Reads `NEXT_PUBLIC_POSTHOG_KEY` from the environment.
- * If the key is missing or PostHog fails to load, all subsequent
- * trackEvent calls silently fall back to console.debug.
+ * Initialize the server-side PostHog Node client (idempotent).
+ * Reads `POSTHOG_SERVER_KEY` from the environment.
  */
-export function initAnalytics(): void {
-  if (initAttempted) return;
-  initAttempted = true;
+function ensureClient(): PostHogClient | null {
+  if (_initAttempted) return _client;
+  _initAttempted = true;
 
-  if (typeof window === "undefined") return;
-
-  const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  const apiKey = process.env.POSTHOG_SERVER_KEY;
   if (!apiKey) {
     console.debug(
-      "[AurumShield Analytics] No NEXT_PUBLIC_POSTHOG_KEY — using console.debug fallback.",
+      "[AurumShield Analytics] No POSTHOG_SERVER_KEY — using console.debug fallback.",
     );
-    return;
+    return null;
   }
 
   try {
-    // Dynamic import — PostHog is an optional peer dependency.
-    // If the package is not installed, the import fails silently.
-    // @ts-expect-error — posthog-js may not be installed
-    import("posthog-js" /* webpackIgnore: true */)
-      .then((mod: any) => {
-        const posthog = mod.default ?? mod;
-        posthog.init(apiKey, {
-          api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
-          loaded: (ph: any) => {
-            posthogInstance = ph;
-            console.debug("[AurumShield Analytics] PostHog initialized.");
-          },
-          autocapture: false,
-          capture_pageview: false,
-        });
-        posthogInstance = posthog;
-      })
-      .catch((err: unknown) => {
-        console.debug("[AurumShield Analytics] PostHog load failed:", err);
-      });
-  } catch {
-    // Dynamic import not supported or blocked — silent degradation
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PostHog } = require("posthog-node");
+    _client = new PostHog(apiKey, {
+      host: process.env.POSTHOG_HOST ?? "https://us.i.posthog.com",
+      flushAt: 10,
+      flushInterval: 5000,
+    }) as PostHogClient;
+    console.debug("[AurumShield Analytics] PostHog Node client initialized.");
+  } catch (err) {
+    console.debug("[AurumShield Analytics] PostHog Node init failed:", err);
   }
+
+  return _client;
 }
 
+/* ---------- Public API ---------- */
+
 /**
- * Track a named event with optional properties.
+ * Track a server-side event with optional properties.
  *
  * - If PostHog is initialized, forwards to `posthog.capture()`.
  * - Otherwise, logs via `console.debug` for dev visibility.
  * - Never throws. Never blocks.
  */
-export function trackEvent(
-  name: string,
-  props?: Record<string, unknown>,
+export function trackServerEvent(
+  event: string,
+  properties?: Record<string, unknown>,
+  distinctId: string = "system",
 ): void {
   try {
-    if (posthogInstance?.capture) {
-      posthogInstance.capture(name, props);
+    const client = ensureClient();
+    if (client) {
+      client.capture({
+        distinctId,
+        event,
+        properties: {
+          ...properties,
+          platform: "aurumshield",
+          environment: process.env.NODE_ENV ?? "development",
+        },
+      });
     } else {
-      console.debug(`[AurumShield Analytics] ${name}`, props ?? {});
+      console.debug(`[AurumShield Analytics] ${event}`, properties ?? {});
     }
   } catch {
-    // Swallow — telemetry must never interfere with UX
+    // Swallow — telemetry must never interfere with business logic
   }
 }
 
 /**
- * Identify the current user for attribution.
- * Call after authentication succeeds.
+ * Identify a user/organization for server-side attribution.
  */
-export function identifyUser(
-  userId: string,
+export function identifyEntity(
+  entityId: string,
   traits?: Record<string, unknown>,
 ): void {
   try {
-    if (posthogInstance?.identify) {
-      posthogInstance.identify(userId, traits);
+    const client = ensureClient();
+    if (client) {
+      client.capture({
+        distinctId: entityId,
+        event: "$identify",
+        properties: {
+          $set: traits,
+        },
+      });
     } else {
-      console.debug("[AurumShield Analytics] identify", userId, traits ?? {});
+      console.debug("[AurumShield Analytics] identify", entityId, traits ?? {});
     }
   } catch {
     // Swallow
   }
 }
+
+/**
+ * Graceful shutdown — flush pending events.
+ * Call during server shutdown / signal handler.
+ */
+export async function shutdownAnalytics(): Promise<void> {
+  try {
+    if (_client) {
+      await _client.shutdown();
+      console.debug("[AurumShield Analytics] PostHog client shut down.");
+    }
+  } catch {
+    // Swallow
+  }
+}
+
+/**
+ * @deprecated Use trackServerEvent() instead.
+ * Backward-compatible alias for UI components still importing trackEvent.
+ */
+export const trackEvent = trackServerEvent;

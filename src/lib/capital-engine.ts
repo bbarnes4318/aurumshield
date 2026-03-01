@@ -2,6 +2,10 @@
    CAPITAL ENGINE — Pure deterministic intraday capital computation
    No side effects. No randomness. No persistence.
    All inputs are passed explicitly; all outputs are derived.
+
+   Entity-Type Bifurcation:
+     INSTITUTION:    100% pre-funded capital lock
+     BROKER_DEALER:  10x clearing margin multiplier on CorporateWallet
    ================================================================ */
 
 import type {
@@ -67,6 +71,8 @@ export interface CapitalEngineInputs {
   inventory: InventoryPosition[];
   settlements: SettlementCase[];
   now: string; // ISO timestamp
+  /** Entity classification — determines capital adequacy rules */
+  entityType?: "INSTITUTION" | "BROKER_DEALER";
 }
 
 /* ---------- Settlement statuses that count as "open" ---------- */
@@ -101,8 +107,13 @@ interface DriverCandidate {
 export function computeIntradayCapitalSnapshot(
   inputs: CapitalEngineInputs,
 ): IntradayCapitalSnapshot {
-  const { capital, reservations, orders, inventory, settlements, now } = inputs;
+  const { capital, reservations, orders, inventory, settlements, now, entityType } = inputs;
   const todayDate = now.slice(0, 10);
+
+  /* ── Entity-Type Capital Multiplier ── */
+  // BROKER_DEALER: 10x clearing margin multiplier on corporate wallet
+  // INSTITUTION: 1x (100% pre-funded, no leverage)
+  const capitalMultiplier = entityType === "BROKER_DEALER" ? 10.0 : 1.0;
 
   /* ── 1. Reserved Notional (ACTIVE reservations) ── */
   let reservedNotional = 0;
@@ -167,8 +178,8 @@ export function computeIntradayCapitalSnapshot(
     reservedNotional * RESERVE_HAIRCUT;
 
   /* ── 5. Ratios ── */
-  const capitalBase = capital.capitalBase;
-  const hardstopLimit = capital.hardstopLimit;
+  const capitalBase = capital.capitalBase * capitalMultiplier;
+  const hardstopLimit = capital.hardstopLimit * capitalMultiplier;
 
   const ecr = capitalBase > 0 ? grossExposureNotional / capitalBase : 0;
   const hardstopUtilization =

@@ -8,14 +8,14 @@
    secure and never expose them to the client.
 
    Actions:
-   1. fetchSpotPrice()     — Get live XAU/USD from OANDA adapter
+   1. fetchSpotPrice()     — Get live XAU/USD from Bloomberg B-PIPE
    2. createBillOfSale()   — Create Dropbox Sign signature request
    3. getSigningUrl()      — Get embedded sign URL for iFrame
    4. getInsuranceQuote()  — Compute transit insurance premium
-   5. getShippingQuote()   — Get USPS Registered Mail rate
+   5. getBrinksQuote()     — Get Brink's armored delivery rate
    ================================================================ */
 
-import { getSpotPrice } from "@/lib/oanda-adapter";
+import { getSpotPrice } from "@/lib/pricing/bpipe-adapter";
 import {
   createBillOfSale as dropboxCreateBillOfSale,
   getEmbeddedSignUrl,
@@ -28,30 +28,25 @@ import {
   type CoverageLevel,
   type TransitInsuranceQuote,
 } from "@/lib/insurance-engine";
-import {
-  createShipmentQuote,
-  type EasyPostAddress,
-  type EasyPostShipment,
-} from "@/lib/easypost-adapter";
 import { emitOrderCreatedEvent, hashPolicySnapshot } from "@/lib/audit-logger";
 
 /* ---------- Spot Price ---------- */
 
 export interface SpotPriceResult {
   pricePerOz: number;
-  source: "oanda_live" | "mock";
+  source: "bloomberg_bpipe" | "mock";
   timestamp: string;
 }
 
 /**
  * Fetch the current XAU/USD spot price.
- * Calls the OANDA adapter on the server side.
+ * Sources from Bloomberg B-PIPE on the server side.
  */
 export async function fetchSpotPrice(): Promise<SpotPriceResult> {
   const spot = await getSpotPrice();
   return {
     pricePerOz: spot.pricePerOz,
-    source: spot.source === "oanda_live" ? "oanda_live" : "mock",
+    source: spot.isLive ? "bloomberg_bpipe" : "mock",
     timestamp: spot.timestamp,
   };
 }
@@ -145,22 +140,7 @@ export async function serverGetInsuranceQuote(
   );
 }
 
-/* ---------- Shipping Quote ---------- */
 
-export interface ShippingQuoteInput {
-  toAddress: EasyPostAddress;
-  weightOz: number;
-}
-
-/**
- * Get a USPS Registered Mail rate quote for a gold shipment.
- * Uses EasyPost native fetch adapter (no SDK).
- */
-export async function serverGetShippingQuote(
-  input: ShippingQuoteInput,
-): Promise<EasyPostShipment> {
-  return createShipmentQuote(input.toAddress, input.weightOz);
-}
 
 /* ---------- Brink's Delivery Quote (D3 Fix) ---------- */
 
@@ -413,39 +393,37 @@ export interface DeclaredValueValidation {
 }
 
 /**
- * Server-side hard enforcement of the USPS $50k declared-value cap.
- * SECURE_DELIVERY routes through EasyPost (USPS Registered Mail) for
- * shipments ≤ $50k notional. Above that threshold, buyers must use
- * VAULT_CUSTODY or armored transport.
+ * Server-side enforcement of sovereign carrier logistics rules.
+ * All shipments route through Brink's or Malca-Amit — no retail carriers.
  *
- * This is the server-side backstop — the client-side Zod schema also
- * enforces this, but we never trust client-only validation.
+ * This validates that the declared value does not exceed insurance limits
+ * for the selected delivery method.
  */
 export async function serverValidateDeclaredValue(
   deliveryMethod: string,
   declaredValueCents: number,
 ): Promise<DeclaredValueValidation> {
-  const { USPS_MAX_DECLARED_VALUE_CENTS } = await import(
-    "@/lib/schemas/checkout-schema"
-  );
+  // Sovereign carriers handle all values — insurance scales with notional
+  // No hard cap like USPS, but we enforce a sanity ceiling
+  const MAX_SOVEREIGN_DECLARED_VALUE_CENTS = 500_000_000; // $5M ceiling
 
   if (
     deliveryMethod === "SECURE_DELIVERY" &&
-    declaredValueCents > USPS_MAX_DECLARED_VALUE_CENTS
+    declaredValueCents > MAX_SOVEREIGN_DECLARED_VALUE_CENTS
   ) {
     return {
       valid: false,
       declaredValueCents,
-      limitCents: USPS_MAX_DECLARED_VALUE_CENTS,
+      limitCents: MAX_SOVEREIGN_DECLARED_VALUE_CENTS,
       message:
-        "Registered mail only insures up to $50,000. Please select Vault Custody or contact us for armored transport.",
+        "Declared value exceeds the $5M per-shipment ceiling. Contact Treasury for bespoke logistics arrangements.",
     };
   }
 
   return {
     valid: true,
     declaredValueCents,
-    limitCents: USPS_MAX_DECLARED_VALUE_CENTS,
+    limitCents: MAX_SOVEREIGN_DECLARED_VALUE_CENTS,
   };
 }
 
@@ -462,8 +440,8 @@ export interface CheckoutIdempotencyKeyResult {
  * Generate a UUIDv4 idempotency key for the checkout transaction.
  *
  * This key is generated once at order-creation time and propagated
- * downstream to settlement-rail.ts for Moov (X-Idempotency-Key) and
- * Modern Treasury (idempotency_key param).
+ * downstream to settlement-rail.ts for Modern Treasury
+ * (idempotency_key param).
  *
  * The key is distinct from the settlement rail's deterministic SHA-256
  * key — this covers the full checkout lifecycle, while the SHA-256 key

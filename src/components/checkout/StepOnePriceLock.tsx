@@ -93,7 +93,7 @@ interface StepOnePriceLockProps {
   /** Live XAU/USD spot price from OANDA (for display before quote creation) */
   liveSpotPrice?: number | null;
   /** Source of the price data */
-  priceSource?: "oanda_live" | "mock" | "listing";
+  priceSource?: "bloomberg_bpipe" | "mock" | "listing";
   /** Listing ID for quote creation */
   listingId?: string;
 }
@@ -218,7 +218,7 @@ export function StepOnePriceLock({
   }, [quoteResult, countdown.isExpired, onAdvance]);
 
   /** Price source indicator */
-  const isLive = priceSource === "oanda_live";
+  const isLive = priceSource === "bloomberg_bpipe";
   const hasQuote = quoteResult !== null && !countdown.isExpired;
 
   /* ── Countdown color palette (Phase 4: high-trust, no red) ── */

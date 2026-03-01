@@ -87,7 +87,7 @@ const QUOTE_TTL_SECONDS = 60;
  *
  * Flow:
  *   1. Query the listing's premium_per_oz from the DB
- *   2. Fetch the live spot price from OANDA adapter
+ *   2. Fetch the live spot price from Bloomberg B-PIPE adapter
  *   3. Derive premiumBps = (premiumPerOz / spotPrice) * 10_000
  *   4. Compute lockedPrice = weightOz * (spotPrice + premiumPerOz)
  *   5. Guard: lockedPrice >= spotPrice * weightOz (no negative premiums)
@@ -96,7 +96,7 @@ const QUOTE_TTL_SECONDS = 60;
  */
 export async function createQuote(input: CreateQuoteInput): Promise<QuoteResult> {
   const { getDbClient } = await import("@/lib/db");
-  const { getSpotPrice } = await import("@/lib/oanda-adapter");
+  const { getSpotPrice } = await import("@/lib/pricing/bpipe-adapter");
   const db = await getDbClient();
 
   try {

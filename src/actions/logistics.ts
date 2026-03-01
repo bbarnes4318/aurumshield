@@ -1,36 +1,41 @@
 "use server";
 
 /* ================================================================
-   LOGISTICS ROUTING — Server Action
+   LOGISTICS ROUTING — Server Action (Sovereign Carriers Only)
    ================================================================
-   Routes post-settlement shipment creation through the appropriate
-   logistics carrier based on the $50,000 notional threshold:
+   Routes post-settlement shipment creation through sovereign
+   logistics carriers based on notional value:
 
-     - notionalCents ≤ $50,000 → EasyPost (USPS Registered Mail)
-     - notionalCents > $50,000  → Brink's Global Services
+     - notionalCents ≤ $500,000 → Brink's Global Services
+     - notionalCents > $500,000  → Malca-Amit Global Ltd
+
+   USPS/EasyPost have been removed. All shipments route through
+   sovereign-grade armored carriers only.
+
+   Broker-Dealer entities require commercial sub-custodian destination
+   validation — residential addresses are rejected.
 
    This file runs ENTIRELY on the server — no API keys are ever
    exposed to the client.
    ================================================================ */
 
-import { routeLogistics } from "@/lib/settlement-rail";
-import {
-  createShipmentQuote,
-  purchaseRate,
-  VAULT_ORIGIN_ADDRESS,
-  type EasyPostAddress,
-} from "@/lib/easypost-adapter";
 import {
   fetchDeliveryRate as brinksQuote,
   createShipment as brinksCreate,
 } from "@/lib/delivery/brinks-service";
+import {
+  fetchDeliveryRate as malcaAmitQuote,
+  createShipment as malcaAmitCreate,
+} from "@/lib/delivery/malca-amit-service";
 import type { DeliveryAddress, DeliveryRateQuote } from "@/lib/delivery/delivery-types";
 
 /* ---------- Types ---------- */
 
+export type SovereignCarrier = "brinks" | "malca_amit";
+
 export interface LogisticsRoutingResult {
   /** Which carrier was selected */
-  carrier: "easypost" | "brinks";
+  carrier: SovereignCarrier;
   /** Whether the shipment was successfully created */
   success: boolean;
   /** Tracking number (if available) */
@@ -45,34 +50,54 @@ export interface LogisticsRoutingResult {
   error?: string;
 }
 
-/* ---------- Address Conversion ---------- */
+/* ---------- Carrier Selection ---------- */
 
-/** Convert our internal DeliveryAddress to EasyPost address format */
-function toEasyPostAddress(addr: DeliveryAddress): EasyPostAddress {
-  return {
-    name: addr.fullName,
-    street1: addr.streetAddress,
-    street2: addr.streetAddress2,
-    city: addr.city,
-    state: addr.stateProvince,
-    zip: addr.postalCode,
-    country: addr.country ?? "US",
-    phone: addr.phone ?? "",
-    email: "",
-  };
+const MALCA_AMIT_THRESHOLD_CENTS = 50_000_000; // $500,000
+
+function selectCarrier(notionalCents: number): SovereignCarrier {
+  return notionalCents > MALCA_AMIT_THRESHOLD_CENTS ? "malca_amit" : "brinks";
+}
+
+/* ---------- Broker-Dealer Address Validation ---------- */
+
+/**
+ * Validate that a Broker-Dealer's shipping destination is a
+ * commercial sub-custodian, not a residential address.
+ *
+ * Enforced rule: if entity_type === 'BROKER_DEALER', the
+ * destination must be flagged as a commercial/institutional facility.
+ */
+function validateBrokerDealerDestination(
+  address: DeliveryAddress,
+  entityType?: string,
+): void {
+  if (entityType !== "BROKER_DEALER") return;
+
+  // Broker-Dealers MUST ship to commercial sub-custodian facilities
+  // Flag: residential addresses are rejected
+  const isResidential = !address.company || address.company.trim() === "";
+
+  if (isResidential) {
+    throw new Error(
+      `BROKER_DEALER_ADDRESS_VIOLATION: Broker-Dealer entities must ship to a ` +
+      `commercial sub-custodian facility, not a residential address. ` +
+      `Destination must include a company/facility name. ` +
+      `Address: ${address.streetAddress}, ${address.city}, ${address.stateProvince}`,
+    );
+  }
 }
 
 /* ---------- Public Action ---------- */
 
 /**
- * Route a shipment to the appropriate logistics carrier based on
- * notional value, get a rate quote, and create the shipment.
+ * Route a shipment to the appropriate sovereign logistics carrier.
  *
  * @param settlementId    AurumShield settlement ID
  * @param orderId         Associated order ID
  * @param notionalCents   Total notional USD value in cents
  * @param weightOz        Weight of gold in troy ounces
  * @param address         Delivery address
+ * @param entityType      Entity type for address validation
  */
 export async function routeAndCreateShipment(
   settlementId: string,
@@ -80,91 +105,23 @@ export async function routeAndCreateShipment(
   notionalCents: number,
   weightOz: number,
   address: DeliveryAddress,
+  entityType?: string,
 ): Promise<LogisticsRoutingResult> {
-  const carrier = routeLogistics(notionalCents);
+  // Enforce Broker-Dealer address rules
+  validateBrokerDealerDestination(address, entityType);
+
+  const carrier = selectCarrier(notionalCents);
 
   console.log(
-    `[AurumShield] Logistics routing for ${settlementId}: notional=$${(notionalCents / 100).toFixed(2)} → ${carrier}`,
+    `[AurumShield] Sovereign logistics routing for ${settlementId}: ` +
+    `notional=$${(notionalCents / 100).toFixed(2)} → ${carrier}`,
   );
 
-  // ── Hard guard: USPS Registered Mail $50k insurance cap ──
-  // This is the defense-in-depth backstop. Even if client-side and
-  // schema-level checks are bypassed, we refuse to create an EasyPost
-  // shipment for values exceeding the USPS declared-value ceiling.
-  const USPS_MAX_CENTS = 5_000_000; // $50,000
-  if (carrier === "easypost" && notionalCents > USPS_MAX_CENTS) {
-    throw new Error(
-      `DECLARED_VALUE_EXCEEDS_USPS_LIMIT: Notional $${(notionalCents / 100).toFixed(2)} exceeds the ` +
-      `$${(USPS_MAX_CENTS / 100).toLocaleString()} USPS Registered Mail insurance cap. ` +
-      `Use armored transport (Brink's) for shipments above this threshold.`,
-    );
-  }
-
-  if (carrier === "easypost") {
-    return handleEasyPost(weightOz, address);
+  if (carrier === "malca_amit") {
+    return handleMalcaAmit(settlementId, orderId, notionalCents, weightOz, address);
   }
 
   return handleBrinks(settlementId, orderId, notionalCents, weightOz, address);
-}
-
-/* ---------- EasyPost Handler ---------- */
-
-async function handleEasyPost(
-  weightOz: number,
-  address: DeliveryAddress,
-): Promise<LogisticsRoutingResult> {
-  try {
-    const toAddress = toEasyPostAddress(address);
-
-    // 1. Create shipment & get USPS Registered Mail rate
-    const shipment = await createShipmentQuote(
-      toAddress,
-      weightOz,
-      VAULT_ORIGIN_ADDRESS,
-    );
-
-    const rate = shipment.registeredMailRate;
-    if (!rate) {
-      return {
-        carrier: "easypost",
-        success: false,
-        trackingNumber: null,
-        externalId: shipment.id,
-        estimatedDays: null,
-        totalFeeUsd: null,
-        error: "No USPS Registered Mail rate available for this shipment",
-      };
-    }
-
-    // 2. Purchase the selected rate
-    const purchase = await purchaseRate(shipment.id, rate.id);
-
-    console.log(
-      `[AurumShield] EasyPost shipment purchased:`,
-      `tracking=${purchase.trackingCode} fee=$${rate.rate}`,
-    );
-
-    return {
-      carrier: "easypost",
-      success: true,
-      trackingNumber: purchase.trackingCode,
-      externalId: purchase.shipmentId,
-      estimatedDays: rate.estDeliveryDays,
-      totalFeeUsd: parseFloat(rate.rate),
-    };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[AurumShield] EasyPost logistics failed:`, message);
-    return {
-      carrier: "easypost",
-      success: false,
-      trackingNumber: null,
-      externalId: null,
-      estimatedDays: null,
-      totalFeeUsd: null,
-      error: message,
-    };
-  }
 }
 
 /* ---------- Brink's Handler ---------- */
@@ -178,21 +135,8 @@ async function handleBrinks(
 ): Promise<LogisticsRoutingResult> {
   try {
     const notionalUsd = notionalCents / 100;
-
-    // 1. Get rate quote
-    const rateQuote: DeliveryRateQuote = await brinksQuote(
-      address,
-      weightOz,
-      notionalUsd,
-    );
-
-    // 2. Create shipment
-    const shipment = await brinksCreate(
-      settlementId,
-      orderId,
-      address,
-      rateQuote,
-    );
+    const rateQuote: DeliveryRateQuote = await brinksQuote(address, weightOz, notionalUsd);
+    const shipment = await brinksCreate(settlementId, orderId, address, rateQuote);
 
     console.log(
       `[AurumShield] Brink's shipment created for ${settlementId}:`,
@@ -209,12 +153,51 @@ async function handleBrinks(
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(
-      `[AurumShield] Brink's logistics failed for ${settlementId}:`,
-      message,
-    );
+    console.error(`[AurumShield] Brink's logistics failed for ${settlementId}:`, message);
     return {
       carrier: "brinks",
+      success: false,
+      trackingNumber: null,
+      externalId: null,
+      estimatedDays: null,
+      totalFeeUsd: null,
+      error: message,
+    };
+  }
+}
+
+/* ---------- Malca-Amit Handler ---------- */
+
+async function handleMalcaAmit(
+  settlementId: string,
+  orderId: string,
+  notionalCents: number,
+  weightOz: number,
+  address: DeliveryAddress,
+): Promise<LogisticsRoutingResult> {
+  try {
+    const notionalUsd = notionalCents / 100;
+    const rateQuote: DeliveryRateQuote = await malcaAmitQuote(address, weightOz, notionalUsd);
+    const shipment = await malcaAmitCreate(settlementId, orderId, address, rateQuote);
+
+    console.log(
+      `[AurumShield] Malca-Amit shipment created for ${settlementId}:`,
+      `tracking=${shipment.trackingNumber} fee=$${rateQuote.totalFee.toFixed(2)}`,
+    );
+
+    return {
+      carrier: "malca_amit",
+      success: true,
+      trackingNumber: shipment.trackingNumber,
+      externalId: shipment.id,
+      estimatedDays: rateQuote.estimatedDays,
+      totalFeeUsd: rateQuote.totalFee,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[AurumShield] Malca-Amit logistics failed for ${settlementId}:`, message);
+    return {
+      carrier: "malca_amit",
       success: false,
       trackingNumber: null,
       externalId: null,

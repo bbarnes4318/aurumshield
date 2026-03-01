@@ -10,6 +10,9 @@ import type { UserRole } from "@/lib/mock-data";
 /* ---------- Role Display Mapping ---------- */
 
 export const ROLE_DISPLAY: Record<UserRole, string> = {
+  INSTITUTION_TRADER: "Institutional Trader",
+  INSTITUTION_TREASURY: "Institution Treasury",
+  BROKER_DEALER_API: "Broker-Dealer API",
   buyer: "Participant / Buyer",
   seller: "Participant / Seller",
   treasury: "Treasury / Capital",

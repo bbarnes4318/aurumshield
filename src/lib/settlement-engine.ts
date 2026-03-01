@@ -60,25 +60,29 @@ export type SettlementActionType =
 
 /* ---------- Action → Allowed Roles (deterministic) ---------- */
 export const ACTION_ROLE_MAP: Record<SettlementActionType, UserRole[]> = {
-  CONFIRM_FUNDS_FINAL: ["admin", "treasury"],
+  CONFIRM_FUNDS_FINAL: ["admin", "INSTITUTION_TREASURY"],
   ALLOCATE_GOLD: ["admin", "vault_ops"],
   MARK_VERIFICATION_CLEARED: ["admin", "compliance"],
   AUTHORIZE_SETTLEMENT: ["admin"],
   EXECUTE_DVP: ["admin"],
   FAIL_SETTLEMENT: ["admin"],
   CANCEL_SETTLEMENT: ["admin"],
-  RESOLVE_AMBIGUOUS: ["admin", "treasury"],
+  RESOLVE_AMBIGUOUS: ["admin", "INSTITUTION_TREASURY"],
   REVERSE_SETTLEMENT: ["admin", "compliance"],
 };
 
 /* ---------- Human-readable role labels ---------- */
 export const ROLE_LABELS: Record<UserRole, string> = {
-  buyer: "Buyer",
-  seller: "Seller",
+  INSTITUTION_TRADER: "Institution Trader",
+  INSTITUTION_TREASURY: "Institution Treasury",
+  BROKER_DEALER_API: "Broker-Dealer API",
   admin: "Admin",
-  treasury: "Treasury",
   compliance: "Compliance",
   vault_ops: "Vault Ops",
+  // Legacy aliases
+  buyer: "Institution Trader",
+  seller: "Institution Trader",
+  treasury: "Institution Treasury",
 };
 
 /* ---------- Payload ---------- */
@@ -122,9 +126,9 @@ function nextId(prefix: string, items: { id: string }[]): string {
 function roleToActor(role: UserRole): LedgerEntry["actor"] {
   switch (role) {
     case "compliance": return "COMPLIANCE";
-    case "buyer": return "BUYER";
-    case "seller":  return "SELLER";
-    default: return "OPS"; // admin, treasury, vault_ops
+    case "INSTITUTION_TRADER": return "BUYER";
+    case "BROKER_DEALER_API": return "BUYER";
+    default: return "OPS"; // admin, INSTITUTION_TREASURY, vault_ops
   }
 }
 
@@ -441,8 +445,8 @@ export function computeSettlementRequirements(
   // ── AMBIGUOUS_STATE blocker ──
   if (settlement.status === "AMBIGUOUS_STATE") {
     blockers.push(
-      "SETTLEMENT LOCKED — Ambiguous payout state detected. Moov transfer outcome is unknown. " +
-      "Treasury Admin must reconcile with the Moov dashboard and resolve this settlement before any further actions."
+      "SETTLEMENT LOCKED — Ambiguous payout state detected. Transfer outcome is unknown. " +
+      "Treasury Admin must reconcile with the Modern Treasury dashboard and resolve this settlement before any further actions."
     );
   }
 
@@ -656,14 +660,15 @@ export function applySettlementAction(
       );
       const authRef = authEntry?.id ?? "N/A";
 
-      // Determine payment rail routing (deterministic — based on notional)
-      const thresholdCents = parseInt(process.env.SETTLEMENT_ENTERPRISE_THRESHOLD ?? "25000000", 10);
+      // Notional in cents
       const notionalCents = Math.round(settlement.notionalUsd * 100);
-      const paymentRail = notionalCents <= thresholdCents ? "moov" : "modern_treasury";
 
-      // Determine logistics routing ($50k split)
-      const logisticsThresholdCents = 50_000_00; // $50,000 in cents
-      const logisticsCarrier = notionalCents <= logisticsThresholdCents ? "easypost_usps" : "brinks";
+      // Payment rail — 100% Modern Treasury (Fedwire/RTGS)
+      const paymentRail = "modern_treasury";
+
+      // Logistics routing — sovereign carriers only
+      const logisticsThresholdCents = 50_000_000; // $500,000 in cents
+      const logisticsCarrier = notionalCents <= logisticsThresholdCents ? "brinks" : "malca_amit";
 
       // Atomic DvP: single ledger entry covering both legs + escrow close
       const dvpSnapshot: LedgerEntrySnapshot = {

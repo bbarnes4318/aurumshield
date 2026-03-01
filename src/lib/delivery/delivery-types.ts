@@ -1,7 +1,8 @@
 /* ================================================================
-   DELIVERY TYPES — Brink's Global Services Integration
+   DELIVERY TYPES — Sovereign Logistics Integration
    Types for delivery method selection, address capture,
    rate quoting, and shipment tracking.
+   Carriers: Brink's Global Services, Malca-Amit Global Ltd
    ================================================================ */
 
 import { z } from "zod";
@@ -17,6 +18,7 @@ export const deliveryAddressSchema = z.object({
     .string()
     .min(2, "Full name is required")
     .max(120, "Name must be 120 characters or fewer"),
+  company: z.string().max(200).optional(),
   streetAddress: z
     .string()
     .min(3, "Street address is required")
@@ -60,7 +62,7 @@ export interface DeliveryRateQuote {
   /** Estimated transit time in business days */
   estimatedDays: number;
   /** Carrier label */
-  carrier: "Brink's Global Services";
+  carrier: string;
   /** Quote valid for N minutes */
   validForMinutes: number;
   /** ISO timestamp when quote was generated */
@@ -114,7 +116,7 @@ export interface Shipment {
   orderId: string;
   status: ShipmentStatus;
   trackingNumber: string;
-  carrier: "Brink's Global Services";
+  carrier: string;
   events: ShipmentEvent[];
   address: DeliveryAddress;
   rateQuote: DeliveryRateQuote;

@@ -2701,7 +2701,17 @@ export const mockOrders: Order[] = [
    ================================================================ */
 
 /* ---------- Auth Types ---------- */
-export type UserRole = "buyer" | "seller" | "admin" | "treasury" | "compliance" | "vault_ops";
+export type UserRole =
+  | "INSTITUTION_TRADER"
+  | "INSTITUTION_TREASURY"
+  | "BROKER_DEALER_API"
+  | "admin"
+  | "compliance"
+  | "vault_ops"
+  // Legacy aliases — retained for backward compatibility during UI migration
+  | "buyer"
+  | "seller"
+  | "treasury";
 export type VerificationStatus =
   | "NOT_STARTED"
   | "IN_PROGRESS"
@@ -2806,7 +2816,7 @@ export const mockUsers: User[] = [
     id: "user-1",
     email: "m.reynolds@aurelia.lu",
     name: "M. Reynolds",
-    role: "buyer",
+    role: "INSTITUTION_TRADER",
     orgId: "org-001",
     verificationStatus: "VERIFIED",
     createdAt: "2024-01-15T09:00:00Z",
@@ -2816,7 +2826,7 @@ export const mockUsers: User[] = [
     id: "user-2",
     email: "a.clarke@meridian.co.uk",
     name: "A. Clarke",
-    role: "seller",
+    role: "INSTITUTION_TRADER",
     orgId: "org-002",
     verificationStatus: "IN_PROGRESS",
     createdAt: "2024-03-20T10:00:00Z",
@@ -2826,7 +2836,7 @@ export const mockUsers: User[] = [
     id: "user-3",
     email: "j.tanaka@pacbullion.sg",
     name: "J. Tanaka",
-    role: "buyer",
+    role: "INSTITUTION_TRADER",
     orgId: "org-003",
     verificationStatus: "NEEDS_REVIEW",
     createdAt: "2024-06-01T08:00:00Z",
@@ -2846,7 +2856,7 @@ export const mockUsers: User[] = [
     id: "user-9",
     email: "d.petrov@caspiantf.ae",
     name: "D. Petrov",
-    role: "buyer",
+    role: "INSTITUTION_TRADER",
     orgId: "org-003",
     verificationStatus: "NOT_STARTED",
     createdAt: "2025-08-20T07:00:00Z",
@@ -2856,7 +2866,7 @@ export const mockUsers: User[] = [
     id: "user-5",
     email: "m.chen@aurumshield.io",
     name: "M. Chen",
-    role: "treasury" as UserRole,
+    role: "INSTITUTION_TREASURY" as UserRole,
     orgId: "org-004",
     verificationStatus: "VERIFIED" as VerificationStatus,
     createdAt: "2025-03-15T09:00:00Z",
@@ -3061,7 +3071,7 @@ export interface SettlementCase {
   railSubmittedAt?: string;
   /** Timestamp when rail confirmed receipt/completion */
   railConfirmedAt?: string;
-  /** External rail reference ID (Moov transfer ID, Modern Treasury payment ID) */
+  /** External rail reference ID (Modern Treasury payment ID) */
   railReferenceId?: string;
   /** Reason for reversal (dispute details, compliance note) */
   reversalReason?: string;

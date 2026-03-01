@@ -7,7 +7,6 @@ import {
 } from "next/font/google";
 import { Suspense } from "react";
 import { ClerkWrapper } from "@/providers/clerk-wrapper";
-import { FingerprintProvider } from "@/providers/fingerprint-provider";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
@@ -88,7 +87,6 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="dark">
             <QueryProvider>
               <AuthProvider>
-                <FingerprintProvider>
                   <Suspense fallback={null}>
                     <DemoProvider>
                       <TourProvider>
@@ -101,7 +99,6 @@ export default function RootLayout({
                       />
                     </DemoProvider>
                   </Suspense>
-                </FingerprintProvider>
               </AuthProvider>
             </QueryProvider>
           </ThemeProvider>
