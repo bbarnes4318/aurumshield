@@ -24,8 +24,8 @@ resource "aws_ecs_task_definition" "app" {
   family                   = "${var.project_name}-app"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "512"
-  memory                   = "1024"
+  cpu                      = "1024"
+  memory                   = "2048"
   execution_role_arn       = aws_iam_role.ecs_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
 
@@ -34,6 +34,12 @@ resource "aws_ecs_task_definition" "app" {
       name      = "${var.project_name}-app"
       image     = "${aws_ecr_repository.app.repository_url}:latest"
       essential = true
+
+      dockerLabels = {
+        "com.datadoghq.tags.env"     = "production"
+        "com.datadoghq.tags.service" = "aurumshield-core"
+        "com.datadoghq.tags.version" = "v3.0.0"
+      }
 
       portMappings = [
         {
@@ -90,6 +96,22 @@ resource "aws_ecs_task_definition" "app" {
         {
           name      = "DATABASE_CREDENTIALS"
           valueFrom = aws_db_instance.main.master_user_secret[0].secret_arn
+        },
+        {
+          name      = "MODERN_TREASURY_API_KEY"
+          valueFrom = aws_secretsmanager_secret.modern_treasury.arn
+        },
+        {
+          name      = "VERIFF_API_KEY"
+          valueFrom = aws_secretsmanager_secret.veriff.arn
+        },
+        {
+          name      = "BPIPE_API_KEY"
+          valueFrom = aws_secretsmanager_secret.bpipe.arn
+        },
+        {
+          name      = "DOCUSIGN_API_KEY"
+          valueFrom = aws_secretsmanager_secret.docusign.arn
         }
       ]
 
@@ -109,6 +131,50 @@ resource "aws_ecs_task_definition" "app" {
         retries     = 3
         startPeriod = 120
       }
+    },
+    # -----------------------------------------------------------------
+    # Datadog Agent Sidecar — APM, infrastructure monitoring, logs
+    # -----------------------------------------------------------------
+    {
+      name      = "datadog-agent"
+      image     = "public.ecr.aws/datadog/agent:latest"
+      essential = true
+
+      portMappings = []
+
+      environment = [
+        {
+          name  = "DD_SITE"
+          value = "us5.datadoghq.com"
+        },
+        {
+          name  = "ECS_FARGATE"
+          value = "true"
+        },
+        {
+          name  = "DD_APM_ENABLED"
+          value = "true"
+        },
+        {
+          name  = "DD_APM_NON_LOCAL_TRAFFIC"
+          value = "true"
+        },
+        {
+          name  = "DD_LOGS_ENABLED"
+          value = "true"
+        },
+        {
+          name  = "DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL"
+          value = "true"
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "DD_API_KEY"
+          valueFrom = aws_secretsmanager_secret.datadog_api_key.arn
+        }
+      ]
     }
   ])
 

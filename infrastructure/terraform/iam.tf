@@ -49,7 +49,12 @@ resource "aws_iam_policy" "ecs_execution_secrets" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          aws_db_instance.main.master_user_secret[0].secret_arn
+          aws_db_instance.main.master_user_secret[0].secret_arn,
+          aws_secretsmanager_secret.modern_treasury.arn,
+          aws_secretsmanager_secret.veriff.arn,
+          aws_secretsmanager_secret.bpipe.arn,
+          aws_secretsmanager_secret.docusign.arn,
+          aws_secretsmanager_secret.datadog_api_key.arn
         ]
       },
       {
@@ -129,7 +134,12 @@ resource "aws_iam_policy" "ecs_task_policy" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          aws_db_instance.main.master_user_secret[0].secret_arn
+          aws_db_instance.main.master_user_secret[0].secret_arn,
+          aws_secretsmanager_secret.modern_treasury.arn,
+          aws_secretsmanager_secret.veriff.arn,
+          aws_secretsmanager_secret.bpipe.arn,
+          aws_secretsmanager_secret.docusign.arn,
+          aws_secretsmanager_secret.datadog_api_key.arn
         ]
       }
     ]

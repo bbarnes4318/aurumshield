@@ -67,3 +67,31 @@ output "DOMAIN" {
   value       = var.domain_name
   description = "Primary domain"
 }
+
+# -----------------------------------------------------------------------------
+# Third-Party API Key Secret ARNs
+# -----------------------------------------------------------------------------
+
+output "MODERN_TREASURY_SECRET_ARN" {
+  value       = aws_secretsmanager_secret.modern_treasury.arn
+  description = "ARN of the Modern Treasury API key secret"
+  sensitive   = true
+}
+
+output "VERIFF_SECRET_ARN" {
+  value       = aws_secretsmanager_secret.veriff.arn
+  description = "ARN of the Veriff API key secret"
+  sensitive   = true
+}
+
+output "BPIPE_SECRET_ARN" {
+  value       = aws_secretsmanager_secret.bpipe.arn
+  description = "ARN of the Bloomberg B-PIPE API key secret"
+  sensitive   = true
+}
+
+output "DOCUSIGN_SECRET_ARN" {
+  value       = aws_secretsmanager_secret.docusign.arn
+  description = "ARN of the DocuSign API key secret"
+  sensitive   = true
+}
