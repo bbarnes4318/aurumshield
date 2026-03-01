@@ -17,7 +17,10 @@
      trackServerEvent("Trade Executed", { notionalValue, entityType });
    ================================================================ */
 
-import "server-only";
+// NOTE: No `import 'server-only'` — Client Components still import
+// `trackEvent` for backward compatibility. The module is safe: posthog-node
+// is loaded via dynamic require() which only executes server-side.
+// On the client, ensureClient() returns null → falls back to console.debug.
 
 /* ---------- Types ---------- */
 
