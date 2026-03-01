@@ -56,7 +56,9 @@ function Navigation() {
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [mobileOpen]);
 
   // Escape key closes menu
@@ -73,7 +75,7 @@ function Navigation() {
   useEffect(() => {
     if (!mobileOpen || !menuRef.current) return;
     const focusable = menuRef.current.querySelectorAll<HTMLElement>(
-      'a, button, [tabindex]:not([tabindex="-1"])'
+      'a, button, [tabindex]:not([tabindex="-1"])',
     );
     if (focusable.length === 0) return;
     const first = focusable[0];
@@ -82,9 +84,15 @@ function Navigation() {
     const trap = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;
       if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
       } else {
-        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     document.addEventListener("keydown", trap);
@@ -97,7 +105,6 @@ function Navigation() {
     <>
       <nav className="fixed top-0 z-50 w-full bg-[#0A1128]/90 backdrop-blur-xl border-b border-slate-800">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-          
           {/* LEFT: Logo + Desktop links */}
           <div className="flex items-center gap-8 lg:gap-12">
             <Link href="/" className="flex items-center flex-shrink-0">
@@ -111,7 +118,7 @@ function Navigation() {
                 unoptimized
               />
             </Link>
-            
+
             <div className="hidden lg:flex items-center gap-8 border-l border-slate-800 pl-8">
               <Link
                 href="/platform-overview"
@@ -177,7 +184,9 @@ function Navigation() {
       >
         {/* Close button */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-gold">Navigation</span>
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
+            Navigation
+          </span>
           <button
             onClick={closeMobile}
             className="touch-target rounded-md text-gray-400 hover:text-white transition-colors active:scale-95"
@@ -281,7 +290,9 @@ function SettlementLifecycleSection() {
           Deterministic Settlement Lifecycle
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-          Whether sourcing from vetted mine originators or institutional sellers, every trade traverses a strict, irreversible state machine. Each transition is role-gated, audited, and deterministic.
+          Whether sourcing from vetted mine originators or institutional
+          sellers, every trade traverses a strict, irreversible state machine.
+          Each transition is role-gated, audited, and deterministic.
         </p>
 
         {/* Horizontal Pipeline */}
@@ -344,31 +355,51 @@ function ExposureSection() {
               <table className="w-full min-w-[500px] text-left font-mono text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-slate-800 bg-[#0A1128]">
-                    <th className="px-4 py-4 font-semibold text-slate-500 uppercase tracking-widest">State</th>
-                    <th className="px-4 py-4 font-semibold text-slate-500 uppercase tracking-widest">Bilateral Risk</th>
-                    <th className="px-4 py-4 font-semibold text-gold uppercase tracking-widest">AurumShield DvP</th>
+                    <th className="px-4 py-4 font-semibold text-slate-500 uppercase tracking-widest">
+                      State
+                    </th>
+                    <th className="px-4 py-4 font-semibold text-slate-500 uppercase tracking-widest">
+                      Bilateral Risk
+                    </th>
+                    <th className="px-4 py-4 font-semibold text-gold uppercase tracking-widest">
+                      AurumShield DvP
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
                   <tr className="bg-white/[0.01]">
-                    <td className="px-4 py-4 text-slate-400">01. Quote &amp; Lock</td>
+                    <td className="px-4 py-4 text-slate-400">
+                      01. Quote &amp; Lock
+                    </td>
                     <td className="px-4 py-4 text-slate-300">$4.2M Exposed</td>
                     <td className="px-4 py-4 text-gold">Escrow Confirmed</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-4 text-slate-400">02. Capital Transit</td>
+                    <td className="px-4 py-4 text-slate-400">
+                      02. Capital Transit
+                    </td>
                     <td className="px-4 py-4 text-slate-300">$4.2M Exposed</td>
                     <td className="px-4 py-4 text-gold">Capital Sequestered</td>
                   </tr>
                   <tr className="bg-white/[0.01]">
-                    <td className="px-4 py-4 text-slate-400">03. Physical Release</td>
-                    <td className="px-4 py-4 text-rose-400 font-semibold">Max Exposure</td>
+                    <td className="px-4 py-4 text-slate-400">
+                      03. Physical Release
+                    </td>
+                    <td className="px-4 py-4 text-rose-400 font-semibold">
+                      Max Exposure
+                    </td>
                     <td className="px-4 py-4 text-gold">Title Blocked</td>
                   </tr>
                   <tr className="bg-gold/5 border-t border-gold/20">
-                    <td className="px-4 py-4 text-white font-bold">04. Settlement</td>
-                    <td className="px-4 py-4 text-rose-400 font-bold">Default Risk</td>
-                    <td className="px-4 py-4 text-gold font-bold tracking-wider">$0.00 (DvP)</td>
+                    <td className="px-4 py-4 text-white font-bold">
+                      04. Settlement
+                    </td>
+                    <td className="px-4 py-4 text-rose-400 font-bold">
+                      Default Risk
+                    </td>
+                    <td className="px-4 py-4 text-gold font-bold tracking-wider">
+                      $0.00 (DvP)
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -377,21 +408,20 @@ function ExposureSection() {
 
           {/* Right: Copy */}
           <div>
-        <div className="flex items-center gap-4 mb-4">
-          <div className="h-px w-8 bg-gold/50" />
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-            RISK ARCHITECTURE
-          </p>
-        </div>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-px w-8 bg-gold/50" />
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
+                RISK ARCHITECTURE
+              </p>
+            </div>
             <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-xl">
               Exposure Compressed to Zero at Settlement
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Bilateral principal exposure is structurally removed from the
-              transaction lifecycle. As a closed-loop exchange, AurumShield
-              100% underwrites the trade. If a counterparty defaults or a
-              delivery fails, your capital and physical allocation are fully
-              guaranteed.
+              transaction lifecycle. As a closed-loop exchange, AurumShield 100%
+              underwrites the trade. If a counterparty defaults or a delivery
+              fails, your capital and physical allocation are fully guaranteed.
             </p>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Continuous Exposure Coverage Ratio monitoring and hardstop limits
@@ -449,25 +479,41 @@ function KineticRiskSection() {
 
         <div className="mt-16 grid gap-6 lg:grid-cols-12">
           {/* Large Feature - Spans 8 columns */}
-          <div className={`lg:col-span-8 ${GLASS_CARD} p-8 sm:p-10 flex flex-col justify-center`}>
-            <h3 className="text-xl font-bold text-white mb-4">Sovereign Vault Confinement</h3>
+          <div
+            className={`lg:col-span-8 ${GLASS_CARD} p-8 sm:p-10 flex flex-col justify-center`}
+          >
+            <h3 className="text-xl font-bold text-white mb-4">
+              Sovereign Vault Confinement
+            </h3>
             <p className="text-base leading-relaxed text-slate-400 max-w-2xl">
-              From vetted mine extraction to final settlement, assets remain locked in secure, insured facilities operated exclusively by Tier-1 logistics partners like Malca-Amit and Brink&apos;s. Asset provenance is cryptographically verified, and physical reality is maintained without kinetic exposure.
+              From vetted mine extraction to final settlement, assets remain
+              locked in secure, insured facilities operated exclusively by
+              Tier-1 logistics partners like Malca-Amit and Brink&apos;s. Asset
+              provenance is cryptographically verified, and physical reality is
+              maintained without kinetic exposure.
             </p>
           </div>
-          
+
           {/* Stacked Side Features - Span 4 columns */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             <div className={`${GLASS_CARD} p-6 flex-1`}>
-              <h3 className="text-base font-bold text-white mb-2">Armored Transit Eliminated</h3>
+              <h3 className="text-base font-bold text-white mb-2">
+                Armored Transit Eliminated
+              </h3>
               <p className="text-sm leading-relaxed text-slate-400">
-                Because settlement occurs atomically at the vault level, participants never need to manage armed transport or supply chain security.
+                Because settlement occurs atomically at the vault level,
+                participants never need to manage armed transport or supply
+                chain security.
               </p>
             </div>
             <div className={`${GLASS_CARD} p-6 flex-1`}>
-              <h3 className="text-base font-bold text-white mb-2">Geopolitical Insulation</h3>
+              <h3 className="text-base font-bold text-white mb-2">
+                Geopolitical Insulation
+              </h3>
               <p className="text-sm leading-relaxed text-slate-400">
-                Assets remain sequestered in highly stable jurisdictions, eliminating the risk of local extortion, confiscation, or transit interception.
+                Assets remain sequestered in highly stable jurisdictions,
+                eliminating the risk of local extortion, confiscation, or
+                transit interception.
               </p>
             </div>
           </div>
@@ -487,12 +533,12 @@ function ArchitectureSection() {
         <div className="grid lg:grid-cols-2 gap-16 items-start">
           {/* Left: Copy */}
           <div>
-        <div className="flex items-center gap-4 mb-4">
-          <div className="h-px w-8 bg-gold/50" />
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-            CLEARING INFRASTRUCTURE
-          </p>
-        </div>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-px w-8 bg-gold/50" />
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
+                CLEARING INFRASTRUCTURE
+              </p>
+            </div>
             <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-xl">
               Military-Grade Settlement Infrastructure
             </h2>
@@ -640,7 +686,9 @@ function ComplianceSection() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex items-center gap-4 mb-4">
           <div className="h-px w-8 bg-gold/50" />
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">COMPLIANCE</p>
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
+            COMPLIANCE
+          </p>
         </div>
         <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
           Engineered for Institutional Compliance
@@ -692,16 +740,27 @@ function ComplianceSection() {
           {/* Mobile Card Layout — hidden on desktop */}
           <div className="md:hidden divide-y divide-white/[0.04]">
             {COMPLIANCE_DATA.map((row, i) => (
-              <div key={row.framework} className={`px-5 py-5 ${i % 2 === 1 ? "bg-white/[0.01]" : ""}`}>
+              <div
+                key={row.framework}
+                className={`px-5 py-5 ${i % 2 === 1 ? "bg-white/[0.01]" : ""}`}
+              >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-gold">{row.framework}</span>
+                  <span className="text-sm font-semibold text-gold">
+                    {row.framework}
+                  </span>
                   <span className="flex items-center gap-1.5">
                     <CheckCircle className="h-3.5 w-3.5 text-gold" />
-                    <span className="text-xs font-semibold text-gold">{row.status}</span>
+                    <span className="text-xs font-semibold text-gold">
+                      {row.status}
+                    </span>
                   </span>
                 </div>
-                <p className="text-sm font-medium text-white mb-2">{row.scope}</p>
-                <p className="text-sm leading-relaxed text-gray-300">{row.detail}</p>
+                <p className="text-sm font-medium text-white mb-2">
+                  {row.scope}
+                </p>
+                <p className="text-sm leading-relaxed text-gray-300">
+                  {row.detail}
+                </p>
               </div>
             ))}
           </div>
@@ -719,14 +778,15 @@ function FinalCTA() {
     <section className="py-24 lg:py-32 bg-[#0A1128]">
       <div className="mx-auto max-w-4xl px-6">
         <div className="border border-slate-800 bg-[#0B0E14] rounded-md overflow-hidden shadow-2xl">
-          
           <div className="p-10 sm:p-16 text-center flex flex-col items-center">
             <Lock className="h-10 w-10 text-gold mb-6 opacity-80" />
             <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white mb-4">
               Infrastructure Access is Strictly Gated.
             </h2>
             <p className="text-base text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
-              AurumShield is private clearing infrastructure reserved for qualified institutional participants, sovereign entities, and tier-1 liquidity providers.
+              AurumShield is private clearing infrastructure reserved for
+              qualified institutional participants, sovereign entities, and
+              tier-1 liquidity providers.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <a
@@ -741,10 +801,10 @@ function FinalCTA() {
 
           <div className="border-t border-slate-800 bg-white/[0.02] px-6 py-5 text-center">
             <p className="font-mono text-[10px] sm:text-xs text-gold tracking-[0.15em] uppercase font-semibold">
-              [ VERIFIED ]: All architectural state transitions are bound by comprehensive underwritten indemnification.
+              [ VERIFIED ]: All architectural state transitions are bound by
+              comprehensive underwritten indemnification.
             </p>
           </div>
-
         </div>
       </div>
     </section>
@@ -758,15 +818,21 @@ function SiteFooter() {
   return (
     <footer className="border-t border-slate-800 bg-[#0A1128] pt-16 pb-8 px-6">
       <div className="mx-auto max-w-7xl">
-        
         {/* Top Grid: Columns */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          
           {/* Col 1: Brand */}
           <div className="md:col-span-1">
-            <Image src="/arum-logo-gold.svg" alt="AurumShield" width={120} height={28} className="h-7 w-auto mb-4" unoptimized />
+            <Image
+              src="/arum-logo-gold.svg"
+              alt="AurumShield"
+              width={120}
+              height={28}
+              className="h-7 w-auto mb-4"
+              unoptimized
+            />
             <p className="text-sm leading-relaxed text-slate-500">
-              Deterministic clearing layer and sovereign custody infrastructure for physical bullion.
+              Deterministic clearing layer and sovereign custody infrastructure
+              for physical bullion.
             </p>
           </div>
 
@@ -779,9 +845,30 @@ function SiteFooter() {
               </h4>
             </div>
             <ul className="space-y-4 text-sm font-medium text-gray-400">
-              <li><Link href="/platform-overview" className="hover:text-white transition-colors">Platform Dossier</Link></li>
-              <li><Link href="/technical-overview" className="hover:text-white transition-colors">System Architecture</Link></li>
-              <li><a href={`${APP_URL}/login`} className="hover:text-white transition-colors">Client Portal</a></li>
+              <li>
+                <Link
+                  href="/platform-overview"
+                  className="hover:text-white transition-colors"
+                >
+                  Platform Dossier
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/technical-overview"
+                  className="hover:text-white transition-colors"
+                >
+                  System Architecture
+                </Link>
+              </li>
+              <li>
+                <a
+                  href={`${APP_URL}/login`}
+                  className="hover:text-white transition-colors"
+                >
+                  Client Portal
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -794,10 +881,38 @@ function SiteFooter() {
               </h4>
             </div>
             <ul className="space-y-4 text-sm font-medium text-gray-400">
-              <li><Link href="/legal/terms" className="hover:text-white transition-colors">Terms &amp; Conditions</Link></li>
-              <li><Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/legal/aml-kyc" className="hover:text-white transition-colors">AML &amp; KYC Policy</Link></li>
-              <li><Link href="/legal/risk-reinsurance" className="hover:text-white transition-colors">Risk &amp; Reinsurance</Link></li>
+              <li>
+                <Link
+                  href="/legal/terms"
+                  className="hover:text-white transition-colors"
+                >
+                  Terms &amp; Conditions
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/legal/privacy"
+                  className="hover:text-white transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/legal/aml-kyc"
+                  className="hover:text-white transition-colors"
+                >
+                  AML &amp; KYC Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/legal/risk-reinsurance"
+                  className="hover:text-white transition-colors"
+                >
+                  Risk &amp; Reinsurance
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -816,7 +931,10 @@ function SiteFooter() {
                   24/7 Automated Desk
                 </span>
               </div>
-              <a href="tel:+18652757300" className="text-lg font-mono font-bold text-white hover:text-gold transition-colors block mt-1">
+              <a
+                href="tel:+18652757300"
+                className="text-lg font-mono font-bold text-white hover:text-gold transition-colors block mt-1"
+              >
                 +1.865.275.7300
               </a>
               <p className="text-xs text-slate-500 mt-2 leading-relaxed">
@@ -824,19 +942,18 @@ function SiteFooter() {
               </p>
             </div>
           </div>
-
         </div>
 
         {/* Bottom Strip: Copyright */}
         <div className="pt-8 border-t border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-600 font-mono">
-            &copy; {new Date().getFullYear()} AurumShield Platform. All rights reserved.
+            &copy; {new Date().getFullYear()} AurumShield Platform. All rights
+            reserved.
           </p>
           <p className="text-xs text-slate-600 font-mono uppercase tracking-widest">
             Institutional Access Only
           </p>
         </div>
-
       </div>
     </footer>
   );
@@ -851,10 +968,15 @@ export function MarketingLanding() {
       <Navigation />
       <HeroSection />
 
-      {/* ── Live Engine Telemetry ── */}
+      <TrustBand />
+      <MarketWeaknessSection />
+      <KineticRiskSection />
+      <SettlementLifecycleSection />
+
+      {/* ── Live Engine Telemetry — placed after lifecycle to show the 5 steps executing live ── */}
       <section className="py-24 lg:py-32 bg-[#0A1128] border-b border-slate-800/50 flex flex-col items-center justify-center relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(198,168,107,0.03)_0%,transparent_70%)] pointer-events-none" />
-        
+
         <div className="mx-auto max-w-7xl px-6 w-full relative z-10">
           <div className="text-center mb-12 max-w-3xl mx-auto">
             <div className="flex items-center justify-center gap-4 mb-6">
@@ -868,18 +990,17 @@ export function MarketingLanding() {
               Cryptographic Settlement Proof
             </h2>
             <p className="text-gray-400 text-sm md:text-base leading-relaxed">
-              AurumShield does not rely on bilateral trust. Watch the live simulation of our state machine locking collateral, verifying sovereign vault provenance, and executing an atomic Delivery-versus-Payment (DvP) swap in real-time.
+              AurumShield does not rely on bilateral trust. Watch the live
+              simulation of our state machine locking collateral, verifying
+              sovereign vault provenance, and executing an atomic
+              Delivery-versus-Payment (DvP) swap in real-time.
             </p>
           </div>
-          
+
           <TelemetryTerminal />
         </div>
       </section>
 
-      <TrustBand />
-      <MarketWeaknessSection />
-      <KineticRiskSection />
-      <SettlementLifecycleSection />
       <ExposureSection />
       <RiskModelSection />
       <ArchitectureSection />
