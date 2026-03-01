@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { ClearingSeal } from "../ClearingSeal";
 
@@ -22,32 +21,22 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative pb-16 lg:pb-20 overflow-hidden"
+      className="relative pb-16 lg:pb-20 overflow-hidden bg-[url('/hero-bullion-bg.png')] bg-cover bg-center bg-no-repeat"
       style={{ backgroundColor: "#0A1128" }}
     >
-      {/* ── Cinematic bullion background — macro gold texture ── */}
-      <Image
-        src="/hero-bullion-bg.png"
-        alt=""
-        fill
-        className="object-cover pointer-events-none select-none"
-        style={{ objectPosition: "center 40%" }}
-        priority
-        aria-hidden="true"
-      />
-      {/* ── Heavy dark overlay — texture barely registers ── */}
-      <div className="absolute inset-0 bg-black/82 pointer-events-none" />
+      {/* ── Heavy dark overlay — texture barely registers, text stays readable ── */}
+      <div className="absolute inset-0 bg-slate-950/85 z-0" />
 
       {/* ── Radial gold gradient anchored behind CTA area ── */}
       <div
-        className="pointer-events-none absolute left-[20%] top-[60%] h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        className="pointer-events-none absolute left-[20%] top-[60%] h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full z-0"
         style={{
           background:
             "radial-gradient(circle, rgba(212,175,55,0.05) 0%, transparent 70%)",
         }}
       />
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center py-12 lg:py-24 max-w-7xl mx-auto px-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center py-12 lg:py-24 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
         <div className="flex flex-col justify-center space-y-6 lg:space-y-8 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
           <motion.div

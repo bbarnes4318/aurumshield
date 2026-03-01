@@ -457,28 +457,29 @@ function KineticRiskSection() {
         <div className="h-px w-full bg-gradient-to-r from-slate-800 via-slate-800/50 to-transparent" />
       </div>
       <div className="mx-auto max-w-7xl px-6">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="h-px w-8 bg-gold/50" />
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-            PHYSICAL PERIMETER
+        {/* ── Premium card wrapper for section header ── */}
+        <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 lg:p-10 backdrop-blur-sm mb-16">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="h-px w-8 bg-gold/50" />
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
+              PHYSICAL PERIMETER
+            </p>
+          </div>
+          <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
+            The Sovereign Custody Layer: Kinetic Risk Eliminated
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
+            Physical transport of bullion exposes participants to severe kinetic
+            threats—supply chain interception, transport extortion, and
+            counterfeit asset injection. AurumShield bypasses the physical rail
+            entirely. Bullion is confined within sovereign-grade vault networks,
+            and ownership is settled atomically.
           </p>
         </div>
-        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
-          The Sovereign Custody Layer: Kinetic Risk Eliminated
-        </h2>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-          Physical transport of bullion exposes participants to severe kinetic
-          threats—supply chain interception, transport extortion, and
-          counterfeit asset injection. AurumShield bypasses the physical rail
-          entirely. Bullion is confined within sovereign-grade vault networks,
-          and ownership is settled atomically.
-        </p>
 
-        <div className="mt-16 grid gap-6 lg:grid-cols-12">
+        <div className="grid gap-6 lg:grid-cols-12">
           {/* Large Feature - Spans 8 columns */}
-          <div
-            className={`lg:col-span-8 ${GLASS_CARD} p-8 sm:p-10 flex flex-col justify-center`}
-          >
+          <div className="lg:col-span-8 bg-white/[0.02] border border-white/10 rounded-2xl p-8 sm:p-10 backdrop-blur-sm flex flex-col justify-center">
             <h3 className="text-xl font-bold text-white mb-4">
               Sovereign Vault Confinement
             </h3>
@@ -493,7 +494,7 @@ function KineticRiskSection() {
 
           {/* Stacked Side Features - Span 4 columns */}
           <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className={`${GLASS_CARD} p-6 flex-1`}>
+            <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex-1">
               <h3 className="text-base font-bold text-white mb-2">
                 Armored Transit Eliminated
               </h3>
@@ -503,7 +504,7 @@ function KineticRiskSection() {
                 chain security.
               </p>
             </div>
-            <div className={`${GLASS_CARD} p-6 flex-1`}>
+            <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex-1">
               <h3 className="text-base font-bold text-white mb-2">
                 Geopolitical Insulation
               </h3>
@@ -837,25 +838,20 @@ function ComplianceSection() {
    ================================================================ */
 function VaultDivider() {
   return (
-    <div className="relative w-full h-[280px] sm:h-[340px] overflow-hidden">
-      {/* Vault Image — desaturated and darkened */}
-      <Image
+    <div className="w-full h-64 overflow-hidden relative">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src="/vault-divider-bg.png"
         alt=""
-        fill
-        className="object-cover pointer-events-none select-none"
-        style={{
-          filter: "saturate(0.25) brightness(0.35)",
-          objectPosition: "center 55%",
-        }}
+        className="object-cover w-full h-full opacity-40 grayscale"
         aria-hidden="true"
       />
       {/* Navy tint overlay */}
-      <div className="absolute inset-0 bg-[#0A1128]/60 pointer-events-none" />
-      {/* Bottom gold gradient bleed */}
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0A1128] to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-[#0A1128]/50 pointer-events-none" />
+      {/* Bottom gradient bleed */}
+      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0A1128] to-transparent pointer-events-none" />
       {/* Top gradient bleed */}
-      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0A1128] to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0A1128] to-transparent pointer-events-none" />
       {/* Center accent line */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="h-px w-32 bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
@@ -1152,23 +1148,22 @@ export function MarketingLanding() {
       <KineticRiskSection />
       <SettlementLifecycleSection />
 
-      {/* ── Live Engine Telemetry — placed after lifecycle to show the 5 steps executing live ── */}
-      <section className="py-24 lg:py-32 bg-[#0A1128] border-b border-slate-800/50 flex flex-col items-center justify-center relative">
+      {/* ── Live Engine Telemetry ── */}
+      <section className="py-24 lg:py-32 bg-[#0A1128] border-b border-slate-800/50 flex flex-col items-start justify-center relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(198,168,107,0.03)_0%,transparent_70%)] pointer-events-none" />
 
         <div className="mx-auto max-w-7xl px-6 w-full relative z-10">
-          <div className="text-center mb-12 max-w-3xl mx-auto">
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <div className="h-px w-8 bg-[#c6a86b]/50" />
-              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#c6a86b]">
+          <div className="mb-12 max-w-3xl">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="h-px w-8 bg-gold/50" />
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
                 LIVE ENGINE TELEMETRY
               </p>
-              <div className="h-px w-8 bg-[#c6a86b]/50" />
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
               Deterministic Settlement. Zero Counterparty Risk.
             </h2>
-            <p className="text-gray-300 text-sm md:text-base leading-relaxed">
+            <p className="text-gray-300 text-sm md:text-base leading-relaxed text-left">
               Trust is a liability in physical markets. Watch our clearing engine
               in real-time as it locks capital, verifies sovereign vault
               provenance, and executes a flawless Delivery-versus-Payment (DvP)

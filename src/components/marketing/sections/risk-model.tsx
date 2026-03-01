@@ -13,20 +13,23 @@ const reveal = {
 
 const METRICS = [
   {
+    index: "01",
+    tag: "NO BROKER RISK",
     figure: "0.00%",
-    label: "NO BROKER RISK",
     description:
       "We are pure clearing infrastructure, not a market maker. We facilitate direct execution with zero intermediary markup and zero broker risk.",
   },
   {
+    index: "02",
+    tag: "NO PAPER GOLD",
     figure: "100%",
-    label: "NO PAPER GOLD",
     description:
       "No synthetic exposure. Every execution on our network settles in fully allocated, physically unencumbered gold that is immediately deliverable upon request.",
   },
   {
+    index: "03",
+    tag: "NO FRACTIONAL RESERVE",
     figure: "<$250M",
-    label: "NO FRACTIONAL RESERVE",
     description:
       "We mathematically enforce a strict 1:1 ratio. Zero fractional reserve practices. Zero rehypothecation. The gold you clear is cryptographically proven to exist.",
   },
@@ -65,7 +68,7 @@ export function RiskModelSection() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {METRICS.map((metric, i) => (
             <motion.div
-              key={metric.label}
+              key={metric.tag}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-40px" }}
@@ -83,20 +86,14 @@ export function RiskModelSection() {
               }}
               className="group rounded-md border border-slate-800 bg-white/[0.02] p-8 transition-all duration-300 hover:border-gold/30"
             >
-              {/* Figure — monospace for precision */}
-              <p
-                className="mb-2 text-4xl font-bold tabular-nums text-white lg:text-5xl"
-                style={{
-                  fontFamily:
-                    "var(--font-jetbrains-mono), ui-monospace, monospace",
-                }}
-              >
-                {metric.figure}
-              </p>
+              {/* Index + Tag — subtle monospace identifier */}
+              <span className="font-mono text-sm text-gold/70 mb-4 block tracking-wide">
+                {metric.index} {"// "}{metric.tag}
+              </span>
 
-              {/* Label */}
-              <p className="mb-4 text-sm font-semibold uppercase tracking-wider text-gold">
-                {metric.label}
+              {/* Figure — refined, not oversized */}
+              <p className="mb-4 font-mono text-2xl font-bold tabular-nums text-white">
+                {metric.figure}
               </p>
 
               {/* Divider */}
