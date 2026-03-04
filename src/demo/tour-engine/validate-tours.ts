@@ -9,12 +9,12 @@
    Run: npx tsx src/demo/tour-engine/validate-tours.ts
    ================================================================ */
 
-import { buyerTour } from "../tours/buyer";
-import { sellerTour } from "../tours/seller";
+import { senderTour } from "../tours/sender";
+import { recipientTour } from "../tours/recipient";
 import { adminTour } from "../tours/admin";
-import type { TourDefinition, TourStep } from "./tourTypes";
+import type { TourDefinition } from "./tourTypes";
 
-const tours: TourDefinition[] = [buyerTour, sellerTour, adminTour];
+const tours: TourDefinition[] = [senderTour, recipientTour, adminTour];
 
 interface ValidationResult {
   tourId: string;
@@ -74,30 +74,25 @@ function validateTour(tour: TourDefinition): ValidationResult {
 
 // Known data-tour selectors and their expected routes
 const KNOWN_SELECTORS: Record<string, string> = {
-  "buyer-active-transaction": "/buyer",
-  "sidebar-marketplace": "sidebar (global)",
-  "marketplace-reserve-cta": "/marketplace",
-  "marketplace-listing-demo": "/marketplace",
-  "reservation-convert-cta": "/reservations",
-  "verification-continue": "/buyer (CounterpartyVerificationPanel)",
-  "activation-pay-cta": "/buyer",
-  "settlement-row-demo": "/settlements",
-  "certificate-view": "/settlements/[id]",
-  "seller-listings": "/seller",
-  "listing-publish-btn": "/seller",
-  "seller-open-settlement-cta": "/seller",
-  "settlement-ledger": "/settlements/[id]",
+  "sidebar-transactions": "sidebar (global)",
+  "sidebar-settlements": "sidebar (global)",
+  "sidebar-audit": "sidebar (global)",
+  "sidebar-controls": "sidebar (global)",
+  "goldwire-target-entity": "/transactions/new",
+  "goldwire-settlement-params": "/transactions/new",
+  "goldwire-gold-calc": "/transactions/new",
+  "goldwire-review-cert": "/transactions/new",
+  "goldwire-sign-execute": "/transactions/new",
+  "settlement-ledger": "/settlements",
+  "liquidation-panel": "/settlements/[id]",
+  "otc-bid": "/settlements/[id]",
+  "payout-destination": "/settlements/[id]",
+  "liquidate-execute": "/settlements/[id]",
   "dashboard-capital": "/dashboard",
   "pricing-edit-btn": "/admin/pricing",
   "pricing-save-btn": "/admin/pricing",
-  "sidebar-controls": "sidebar (global)",
   "control-mode-toggle": "/capital-controls",
-  "sidebar-settlements": "sidebar (global)",
-  "sidebar-audit": "sidebar (global)",
-  "buyer-portfolio": "/buyer",
-  "counterparty-verification": "/buyer (CounterpartyVerificationPanel)",
-  "support-phone": "/buyer, /seller",
-  "verification-sequence": "/buyer (CounterpartyVerificationPanel)",
+  "certificate-view": "/settlements/[id]",
 };
 
 function extractSelectorName(target: string): string {
