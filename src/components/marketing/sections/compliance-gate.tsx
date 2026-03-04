@@ -15,24 +15,24 @@ const reveal = {
 const INTEGRATIONS = [
   {
     icon: Fingerprint,
-    name: "Veriff",
-    role: "KYC / Identity Verification",
+    name: "Biometric Identity Verification",
+    role: "KYC / AML Perimeter",
     description:
-      "Government ID verification with biometric liveness detection. OpenSanctions screening across OFAC, EU, UN, UK HMT, and DFAT.",
+      "Government ID verification with biometric liveness detection. Real-time sanctions screening across OFAC, EU, UN, UK HMT, and DFAT. UBO declaration enforced for all entities.",
   },
   {
     icon: Landmark,
-    name: "Plaid",
-    role: "Bank Account Linking",
+    name: "Institutional Bank Authentication",
+    role: "Source-of-Funds Validation",
     description:
-      "Institutional-grade account verification and balance confirmation. Source-of-funds validation against declared counterparty profiles.",
+      "Institutional-grade account verification and balance confirmation. Source-of-funds analysis mapped against declared counterparty profiles and jurisdictional risk tiers.",
   },
   {
     icon: CreditCard,
-    name: "Moov",
-    role: "Payment Rail Orchestration",
+    name: "Dual-Rail Payment Orchestration",
+    role: "Settlement Routing Engine",
     description:
-      "Dual-rail settlement routing with SHA-256 idempotency keys. Multi-rail confirmation gating before state advancement.",
+      "Multi-rail payment routing with SHA-256 idempotency keys and deterministic confirmation gating. State advancement blocked until all settlement rails confirm finality.",
   },
 ] as const;
 

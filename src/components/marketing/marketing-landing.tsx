@@ -909,7 +909,7 @@ function SovereignAssetsSection() {
               <div className="flex flex-col items-center justify-center">
                 <div className="animate-float-card">
                   <Image
-                    src="/goldwire-card.png"
+                    src="/gold-wire.png"
                     alt="Goldwire Sovereign Wealth Tier — Physical charge card rendered in brushed gold metal"
                     width={520}
                     height={330}
