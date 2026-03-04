@@ -54,7 +54,7 @@ export type StepCompletion =
 /* ---------- Step Structure ---------- */
 
 export interface StepStructureItem {
-  label: "Risk Addressed" | "Control Mechanism" | "Why It Matters";
+  label: string;
   text: string;
 }
 

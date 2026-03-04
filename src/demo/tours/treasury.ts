@@ -50,6 +50,29 @@ export const treasuryTour: TourDefinition = {
       next: { type: "manual" },
     },
     {
+      id: "treasury-funding-architecture",
+      title: "Treasury Funding Architecture",
+      body: "Phase 1 (Closed Beta) uses a Digital Stablecoin Bridge for instant clearing — corporate treasuries deposit USDC or USDT via institutional wallets, bypassing 45-day legacy bank underwriting. Toggle between 'Digital Stablecoin Bridge (Instant Beta Access)' and 'Legacy Correspondent Banking' to configure your funding architecture.",
+      structure: [
+        {
+          label: "Phase 1 — Digital Bridge",
+          text: "USDC/USDT deposits via ERC-20, TRC-20, Solana, or Base. Instant T+0 clearing.",
+        },
+        {
+          label: "Phase 2 — Legacy Wire",
+          text: "Traditional correspondent banking with 30-45 day MSB underwriting delays.",
+        },
+        {
+          label: "Why It Matters",
+          text: "The stablecoin bridge eliminates bank friction, enabling instant participation in the Goldwire network.",
+        },
+      ],
+      route: "/onboarding?demo=true",
+      target: '[data-tour="treasury-funding-toggle"]',
+      placement: "bottom",
+      next: { type: "manual" },
+    },
+    {
       id: "treasury-intraday-card",
       title: "Intraday Capital Card",
       body: "The compact intraday card shows the current breach level, control mode, ECR, and hardstop utilization at a glance. This is the treasury's real-time status indicator.",

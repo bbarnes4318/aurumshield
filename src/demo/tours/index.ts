@@ -2,14 +2,14 @@
    TOUR REGISTRY — Maps real role IDs to tour definitions
    
    Tours are keyed by the actual UserRole values:
-   buyer, seller, treasury, compliance, vault_ops, admin
+   sender, recipient, treasury, compliance, vault_ops, admin
    
    No separate demo role system.
    ================================================================ */
 
 import type { TourDefinition } from "../tour-engine/tourTypes";
-import { buyerTour } from "./buyer";
-import { sellerTour } from "./seller";
+import { senderTour } from "./sender";
+import { recipientTour } from "./recipient";
 import { opsTour } from "./ops";
 import { riskTour } from "./risk";
 import { treasuryTour } from "./treasury";
@@ -17,8 +17,10 @@ import { adminTour } from "./admin";
 
 /** Registry of all available tours, keyed by UserRole */
 export const TOUR_REGISTRY: Record<string, TourDefinition> = {
-  buyer: buyerTour,
-  seller: sellerTour,
+  buyer: senderTour,       // Legacy alias → new sender tour
+  seller: recipientTour,   // Legacy alias → new recipient tour
+  sender: senderTour,
+  recipient: recipientTour,
   vault_ops: opsTour,
   compliance: riskTour,
   treasury: treasuryTour,

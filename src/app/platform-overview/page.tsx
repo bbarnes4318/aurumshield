@@ -39,13 +39,13 @@ async function getBackCta() {
    7.  Policy & Risk Engine
    8.  Onboarding & Identity Perimeter
    9.  Passkey Authentication & Authorization
-   10. Marketplace Infrastructure
-   11. Checkout & Price-Lock Flow
+   10. Treasury On-Ramp & Stablecoin Bridge
+   11. Goldwire Execution Engine
    12. Dual-Rail Settlement
-   13. Transit Insurance & Logistics
+   13. Dual Off-Ramps: Digital Liquidation & Kinetic Redemption
    14. Document Verification & eSignature
    15. Certificate Engine
-   16. Fee Model & Pricing
+   16. The Principal Market Maker Advantage
    17. Settlement Activation Gate
    18. Security Architecture
    19. Strategic Alignment
@@ -360,13 +360,13 @@ export default async function PlatformCapabilitiesPage() {
               <li><a href="#policy-engine">7. Policy &amp; Risk Engine</a></li>
               <li><a href="#onboarding">8. Onboarding &amp; Identity</a></li>
               <li><a href="#auth">9. Authentication &amp; Authorization</a></li>
-              <li><a href="#marketplace">10. Marketplace Infrastructure</a></li>
-              <li><a href="#checkout">11. Checkout &amp; Price-Lock</a></li>
+              <li><a href="#marketplace">10. Treasury On-Ramp &amp; Stablecoin Bridge</a></li>
+              <li><a href="#checkout">11. Goldwire Execution Engine</a></li>
               <li><a href="#dual-rail">12. Dual-Rail Settlement</a></li>
-              <li><a href="#insurance-logistics">13. Insurance &amp; Logistics</a></li>
+              <li><a href="#insurance-logistics">13. Dual Off-Ramps</a></li>
               <li><a href="#document-esign">14. Document &amp; eSignature</a></li>
               <li><a href="#certificate-engine">15. Certificate Engine</a></li>
-              <li><a href="#fee-model">16. Fee Model &amp; Pricing</a></li>
+              <li><a href="#fee-model">16. Market Maker Advantage</a></li>
               <li><a href="#activation-gate">17. Activation Gate</a></li>
               <li><a href="#security">18. Tier-1 Infrastructure Hardening</a></li>
               <li><a href="#alignment">19. Strategic Alignment</a></li>
@@ -381,7 +381,7 @@ export default async function PlatformCapabilitiesPage() {
           <div className="plat-card" id="title-card">
             <h1>AurumShield Platform</h1>
             <p style={{ fontSize: "1.2rem", marginBottom: "2rem" }}>
-              Sovereign Clearing Infrastructure for Institutional Physical Gold Transactions
+              Sovereign Settlement Infrastructure: The Goldwire Network
             </p>
             <div
               style={{
@@ -907,86 +907,85 @@ export default async function PlatformCapabilitiesPage() {
             </div>
           </section>
 
-          {/* ─── 10. Marketplace Infrastructure ─── */}
+          {/* ─── 10. Treasury On-Ramp & Stablecoin Bridge ─── */}
           <section id="marketplace" className="plat-section">
-            <h2>10. Marketplace Infrastructure</h2>
+            <h2>10. Treasury On-Ramp &amp; Stablecoin Bridge</h2>
             <p>
-              The marketplace implements a strict sell-side pipeline with guided listing
-              creation, automated document verification, and deterministic publish gating.
+              AurumShield acts as the <strong>Principal Market Maker</strong>, sourcing wholesale
+              gold directly from mine originators. To bypass legacy US banking delays (30-45 days),
+              Phase 1 utilizes a <strong>digital stablecoin bridge</strong>.
+            </p>
+            <p>
+              Corporate treasuries connect Institutional Digital Wallets to deposit USDC/USDT.
+              These digital dollars are instantly routed to our OTC partners to source physical
+              liquidity, enabling <strong>T+0 operations</strong> while legacy MSB banking
+              compliance is finalized.
             </p>
 
-            <h3>Listing Readiness Rail</h3>
-            <p>
-              Sellers are guided through a readiness dashboard that surfaces every prerequisite
-              for publication — verification status, evidence completeness, and capital control
-              status — with clear remediation actions for any failing check. Draft listings
-              auto-save to prevent data loss.
-            </p>
-
-            <h3>Evidence Packing</h3>
+            <h3>Phase 1: Digital Stablecoin Bridge (Closed Beta)</h3>
             <div className="plat-engine-grid">
-              <div className="plat-engine-box">
-                <strong>1. Assay Report</strong>
-                <span>Laboratory analysis confirming purity and weight. Verified via AWS Textract OCR extraction.</span>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Institutional Wallet Connection</strong>
+                <span>Corporate treasuries onboard by connecting a whitelisted institutional custody wallet (ERC-20, TRC-20, Solana, or Base).</span>
               </div>
-              <div className="plat-engine-box">
-                <strong>2. Chain of Custody</strong>
-                <span>Documented provenance history from source to vault. Textract validates document structure.</span>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>USDC/USDT Deposit</strong>
+                <span>Stablecoin deposits are received and confirmed on-chain. OFAC screening is applied to every wallet address before clearing.</span>
               </div>
-              <div className="plat-engine-box">
-                <strong>3. Seller Attestation</strong>
-                <span>Legal declaration of ownership and authority to sell. Executed via Dropbox Sign eSignature.</span>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>OTC Liquidity Sourcing</strong>
+                <span>Digital dollars are routed to exclusive regional OTC partners for wholesale gold sourcing at institutional pricing. AurumShield captures a 4-5% sourcing spread.</span>
+              </div>
+            </div>
+
+            <h3>Phase 2: Legacy Correspondent Banking (General Availability)</h3>
+            <p>
+              Upon MSB compliance clearance, traditional USD wire deposits will be enabled
+              via our Dual-Rail Settlement infrastructure (Moov + Modern Treasury). Legacy
+              banking requires a 30-45 day underwriting period before activation.
+            </p>
+            <div className="plat-takeaway">
+              <strong>Takeaway:</strong> The stablecoin bridge eliminates institutional banking friction,
+              enabling instant participation in the Goldwire network while legacy compliance rails are built in parallel.
+            </div>
+          </section>
+
+          {/* ─── 11. Goldwire Execution Engine ─── */}
+          <section id="checkout" className="plat-section">
+            <h2>11. Goldwire Execution Engine</h2>
+            <p>
+              The <strong>Goldwire Execution Engine</strong> replaces traditional wire transfers
+              with a deterministic, cryptographically signed title transfer of vaulted gold.
+              No physical metal movement occurs — settlement achieves T+0 finality.
+            </p>
+
+            <h3>Execution Flow</h3>
+            <div className="plat-flow">
+              Input Fiat Amount → Calculate Gold Equivalent (live spot) → Dual-Auth WebAuthn → Title Reassignment → T+0 Finality
+            </div>
+            <div className="plat-engine-grid" style={{ marginTop: "1.5rem" }}>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Step 1: Target Entity</strong>
+                <span>The Treasurer selects a beneficiary entity from the pre-screened address book. Entity risk badge, LEI, jurisdiction, and KYC status are displayed.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Step 2: Settlement Parameters</strong>
+                <span>The Treasurer inputs a fiat settlement amount (e.g., $5,000,000). The engine calculates the physical gold equivalent at live institutional spot. A 1.0% Network Execution Fee is displayed in real-time along with the total treasury debit.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>Step 3: Review &amp; Dual-Authorization</strong>
+                <span>The Goldwire Execution Certificate is rendered. Upon dual-authorization by the TREASURY checker via WebAuthn, the cryptographic title of the vaulted gold is instantly reassigned to the beneficiary entity in the ledger. Zero kinetic movement. T+0 finality.</span>
               </div>
             </div>
             <p style={{ marginTop: "1rem" }}>
-              <strong>Publish Gate:</strong> A deterministic function evaluates seller
-              verification status, evidence completeness, and capital control mode before
-              allowing a listing to go live. Incomplete submissions are blocked at the code level.
-            </p>
-
-            <h3>Responsive Marketplace UI</h3>
-            <p>
-              The buyer-facing marketplace features a responsive asset grid with advanced
-              filtering (form, purity, weight range, vault location), real-time search,
-              and WCAG-compliant accessibility semantics throughout.
-            </p>
-          </section>
-
-          {/* ─── 11. Checkout & Price-Lock Flow ─── */}
-          <section id="checkout" className="plat-section">
-            <h2>11. Checkout &amp; Price-Lock Flow</h2>
-            <p>
-              The buyer checkout implements a two-step flow designed for trust-building
-              and operational clarity, instrumented with PostHog analytics for funnel
-              optimization:
-            </p>
-            <div className="plat-engine-grid">
-              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
-                <strong>Step 1: Collateral Lock &amp; Price Lock</strong>
-                <span>Multi-oracle medianized XAU/USD spot (Bloomberg B-PIPE, Refinitiv, OANDA) is displayed. Buyer{`'`}s firm must post 5% collateral from their CorporateWallet before price lock. An urgency countdown timer ensures decision velocity.</span>
-              </div>
-              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
-                <strong>Step 2: Checker Approval &amp; DvP Execution</strong>
-                <span>Fee summary and logistics confirmed. Order submitted to TREASURY (Checker) for maker-checker approval. Checker approves via JIT WebAuthn signature. Order transitions through PENDING_CHECKER_APPROVAL → APPROVED_UNSETTLED → SETTLEMENT_PENDING.</span>
-              </div>
-            </div>
-            <p>
               <strong>Multi-Oracle Pricing:</strong> Gold spot prices are sourced concurrently
               from Bloomberg B-PIPE, Refinitiv, and OANDA, then medianized. A 15 bps
-              divergence circuit breaker triggers a FREEZE state, halting all price locks until
+              divergence circuit breaker triggers a FREEZE state, halting all title transfers until
               feed reconciliation.
             </p>
-            <p>
-              <strong>Collateral Enforcement:</strong> LOCK_PRICE requires a verified 5% collateral
-              hold from the firm{`'`}s CorporateWallet. If a T+1 wire fails, the state machine
-              transitions to <span className="plat-code">SLASH_COLLATERAL</span> — penalizing the
-              defaulting organization.
-            </p>
-            <p>
-              <strong>Analytics Instrumentation:</strong> Each checkout step emits structured
-              events to PostHog — enabling funnel analysis, abandonment tracking, and
-              conversion optimization without ever blocking user interactions.
-            </p>
+            <div className="plat-takeaway">
+              <strong>Takeaway:</strong> A Goldwire is not a wire transfer — it is a deterministic, cryptographically signed reassignment of allocated gold title. Settlement finality is computational and achieves T+0.
+            </div>
           </section>
 
           {/* ─── 12. Dual-Rail Settlement ─── */}
@@ -1049,13 +1048,22 @@ export default async function PlatformCapabilitiesPage() {
             </p>
           </section>
 
-          {/* ─── 13. Transit Insurance & Logistics ─── */}
+          {/* ─── 13. Dual Off-Ramps: Digital Liquidation & Kinetic Redemption ─── */}
           <section id="insurance-logistics" className="plat-section">
-            <h2>13. Transit Insurance &amp; Logistics</h2>
+            <h2>13. Dual Off-Ramps: Digital Liquidation &amp; Kinetic Redemption</h2>
             <p>
-              Physical gold settlement requires insured transit. AurumShield implements
-              an actuarial insurance engine and a multi-tier logistics pipeline.
+              AurumShield provides two deterministic off-ramps for network recipients:
             </p>
+            <div className="plat-engine-grid" style={{ marginBottom: "2rem" }}>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--success)" }}>
+                <strong>1. API Fiat Liquidation</strong>
+                <span>Recipients can execute an automated sell-order via our Exclusive Regional Liquidity Partners (e.g., Dubai Refineries), who instantly wire local fiat or USDC. AurumShield captures a ~0.9% off-ramp arbitrage spread on every liquidation.</span>
+              </div>
+              <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
+                <strong>2. Sovereign Kinetic Redemption</strong>
+                <span>If a beneficiary elects to take physical possession, the platform initiates our heavily fortified logistics pipeline backed by actuarial insurance and sovereign-grade armored transport.</span>
+              </div>
+            </div>
 
             <h3>Actuarial Insurance Engine</h3>
             <p>
@@ -1188,40 +1196,56 @@ export default async function PlatformCapabilitiesPage() {
             </div>
           </section>
 
-          {/* ─── 16. Fee Model & Pricing ─── */}
+          {/* ─── 16. The Principal Market Maker Advantage ─── */}
           <section id="fee-model" className="plat-section">
-            <h2>16. Fee Model &amp; Pricing</h2>
+            <h2>16. The Principal Market Maker Advantage</h2>
             <p>
-              AurumShield{`'`}s revenue model is anchored by a single, transparent core fee:
-              the <strong>indemnification fee</strong>. This is the price counterparties pay
-              for fraud-indemnified, capital-backed clearing.
+              AurumShield operates exclusively as a <strong>Principal Market Maker</strong> — vertically
+              integrated with mine originators — capturing massive, multi-layered spreads across
+              every transaction lifecycle.
             </p>
 
-            <h3>Core Indemnification Fee: 1% of Notional</h3>
-            <div className="plat-callout">
-              <span className="plat-callout-title">Core Fee: 1% of Transaction Notional Value</span>
-              Applied to every cleared transaction. This fee activates AurumShield{`'`}s
-              fraud indemnification guarantee — backed by the platform{`'`}s clearing capital reserve.
-              Subject to configurable minimum ($250) and maximum ($50,000) thresholds.
+            <h3>Revenue Architecture</h3>
+            <div className="plat-table-wrap">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "30%" }}>Revenue Layer</th>
+                    <th style={{ width: "20%" }}>Margin</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Sourcing Spread</strong></td>
+                    <td><span className="plat-status-success">~4.0% – 5.0%</span></td>
+                    <td>Discount captured by buying wholesale directly from partner mine originators and selling at institutional spot.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Network Execution Fee</strong></td>
+                    <td><span className="plat-status-success">1.0% flat</span></td>
+                    <td>Routing fee applied to every Goldwire title transfer. Frozen into the settlement record at execution.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Off-Ramp Arbitrage</strong></td>
+                    <td><span className="plat-status-success">~0.9%</span></td>
+                    <td>Spread captured upon automated liquidation to regional OTC refining desks (e.g., Dubai Refineries).</td>
+                  </tr>
+                  <tr style={{ borderTop: "2px solid var(--gold)" }}>
+                    <td><strong style={{ color: "var(--gold)" }}>Total Blended Margin</strong></td>
+                    <td><strong style={{ color: "var(--gold)" }}>~6.0%+</strong></td>
+                    <td><strong style={{ color: "var(--gold)" }}>Per transaction, across the full settlement lifecycle.</strong></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <p>
-              Fees are <strong>frozen into the settlement record at activation</strong>.
-              Active settlements retain their fee snapshot even if rates are subsequently adjusted.
-            </p>
-            <p>
-              <strong>Real-Time Pricing Basis:</strong> Notional values are computed from
-              OANDA XAU/USD spot prices with LBMA AM/PM reference prices available as
-              institutional benchmarks. Price feeds update at configurable intervals for
-              transparent, market-aligned fee computation.
-            </p>
 
-            <h3>Optional Add-On Services</h3>
-            <ul>
-              <li><strong>Expedited Settlement:</strong> Priority processing for time-sensitive transactions.</li>
-              <li><strong>Transit Insurance:</strong> Actuarial-priced coverage (Standard / Enhanced / All-Risk) computed by the insurance engine.</li>
-              <li><strong>Regulatory Reporting:</strong> Automated compliance report generation.</li>
-              <li><strong>Optional Clearing Charge:</strong> Configurable per-transaction processing charge, if applicable.</li>
-            </ul>
+            <div className="plat-callout">
+              <span className="plat-callout-title">Why This Matters</span>
+              Unlike brokerage or marketplace models that capture a single commission layer,
+              AurumShield{`'`}s vertical integration captures revenue on sourcing, routing, and
+              liquidation — making every Goldwire a triple-monetization event.
+            </div>
           </section>
 
           {/* ─── 17. Settlement Activation Gate ─── */}
@@ -1525,12 +1549,12 @@ export default async function PlatformCapabilitiesPage() {
             </p>
             <div className="plat-engine-grid">
               <div className="plat-engine-box">
-                <strong>Buyer Tour</strong>
-                <span>Marketplace → Price-Lock → Checkout → Verify → Settle → Certificate → Delivery</span>
+                <strong>Sender Tour (Execute Goldwire)</strong>
+                <span>Target Entity → Settlement Parameters → Gold Calculation → Review Certificate → Sign &amp; Execute</span>
               </div>
               <div className="plat-engine-box">
-                <strong>Seller Tour</strong>
-                <span>Readiness Rail → Listing Wizard → Evidence Upload → eSign → Publish → Settlement → Certificate</span>
+                <strong>Recipient Tour (Liquidate to Fiat)</strong>
+                <span>Settlement Ledger → Liquidation Panel → Live OTC Bid → Payout Destination → Liquidate &amp; Route Funds</span>
               </div>
               <div className="plat-engine-box">
                 <strong>Admin Tour</strong>
@@ -1550,7 +1574,7 @@ export default async function PlatformCapabilitiesPage() {
 
       {/* ─── Footer ─── */}
       <footer className="plat-footer">
-        <p>AurumShield — Sovereign Clearing Infrastructure for Institutional Physical Gold Transactions</p>
+        <p>AurumShield — Sovereign Settlement Infrastructure: The Goldwire Network</p>
         <p>© 2026 AurumShield. All rights reserved.</p>
       </footer>
     </div>
