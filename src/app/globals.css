@@ -684,6 +684,20 @@ body.presentation-mode .typo-mono {
   animation: pulseRing 1.8s ease-out infinite;
 }
 
+/* ── Goldwire Card Floating Animation ── */
+@keyframes floatCard {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.animate-float-card {
+  animation: floatCard 5s ease-in-out infinite;
+}
+
 /* ----------------------------------------------------------------
    16. MARKETING LANDING PAGE — Utility Classes
    ----------------------------------------------------------------

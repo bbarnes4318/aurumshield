@@ -838,7 +838,7 @@ function VaultDivider() {
 function SovereignAssetsSection() {
   return (
     <section className="py-24 lg:py-32" style={{ backgroundColor: "#070B16" }}>
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-6xl px-6">
         {/* ── Ultra-premium panel ── */}
         <div className="relative border border-gold/20 rounded-md overflow-hidden bg-[#080C18] shadow-[0_0_60px_-15px_rgba(198,168,107,0.06)]">
           {/* Corner accents */}
@@ -849,56 +849,82 @@ function SovereignAssetsSection() {
 
           {/* Panel content */}
           <div className="relative px-8 py-12 sm:px-14 sm:py-16 lg:px-20 lg:py-20">
-            {/* Eyebrow */}
-            <div className="flex items-center gap-4 mb-6">
-              <ShieldCheck className="h-5 w-5 text-gold/70" />
-              <div className="h-px w-8 bg-gold/40" />
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-gold/70">
-                PRIVATE CLIENT ADVISORY
-              </p>
-            </div>
-
-            <h2 className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-bold tracking-tight text-white max-w-2xl leading-tight">
-              Sovereign Asset Acquisition.
-            </h2>
-
-            <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-gray-400">
-              Because AurumShield is vertically integrated directly with vetted gold mine originators, institutional treasuries bypass fractional broker markups. The Goldwire network provides direct access to sovereign-grade, wholesale physical liquidity.
-            </p>
-
-            {/* Divider */}
-            <div className="my-10 h-px w-full bg-gradient-to-r from-gold/20 via-gold/10 to-transparent" />
-
-            {/* Feature bullets */}
-            <div className="grid gap-4 sm:grid-cols-2 mb-10">
-              {[
-                "Direct mine originator access",
-                "Full geological due diligence",
-                "Title transfer & sovereign vaulting",
-                "Institutional-grade legal structuring",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <CheckCircle className="h-4 w-4 text-gold/60 shrink-0" />
-                  <span className="text-sm text-gray-300">{item}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              {/* ── Left Column: Copy ── */}
+              <div>
+                {/* Eyebrow */}
+                <div className="flex items-center gap-4 mb-6">
+                  <ShieldCheck className="h-5 w-5 text-gold/70" />
+                  <div className="h-px w-8 bg-gold/40" />
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-gold/70">
+                    PRIVATE CLIENT ADVISORY
+                  </p>
                 </div>
-              ))}
-            </div>
 
-            {/* High-friction CTA */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a
-                href={`${APP_URL}/signup`}
-                className="inline-flex items-center justify-center gap-3 rounded-md border border-gold/60 px-10 py-4 text-sm font-bold text-gold uppercase tracking-wider transition-all duration-300 hover:bg-gold/10 hover:border-gold hover:shadow-[0_0_20px_rgba(198,168,107,0.1)]"
-              >
-                Inquire for Private Deal Flow
-                <ArrowRight className="h-4 w-4" />
-              </a>
-              <a
-                href={`${APP_URL}/signup`}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-700 px-8 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider transition-all duration-300 hover:border-gray-500 hover:text-gray-200"
-              >
-                Request Institutional Access
-              </a>
+                <h2 className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-bold tracking-tight text-white max-w-2xl leading-tight">
+                  Sovereign Asset Acquisition.
+                </h2>
+
+                <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-gray-400">
+                  Because AurumShield is vertically integrated directly with vetted gold mine originators, institutional treasuries bypass fractional broker markups. The Goldwire network provides direct access to sovereign-grade, wholesale physical liquidity.
+                </p>
+
+                {/* Divider */}
+                <div className="my-10 h-px w-full bg-gradient-to-r from-gold/20 via-gold/10 to-transparent" />
+
+                {/* Feature bullets */}
+                <div className="grid gap-4 sm:grid-cols-2 mb-10">
+                  {[
+                    "Direct mine originator access",
+                    "Full geological due diligence",
+                    "Title transfer & sovereign vaulting",
+                    "Institutional-grade legal structuring",
+                  ].map((item) => (
+                    <div key={item} className="flex items-center gap-3">
+                      <CheckCircle className="h-4 w-4 text-gold/60 shrink-0" />
+                      <span className="text-sm text-gray-300">{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* High-friction CTA */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <a
+                    href={`${APP_URL}/signup`}
+                    className="inline-flex items-center justify-center gap-3 rounded-md border border-gold/60 px-10 py-4 text-sm font-bold text-gold uppercase tracking-wider transition-all duration-300 hover:bg-gold/10 hover:border-gold hover:shadow-[0_0_20px_rgba(198,168,107,0.1)]"
+                  >
+                    Inquire for Private Deal Flow
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                  <a
+                    href={`${APP_URL}/signup`}
+                    className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-700 px-8 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider transition-all duration-300 hover:border-gray-500 hover:text-gray-200"
+                  >
+                    Request Institutional Access
+                  </a>
+                </div>
+              </div>
+
+              {/* ── Right Column: Floating Goldwire Card ── */}
+              <div className="flex flex-col items-center justify-center">
+                <div className="animate-float-card">
+                  <Image
+                    src="/goldwire-card.png"
+                    alt="Goldwire Sovereign Wealth Tier — Physical charge card rendered in brushed gold metal"
+                    width={520}
+                    height={330}
+                    className="w-full max-w-[420px] lg:max-w-[520px] h-auto drop-shadow-2xl"
+                    priority={false}
+                  />
+                </div>
+                {/* Gold ambient glow beneath card */}
+                <div
+                  className="mt-4 w-[70%] h-6 rounded-full opacity-60 blur-xl"
+                  style={{
+                    background: "radial-gradient(ellipse, rgba(198,168,107,0.35) 0%, transparent 70%)",
+                  }}
+                />
+              </div>
             </div>
           </div>
 
