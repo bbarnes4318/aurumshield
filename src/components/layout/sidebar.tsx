@@ -3,11 +3,12 @@
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect } from "react";
 import {
-  Activity,
-  BarChart2,
-  RefreshCw,
+  LayoutDashboard,
+  Building2,
+  Send,
+  ListTree,
   Shield,
-  Globe,
+  FileCheck,
   ChevronLeft,
   ChevronRight,
   X,
@@ -28,11 +29,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Command Center",       href: "/trading-desk",              icon: Activity   },
-  { label: "Execution Desk",       href: "/trading-desk/execution",    icon: BarChart2  },
-  { label: "Clearing & Settlement",href: "/trading-desk/settlements",  icon: RefreshCw  },
-  { label: "Sovereign Logistics",  href: "/trading-desk/logistics",    icon: Shield     },
-  { label: "Counterparty Network", href: "/trading-desk/network",      icon: Globe      },
+  { label: "Command Center",      href: "/dashboard",          icon: LayoutDashboard },
+  { label: "Treasury Desk",       href: "/treasury",           icon: Building2       },
+  { label: "Execute Goldwire",    href: "/transactions/new",   icon: Send            },
+  { label: "Settlement Ledger",   href: "/transactions",       icon: ListTree        },
+  { label: "Sovereign Vault",     href: "/vault",              icon: Shield          },
+  { label: "Compliance & Audit",  href: "/audit",              icon: FileCheck       },
 ];
 
 /* ================================================================
@@ -54,8 +56,8 @@ function SidebarNav({
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive =
-            item.href === "/trading-desk"
-              ? pathname === "/trading-desk"
+            item.href === "/dashboard"
+              ? pathname === "/dashboard"
               : pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
