@@ -116,7 +116,34 @@ export const stepKYBEntitySchema = z.object({
 });
 
 /* ----------------------------------------------------------------
-   Step 8: Verification Complete (no additional validation)
+   Step 8: Treasury Funding Architecture
+   ----------------------------------------------------------------
+   Phase 1 (Closed Beta): Stablecoin bridge for instant clearing.
+   Phase 2 (General Availability): Legacy correspondent banking.
+   ---------------------------------------------------------------- */
+export const stepTreasuryFundingSchema = z.object({
+  fundingMethod: z.enum(["digital_stablecoin", "legacy_wire"], {
+    message: "Select a funding method",
+  }),
+  /* —— Digital Stablecoin fields (Phase 1) —— */
+  walletAddress: z.string().optional(),
+  walletNetwork: z
+    .enum(["ERC-20 (Ethereum)", "TRC-20 (Tron)", "Solana", "Base"], {
+      message: "Select a blockchain network",
+    })
+    .optional(),
+  stablecoinAsset: z
+    .enum(["USDC", "USDT"], { message: "Select a stablecoin asset" })
+    .optional(),
+  /* —— Legacy Wire fields (Phase 2) —— */
+  bankName: z.string().optional(),
+  bankRoutingNumber: z.string().optional(),
+  bankAccountNumber: z.string().optional(),
+  bankSwiftCode: z.string().optional(),
+});
+
+/* ----------------------------------------------------------------
+   Step 9: Verification Complete (no additional validation)
    ---------------------------------------------------------------- */
 export const stepVerificationCompleteSchema = z.object({
   verificationAcknowledged: z.literal(true, {
@@ -134,6 +161,7 @@ export const onboardingSchema = stepEntityRegistrationSchema
   .merge(stepMakerCheckerSchema)
   .merge(stepDocuSignSchema)
   .merge(stepKYBEntitySchema)
+  .merge(stepTreasuryFundingSchema)
   .merge(stepVerificationCompleteSchema);
 
 /* ----------------------------------------------------------------
@@ -146,6 +174,7 @@ export type StepTOTPEnrollmentData = z.infer<typeof stepTOTPEnrollmentSchema>;
 export type StepMakerCheckerData = z.infer<typeof stepMakerCheckerSchema>;
 export type StepDocuSignData = z.infer<typeof stepDocuSignSchema>;
 export type StepKYBEntityData = z.infer<typeof stepKYBEntitySchema>;
+export type StepTreasuryFundingData = z.infer<typeof stepTreasuryFundingSchema>;
 export type StepVerificationCompleteData = z.infer<typeof stepVerificationCompleteSchema>;
 export type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
@@ -190,6 +219,11 @@ export const ONBOARDING_STEPS = [
   },
   {
     id: 8,
+    label: "Treasury",
+    fields: ["fundingMethod", "walletAddress", "walletNetwork", "stablecoinAsset", "bankName", "bankRoutingNumber", "bankAccountNumber", "bankSwiftCode"] as const,
+  },
+  {
+    id: 9,
     label: "Complete",
     fields: ["verificationAcknowledged"] as const,
   },
