@@ -428,14 +428,24 @@ function ExposureSection() {
 
             <div className="mt-8 space-y-3">
               {[
-                { prefix: "Bilateral trust requirements:", suffix: "Eliminated." },
-                { prefix: "Asset reconciliation:", suffix: "Instant & Absolute." },
-                { prefix: "Counterparty default risk:", suffix: "Mathematically Zero." },
+                {
+                  prefix: "Bilateral trust requirements:",
+                  suffix: "Eliminated.",
+                },
+                {
+                  prefix: "Asset reconciliation:",
+                  suffix: "Instant & Absolute.",
+                },
+                {
+                  prefix: "Counterparty default risk:",
+                  suffix: "Mathematically Zero.",
+                },
               ].map((item) => (
                 <div key={item.prefix} className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-gold mt-0.5 shrink-0" />
                   <span className="text-base text-gray-200">
-                    {item.prefix} <strong className="text-white">{item.suffix}</strong>
+                    {item.prefix}{" "}
+                    <strong className="text-white">{item.suffix}</strong>
                   </span>
                 </div>
               ))}
@@ -469,7 +479,10 @@ function GoldwireArchitectureSection() {
             Instant Fiat-to-Fiat Settlement via Physical Gold.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-gray-300 max-w-2xl">
-            We have vertically integrated the entire physical supply chain. You deposit fiat, we source wholesale bullion, execute a digital title transfer, and liquidate it in the target jurisdiction. Zero legacy banking friction.
+            We have vertically integrated the entire physical supply chain. You
+            deposit fiat, we source wholesale bullion, execute a digital title
+            transfer, and liquidate it in the target jurisdiction. Zero legacy
+            banking friction.
           </p>
         </div>
 
@@ -478,27 +491,42 @@ function GoldwireArchitectureSection() {
             <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
               <span className="font-mono font-bold text-gold">01</span>
             </div>
-            <h3 className="text-lg font-bold text-white mb-3">Wholesale Sourcing</h3>
+            <h3 className="text-lg font-bold text-white mb-3">
+              Wholesale Sourcing
+            </h3>
             <p className="text-sm leading-relaxed text-slate-400">
-              Users wire USD to our master treasury. We instantly purchase physical gold directly from vetted mine originators, capturing wholesale spreads and allocating sovereign-grade bullion at Malca-Amit.
+              Users wire USD to our master treasury. We instantly purchase
+              physical gold directly from vetted mine originators, capturing
+              wholesale spreads and allocating sovereign-grade bullion at
+              Malca-Amit.
             </p>
           </div>
           <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
             <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
               <span className="font-mono font-bold text-gold">02</span>
             </div>
-            <h3 className="text-lg font-bold text-white mb-3">Deterministic Transfer</h3>
+            <h3 className="text-lg font-bold text-white mb-3">
+              Deterministic Transfer
+            </h3>
             <p className="text-sm leading-relaxed text-slate-400">
-              The Goldwire protocol executes the transfer. Our engine cryptographically reassigns the legal title of the physical metal inside the vault in under 10 seconds. Physical transport is never required.
+              The Goldwire protocol executes the transfer. Our engine
+              cryptographically reassigns the legal title of the physical metal
+              inside the vault in under 10 seconds. Physical transport is never
+              required.
             </p>
           </div>
           <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
             <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
               <span className="font-mono font-bold text-gold">03</span>
             </div>
-            <h3 className="text-lg font-bold text-white mb-3">Local Liquidation</h3>
+            <h3 className="text-lg font-bold text-white mb-3">
+              Local Liquidation
+            </h3>
             <p className="text-sm leading-relaxed text-slate-400">
-              The recipient clicks liquidate. Our API automatically sells the gold to our regional OTC Liquidity Partners (e.g., in Dubai), who instantly wire local fiat directly to the recipient&apos;s corporate account.
+              The recipient clicks liquidate. Our API automatically sells the
+              gold to our regional OTC Liquidity Partners (e.g., in Dubai), who
+              instantly wire local fiat directly to the recipient&apos;s
+              corporate account.
             </p>
           </div>
         </div>
@@ -527,10 +555,11 @@ function ArchitectureSection() {
               Military-Grade Settlement Infrastructure
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-              The Goldwire network interposes as the central counterparty between buyers
-              and sellers. The platform provides two primary access vectors: a
-              full-featured institutional web application and a programmatic
-              REST API for integration into existing trading systems.
+              The Goldwire network interposes as the central counterparty
+              between buyers and sellers. The platform provides two primary
+              access vectors: a full-featured institutional web application and
+              a programmatic REST API for integration into existing trading
+              systems.
             </p>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Both interfaces connect to the same deterministic settlement
@@ -827,7 +856,11 @@ function VaultDivider() {
     <div className="w-full h-[400px] relative overflow-hidden border-y border-white/10">
       <div className="absolute inset-0 bg-slate-950/60 z-10"></div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/vault-divider-bg.png" alt="Vault Infrastructure" className="absolute inset-0 w-full h-full object-cover grayscale opacity-50 z-0" />
+      <img
+        src="/vault-divider-bg.png"
+        alt="Vault Infrastructure"
+        className="absolute inset-0 w-full h-full object-cover grayscale opacity-50 z-0"
+      />
     </div>
   );
 }
@@ -863,7 +896,11 @@ function SovereignAssetsSection() {
             </h2>
 
             <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-gray-400">
-              Because AurumShield is vertically integrated directly with vetted gold mine originators, institutional treasuries bypass fractional broker markups entirely. The Goldwire network provides direct, unlimited access to sovereign-grade, wholesale physical liquidity at the source.
+              Because AurumShield is vertically integrated directly with vetted
+              gold mine originators, institutional treasuries bypass fractional
+              broker markups entirely. The Goldwire network provides direct,
+              unlimited access to sovereign-grade, wholesale physical liquidity
+              at the source.
             </p>
 
             {/* Divider */}
@@ -905,7 +942,8 @@ function SovereignAssetsSection() {
           {/* Classification footer */}
           <div className="border-t border-gold/10 bg-gold/[0.02] px-8 sm:px-14 lg:px-20 py-4">
             <p className="font-mono text-[10px] text-gold/40 tracking-wider uppercase">
-              This offering is restricted to qualified institutional investors and sovereign wealth entities.
+              This offering is restricted to qualified institutional investors
+              and sovereign wealth entities.
             </p>
           </div>
         </div>
@@ -925,7 +963,6 @@ function GoldwireCardSection() {
 
       <div className="mx-auto max-w-7xl px-6 relative z-10">
         <div className="bg-[#0B0E14] border border-slate-800 rounded-3xl p-8 lg:p-16 shadow-2xl overflow-hidden relative">
-
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10">
             {/* Left Column: The Copy */}
             <div>
@@ -936,13 +973,15 @@ function GoldwireCardSection() {
                 </p>
               </div>
               <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold tracking-tight text-white leading-tight mb-6">
-                Physical Sovereignty.<br />
+                Physical Sovereignty.
+                <br />
                 <span className="text-gray-400">Digital Velocity.</span>
               </h2>
               <p className="text-lg leading-relaxed text-gray-300 mb-8">
-                Anchor your digital settlement network in undeniable physical reality. The
-                Goldwire Corporate Card allows institutional treasuries to instantly
-                liquidate vaulted bullion to local fiat at any point of sale globally.
+                Anchor your digital settlement network in undeniable physical
+                reality. The Goldwire Corporate Card allows institutional
+                treasuries to instantly liquidate vaulted bullion to local fiat
+                at any point of sale globally.
               </p>
 
               <ul className="space-y-4 mb-10">
@@ -983,9 +1022,8 @@ function GoldwireCardSection() {
                     100% { transform: translateY(0px); }
                   }
                 `}</style>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/gold-wire.png"
+                  src="/goldwire-card.png"
                   alt="Goldwire Corporate Card"
                   className="w-full h-auto drop-shadow-[0_25px_35px_rgba(0,0,0,0.8)] relative z-10"
                 />
@@ -1208,6 +1246,7 @@ export function MarketingLanding() {
 
       <GoldwireArchitectureSection />
       <SettlementLifecycleSection />
+      <GoldwireCardSection />
 
       {/* ── Live Engine Telemetry ── */}
       <section className="py-16 lg:py-24 bg-[#0A1128] border-b border-slate-800/50 relative">
@@ -1225,8 +1264,8 @@ export function MarketingLanding() {
               Deterministic Settlement. Zero Counterparty Risk.
             </h2>
             <p className="text-gray-300 text-sm md:text-base leading-relaxed text-left">
-              Trust is a liability in physical markets. Watch our clearing engine
-              in real-time as it locks capital, verifies sovereign vault
+              Trust is a liability in physical markets. Watch our clearing
+              engine in real-time as it locks capital, verifies sovereign vault
               provenance, and executes a flawless Delivery-versus-Payment (DvP)
               swap with absolute finality.
             </p>
@@ -1243,7 +1282,6 @@ export function MarketingLanding() {
       <ComplianceSection />
       <ComplianceGate />
       <SovereignAssetsSection />
-      <GoldwireCardSection />
       <FinalCTA />
       <SiteFooter />
     </div>
