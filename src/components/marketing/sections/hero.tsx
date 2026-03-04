@@ -41,12 +41,13 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="flex items-center gap-4 mb-6"
+            className="mb-6 lg:mb-8 flex justify-center lg:justify-start"
           >
-            <div className="h-px w-8 bg-gold/50" />
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-              SOVEREIGN SETTLEMENT INFRASTRUCTURE
-            </p>
+            <img 
+              src="/goldwire-logo.svg" 
+              alt="Goldwire Protocol" 
+              className="h-12 md:h-14 lg:h-16 w-auto drop-shadow-lg" 
+            />
           </motion.div>
 
           <motion.h1
