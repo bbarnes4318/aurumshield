@@ -1,47 +1,51 @@
 import { z } from "zod";
 
+/* ================================================================
+   GOLDWIRE SETTLEMENT WIZARD — Schema & State Machine
+   ================================================================
+   3-step flow: Target Entity → Settlement Parameters → Review & Sign
+   ================================================================ */
+
 export const step1Schema = z.object({
-  counterpartyId: z.string().min(1, "Select a counterparty"),
-  amount: z.number({ error: "Enter a valid amount" }).positive("Amount must be positive"),
-  currency: z.string().min(3, "Select a currency").max(3),
-  type: z.enum(["wire", "swift", "settlement", "collateral", "margin-call", "dividend"]),
+  beneficiaryEntityId: z.string().min(1, "Select a beneficiary entity"),
 });
 
 export const step2Schema = z.object({
-  corridorId: z.string().min(1, "Select a corridor"),
-  hubId: z.string().min(1, "Select a hub"),
+  fiatSettlementAmount: z
+    .number({ error: "Enter a valid settlement amount" })
+    .positive("Amount must be positive"),
+  memo: z.string().optional(),
 });
 
-export const step4Schema = z.object({
-  description: z.string().min(10, "Description must be at least 10 characters"),
+export const step3Schema = z.object({
+  referenceCode: z.string().min(4, "Reference code must be at least 4 characters"),
 });
 
-export const wizardSchema = step1Schema.merge(step2Schema).merge(step4Schema);
+export const wizardSchema = step1Schema.merge(step2Schema).merge(step3Schema);
 export type WizardFormData = z.infer<typeof wizardSchema>;
 
-export const STEP1_FIELDS: (keyof WizardFormData)[] = ["counterpartyId", "amount", "currency", "type"];
-export const STEP2_FIELDS: (keyof WizardFormData)[] = ["corridorId", "hubId"];
-export const STEP4_FIELDS: (keyof WizardFormData)[] = ["description"];
+export const STEP1_FIELDS: (keyof WizardFormData)[] = ["beneficiaryEntityId"];
+export const STEP2_FIELDS: (keyof WizardFormData)[] = ["fiatSettlementAmount"];
+export const STEP3_FIELDS: (keyof WizardFormData)[] = ["referenceCode"];
 
-export type WizardMachineState = "DRAFT" | "PARTIES_VALID" | "CORRIDOR_VALID" | "COMPLIANCE_PASSED" | "READY_TO_CREATE";
+/* ── State Machine ── */
+
+export type WizardMachineState = "TARGET" | "PARAMETERS" | "REVIEW";
 
 export type WizardAction =
-  | { type: "VALIDATE_PARTIES" }
-  | { type: "VALIDATE_CORRIDOR" }
-  | { type: "PASS_COMPLIANCE" }
-  | { type: "VALIDATE_REVIEW" }
-  | { type: "EDIT"; target: "DRAFT" | "PARTIES_VALID" };
+  | { type: "VALIDATE_TARGET" }
+  | { type: "VALIDATE_PARAMETERS" }
+  | { type: "EXECUTE" }
+  | { type: "EDIT"; target: WizardMachineState };
 
 export function wizardReducer(state: WizardMachineState, action: WizardAction): WizardMachineState {
   switch (action.type) {
-    case "VALIDATE_PARTIES":
-      return state === "DRAFT" ? "PARTIES_VALID" : state;
-    case "VALIDATE_CORRIDOR":
-      return state === "PARTIES_VALID" ? "CORRIDOR_VALID" : state;
-    case "PASS_COMPLIANCE":
-      return state === "CORRIDOR_VALID" ? "COMPLIANCE_PASSED" : state;
-    case "VALIDATE_REVIEW":
-      return state === "COMPLIANCE_PASSED" ? "READY_TO_CREATE" : state;
+    case "VALIDATE_TARGET":
+      return state === "TARGET" ? "PARAMETERS" : state;
+    case "VALIDATE_PARAMETERS":
+      return state === "PARAMETERS" ? "REVIEW" : state;
+    case "EXECUTE":
+      return state; // handled externally
     case "EDIT":
       return action.target;
     default:
@@ -50,5 +54,7 @@ export function wizardReducer(state: WizardMachineState, action: WizardAction): 
 }
 
 export const STATE_TO_STEP: Record<WizardMachineState, number> = {
-  DRAFT: 1, PARTIES_VALID: 2, CORRIDOR_VALID: 3, COMPLIANCE_PASSED: 4, READY_TO_CREATE: 4,
+  TARGET: 1,
+  PARAMETERS: 2,
+  REVIEW: 3,
 };
