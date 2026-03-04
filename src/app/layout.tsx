@@ -4,6 +4,7 @@ import {
   Source_Serif_4,
   Inter,
   JetBrains_Mono,
+  Outfit,
 } from "next/font/google";
 import { Suspense } from "react";
 import { ClerkWrapper } from "@/providers/clerk-wrapper";
@@ -48,6 +49,13 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-outfit",
+  display: "swap",
+});
+
 /* ----------------------------------------------------------------
    METADATA
    ---------------------------------------------------------------- */
@@ -80,7 +88,7 @@ export default function RootLayout({
       <html
         lang="en"
         suppressHydrationWarning
-        className={`${ibmPlexSans.variable} ${sourceSerif.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+        className={`${ibmPlexSans.variable} ${sourceSerif.variable} ${inter.variable} ${jetbrainsMono.variable} ${outfit.variable}`}
       >
         <body className="font-sans antialiased">
           <ChunkErrorRecovery />
