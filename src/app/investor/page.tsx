@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { GoldwireBrandLogo } from "@/components/ui/goldwire-logo";
+import { Navigation } from "@/components/marketing/marketing-landing";
 
 /* ================================================================
    GOLDWIRE — Investor One-Sheet
@@ -18,6 +19,7 @@ export const metadata = {
 export default function InvestorOneSheet() {
   return (
     <div className="inv-page">
+      <Navigation />
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -47,22 +49,24 @@ export default function InvestorOneSheet() {
         /* ── Hero Banner ── */
         .inv-hero {
           position: relative;
-          padding: 5rem 2rem 4rem;
-          text-align: center;
+          padding: 7rem 2rem 4rem;
+          text-align: left;
           overflow: hidden;
           border-bottom: 1px solid var(--border);
           background: 
-            radial-gradient(ellipse at 50% 0%, rgba(198,168,107,0.08) 0%, transparent 60%),
+            radial-gradient(ellipse at 20% 0%, rgba(198,168,107,0.08) 0%, transparent 60%),
             var(--bg);
+          max-width: 1100px;
+          margin: 0 auto;
         }
         .inv-hero::after {
           content: '';
           position: absolute;
           bottom: 0;
-          left: 10%;
-          right: 10%;
+          left: 0;
+          right: 40%;
           height: 1px;
-          background: linear-gradient(90deg, transparent, var(--gold), transparent);
+          background: linear-gradient(90deg, var(--gold), transparent);
           opacity: 0.3;
         }
         .inv-hero-badge {
@@ -102,7 +106,7 @@ export default function InvestorOneSheet() {
           font-size: 1.1rem;
           color: var(--muted);
           max-width: 600px;
-          margin: 0 auto;
+          margin: 0;
           line-height: 1.7;
         }
 
@@ -486,7 +490,7 @@ export default function InvestorOneSheet() {
           ════════════════════════════════════════════ */}
       <header className="inv-hero">
         <div className="inv-hero-badge">Confidential — Investor Distribution Only</div>
-        <GoldwireBrandLogo className="mb-8 justify-center" />
+        <GoldwireBrandLogo className="mb-8" />
         <h1>
           Instant Cross-Border Settlement<br />
           <span>Powered by Physical Gold.</span>
@@ -663,10 +667,10 @@ export default function InvestorOneSheet() {
             </div>
           </div>
           <div className="inv-rev-card">
-            <h3>Revenue Detail</h3>
+            <h3 style={{ color: "var(--text)" }}>Revenue Detail</h3>
             <div className="inv-rev-row">
               <span style={{ fontSize: "0.8125rem", lineHeight: 1.5 }}>
-                <strong style={{ color: "var(--gold-light)" }}>Mine-to-Market Spread:</strong>{" "}
+                <strong style={{ color: "var(--text)" }}>Mine-to-Market Spread:</strong>{" "}
                 We source physical supply directly from mine originators at a severe wholesale
                 discount and sell to the buyer at institutional spot prices — capturing a
                 massive ~4.0% to 5.0% spread on every fiat on-ramp.
@@ -674,14 +678,14 @@ export default function InvestorOneSheet() {
             </div>
             <div className="inv-rev-row">
               <span style={{ fontSize: "0.8125rem", lineHeight: 1.5 }}>
-                <strong style={{ color: "var(--gold-light)" }}>Network Execution Fee:</strong>{" "}
+                <strong style={{ color: "var(--text)" }}>Network Execution Fee:</strong>{" "}
                 A flat <strong>1.0%</strong> routing fee applied to every Goldwire title
                 transfer on the platform.
               </span>
             </div>
             <div className="inv-rev-row">
               <span style={{ fontSize: "0.8125rem", lineHeight: 1.5 }}>
-                <strong style={{ color: "var(--gold-light)" }}>Off-Ramp Arbitrage:</strong>{" "}
+                <strong style={{ color: "var(--text)" }}>Off-Ramp Arbitrage:</strong>{" "}
                 An additional ~0.9% spread captured upon automated liquidation to our
                 regional OTC refining desks.
               </span>

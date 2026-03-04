@@ -47,7 +47,7 @@ const GLASS_CARD =
 /* ================================================================
    NAVIGATION — Mobile-optimized with hamburger menu
    ================================================================ */
-function Navigation() {
+export function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
