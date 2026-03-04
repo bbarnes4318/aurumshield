@@ -1,13 +1,14 @@
 import Image from "next/image";
 import { GoldwireBrandLogo } from "@/components/ui/goldwire-logo";
 import { Navigation } from "@/components/marketing/marketing-landing";
+import { InvestorContactForm } from "@/components/marketing/investor-contact-form";
 
 /* ================================================================
    GOLDWIRE — Investor One-Sheet
    Route: /investor
-   
-   A single-page, print-ready investor brief designed for 
-   in-person presentations. Goldwire-branded. No navigation chrome.
+
+   Standalone institutional investor brief. Clean marketing layout
+   with centered hero, waterfall chart, and embedded contact form.
    ================================================================ */
 
 export const metadata = {
@@ -46,27 +47,25 @@ export default function InvestorOneSheet() {
           -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Hero Banner ── */
+        /* ── Hero Banner — Centered ── */
         .inv-hero {
           position: relative;
-          padding: 7rem 2rem 4rem;
-          text-align: left;
+          padding: 8rem 2rem 5rem;
+          text-align: center;
           overflow: hidden;
           border-bottom: 1px solid var(--border);
-          background: 
-            radial-gradient(ellipse at 20% 0%, rgba(198,168,107,0.08) 0%, transparent 60%),
+          background:
+            radial-gradient(ellipse at 50% 0%, rgba(198,168,107,0.08) 0%, transparent 60%),
             var(--bg);
-          max-width: 1100px;
-          margin: 0 auto;
         }
         .inv-hero::after {
           content: '';
           position: absolute;
           bottom: 0;
-          left: 0;
-          right: 40%;
+          left: 15%;
+          right: 15%;
           height: 1px;
-          background: linear-gradient(90deg, var(--gold), transparent);
+          background: linear-gradient(90deg, transparent, var(--gold), transparent);
           opacity: 0.3;
         }
         .inv-hero-badge {
@@ -98,23 +97,39 @@ export default function InvestorOneSheet() {
           font-weight: 700;
           letter-spacing: -0.03em;
           color: var(--text);
-          margin: 0 0 1rem;
+          margin: 0 0 1.25rem;
           line-height: 1.15;
         }
         .inv-hero h1 span { color: var(--gold); }
         .inv-hero-sub {
           font-size: 1.1rem;
           color: var(--muted);
-          max-width: 600px;
-          margin: 0;
+          max-width: 640px;
+          margin: 0 auto 2.5rem;
           line-height: 1.7;
         }
+        .inv-hero-cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.875rem 2.5rem;
+          background: var(--gold);
+          color: #0A0E1A;
+          font-weight: 700;
+          font-size: 0.8125rem;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: background 0.2s;
+        }
+        .inv-hero-cta:hover { background: var(--gold-light); }
 
         /* ── Container ── */
         .inv-container {
           max-width: 1100px;
           margin: 0 auto;
-          padding: 3rem 2rem;
+          padding: 4rem 2rem;
         }
 
         /* ── Card with Goldwire card image ── */
@@ -127,7 +142,7 @@ export default function InvestorOneSheet() {
           background: var(--surface);
           border: 1px solid var(--border);
           border-radius: 16px;
-          margin-bottom: 3rem;
+          margin-bottom: 4rem;
         }
         @media (max-width: 768px) {
           .inv-card-showcase { grid-template-columns: 1fr; text-align: center; }
@@ -165,7 +180,7 @@ export default function InvestorOneSheet() {
           filter: blur(8px);
         }
 
-        /* ── The Opportunity section ── */
+        /* ── Section Titles ── */
         .inv-section-title {
           display: flex;
           align-items: center;
@@ -199,7 +214,7 @@ export default function InvestorOneSheet() {
           font-size: 1rem;
           line-height: 1.65;
           max-width: 720px;
-          margin-bottom: 2rem;
+          margin-bottom: 2.5rem;
         }
 
         /* ── Metric Cards ── */
@@ -207,7 +222,7 @@ export default function InvestorOneSheet() {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 1rem;
-          margin-bottom: 3rem;
+          margin-bottom: 4rem;
         }
         @media (max-width: 768px) {
           .inv-metrics { grid-template-columns: repeat(2, 1fr); }
@@ -238,12 +253,12 @@ export default function InvestorOneSheet() {
           color: var(--faint);
         }
 
-        /* ── How It Works / Pipeline ── */
+        /* ── Pipeline ── */
         .inv-pipeline {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 1.25rem;
-          margin-bottom: 3rem;
+          margin-bottom: 4rem;
         }
         @media (max-width: 768px) {
           .inv-pipeline { grid-template-columns: 1fr; }
@@ -254,6 +269,7 @@ export default function InvestorOneSheet() {
           border-radius: 12px;
           padding: 1.5rem;
           position: relative;
+          transition: border-color 0.2s;
         }
         .inv-pipe-step:hover {
           border-color: rgba(198,168,107,0.3);
@@ -292,7 +308,7 @@ export default function InvestorOneSheet() {
           grid-template-columns: 1fr 1fr;
           gap: 2rem;
           align-items: start;
-          margin-bottom: 3rem;
+          margin-bottom: 4rem;
         }
         @media (max-width: 768px) {
           .inv-revenue { grid-template-columns: 1fr; }
@@ -306,7 +322,7 @@ export default function InvestorOneSheet() {
         .inv-rev-card h3 {
           font-size: 1rem;
           font-weight: 700;
-          color: var(--gold);
+          color: var(--text);
           margin: 0 0 1rem;
           text-transform: uppercase;
           letter-spacing: 0.08em;
@@ -322,10 +338,71 @@ export default function InvestorOneSheet() {
         }
         .inv-rev-row:last-child { border-bottom: none; }
         .inv-rev-row span:first-child { color: var(--muted); }
-        .inv-rev-row span:last-child { 
+        .inv-rev-row span:last-child {
           font-family: var(--font-mono);
           font-weight: 600;
           color: var(--gold-light);
+        }
+
+        /* ── Waterfall Chart ── */
+        .inv-waterfall {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 2rem;
+          margin-bottom: 4rem;
+        }
+        .inv-waterfall h3 {
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: var(--text);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin: 0 0 1.5rem;
+          text-align: center;
+        }
+        .inv-bar-container {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .inv-bar-row {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        .inv-bar-label {
+          width: 200px;
+          flex-shrink: 0;
+          font-size: 0.8125rem;
+          color: var(--muted);
+          text-align: right;
+        }
+        @media (max-width: 768px) {
+          .inv-bar-label { width: 120px; font-size: 0.75rem; }
+        }
+        .inv-bar-track {
+          flex: 1;
+          height: 32px;
+          background: rgba(255,255,255,0.03);
+          border-radius: 6px;
+          position: relative;
+          overflow: hidden;
+        }
+        .inv-bar-fill {
+          height: 100%;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          padding-right: 0.75rem;
+          font-family: var(--font-mono);
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #0A0E1A;
+        }
+        .inv-bar-total .inv-bar-fill {
+          background: linear-gradient(90deg, var(--gold-dark), var(--gold-light));
         }
 
         /* ── Competitive Moat ── */
@@ -333,7 +410,7 @@ export default function InvestorOneSheet() {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 1rem;
-          margin-bottom: 3rem;
+          margin-bottom: 4rem;
         }
         @media (max-width: 768px) {
           .inv-moat-grid { grid-template-columns: 1fr; }
@@ -346,7 +423,9 @@ export default function InvestorOneSheet() {
           border: 1px solid var(--border);
           border-radius: 10px;
           padding: 1.25rem;
+          transition: border-color 0.2s;
         }
+        .inv-moat-item:hover { border-color: rgba(198,168,107,0.2); }
         .inv-moat-bullet {
           display: flex;
           align-items: center;
@@ -371,47 +450,146 @@ export default function InvestorOneSheet() {
           margin: 0;
         }
 
-        /* ── CTA Banner ── */
-        .inv-cta {
+        /* ── Contact Form ── */
+        .inv-form-section {
           background: var(--surface);
           border: 1px solid rgba(198,168,107,0.2);
           border-radius: 16px;
           padding: 3rem;
-          text-align: center;
           position: relative;
           overflow: hidden;
-          margin-bottom: 2rem;
+          margin-bottom: 4rem;
         }
-        .inv-cta::before {
+        .inv-form-section::before {
           content: '';
           position: absolute;
           inset: 0;
-          background: radial-gradient(ellipse at 50% 100%, rgba(198,168,107,0.06) 0%, transparent 60%);
+          background: radial-gradient(ellipse at 50% 100%, rgba(198,168,107,0.04) 0%, transparent 60%);
           pointer-events: none;
         }
-        .inv-cta h2 {
+        .inv-form-section h2 {
           font-family: var(--font-serif);
           font-size: 1.5rem;
           font-weight: 700;
           color: var(--text);
-          margin: 0 0 0.75rem;
+          margin: 0 0 0.5rem;
+          text-align: center;
           position: relative;
         }
-        .inv-cta p {
+        .inv-form-section > p {
           color: var(--muted);
           font-size: 0.9375rem;
           max-width: 500px;
           margin: 0 auto 2rem;
           line-height: 1.6;
+          text-align: center;
           position: relative;
         }
-        .inv-cta-actions {
+        .inv-form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          max-width: 640px;
+          margin: 0 auto;
+          position: relative;
+        }
+        @media (max-width: 600px) {
+          .inv-form-grid { grid-template-columns: 1fr; }
+        }
+        .inv-form-field {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        .inv-form-field.full-width {
+          grid-column: 1 / -1;
+        }
+        .inv-form-field label {
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: var(--faint);
+        }
+        .inv-form-field input,
+        .inv-form-field select,
+        .inv-form-field textarea {
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 0.75rem 1rem;
+          color: var(--text);
+          font-size: 0.875rem;
+          font-family: var(--font-sans);
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .inv-form-field input:focus,
+        .inv-form-field select:focus,
+        .inv-form-field textarea:focus {
+          border-color: var(--gold);
+        }
+        .inv-form-field textarea {
+          min-height: 100px;
+          resize: vertical;
+        }
+        .inv-form-field select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 1rem center;
+          padding-right: 2.5rem;
+        }
+        .inv-form-submit {
+          grid-column: 1 / -1;
           display: flex;
           justify-content: center;
-          gap: 1rem;
-          position: relative;
+          margin-top: 0.5rem;
+        }
+
+        /* ── Footer ── */
+        .inv-footer {
+          border-top: 1px solid var(--border);
+          padding: 3rem 2rem;
+          text-align: center;
+        }
+        .inv-footer-brand {
+          margin-bottom: 1.5rem;
+          display: flex;
+          justify-content: center;
+        }
+        .inv-footer-links {
+          display: flex;
+          justify-content: center;
+          gap: 2rem;
+          margin-bottom: 1.5rem;
           flex-wrap: wrap;
         }
+        .inv-footer-links a {
+          font-size: 0.75rem;
+          color: var(--faint);
+          text-decoration: none;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          transition: color 0.2s;
+        }
+        .inv-footer-links a:hover { color: var(--gold); }
+        .inv-footer p {
+          font-size: 0.6875rem;
+          color: var(--faint);
+          text-transform: uppercase;
+          letter-spacing: 0.15em;
+          margin: 0;
+        }
+
+        /* ── Divider ── */
+        .inv-divider {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--border), transparent);
+          margin: 4rem 0;
+        }
+
+        /* ── Buttons ── */
         .inv-btn-primary {
           display: inline-flex;
           align-items: center;
@@ -425,60 +603,24 @@ export default function InvestorOneSheet() {
           letter-spacing: 0.1em;
           border-radius: 8px;
           text-decoration: none;
+          border: none;
+          cursor: pointer;
           transition: background 0.2s;
         }
         .inv-btn-primary:hover { background: var(--gold-light); }
-        .inv-btn-secondary {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.875rem 2rem;
-          background: transparent;
-          color: var(--gold);
-          font-weight: 600;
-          font-size: 0.8125rem;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          border: 1px solid rgba(198,168,107,0.4);
-          border-radius: 8px;
-          text-decoration: none;
-          transition: all 0.2s;
-        }
-        .inv-btn-secondary:hover { border-color: var(--gold); background: rgba(198,168,107,0.06); }
-
-        /* ── Footer ── */
-        .inv-footer {
-          border-top: 1px solid var(--border);
-          padding: 2rem;
-          text-align: center;
-        }
-        .inv-footer p {
-          font-size: 0.6875rem;
-          color: var(--faint);
-          text-transform: uppercase;
-          letter-spacing: 0.15em;
-          margin: 0;
-        }
-
-        /* ── Divider ── */
-        .inv-divider {
-          height: 1px;
-          background: linear-gradient(90deg, transparent, var(--border), transparent);
-          margin: 3rem 0;
-        }
 
         /* ── Print ── */
         @media print {
           .inv-page { background: white; color: #1a1a1a; }
           .inv-page * { color: #1a1a1a !important; border-color: #ddd !important; }
-          .inv-hero, .inv-metric, .inv-pipe-step, .inv-rev-card, .inv-moat-item, .inv-cta, .inv-card-showcase {
+          .inv-hero, .inv-metric, .inv-pipe-step, .inv-rev-card, .inv-moat-item, .inv-form-section, .inv-card-showcase, .inv-waterfall {
             background: white !important;
             border: 1px solid #ddd !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
           .inv-metric { border-top: 2px solid #C6A86B !important; }
-          .inv-metric-value, .inv-gold-text { color: #9F8A4C !important; }
+          .inv-metric-value { color: #9F8A4C !important; }
           .inv-card-glow { display: none; }
         }
       `,
@@ -486,20 +628,25 @@ export default function InvestorOneSheet() {
       />
 
       {/* ════════════════════════════════════════════
-          HERO — Logo + One-liner
+          HERO — Centered, Institutional
           ════════════════════════════════════════════ */}
       <header className="inv-hero">
         <div className="inv-hero-badge">Confidential — Investor Distribution Only</div>
-        <GoldwireBrandLogo className="mb-8" />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}>
+          <GoldwireBrandLogo />
+        </div>
         <h1>
-          Instant Cross-Border Settlement<br />
-          <span>Powered by Physical Gold.</span>
+          Bypassing SWIFT.<br />
+          <span>Settling Millions in Seconds.</span>
         </h1>
         <p className="inv-hero-sub">
           Goldwire is a high-velocity B2B settlement protocol that uses allocated physical
           gold as a transport layer — bypassing SWIFT, eliminating counterparty risk, and
           settling millions in seconds.
         </p>
+        <a href="#contact" className="inv-hero-cta">
+          Schedule a Meeting →
+        </a>
       </header>
 
       <div className="inv-container">
@@ -540,7 +687,7 @@ export default function InvestorOneSheet() {
             THE CORE PRODUCT
             ════════════════════════════════════════════ */}
         <div className="inv-section-title">The Core Product</div>
-        <h2 className="inv-h2">The Core Product: The Goldwire Settlement Engine</h2>
+        <h2 className="inv-h2">The Goldwire Settlement Engine</h2>
         <p className="inv-lead">
           AurumShield is an institutional clearinghouse that replaces legacy banking rails with
           the Goldwire Network. We utilize fully allocated, serialized physical gold — stored
@@ -594,13 +741,14 @@ export default function InvestorOneSheet() {
         </div>
 
         {/* ════════════════════════════════════════════
-            HOW IT WORKS — 3-Step Pipeline
+            HOW IT WORKS — Goldwire Settlement Pipeline
             ════════════════════════════════════════════ */}
         <div className="inv-section-title">How It Works</div>
         <h2 className="inv-h2">The Goldwire Settlement Pipeline</h2>
         <p className="inv-lead">
           A vertically integrated, three-phase process that converts fiat → gold → fiat
-          across borders in under 60 seconds.
+          across borders in under 60 seconds. Phase 1 includes stablecoin on-ramp support
+          for instant fiat conversion.
         </p>
 
         <div className="inv-pipeline">
@@ -608,8 +756,8 @@ export default function InvestorOneSheet() {
             <div className="inv-pipe-num">01</div>
             <h3>Wholesale Gold Sourcing</h3>
             <p>
-              Sender deposits fiat to the Goldwire master treasury. We instantly purchase
-              allocated physical bullion direct from vetted mine originators at wholesale
+              Sender deposits fiat (or stablecoin) to the Goldwire master treasury. We instantly
+              purchase allocated physical bullion direct from vetted mine originators at wholesale
               spreads. Custody: Malca-Amit sovereign vaults.
             </p>
           </div>
@@ -617,7 +765,7 @@ export default function InvestorOneSheet() {
             <div className="inv-pipe-num">02</div>
             <h3>Deterministic Title Transfer</h3>
             <p>
-              The Goldwire protocol cryptographically reassigns legal title of the physical
+              The Goldwire Protocol cryptographically reassigns legal title of the physical
               metal inside the vault in under 10 seconds. No physical movement. No transport
               risk. Atomic, auditable, irreversible.
             </p>
@@ -636,15 +784,54 @@ export default function InvestorOneSheet() {
         <div className="inv-divider" />
 
         {/* ════════════════════════════════════════════
-            UNIT ECONOMICS
+            UNIT ECONOMICS + WATERFALL CHART
             ════════════════════════════════════════════ */}
         <div className="inv-section-title">Unit Economics</div>
-        <h2 className="inv-h2">{`The Unit Economics (The "Principal Market Maker" Advantage)`}</h2>
+        <h2 className="inv-h2">{`The "Principal Market Maker" Advantage`}</h2>
         <p className="inv-lead">
           AurumShield does not rely on standard, low-margin SaaS fees. By vertically integrating
           the gold supply chain and acting as the principal dealer, we capture massive,
           multi-layered spreads on every cross-border transaction.
         </p>
+
+        {/* Waterfall Margin Chart */}
+        <div className="inv-waterfall">
+          <h3>Cumulative Gross Margin Per Transaction</h3>
+          <div className="inv-bar-container">
+            <div className="inv-bar-row">
+              <span className="inv-bar-label">Mine-to-Market Spread</span>
+              <div className="inv-bar-track">
+                <div className="inv-bar-fill" style={{ width: "75%", background: "rgba(198,168,107,0.7)" }}>
+                  ~4.0 – 5.0%
+                </div>
+              </div>
+            </div>
+            <div className="inv-bar-row">
+              <span className="inv-bar-label">Network Execution Fee</span>
+              <div className="inv-bar-track">
+                <div className="inv-bar-fill" style={{ width: "16%", background: "rgba(198,168,107,0.5)" }}>
+                  1.0%
+                </div>
+              </div>
+            </div>
+            <div className="inv-bar-row">
+              <span className="inv-bar-label">Off-Ramp Arbitrage</span>
+              <div className="inv-bar-track">
+                <div className="inv-bar-fill" style={{ width: "14%", background: "rgba(198,168,107,0.4)" }}>
+                  ~0.9%
+                </div>
+              </div>
+            </div>
+            <div className="inv-bar-row inv-bar-total" style={{ marginTop: "0.5rem", paddingTop: "0.75rem", borderTop: "1px solid var(--gold)" }}>
+              <span className="inv-bar-label" style={{ fontWeight: 700, color: "var(--gold-light)" }}>Total Gross Margin</span>
+              <div className="inv-bar-track">
+                <div className="inv-bar-fill" style={{ width: "95%" }}>
+                  ~6.0%+ per txn
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div className="inv-revenue">
           <div className="inv-rev-card">
@@ -667,7 +854,7 @@ export default function InvestorOneSheet() {
             </div>
           </div>
           <div className="inv-rev-card">
-            <h3 style={{ color: "var(--text)" }}>Revenue Detail</h3>
+            <h3>Revenue Detail</h3>
             <div className="inv-rev-row">
               <span style={{ fontSize: "0.8125rem", lineHeight: 1.5 }}>
                 <strong style={{ color: "var(--text)" }}>Mine-to-Market Spread:</strong>{" "}
@@ -705,7 +892,7 @@ export default function InvestorOneSheet() {
           <div className="inv-moat-item">
             <div className="inv-moat-bullet" />
             <div>
-              <h4>Vertically Integrated Supply Chain</h4>
+              <h4>Vertical Supply Chain Integration</h4>
               <p>Direct mine-to-vault pipeline. No third-party sourcing intermediaries. Wholesale pricing locked at the origin.</p>
             </div>
           </div>
@@ -734,7 +921,7 @@ export default function InvestorOneSheet() {
             <div className="inv-moat-bullet" />
             <div>
               <h4>Network Effects</h4>
-              <p>Each new institutional participant increases liquidity depth and reduces settlement latency for the entire network.</p>
+              <p>Each new institutional participant increases liquidity depth and reduces settlement latency for the entire Goldwire Network.</p>
             </div>
           </div>
           <div className="inv-moat-item">
@@ -748,9 +935,6 @@ export default function InvestorOneSheet() {
 
         <div className="inv-divider" />
 
-        {/* ════════════════════════════════════════════
-            CTA BANNER
-            ════════════════════════════════════════════ */}
         {/* ════════════════════════════════════════════
             TRACTION & PHASE 1
             ════════════════════════════════════════════ */}
@@ -782,8 +966,8 @@ export default function InvestorOneSheet() {
             <div className="inv-moat-item">
               <div className="inv-moat-bullet" />
               <div>
-                <h4>Regulatory Architecture</h4>
-                <p>SOC 2 continuous compliance, LBMA Good Delivery verification embedded, OFAC/EU/UN sanctions screening on every counterparty.</p>
+                <h4>Stablecoin On-Ramp Integration</h4>
+                <p>Phase 1 includes full stablecoin bridge support (USDC/USDT) for instant fiat-to-gold conversion, eliminating traditional banking wire delays.</p>
               </div>
             </div>
           </div>
@@ -792,27 +976,30 @@ export default function InvestorOneSheet() {
         <div className="inv-divider" />
 
         {/* ════════════════════════════════════════════
-            CTA BANNER
+            CONTACT FORM
             ════════════════════════════════════════════ */}
-        <div className="inv-cta">
+        <div className="inv-form-section" id="contact">
           <h2>Ready to Discuss?</h2>
           <p>
-            Goldwire is currently onboarding strategic investors and institutional launch
-            partners for our Series A.
+            The Goldwire Network is currently onboarding strategic investors and institutional
+            launch partners for our Series A.
           </p>
-          <div className="inv-cta-actions">
-            <a href="mailto:investors@aurumshield.vip" className="inv-btn-primary">
-              Contact Investor Relations →
-            </a>
-            <a href="/platform-overview" className="inv-btn-secondary">
-              View Technical Architecture →
-            </a>
-          </div>
+          <InvestorContactForm />
         </div>
       </div>
 
       {/* ── Footer ── */}
       <footer className="inv-footer">
+        <div className="inv-footer-brand">
+          <GoldwireBrandLogo />
+        </div>
+        <div className="inv-footer-links">
+          <a href="/platform-overview">Technical Architecture</a>
+          <a href="/legal/terms">Terms of Service</a>
+          <a href="/legal/privacy">Privacy Policy</a>
+          <a href="/legal/aml-kyc">AML/KYC Policy</a>
+          <a href="mailto:investors@aurumshield.vip">Investor Relations</a>
+        </div>
         <p>
           © {new Date().getFullYear()} AurumShield · Goldwire Protocol · Confidential — Not for Public Distribution
         </p>

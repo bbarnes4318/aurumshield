@@ -1023,7 +1023,7 @@ function GoldwireCardSection() {
                   }
                 `}</style>
                 <img
-                  src="/goldwire-card.png"
+                  src="/gold-wire.png"
                   alt="Goldwire Corporate Card"
                   className="w-full h-auto drop-shadow-[0_25px_35px_rgba(0,0,0,0.8)] relative z-10"
                 />
