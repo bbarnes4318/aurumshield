@@ -1,13 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 import { ClearingSeal } from "../ClearingSeal";
 import { GoldwireBrandLogo } from "@/components/ui/goldwire-logo";
-
-const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL || "https://app.aurumshield.vip";
 
 const fade = {
   hidden: { opacity: 0, y: 14 },
@@ -79,19 +75,19 @@ export function HeroSection() {
             className="flex flex-col gap-4 sm:flex-row justify-center lg:justify-start"
           >
             <a
-              href={`${APP_URL}/signup`}
+              href="#pipeline"
               className="inline-flex items-center justify-center gap-2 bg-action-gold hover:bg-action-gold/90 text-slate-950 font-bold px-8 py-4 rounded-lg transition-all duration-200"
             >
-              EXECUTE GOLDWIRE PROTOCOL
-              <ArrowRight className="h-4 w-4" />
+              Explore the Protocol
+              <ArrowDown className="h-4 w-4" />
             </a>
 
-            <Link
-              href="/technical-overview"
+            <a
+              href="#card"
               className="inline-flex items-center justify-center gap-2 bg-transparent border border-gold/40 hover:border-gold text-gold font-bold px-8 py-4 rounded-lg transition-all duration-200"
             >
-              Review Actuarial Model
-            </Link>
+              View Corporate Card
+            </a>
           </motion.div>
         </div>
 

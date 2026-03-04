@@ -462,7 +462,7 @@ function ExposureSection() {
    ================================================================ */
 function GoldwireArchitectureSection() {
   return (
-    <section className="pb-24 lg:pb-32 pt-4 lg:pt-8">
+    <section id="pipeline" className="pb-24 lg:pb-32 pt-4 lg:pt-8">
       <div className="mx-auto max-w-7xl px-6 mb-16 lg:mb-20">
         <div className="h-px w-full bg-gradient-to-r from-slate-800 via-slate-800/50 to-transparent" />
       </div>
@@ -957,7 +957,7 @@ function SovereignAssetsSection() {
    ================================================================ */
 function GoldwireCardSection() {
   return (
-    <section className="py-24 lg:py-32 relative overflow-hidden bg-[#0A1128]">
+    <section id="card" className="py-24 lg:py-32 relative overflow-hidden bg-[#0A1128]">
       {/* Background ambient glow */}
       <div className="absolute top-1/2 left-3/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold/5 rounded-full blur-[120px] pointer-events-none" />
 
