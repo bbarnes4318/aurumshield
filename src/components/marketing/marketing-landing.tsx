@@ -35,6 +35,7 @@ import { MarketWeaknessSection } from "./sections/market-weakness";
 import { RiskModelSection } from "./sections/risk-model";
 import { ComplianceGate } from "./sections/compliance-gate";
 import { TelemetryTerminal } from "./telemetry-terminal";
+import SystemComparisonChart from "./SystemComparisonChart";
 
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://app.aurumshield.vip";
@@ -1131,6 +1132,14 @@ export function MarketingLanding() {
 
       <TrustBand />
       <MarketWeaknessSection />
+
+      {/* ── SWIFT vs Goldwire Comparison ── */}
+      <section className="py-16 lg:py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <SystemComparisonChart />
+        </div>
+      </section>
+
       <KineticRiskSection />
       <SettlementLifecycleSection />
 

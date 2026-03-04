@@ -14,11 +14,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadSettlementState } from "@/lib/settlement-store";
 import { getCertificateBySettlementId } from "@/lib/certificate-engine";
+import { requireSession, AuthError } from "@/lib/authz";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  try {
+    await requireSession();
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
 
   if (!id || id.trim().length === 0) {

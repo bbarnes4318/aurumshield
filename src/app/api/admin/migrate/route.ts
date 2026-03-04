@@ -16,6 +16,7 @@
 
 import { NextResponse } from 'next/server';
 import { readFileSync, readdirSync } from 'fs';
+import { requireAdmin, AuthError } from '@/lib/authz';
 import { join } from 'path';
 
 // Dynamic import to avoid bundling pg in client
@@ -140,6 +141,19 @@ async function runMigrations() {
 }
 
 export async function POST(request: Request) {
+  // Security: require authenticated admin session
+  try {
+    await requireAdmin();
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json(
+        { error: err.message },
+        { status: err.statusCode },
+      );
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // Security: require migration key
   const migrationKey = request.headers.get('X-Migration-Key');
   const expectedKey = process.env.MIGRATION_KEY || 'aurumshield-migrate-2026';

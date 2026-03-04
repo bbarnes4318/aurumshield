@@ -15,6 +15,7 @@
    ================================================================ */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSession, AuthError } from "@/lib/authz";
 
 type KycStatusValue = "PENDING" | "APPROVED" | "ELEVATED" | "REJECTED";
 
@@ -23,7 +24,19 @@ interface KycStatusRow {
 }
 
 export async function GET(request: NextRequest) {
-  const userId = request.nextUrl.searchParams.get("userId");
+  let sessionUserId: string;
+  try {
+    const session = await requireSession();
+    sessionUserId = session.userId;
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Use session userId (secure) with optional override from query for admin lookup
+  const userId = request.nextUrl.searchParams.get("userId") || sessionUserId;
 
   if (!userId) {
     return NextResponse.json(

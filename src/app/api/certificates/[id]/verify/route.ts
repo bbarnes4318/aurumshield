@@ -19,6 +19,7 @@ import {
 import type { ClearingCertificate } from "@/lib/certificate-engine";
 import { canonicalDigest } from "@/lib/certificates/canonicalize";
 import { verifyCertificateSignature } from "@/lib/certificates/kms-signer";
+import { requireSession, AuthError } from "@/lib/authz";
 
 /* ---------- GET — Verify by certificate ID in URL ---------- */
 
@@ -26,6 +27,15 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  try {
+    await requireSession();
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
 
   // ── Load certificate ──

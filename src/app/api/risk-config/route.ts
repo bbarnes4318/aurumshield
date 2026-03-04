@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getActiveRiskConfig } from "@/lib/risk-config-server";
+import { requireSession, AuthError } from "@/lib/authz";
 
 /**
  * GET /api/risk-config
@@ -12,6 +13,15 @@ import { getActiveRiskConfig } from "@/lib/risk-config-server";
  * and client-side (staleTime in the TanStack Query hook).
  */
 export async function GET() {
+  try {
+    await requireSession();
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const config = await getActiveRiskConfig();
     return NextResponse.json(config, {

@@ -135,24 +135,25 @@ export async function recordPayoutAttempt(params: {
   actionType: string;
   amountCents: number;
 }): Promise<void> {
+  // FATAL: If this write fails, a duplicate payout could slip through
+  // the idempotency guard. We MUST throw to halt the settlement.
+  const { getPoolClient } = await import("@/lib/db");
+  const client = await getPoolClient();
   try {
-    const { getDbClient } = await import("@/lib/db");
-    const db = await getDbClient();
-    try {
-      await db.query(
-        `INSERT INTO payouts
-           (settlement_id, payee_id, idempotency_key, rail, action_type, amount_cents, status)
-         VALUES ($1, $2, $3, $4, $5, $6, 'PENDING')
-         ON CONFLICT (idempotency_key) DO UPDATE SET
-           attempt_count = payouts.attempt_count + 1,
-           updated_at = NOW()`,
-        [params.settlementId, params.payeeId, params.idempotencyKey, params.rail, params.actionType, params.amountCents],
-      );
-    } finally {
-      await db.end().catch(() => {});
-    }
+    await client.query(
+      `INSERT INTO payouts
+         (settlement_id, payee_id, idempotency_key, rail, action_type, amount_cents, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'PENDING')
+       ON CONFLICT (idempotency_key) DO UPDATE SET
+         attempt_count = payouts.attempt_count + 1,
+         updated_at = NOW()`,
+      [params.settlementId, params.payeeId, params.idempotencyKey, params.rail, params.actionType, params.amountCents],
+    );
   } catch (err) {
-    console.error("[SETTLEMENT-RAIL] Failed to record payout attempt:", err);
+    console.error("[SETTLEMENT-RAIL] FATAL: Failed to record payout attempt — halting settlement to prevent duplicate payouts:", err);
+    throw err; // Re-throw: caller MUST handle this as a settlement-halting error
+  } finally {
+    client.release();
   }
 }
 
@@ -166,17 +167,17 @@ export async function updatePayoutStatus(params: {
   errorMessage?: string;
 }): Promise<void> {
   try {
-    const { getDbClient } = await import("@/lib/db");
-    const db = await getDbClient();
+    const { getPoolClient } = await import("@/lib/db");
+    const client = await getPoolClient();
     try {
-      await db.query(
+      await client.query(
         `UPDATE payouts SET status = $1, external_id = COALESCE($2, external_id),
          error_message = $3, updated_at = NOW()
          WHERE idempotency_key = $4`,
         [params.status, params.externalId ?? null, params.errorMessage ?? null, params.idempotencyKey],
       );
     } finally {
-      await db.end().catch(() => {});
+      client.release();
     }
   } catch (err) {
     console.error("[SETTLEMENT-RAIL] Failed to update payout status:", err);
@@ -198,10 +199,10 @@ export async function recordSettlementFinality(params: {
   errorMessage?: string;
 }): Promise<void> {
   try {
-    const { getDbClient } = await import("@/lib/db");
-    const db = await getDbClient();
+    const { getPoolClient } = await import("@/lib/db");
+    const client = await getPoolClient();
     try {
-      await db.query(
+      await client.query(
         `INSERT INTO settlement_finality
            (settlement_id, rail, external_transfer_id, idempotency_key,
             finality_status, amount_cents, leg, is_fallback, error_message,
@@ -216,7 +217,7 @@ export async function recordSettlementFinality(params: {
         ],
       );
     } finally {
-      await db.end().catch(() => {});
+      client.release();
     }
   } catch (err) {
     console.error("[SETTLEMENT-RAIL] Failed to record settlement finality:", err);
@@ -231,10 +232,10 @@ export async function checkPayoutIdempotency(
   idempotencyKey: string,
 ): Promise<{ status: string; externalId: string | null; settlementId: string } | null> {
   try {
-    const { getDbClient } = await import("@/lib/db");
-    const db = await getDbClient();
+    const { getPoolClient } = await import("@/lib/db");
+    const client = await getPoolClient();
     try {
-      const result = await db.query(
+      const result = await client.query(
         `SELECT status, external_id, settlement_id
          FROM payouts
          WHERE idempotency_key = $1
@@ -249,7 +250,7 @@ export async function checkPayoutIdempotency(
         settlementId: result.rows[0].settlement_id,
       };
     } finally {
-      await db.end().catch(() => {});
+      client.release();
     }
   } catch (err) {
     console.error("[SETTLEMENT-RAIL] Failed to check payout idempotency:", err);
@@ -264,10 +265,10 @@ export async function checkPriorFinality(
   settlementId: string,
 ): Promise<{ finalityStatus: string; externalTransferId: string | null } | null> {
   try {
-    const { getDbClient } = await import("@/lib/db");
-    const db = await getDbClient();
+    const { getPoolClient } = await import("@/lib/db");
+    const client = await getPoolClient();
     try {
-      const result = await db.query(
+      const result = await client.query(
         `SELECT finality_status, external_transfer_id
          FROM settlement_finality
          WHERE settlement_id = $1 AND rail = 'modern_treasury' AND leg = 'seller_payout'
@@ -280,7 +281,7 @@ export async function checkPriorFinality(
         externalTransferId: result.rows[0].external_transfer_id,
       };
     } finally {
-      await db.end().catch(() => {});
+      client.release();
     }
   } catch (err) {
     console.error("[SETTLEMENT-RAIL] Failed to check prior finality:", err);

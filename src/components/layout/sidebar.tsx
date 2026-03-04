@@ -3,43 +3,18 @@
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect } from "react";
 import {
-  LayoutDashboard,
-  ArrowLeftRight,
-  Building2,
+  Activity,
+  BarChart2,
+  RefreshCw,
+  Shield,
   Globe,
-  Server,
-  FlaskConical,
-  ShieldAlert,
-  Umbrella,
-  ScrollText,
-  Users,
-  ClipboardList,
   ChevronLeft,
   ChevronRight,
-  Store,
-  Clock,
-  ShoppingCart,
-  Fingerprint,
-  UserCircle,
-  Shield,
-  Landmark,
-  ShieldCheck,
-  Gavel,
-  Activity,
-  ShieldOff,
-  DollarSign,
-  Presentation,
-  Briefcase,
-  Package,
-  FileText,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/providers/auth-provider";
-import { useDemo } from "@/providers/demo-provider";
-import type { UserRole } from "@/lib/mock-data";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -50,97 +25,14 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  adminOnly?: boolean;
-  sellerOnly?: boolean;
-  /** Fine-grained role gating — item visible only to these roles */
-  roles?: UserRole[];
-  /** Stable tour target attribute */
-  dataTour?: string;
 }
 
-interface NavGroup {
-  title: string;
-  items: NavItem[];
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    title: "Command",
-    items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, dataTour: "sidebar-dashboard" },
-      { label: "Buyer Home", href: "/buyer", icon: Briefcase, roles: ["buyer", "admin"], dataTour: "sidebar-buyer-home" },
-      { label: "Seller Home", href: "/seller", icon: Package, roles: ["seller", "admin"], dataTour: "sidebar-seller-home" },
-    ],
-  },
-  {
-    title: "Identity",
-    items: [
-      { label: "Verification", href: "/verification", icon: Fingerprint, dataTour: "sidebar-verification" },
-      { label: "Account", href: "/account", icon: UserCircle, dataTour: "sidebar-account" },
-    ],
-  },
-  {
-    title: "Trading",
-    items: [
-      { label: "Marketplace", href: "/marketplace", icon: Store, dataTour: "sidebar-marketplace" },
-      { label: "Reservations", href: "/reservations", icon: Clock, roles: ["admin", "compliance", "vault_ops"], dataTour: "sidebar-reservations" },
-      { label: "Orders", href: "/orders", icon: ShoppingCart, roles: ["admin", "compliance", "vault_ops"], dataTour: "sidebar-orders" },
-    ],
-  },
-  {
-    title: "Clearing",
-    items: [
-      { label: "Settlements", href: "/settlements", icon: Landmark, dataTour: "sidebar-settlements" },
-    ],
-  },
-  {
-    title: "Capital",
-    items: [
-      { label: "Intraday", href: "/intraday", icon: Activity, roles: ["admin", "compliance", "treasury", "vault_ops"], dataTour: "sidebar-intraday" },
-      { label: "Controls", href: "/capital-controls", icon: ShieldOff, roles: ["admin", "treasury", "compliance"], dataTour: "sidebar-controls" },
-    ],
-  },
-  {
-    title: "Supply",
-    items: [
-      { label: "Create Listing", href: "/sell", icon: ClipboardList, sellerOnly: true, dataTour: "sidebar-create-listing" },
-      { label: "My Listings", href: "/sell/listings", icon: ScrollText, sellerOnly: true, dataTour: "sidebar-my-listings" },
-    ],
-  },
-  {
-    title: "Operations",
-    items: [
-      { label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
-      { label: "Counterparties", href: "/counterparties", icon: Building2 },
-      { label: "Corridors", href: "/corridors", icon: Globe },
-      { label: "Hubs", href: "/hubs", icon: Server },
-      { label: "Labs", href: "/labs", icon: FlaskConical },
-    ],
-  },
-  {
-    title: "Risk & Compliance",
-    items: [
-      { label: "Claims", href: "/claims", icon: ShieldAlert },
-      { label: "Reinsurance", href: "/reinsurance", icon: Umbrella },
-    ],
-  },
-  {
-    title: "Governance",
-    items: [
-      { label: "Audit Console", href: "/audit", icon: ShieldCheck, roles: ["admin", "compliance", "treasury", "vault_ops"], dataTour: "sidebar-audit" },
-      { label: "Supervisory Mode", href: "/supervisory", icon: Gavel, roles: ["admin", "compliance"], dataTour: "sidebar-supervisory" },
-      { label: "Technical Overview", href: "/technical-overview", icon: FileText, dataTour: "sidebar-technical-overview" },
-    ],
-  },
-  {
-    title: "Administration",
-    items: [
-      { label: "Audit Log", href: "/admin/audit", icon: ScrollText, adminOnly: true, dataTour: "sidebar-admin-audit" },
-      { label: "Pricing", href: "/admin/pricing", icon: DollarSign, adminOnly: true, dataTour: "sidebar-admin-pricing" },
-      { label: "Roles", href: "/admin/roles", icon: Users, adminOnly: true, dataTour: "sidebar-admin-roles" },
-      { label: "Policies", href: "/admin/policies", icon: Shield, adminOnly: true, dataTour: "sidebar-admin-policies" },
-    ],
-  },
+const NAV_ITEMS: NavItem[] = [
+  { label: "Command Center",       href: "/trading-desk",              icon: Activity   },
+  { label: "Execution Desk",       href: "/trading-desk/execution",    icon: BarChart2  },
+  { label: "Clearing & Settlement",href: "/trading-desk/settlements",  icon: RefreshCw  },
+  { label: "Sovereign Logistics",  href: "/trading-desk/logistics",    icon: Shield     },
+  { label: "Counterparty Network", href: "/trading-desk/network",      icon: Globe      },
 ];
 
 /* ================================================================
@@ -155,65 +47,43 @@ function SidebarNav({
   onLinkClick?: () => void;
 }) {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const { isDemo } = useDemo();
-  const userRole = user?.role ?? "buyer";
-
-  const demoGroup: NavGroup[] = isDemo
-    ? [{ title: "Demo", items: [{ label: "Guided Walkthrough", href: "/demo", icon: Presentation }] }]
-    : [];
-  const allGroups = [...demoGroup, ...NAV_GROUPS];
 
   return (
-    <nav className="flex-1 overflow-y-auto py-2 px-1.5" aria-label="Main navigation">
-      {allGroups.map((group) => {
-        const visibleItems = group.items.filter((item) => {
-          if (isDemo && item.dataTour) return true;
-          if (item.roles && !item.roles.includes(userRole as UserRole)) return false;
-          if (item.adminOnly && userRole !== "admin") return false;
-          if (item.sellerOnly && userRole !== "seller" && userRole !== "admin") return false;
-          return true;
-        });
-        if (visibleItems.length === 0) return null;
+    <nav className="flex-1 overflow-y-auto py-4 px-2" aria-label="Main navigation">
+      <ul className="space-y-0.5">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            item.href === "/trading-desk"
+              ? pathname === "/trading-desk"
+              : pathname === item.href || pathname.startsWith(item.href + "/");
 
-        return (
-          <div key={group.title} className="mb-3">
-            {!collapsed && (
-              <p className="mb-1 px-2 text-[10px] uppercase tracking-widest text-text-faint font-semibold select-none">
-                {group.title}
-              </p>
-            )}
-            <ul className="space-y-0.5">
-              {visibleItems.map((item) => {
-                const Icon = item.icon;
-                const linkHref = isDemo ? `${item.href}?demo=true` : item.href;
-                const isActive =
-                  pathname === item.href || pathname.startsWith(item.href + "/");
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={linkHref}
-                      data-tour={item.dataTour}
-                      onClick={onLinkClick}
-                      className={cn(
-                        "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-sm transition-colors duration-[120ms]",
-                        isActive
-                          ? "bg-active-bg text-active-text font-medium"
-                          : "text-text-muted hover:bg-surface-2/60 hover:text-text",
-                        collapsed && "justify-center px-0"
-                      )}
-                      aria-current={isActive ? "page" : undefined}
-                    >
-                      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "opacity-90" : "opacity-70")} />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        );
-      })}
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={onLinkClick}
+                className={cn(
+                  "flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] font-normal tracking-wide transition-colors duration-100",
+                  isActive
+                    ? "bg-slate-800 text-white font-medium"
+                    : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200",
+                  collapsed && "justify-center px-0"
+                )}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <Icon
+                  className={cn(
+                    "h-4 w-4 shrink-0",
+                    isActive ? "text-white" : "text-slate-500"
+                  )}
+                />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }

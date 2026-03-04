@@ -37,6 +37,8 @@ import type {
   ClearingJournalDirection,
 } from "./mock-data";
 import type { VerificationCase, LedgerEntrySnapshot } from "./mock-data";
+import { computeFeeQuote, defaultPricingConfig } from "./fees/fee-engine";
+import type { FeeQuote } from "./fees/fee-engine";
 
 /* ---------- State Shape ---------- */
 export interface SettlementState {
@@ -53,6 +55,7 @@ export type SettlementActionType =
   | "MARK_VERIFICATION_CLEARED"
   | "AUTHORIZE_SETTLEMENT"
   | "EXECUTE_DVP"
+  | "CONFIRM_RAIL_SETTLED"
   | "FAIL_SETTLEMENT"
   | "CANCEL_SETTLEMENT"
   | "RESOLVE_AMBIGUOUS"
@@ -65,6 +68,7 @@ export const ACTION_ROLE_MAP: Record<SettlementActionType, UserRole[]> = {
   MARK_VERIFICATION_CLEARED: ["admin", "compliance"],
   AUTHORIZE_SETTLEMENT: ["admin"],
   EXECUTE_DVP: ["admin"],
+  CONFIRM_RAIL_SETTLED: ["admin", "INSTITUTION_TREASURY"],
   FAIL_SETTLEMENT: ["admin"],
   CANCEL_SETTLEMENT: ["admin"],
   RESOLVE_AMBIGUOUS: ["admin", "INSTITUTION_TREASURY"],
@@ -497,6 +501,7 @@ export function applySettlementAction(
 
   const settlement = { ...state.settlements[idx] };
   const newEntries: LedgerEntry[] = [];
+  let pendingClearingJournal: ClearingJournal | null = null;
 
   function addLedger(
     type: LedgerEntryType,
@@ -648,7 +653,7 @@ export function applySettlementAction(
       break;
     }
 
-    /* ── EXECUTE_DVP (step 2 of DvP — atomic release) ── */
+    /* ── EXECUTE_DVP (step 2 of DvP — submit to rail, NOT final) ── */
     case "EXECUTE_DVP": {
       if (settlement.status !== "AUTHORIZED") {
         return { ok: false, code: "INVALID_STATE", message: `EXECUTE_DVP requires status AUTHORIZED, current is ${settlement.status}` };
@@ -670,6 +675,18 @@ export function applySettlementAction(
       const logisticsThresholdCents = 50_000_000; // $500,000 in cents
       const logisticsCarrier = notionalCents <= logisticsThresholdCents ? "brinks" : "malca_amit";
 
+      // ── RSK-006: Fee calculation via fee engine ──
+      const pricingConfig = defaultPricingConfig();
+      const selectedAddOns = (settlement as SettlementCase & { selectedAddOns?: { code: string; vendorQuoteCents?: number | null }[] }).selectedAddOns ?? [];
+      const { feeQuote } = computeFeeQuote({
+        notionalCents,
+        selectedAddOns,
+        config: pricingConfig,
+        now,
+      });
+      const platformFeeCents = feeQuote.coreIndemnificationFeeCents + feeQuote.addOnFeesCents;
+      const sellerProceedsCents = notionalCents - platformFeeCents;
+
       // Atomic DvP: single ledger entry covering both legs + escrow close
       const dvpSnapshot: LedgerEntrySnapshot = {
         checksStatus: "PASS",
@@ -682,22 +699,20 @@ export function applySettlementAction(
         warnings: [],
       };
       const dvpDetail = [
-        `DVP EXECUTED ATOMIC`,
-        `fundsReleased=true goldReleased=true escrowClosed=true`,
-        `fundsLeg: $${settlement.notionalUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })} released to seller ${settlement.sellerOrgId} via ${settlement.rail}`,
-        `goldLeg: ${settlement.weightOz}oz title transferred to buyer ${settlement.buyerOrgId}`,
+        `DVP SUBMITTED TO RAIL`,
+        `fundsReleased=pending goldReleased=pending escrowClosed=pending`,
+        `fundsLeg: $${settlement.notionalUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })} to seller ${settlement.sellerOrgId} via ${settlement.rail}`,
+        `goldLeg: ${settlement.weightOz}oz title to buyer ${settlement.buyerOrgId}`,
         `paymentRail=${paymentRail} logisticsCarrier=${logisticsCarrier}`,
+        `platformFee=$${(platformFeeCents / 100).toFixed(2)} sellerProceeds=$${(sellerProceedsCents / 100).toFixed(2)}`,
         `authorizationRef=${authRef}`,
-        `executedBy=${payload.actorUserId} role=${payload.actorRole} executedAt=${now}`,
+        `submittedBy=${payload.actorUserId} role=${payload.actorRole} submittedAt=${now}`,
       ].join(" | ");
 
       addLedger("DVP_EXECUTED", dvpDetail, { actor: "SYSTEM", snapshot: dvpSnapshot });
 
       // ── RSK-006: Post balanced clearing journal BEFORE status transition ──
       const clearingIdempotencyKey = settlement.idempotencyKey ?? `dvp-${settlement.id}-${now}`;
-      // TODO: Fee calculation — currently 0 platform fee. Replace with actual fee engine output.
-      const platformFeeCents = 0;
-      const sellerProceedsCents = notionalCents - platformFeeCents;
 
       const journalEntries: Omit<ClearingJournalEntry, "id" | "journalId">[] = [
         // DEBIT escrow (funds leave escrow control)
@@ -718,14 +733,14 @@ export function applySettlementAction(
         },
       ];
 
-      // Add platform fee entry only if non-zero (keeps journal balanced either way)
+      // CREDIT platform fee (revenue capture)
       if (platformFeeCents > 0) {
         journalEntries.push({
           accountCode: "PLATFORM_FEE",
           direction: "CREDIT" as ClearingJournalDirection,
           amountCents: platformFeeCents,
           currency: settlement.currency ?? "USD",
-          memo: `Platform clearing fee for settlement ${settlement.id}`,
+          memo: `Platform clearing fee for settlement ${settlement.id} — core=${feeQuote.coreIndemnificationFeeCents} addOns=${feeQuote.addOnFeesCents}`,
         });
       }
 
@@ -740,12 +755,34 @@ export function applySettlementAction(
       );
 
       // Attach journal reference to audit ledger
-      addLedger("JOURNAL_POSTED", `Clearing journal ${clearingJournal.id} posted — debits=${notionalCents} credits=${notionalCents} BALANCED`);
+      addLedger("JOURNAL_POSTED", `Clearing journal ${clearingJournal.id} posted — debits=${notionalCents} credits=${sellerProceedsCents + platformFeeCents} BALANCED`);
 
-      // Store the journal in state
-      (settlement as SettlementCase & { _clearingJournal?: ClearingJournal })._clearingJournal = clearingJournal;
+      // Store journal in accumulator (not smuggled via type assertion)
+      pendingClearingJournal = clearingJournal;
+
+      // Freeze the fee quote on the settlement for audit trail
+      (settlement as SettlementCase & { feeQuote?: FeeQuote }).feeQuote = feeQuote;
+
+      // Transition to PROCESSING_RAIL — awaiting MT webhook confirmation
+      settlement.status = "PROCESSING_RAIL" as SettlementStatus;
+      break;
+    }
+
+    /* ── CONFIRM_RAIL_SETTLED (webhook-driven — rail confirmed payout) ── */
+    case "CONFIRM_RAIL_SETTLED": {
+      if (settlement.status !== ("PROCESSING_RAIL" as SettlementStatus)) {
+        return {
+          ok: false,
+          code: "INVALID_STATE",
+          message: `CONFIRM_RAIL_SETTLED requires status PROCESSING_RAIL, current is ${settlement.status}`,
+        };
+      }
 
       settlement.status = "SETTLED";
+      addLedger(
+        "STATUS_CHANGED",
+        `Rail settlement confirmed — payout completed via Modern Treasury. Settlement finalized at ${now}.`,
+      );
       break;
     }
 
@@ -835,16 +872,7 @@ export function applySettlementAction(
       ledger: [...state.ledger, ...newEntries],
       clearingJournals: [
         ...(state.clearingJournals ?? []),
-        // Check if a clearing journal was created in this action
-        ...(() => {
-          const s = settlement as SettlementCase & { _clearingJournal?: ClearingJournal };
-          if (s._clearingJournal) {
-            const j = s._clearingJournal;
-            delete s._clearingJournal;
-            return [j];
-          }
-          return [];
-        })(),
+        ...(pendingClearingJournal ? [pendingClearingJournal] : []),
       ],
     },
     settlement,

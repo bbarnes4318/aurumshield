@@ -15,6 +15,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { processProviderWebhook } from "@/lib/verification-engine";
+import { requireAdmin, AuthError } from "@/lib/authz";
 
 /* ---------- Zod Schema ---------- */
 
@@ -33,6 +34,16 @@ const pendingSimulations = new Set<string>();
 /* ---------- Route Handler ---------- */
 
 export async function POST(request: Request): Promise<NextResponse> {
+  // Security: admin-only endpoint
+  try {
+    await requireAdmin();
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let parsed: unknown;
   try {
     parsed = await request.json();

@@ -1,13 +1,19 @@
 /* ================================================================
    SHARED DATABASE CLIENT FACTORY
    ================================================================
-   Returns a connected `pg.Client` for the AurumShield RDS instance.
+   Returns a connected `pg.Client` for the AurumShield RDS instance
+   or a pooled client from a shared `pg.Pool`.
 
    Resolution order:
      1. DATABASE_URL env var (local / bastion port-forward)
      2. DATABASE_HOST + Secrets Manager (ECS inside VPC)
 
-   Caller MUST call `client.end()` when finished.
+   Connection Pooling:
+     - getDbPool() returns a lazily-initialized singleton pg.Pool
+     - getPoolClient() returns a PoolClient from the pool — caller
+       MUST call client.release() when finished (NOT client.end())
+     - getDbClient() is LEGACY — creates a per-call pg.Client that
+       the caller MUST end(). Use getPoolClient() for new code.
 
    Uses dynamic imports so `pg` and `@aws-sdk/client-secrets-manager`
    are never bundled into the Next.js client bundle.
@@ -15,19 +21,22 @@
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
 
-/**
- * Create and return a connected pg.Client.
- *
- * @throws if no credentials or host can be resolved, or if the
- *         connection times out after 10 s.
- */
-export async function getDbClient() {
-  const { Client } = await import("pg");
+/* ---------- Credential resolution ---------- */
 
+interface DbCredentials {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  ssl: { rejectUnauthorized: false } | undefined;
+}
+
+async function resolveCredentials(): Promise<DbCredentials> {
   // ── Option 1: Explicit DATABASE_URL ──
   if (process.env.DATABASE_URL) {
     const url = new URL(process.env.DATABASE_URL);
-    const client = new Client({
+    return {
       host: url.hostname,
       port: parseInt(url.port || "5432", 10),
       database: url.pathname.slice(1),
@@ -37,10 +46,7 @@ export async function getDbClient() {
         process.env.NODE_ENV === "production"
           ? { rejectUnauthorized: false }
           : undefined,
-      connectionTimeoutMillis: 10_000,
-    });
-    await client.connect();
-    return client;
+    };
   }
 
   // ── Option 2: ECS — DATABASE_HOST + Secrets Manager ──
@@ -98,13 +104,102 @@ export async function getDbClient() {
     }
   }
 
-  const client = new Client({
+  return {
     host,
     port,
     database,
     user,
     password,
     ssl: { rejectUnauthorized: false },
+  };
+}
+
+/* ---------- Connection Pool (singleton) ---------- */
+
+let _pool: InstanceType<typeof import("pg").Pool> | null = null;
+let _poolInitPromise: Promise<InstanceType<typeof import("pg").Pool>> | null = null;
+
+/**
+ * Get or create the shared connection pool.
+ * The pool manages connection lifecycle, reuse, and health checks.
+ *
+ * Pool settings:
+ *   - max: 10 connections (suitable for Next.js serverless)
+ *   - idleTimeoutMillis: 30s (reclaim idle connections)
+ *   - connectionTimeoutMillis: 10s
+ */
+export async function getDbPool() {
+  if (_pool) return _pool;
+
+  // Prevent concurrent initialization
+  if (_poolInitPromise) return _poolInitPromise;
+
+  _poolInitPromise = (async () => {
+    const { Pool } = await import("pg");
+    const creds = await resolveCredentials();
+
+    _pool = new Pool({
+      host: creds.host,
+      port: creds.port,
+      database: creds.database,
+      user: creds.user,
+      password: creds.password,
+      ssl: creds.ssl,
+      max: 10,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
+    });
+
+    // Log pool errors (don't crash the process)
+    _pool.on("error", (err) => {
+      console.error("[DB-POOL] Unexpected idle client error:", err);
+    });
+
+    return _pool;
+  })();
+
+  return _poolInitPromise;
+}
+
+/**
+ * Acquire a client from the connection pool.
+ * Caller MUST call `client.release()` when finished — NOT `client.end()`.
+ *
+ * Usage:
+ *   const client = await getPoolClient();
+ *   try {
+ *     await client.query("SELECT ...");
+ *   } finally {
+ *     client.release();
+ *   }
+ */
+export async function getPoolClient() {
+  const pool = await getDbPool();
+  return pool.connect();
+}
+
+/* ---------- Legacy: Per-call client (deprecated) ---------- */
+
+/**
+ * @deprecated Use getPoolClient() instead. This creates a new connection
+ * per call and the caller must call client.end() when finished.
+ *
+ * Create and return a connected pg.Client.
+ *
+ * @throws if no credentials or host can be resolved, or if the
+ *         connection times out after 10 s.
+ */
+export async function getDbClient() {
+  const { Client } = await import("pg");
+  const creds = await resolveCredentials();
+
+  const client = new Client({
+    host: creds.host,
+    port: creds.port,
+    database: creds.database,
+    user: creds.user,
+    password: creds.password,
+    ssl: creds.ssl,
     connectionTimeoutMillis: 10_000,
   });
 
