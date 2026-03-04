@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { GoldwireBrandLogo } from "@/components/ui/goldwire-logo";
 
 /* ================================================================
    GOLDWIRE — Investor One-Sheet
@@ -485,15 +486,7 @@ export default function InvestorOneSheet() {
           ════════════════════════════════════════════ */}
       <header className="inv-hero">
         <div className="inv-hero-badge">Confidential — Investor Distribution Only</div>
-        <Image
-          src="/goldwire-logo.svg"
-          alt="Goldwire"
-          width={280}
-          height={86}
-          priority
-          style={{ marginBottom: "1.5rem" }}
-          unoptimized
-        />
+        <GoldwireBrandLogo className="mb-8 justify-center" />
         <h1>
           Instant Cross-Border Settlement<br />
           <span>Powered by Physical Gold.</span>
@@ -507,15 +500,15 @@ export default function InvestorOneSheet() {
 
       <div className="inv-container">
         {/* ════════════════════════════════════════════
-            THE OPPORTUNITY
+            THE PROBLEM
             ════════════════════════════════════════════ */}
-        <div className="inv-section-title">Market Opportunity</div>
-        <h2 className="inv-h2">A $13.4 Trillion Market with No Clearing Layer</h2>
+        <div className="inv-section-title">The Problem</div>
+        <h2 className="inv-h2">The Problem: Legacy Banking Friction</h2>
         <p className="inv-lead">
-          Cross-border B2B payments total over $150 trillion annually, yet settlement still
-          relies on SWIFT — a 50-year-old messaging system with T+2 delays, 3–5% FX spreads,
-          and zero finality guarantees. Physical gold trades bilaterally at $13.4T annual
-          volume with no centralized clearing authority.
+          Moving $5M across borders today bleeds 1% to 3% in hidden FX spreads, counterparty
+          risk, and compliance overhead. Settlement takes T+2 to T+5 via SWIFT — a 50-year-old
+          messaging system with zero finality guarantees. Physical gold trades bilaterally at
+          $13.4T annual volume with no centralized clearing authority.
         </p>
 
         <div className="inv-metrics">
@@ -540,19 +533,34 @@ export default function InvestorOneSheet() {
         <div className="inv-divider" />
 
         {/* ════════════════════════════════════════════
-            CARD SHOWCASE — Goldwire Card + Value Prop
+            THE CORE PRODUCT
+            ════════════════════════════════════════════ */}
+        <div className="inv-section-title">The Core Product</div>
+        <h2 className="inv-h2">The Core Product: The Goldwire Settlement Engine</h2>
+        <p className="inv-lead">
+          AurumShield is an institutional clearinghouse that replaces legacy banking rails with
+          the Goldwire Network. We utilize fully allocated, serialized physical gold — stored
+          in Tier-1 sovereign vaults (Malca-Amit) — as a high-velocity, deterministic transport
+          layer for cross-border corporate settlement.
+        </p>
+
+        <div className="inv-divider" />
+
+        {/* ════════════════════════════════════════════
+            THE ELITE INTERFACE — Goldwire Corporate Card
             ════════════════════════════════════════════ */}
         <div className="inv-card-showcase">
           <div>
-            <div className="inv-section-title">The Product</div>
+            <div className="inv-section-title">The Elite Interface</div>
             <h2>
-              The Goldwire <span>Sovereign Settlement Card.</span>
+              The Goldwire <span>Corporate Card.</span>
             </h2>
             <p>
-              Every Goldwire participant receives sovereign-tier infrastructure access. The
-              physical card represents membership in a closed network of institutional
-              counterparties who settle in real-time via allocated bullion — no banks, no
-              SWIFT, no delays.
+              While the Goldwire API handles massive corporate treasury flows, we anchor our
+              digital network in physical reality for UHNW individuals and executives. The
+              heavy-metal Goldwire Card is the ultimate sovereign wealth instrument, allowing
+              clients to instantly liquidate their vaulted bullion to local fiat at any point
+              of sale globally.
             </p>
             <div
               style={{
@@ -564,15 +572,15 @@ export default function InvestorOneSheet() {
                 fontWeight: 600,
               }}
             >
-              <span>✦ T+0 Finality</span>
-              <span>✦ No FX Exposure</span>
-              <span>✦ No Intermediaries</span>
+              <span>✦ Instant Bullion Liquidation</span>
+              <span>✦ Global POS Access</span>
+              <span>✦ Heavy-Metal Sovereign Tier</span>
             </div>
           </div>
           <div className="inv-card-image-wrap">
             <Image
               src="/gold-wire.png"
-              alt="Goldwire Sovereign Settlement Card — brushed metal corporate charge card"
+              alt="Goldwire Corporate Card — brushed metal sovereign-tier instrument"
               width={480}
               height={305}
               style={{ width: "100%", height: "auto", maxWidth: 480 }}
@@ -624,56 +632,59 @@ export default function InvestorOneSheet() {
         <div className="inv-divider" />
 
         {/* ════════════════════════════════════════════
-            REVENUE MODEL
+            UNIT ECONOMICS
             ════════════════════════════════════════════ */}
-        <div className="inv-section-title">Revenue Architecture</div>
-        <h2 className="inv-h2">Multi-Layer Fee Extraction on Every Transaction</h2>
+        <div className="inv-section-title">Unit Economics</div>
+        <h2 className="inv-h2">{`The Unit Economics (The "Principal Market Maker" Advantage)`}</h2>
         <p className="inv-lead">
-          Goldwire earns on every leg of the settlement lifecycle — from wholesale sourcing
-          spreads to clearing fees to liquidation commissions.
+          AurumShield does not rely on standard, low-margin SaaS fees. By vertically integrating
+          the gold supply chain and acting as the principal dealer, we capture massive,
+          multi-layered spreads on every cross-border transaction.
         </p>
 
         <div className="inv-revenue">
           <div className="inv-rev-card">
             <h3>Per-Transaction Revenue</h3>
             <div className="inv-rev-row">
-              <span>Wholesale Sourcing Spread</span>
-              <span>0.25 – 0.50%</span>
+              <span>Mine-to-Market Spread (Primary)</span>
+              <span>~4.0 – 5.0%</span>
             </div>
             <div className="inv-rev-row">
-              <span>Clearing & Settlement Fee</span>
-              <span>0.15 – 0.30%</span>
+              <span>Network Execution Fee</span>
+              <span style={{ fontWeight: 700 }}>1.0%</span>
             </div>
             <div className="inv-rev-row">
-              <span>Liquidation Commission</span>
-              <span>0.10 – 0.25%</span>
-            </div>
-            <div className="inv-rev-row">
-              <span>Transit Insurance (actuarial)</span>
-              <span>0.05 – 0.08%</span>
+              <span>Off-Ramp Arbitrage (OTC Desks)</span>
+              <span>~0.9%</span>
             </div>
             <div className="inv-rev-row" style={{ borderTop: "1px solid var(--gold)", paddingTop: "0.75rem", marginTop: "0.5rem" }}>
-              <span style={{ fontWeight: 700 }}>Total Blended Take</span>
-              <span style={{ fontSize: "1.125rem" }}>0.55 – 1.13%</span>
+              <span style={{ fontWeight: 700 }}>Total Gross Margin</span>
+              <span style={{ fontSize: "1.125rem" }}>~6.0%+ per txn</span>
             </div>
           </div>
           <div className="inv-rev-card">
-            <h3>Recurring Revenue</h3>
+            <h3>Revenue Detail</h3>
             <div className="inv-rev-row">
-              <span>Platform Access (Annual)</span>
-              <span>$25K–$100K</span>
+              <span style={{ fontSize: "0.8125rem", lineHeight: 1.5 }}>
+                <strong style={{ color: "var(--gold-light)" }}>Mine-to-Market Spread:</strong>{" "}
+                We source physical supply directly from mine originators at a severe wholesale
+                discount and sell to the buyer at institutional spot prices — capturing a
+                massive ~4.0% to 5.0% spread on every fiat on-ramp.
+              </span>
             </div>
             <div className="inv-rev-row">
-              <span>Sovereign Vaulting Custody</span>
-              <span>15 – 25 bps / yr</span>
+              <span style={{ fontSize: "0.8125rem", lineHeight: 1.5 }}>
+                <strong style={{ color: "var(--gold-light)" }}>Network Execution Fee:</strong>{" "}
+                A flat <strong>1.0%</strong> routing fee applied to every Goldwire title
+                transfer on the platform.
+              </span>
             </div>
             <div className="inv-rev-row">
-              <span>Compliance & KYB Screening</span>
-              <span>Per Entity</span>
-            </div>
-            <div className="inv-rev-row">
-              <span>API Integration (Enterprise)</span>
-              <span>Custom</span>
+              <span style={{ fontSize: "0.8125rem", lineHeight: 1.5 }}>
+                <strong style={{ color: "var(--gold-light)" }}>Off-Ramp Arbitrage:</strong>{" "}
+                An additional ~0.9% spread captured upon automated liquidation to our
+                regional OTC refining desks.
+              </span>
             </div>
           </div>
         </div>
@@ -727,6 +738,49 @@ export default function InvestorOneSheet() {
             <div>
               <h4>Physical Asset Backing</h4>
               <p>Unlike crypto or stablecoins, every Goldwire transaction is backed 1:1 by allocated, insured physical gold in sovereign vaults.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="inv-divider" />
+
+        {/* ════════════════════════════════════════════
+            CTA BANNER
+            ════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════
+            TRACTION & PHASE 1
+            ════════════════════════════════════════════ */}
+        <div className="inv-section-title">Traction</div>
+        <h2 className="inv-h2">Phase 1: Launch Readiness</h2>
+        <div style={{ marginBottom: "2rem" }}>
+          <div className="inv-moat-grid">
+            <div className="inv-moat-item">
+              <div className="inv-moat-bullet" />
+              <div>
+                <h4>Platform Complete</h4>
+                <p>Full institutional clearing platform live with biometric KYC/AML, DvP settlement engine, and compliance perimeter.</p>
+              </div>
+            </div>
+            <div className="inv-moat-item">
+              <div className="inv-moat-bullet" />
+              <div>
+                <h4>Dubai Liquidity Partnership</h4>
+                <p>Signed terms with a UAE-corridor refining desk providing immediate fiat off-ramps via a stablecoin settlement bridge for instant AED/USD liquidation.</p>
+              </div>
+            </div>
+            <div className="inv-moat-item">
+              <div className="inv-moat-bullet" />
+              <div>
+                <h4>Supply Chain Secured</h4>
+                <p>Direct mine originator relationships in West Africa and South America with wholesale pricing locked at source.</p>
+              </div>
+            </div>
+            <div className="inv-moat-item">
+              <div className="inv-moat-bullet" />
+              <div>
+                <h4>Regulatory Architecture</h4>
+                <p>SOC 2 continuous compliance, LBMA Good Delivery verification embedded, OFAC/EU/UN sanctions screening on every counterparty.</p>
+              </div>
             </div>
           </div>
         </div>

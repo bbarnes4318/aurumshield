@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ClearingSeal } from "../ClearingSeal";
+import { GoldwireBrandLogo } from "@/components/ui/goldwire-logo";
 
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://app.aurumshield.vip";
@@ -43,11 +44,7 @@ export function HeroSection() {
             variants={fade}
             className="mb-6 lg:mb-8 flex justify-center lg:justify-start"
           >
-            <img 
-              src="/goldwire-logo.svg" 
-              alt="Goldwire Protocol" 
-              className="h-12 md:h-14 lg:h-16 w-auto drop-shadow-lg" 
-            />
+            <GoldwireBrandLogo />
           </motion.div>
 
           <motion.h1
