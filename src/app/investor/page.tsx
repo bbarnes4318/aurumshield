@@ -993,13 +993,6 @@ export default function InvestorOneSheet() {
         <div className="inv-footer-brand">
           <GoldwireBrandLogo />
         </div>
-        <div className="inv-footer-links">
-          <a href="/platform-overview">Technical Architecture</a>
-          <a href="/legal/terms">Terms of Service</a>
-          <a href="/legal/privacy">Privacy Policy</a>
-          <a href="/legal/aml-kyc">AML/KYC Policy</a>
-          <a href="mailto:investors@aurumshield.vip">Investor Relations</a>
-        </div>
         <p>
           © {new Date().getFullYear()} AurumShield · Goldwire Protocol · Confidential — Not for Public Distribution
         </p>
