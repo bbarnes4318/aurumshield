@@ -152,40 +152,34 @@ const FlowColumn: React.FC<FlowColumnProps> = ({
 
   useEffect(() => {
     let mounted = true;
-    let t: number | undefined;
+    let t: number;
 
-    const run = () => {
+    const tick = (currentIndex: number) => {
       if (!mounted) return;
 
-      setActiveIndex((prev) => {
-        const next = prev + 1;
-        // After last node, briefly hold, then loop.
-        if (next >= nodes.length) return nodes.length; // summary state
-        return next;
-      });
+      setActiveIndex(currentIndex);
 
-      t = window.setTimeout(() => {
-        if (!mounted) return;
-
-        setActiveIndex((prev) => {
-          // If we are in summary state, reset.
-          if (prev >= nodes.length) return -1;
-          return prev;
-        });
-
-        // schedule next tick
-        t = window.setTimeout(run, cadenceMs);
-      }, cadenceMs);
+      if (currentIndex >= nodes.length) {
+        // We reached the end of the flow.
+        // Hold this fully illuminated state for 8 seconds so the user can read it.
+        t = window.setTimeout(() => {
+          if (mounted) tick(-1);
+        }, 8000);
+      } else {
+        // Normal step. Wait for the cadence duration, then advance.
+        t = window.setTimeout(() => {
+          if (mounted) tick(currentIndex + 1);
+        }, cadenceMs);
+      }
     };
 
-    // kick off
-    t = window.setTimeout(run, cadenceMs);
+    // Kick off the initial animation
+    t = window.setTimeout(() => tick(0), 500);
 
     return () => {
       mounted = false;
-      if (t) window.clearTimeout(t);
+      window.clearTimeout(t);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cadenceMs, nodes.length]);
 
   const revealedCount = useMemo(() => {
