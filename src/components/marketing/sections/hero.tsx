@@ -56,8 +56,8 @@ export function HeroSection() {
             variants={fade}
             className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-white tracking-tight leading-[1.15]"
           >
-            Sovereign Gold.{" "}
-            <span className="text-gold">Instant B2B Settlement.</span>
+            Bypass SWIFT. <br />
+            <span className="text-gold">Settle Millions in Seconds.</span>
           </motion.h1>
 
           <motion.p
@@ -67,11 +67,10 @@ export function HeroSection() {
             variants={fade}
             className="text-base md:text-lg text-gray-300 leading-relaxed"
           >
-            AurumShield&apos;s <strong>Goldwire protocol</strong> bypasses
-            legacy SWIFT rails. Settle multi-million dollar cross-border
-            transactions in seconds using allocated physical bullion stored in
-            our integrated global vaults.{" "}
-            <strong>Speed. Sovereignty. Zero Kinetic Risk.</strong>
+            The <strong>Goldwire protocol</strong> uses allocated physical gold
+            as a high-velocity transport layer. Settle cross-border corporate
+            transactions instantly, bypassing legacy banking friction and
+            capturing wholesale liquidity.
           </motion.p>
 
           <motion.div

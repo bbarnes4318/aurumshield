@@ -421,7 +421,7 @@ function ExposureSection() {
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-200">
               In legacy markets, a T+2 settlement window creates exponential
-              counterparty risk. AurumShield&apos;s engine executes atomically,
+              counterparty risk. The Goldwire protocol executes atomically,
               collapsing the settlement window to zero and eliminating temporal
               exposure entirely.
             </p>
@@ -448,73 +448,58 @@ function ExposureSection() {
 }
 
 /* ================================================================
-   KINETIC RISK — Sovereign Custody Layer
+   GOLDWIRE ARCHITECTURE — 3-Step Pipeline
    ================================================================ */
-function KineticRiskSection() {
+function GoldwireArchitectureSection() {
   return (
     <section className="pb-24 lg:pb-32 pt-4 lg:pt-8">
-      {/* Architectural Divider */}
       <div className="mx-auto max-w-7xl px-6 mb-16 lg:mb-20">
         <div className="h-px w-full bg-gradient-to-r from-slate-800 via-slate-800/50 to-transparent" />
       </div>
       <div className="mx-auto max-w-7xl px-6">
-        {/* ── Premium card wrapper for section header ── */}
-        <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 lg:p-10 backdrop-blur-sm mb-16">
+        <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 lg:p-10 backdrop-blur-sm mb-12 text-center max-w-4xl mx-auto flex flex-col items-center">
           <div className="flex items-center gap-4 mb-4">
             <div className="h-px w-8 bg-gold/50" />
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-              PHYSICAL PERIMETER
+              THE GOLDWIRE PIPELINE
             </p>
+            <div className="h-px w-8 bg-gold/50" />
           </div>
-          <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
-            The Sovereign Custody Layer: Kinetic Risk Eliminated
+          <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white">
+            Instant Fiat-to-Fiat Settlement via Physical Gold.
           </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-            Physical transport of bullion exposes participants to severe kinetic
-            threats—supply chain interception, transport extortion, and
-            counterfeit asset injection. AurumShield bypasses the physical rail
-            entirely. Bullion is confined within sovereign-grade vault networks,
-            and ownership is settled atomically.
+          <p className="mt-4 text-base leading-relaxed text-gray-300 max-w-2xl">
+            We have vertically integrated the entire physical supply chain. You deposit fiat, we source wholesale bullion, execute a digital title transfer, and liquidate it in the target jurisdiction. Zero legacy banking friction.
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* Large Feature - Spans 8 columns */}
-          <div className="lg:col-span-8 bg-white/[0.02] border border-white/10 rounded-2xl p-8 sm:p-10 backdrop-blur-sm flex flex-col justify-center">
-            <h3 className="text-xl font-bold text-white mb-4">
-              Sovereign Vault Confinement
-            </h3>
-            <p className="text-base leading-relaxed text-slate-400 max-w-2xl">
-              From vetted mine extraction to final settlement, assets remain
-              locked in secure, insured facilities operated exclusively by
-              Tier-1 logistics partners like Malca-Amit and Brink&apos;s. Asset
-              provenance is cryptographically verified, and physical reality is
-              maintained without kinetic exposure.
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
+            <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
+              <span className="font-mono font-bold text-gold">01</span>
+            </div>
+            <h3 className="text-lg font-bold text-white mb-3">Wholesale Sourcing</h3>
+            <p className="text-sm leading-relaxed text-slate-400">
+              Users wire USD to our master treasury. We instantly purchase physical gold directly from vetted mine originators, capturing wholesale spreads and allocating sovereign-grade bullion at Malca-Amit.
             </p>
           </div>
-
-          {/* Stacked Side Features - Span 4 columns */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex-1">
-              <h3 className="text-base font-bold text-white mb-2">
-                Armored Transit Eliminated
-              </h3>
-              <p className="text-sm leading-relaxed text-slate-400">
-                Because settlement occurs atomically at the vault level,
-                participants never need to manage armed transport or supply
-                chain security.
-              </p>
+          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
+            <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
+              <span className="font-mono font-bold text-gold">02</span>
             </div>
-            <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex-1">
-              <h3 className="text-base font-bold text-white mb-2">
-                Geopolitical Insulation
-              </h3>
-              <p className="text-sm leading-relaxed text-slate-400">
-                Assets remain sequestered in highly stable jurisdictions,
-                eliminating the risk of local extortion, confiscation, or
-                transit interception.
-              </p>
+            <h3 className="text-lg font-bold text-white mb-3">Deterministic Transfer</h3>
+            <p className="text-sm leading-relaxed text-slate-400">
+              The Goldwire protocol executes the transfer. Our engine cryptographically reassigns the legal title of the physical metal inside the vault in under 10 seconds. Physical transport is never required.
+            </p>
+          </div>
+          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
+            <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
+              <span className="font-mono font-bold text-gold">03</span>
             </div>
+            <h3 className="text-lg font-bold text-white mb-3">Local Liquidation</h3>
+            <p className="text-sm leading-relaxed text-slate-400">
+              The recipient clicks liquidate. Our API automatically sells the gold to our regional OTC Liquidity Partners (e.g., in Dubai), who instantly wire local fiat directly to the recipient&apos;s corporate account.
+            </p>
           </div>
         </div>
       </div>
@@ -713,7 +698,7 @@ function ComplianceSection() {
           Regulatory &amp; Cryptographic Compliance
         </h2>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-400">
-          Aarumshield operates exceeding global financial regulatory standards.
+          AurumShield operates exceeding global financial regulatory standards.
           Our infrastructure is continuously audited for absolute cryptographic
           and operational integrity.
         </p>
@@ -878,10 +863,7 @@ function SovereignAssetsSection() {
             </h2>
 
             <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-gray-400">
-              For ultra-high-net-worth individuals and institutional treasuries,
-              Aarumshield facilitates the direct acquisition of physical,
-              operational gold mines. Bypass the fractional markets entirely and
-              secure sovereign-grade, ground-floor assets.
+              Because AurumShield is vertically integrated directly with vetted gold mine originators, institutional treasuries bypass fractional broker markups. The Goldwire network provides direct access to sovereign-grade, wholesale physical liquidity.
             </p>
 
             {/* Divider */}
@@ -1140,7 +1122,7 @@ export function MarketingLanding() {
         </div>
       </section>
 
-      <KineticRiskSection />
+      <GoldwireArchitectureSection />
       <SettlementLifecycleSection />
 
       {/* ── Live Engine Telemetry ── */}
