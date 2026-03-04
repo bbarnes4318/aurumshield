@@ -28,7 +28,7 @@ const CLERK_ENABLED =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
 
 /* ── Marketing-only routes (served on root domain) ── */
-const MARKETING_PATHS = ["/platform-overview", "/technical-overview", "/demo", "/legal"];
+const MARKETING_PATHS = ["/platform-overview", "/demo", "/legal"];
 
 /* ── Routes that are available on BOTH domains (never redirected) ── */
 const SHARED_PATHS = ["/health", "/api/webhooks", "/favicon.ico"];
@@ -44,7 +44,6 @@ const isPublicRoute = createRouteMatcher([
   "/dev/(.*)",
   "/",
   "/platform-overview(.*)",
-  "/technical-overview(.*)",
   "/legal(.*)",
 ]);
 
