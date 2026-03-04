@@ -67,7 +67,7 @@ describe("State Machine — Trade Status Transitions", () => {
 
     it.each(testCases)(
       "should allow $description ($from → $to)",
-      ({ from, to }) => {
+      ({ from, to }: { from: TradeStatus; to: TradeStatus; description: string }) => {
         const result = transitionTradeState("trade-001", from, to, "actor-001", "system");
 
         expect(result.previousState).toBe(from);
@@ -110,7 +110,7 @@ describe("State Machine — Trade Status Transitions", () => {
 
     it.each(illegalPairs)(
       "should REJECT %s → %s",
-      (from, to) => {
+      (from: TradeStatus, to: TradeStatus) => {
         expect(() =>
           transitionTradeState("trade-001", from, to, "actor-001", "system"),
         ).toThrow(IllegalStateTransitionError);
@@ -208,7 +208,7 @@ describe("State Machine — Settlement Lifecycle Transitions", () => {
 
     it.each(testCases)(
       "should allow $description ($from → $to)",
-      ({ from, to }) => {
+      ({ from, to }: { from: SettlementLifecycleStatus; to: SettlementLifecycleStatus; description: string }) => {
         const result = transitionSettlementState("stl-001", from, to, "actor-001", "system");
 
         expect(result.previousState).toBe(from);
@@ -233,7 +233,7 @@ describe("State Machine — Settlement Lifecycle Transitions", () => {
 
     it.each(illegalPairs)(
       "should REJECT %s → %s",
-      (from, to) => {
+      (from: SettlementLifecycleStatus, to: SettlementLifecycleStatus) => {
         expect(() =>
           transitionSettlementState("stl-001", from, to, "actor-001", "system"),
         ).toThrow(IllegalStateTransitionError);

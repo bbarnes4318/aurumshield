@@ -99,6 +99,7 @@ const ACTION_UI: Record<SettlementActionType, ActionConfig> = {
   FAIL_SETTLEMENT: { label: "Fail Settlement", icon: <XCircle className="h-3.5 w-3.5" />, variant: "danger" },
   CANCEL_SETTLEMENT: { label: "Cancel Settlement", icon: <Ban className="h-3.5 w-3.5" />, variant: "warning" },
   RESOLVE_AMBIGUOUS: { label: "Resolve Ambiguous State", icon: <RotateCcw className="h-3.5 w-3.5" />, variant: "warning" },
+  CONFIRM_RAIL_SETTLED: { label: "Confirm Rail Settled", icon: <CheckCircle2 className="h-3.5 w-3.5" />, variant: "success" },
   REVERSE_SETTLEMENT: { label: "Reverse Settlement", icon: <RotateCcw className="h-3.5 w-3.5" />, variant: "danger" },
 };
 
