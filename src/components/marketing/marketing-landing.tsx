@@ -527,7 +527,7 @@ function ArchitectureSection() {
               Military-Grade Settlement Infrastructure
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-              AurumShield interposes as the central counterparty between buyers
+              The Goldwire network interposes as the central counterparty between buyers
               and sellers. The platform provides two primary access vectors: a
               full-featured institutional web application and a programmatic
               REST API for integration into existing trading systems.
@@ -859,11 +859,11 @@ function SovereignAssetsSection() {
             </div>
 
             <h2 className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-bold tracking-tight text-white max-w-2xl leading-tight">
-              Sovereign Asset Acquisition.
+              Wholesale Supply Chain Integration.
             </h2>
 
             <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-gray-400">
-              Because AurumShield is vertically integrated directly with vetted gold mine originators, institutional treasuries bypass fractional broker markups. The Goldwire network provides direct access to sovereign-grade, wholesale physical liquidity.
+              Because AurumShield is vertically integrated directly with vetted gold mine originators, institutional treasuries bypass fractional broker markups entirely. The Goldwire network provides direct, unlimited access to sovereign-grade, wholesale physical liquidity at the source.
             </p>
 
             {/* Divider */}
@@ -872,10 +872,10 @@ function SovereignAssetsSection() {
             {/* Feature bullets */}
             <div className="grid gap-4 sm:grid-cols-2 mb-10">
               {[
-                "Direct mine originator access",
-                "Full geological due diligence",
-                "Title transfer & sovereign vaulting",
-                "Institutional-grade legal structuring",
+                "Direct mine originator sourcing",
+                "Zero fractional retail markups",
+                "Guaranteed sovereign vault allocation",
+                "Instant Title transfer via Goldwire",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3">
                   <CheckCircle className="h-4 w-4 text-gold/60 shrink-0" />
