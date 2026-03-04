@@ -92,7 +92,7 @@ export default function InvestorOneSheet() {
           background: var(--gold);
         }
         .inv-hero h1 {
-          font-family: var(--font-serif);
+          font-family: var(--font-outfit), sans-serif;
           font-size: clamp(2rem, 4vw, 3rem);
           font-weight: 700;
           letter-spacing: -0.03em;
@@ -148,7 +148,7 @@ export default function InvestorOneSheet() {
           .inv-card-showcase { grid-template-columns: 1fr; text-align: center; }
         }
         .inv-card-showcase h2 {
-          font-family: var(--font-serif);
+          font-family: var(--font-outfit), sans-serif;
           font-size: 1.75rem;
           font-weight: 700;
           color: var(--text);
@@ -202,7 +202,7 @@ export default function InvestorOneSheet() {
           opacity: 0.5;
         }
         .inv-h2 {
-          font-family: var(--font-serif);
+          font-family: var(--font-outfit), sans-serif;
           font-size: 1.75rem;
           font-weight: 700;
           color: var(--text);
@@ -468,7 +468,7 @@ export default function InvestorOneSheet() {
           pointer-events: none;
         }
         .inv-form-section h2 {
-          font-family: var(--font-serif);
+          font-family: var(--font-outfit), sans-serif;
           font-size: 1.5rem;
           font-weight: 700;
           color: var(--text);

@@ -48,8 +48,7 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="text-[clamp(2.5rem,5vw,4.5rem)] font-extrabold tracking-tighter leading-[1.05] text-white"
-            style={{ fontFamily: "var(--font-outfit), sans-serif" }}
+            className="font-heading text-[clamp(2.5rem,5vw,4.5rem)] font-extrabold tracking-tighter leading-[1.05] text-white"
           >
             Bypass SWIFT. <br />
             <span className="text-gold">Settle Millions in Seconds.</span>

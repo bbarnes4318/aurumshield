@@ -288,7 +288,7 @@ function SettlementLifecycleSection() {
             SETTLEMENT LIFECYCLE
           </p>
         </div>
-        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
+        <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
           Deterministic Settlement Lifecycle
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
@@ -311,7 +311,7 @@ function SettlementLifecycleSection() {
                     {s.step}
                   </span>
                 </div>
-                <h3 className="text-base font-bold uppercase tracking-wide text-white mb-2">
+                <h3 className="font-heading text-base font-bold uppercase tracking-wide text-white mb-2">
                   {s.label}
                 </h3>
                 <p className="text-sm leading-relaxed text-gray-300">
@@ -475,7 +475,7 @@ function GoldwireArchitectureSection() {
             </p>
             <div className="h-px w-8 bg-gold/50" />
           </div>
-          <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white">
+          <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white">
             Instant Fiat-to-Fiat Settlement via Physical Gold.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-gray-300 max-w-2xl">
@@ -491,7 +491,7 @@ function GoldwireArchitectureSection() {
             <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
               <span className="font-mono font-bold text-gold">01</span>
             </div>
-            <h3 className="text-lg font-bold text-white mb-3">
+            <h3 className="font-heading text-lg font-bold text-white mb-3">
               Wholesale Sourcing
             </h3>
             <p className="text-sm leading-relaxed text-slate-400">
@@ -505,7 +505,7 @@ function GoldwireArchitectureSection() {
             <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
               <span className="font-mono font-bold text-gold">02</span>
             </div>
-            <h3 className="text-lg font-bold text-white mb-3">
+            <h3 className="font-heading text-lg font-bold text-white mb-3">
               Deterministic Transfer
             </h3>
             <p className="text-sm leading-relaxed text-slate-400">
@@ -519,7 +519,7 @@ function GoldwireArchitectureSection() {
             <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
               <span className="font-mono font-bold text-gold">03</span>
             </div>
-            <h3 className="text-lg font-bold text-white mb-3">
+            <h3 className="font-heading text-lg font-bold text-white mb-3">
               Local Liquidation
             </h3>
             <p className="text-sm leading-relaxed text-slate-400">
@@ -599,7 +599,7 @@ function ArchitectureSection() {
                     <Fingerprint className="h-6 w-6 text-gold" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">
+                    <h3 className="font-heading text-lg font-semibold text-white mb-2">
                       Maker-Checker Biometric Authorization
                     </h3>
                     <p className="text-base leading-relaxed text-gray-300 max-w-md">
@@ -620,7 +620,7 @@ function ArchitectureSection() {
                     <Cpu className="h-6 w-6 text-gold" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">
+                    <h3 className="font-heading text-lg font-semibold text-white mb-2">
                       Atomic Escrow Engine
                     </h3>
                     <p className="text-base leading-relaxed text-gray-300 max-w-md">
@@ -639,7 +639,7 @@ function ArchitectureSection() {
                     <Code className="h-6 w-6 text-gold" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">
+                    <h3 className="font-heading text-lg font-semibold text-white mb-2">
                       Immutable Settlement Finality
                     </h3>
                     <p className="text-base leading-relaxed text-gray-300 max-w-md">
@@ -723,7 +723,7 @@ function ComplianceSection() {
             AUDIT REPORT
           </p>
         </div>
-        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
+        <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
           Regulatory &amp; Cryptographic Compliance
         </h2>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-400">
@@ -891,7 +891,7 @@ function SovereignAssetsSection() {
               </p>
             </div>
 
-            <h2 className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-bold tracking-tight text-white max-w-2xl leading-tight">
+            <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] font-bold tracking-tight text-white max-w-2xl leading-tight">
               Wholesale Supply Chain Integration.
             </h2>
 
@@ -972,7 +972,7 @@ function GoldwireCardSection() {
                   THE CORPORATE INSTRUMENT
                 </p>
               </div>
-              <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold tracking-tight text-white leading-tight mb-6">
+              <h2 className="font-heading text-[clamp(2rem,4vw,3rem)] font-bold tracking-tight text-white leading-tight mb-6">
                 Physical Sovereignty.
                 <br />
                 <span className="text-gray-400">Digital Velocity.</span>
@@ -1046,7 +1046,7 @@ function FinalCTA() {
         <div className="border border-slate-800 bg-[#0B0E14] rounded-md overflow-hidden shadow-2xl">
           <div className="p-10 sm:p-16 text-center flex flex-col items-center">
             <Lock className="h-10 w-10 text-gold mb-6 opacity-80" />
-            <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white mb-4">
+            <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white mb-4">
               Infrastructure Access is Strictly Gated.
             </h2>
             <p className="text-base text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
@@ -1260,7 +1260,7 @@ export function MarketingLanding() {
                 LIVE ENGINE TELEMETRY
               </p>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
+            <h2 className="font-heading text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
               Deterministic Settlement. Zero Counterparty Risk.
             </h2>
             <p className="text-gray-300 text-sm md:text-base leading-relaxed text-left">
