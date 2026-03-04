@@ -966,25 +966,30 @@ function GoldwireCardSection() {
               </a>
             </div>
 
-            {/* Right Column: Floating Card */}
-            <div className="flex flex-col items-center justify-center">
-              <div className="animate-float-card">
-                <Image
+            {/* Right Column: The Floating Card Image */}
+            <div className="relative flex justify-center items-center h-full min-h-[400px]">
+              {/* Inner glow directly behind the card */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent blur-3xl opacity-50 rounded-full" />
+
+              {/* The Image with a continuous floating animation */}
+              <div
+                className="relative w-full max-w-[450px] transform hover:scale-105 transition-transform duration-700 ease-out"
+                style={{ animation: "goldwireFloat 6s ease-in-out infinite" }}
+              >
+                <style>{`
+                  @keyframes goldwireFloat {
+                    0% { transform: translateY(0px); }
+                    50% { transform: translateY(-15px); }
+                    100% { transform: translateY(0px); }
+                  }
+                `}</style>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src="/gold-wire.png"
-                  alt="Goldwire Corporate Card — brushed metal sovereign-tier instrument"
-                  width={520}
-                  height={330}
-                  className="w-full max-w-[480px] h-auto drop-shadow-2xl"
+                  alt="Goldwire Corporate Card"
+                  className="w-full h-auto drop-shadow-[0_25px_35px_rgba(0,0,0,0.8)] relative z-10"
                 />
               </div>
-              {/* Gold ambient glow beneath card */}
-              <div
-                className="mt-4 w-[70%] h-6 rounded-full opacity-60 blur-xl"
-                style={{
-                  background:
-                    "radial-gradient(ellipse, rgba(198,168,107,0.35) 0%, transparent 70%)",
-                }}
-              />
             </div>
           </div>
         </div>
