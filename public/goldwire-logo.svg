@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="160" viewBox="0 0 520 160">
+
+  <defs>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF1B8"/>
+      <stop offset="40%" stop-color="#E3B23C"/>
+      <stop offset="70%" stop-color="#C8961A"/>
+      <stop offset="100%" stop-color="#F7D774"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Symbol -->
+  <g transform="translate(10,20) scale(1.1)">
+    
+    <!-- Left shape -->
+    <polygon 
+      points="0,60 70,10 90,30 40,65 90,100 70,120"
+      fill="url(#goldGradient)" />
+
+    <!-- Top right shape -->
+    <polygon
+      points="95,25 145,5 180,35 130,50"
+      fill="url(#goldGradient)" />
+
+    <!-- Bottom right shape -->
+    <polygon
+      points="95,85 130,65 180,85 145,115"
+      fill="url(#goldGradient)" />
+
+  </g>
+
+  <!-- Brand Name -->
+  <text
+    x="230"
+    y="100"
+    font-family="Helvetica, Arial, sans-serif"
+    font-size="56"
+    font-weight="600"
+    letter-spacing="6"
+    fill="url(#goldGradient)">
+    GOLDWIRE
+  </text>
+
+</svg>
