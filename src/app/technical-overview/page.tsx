@@ -412,87 +412,60 @@ export default async function TechnicalOverviewPage() {
 
             <div className="to-step">
               <div className="to-num">04</div>
-              <h4>Marketplace &amp; Price Discovery</h4>
+              <h4>Treasury Funding &amp; Stablecoin Bridge</h4>
               <p>
-                The marketplace engine (<code>marketplace-engine.ts</code>) lists
-                LBMA Good Delivery-verified gold from validated sellers. Every
-                listing requires three evidence types:{" "}
-                <strong>Assay Report</strong>, <strong>Chain of Custody</strong>,
-                and <strong>Seller Attestation</strong>. The refiner is verified
-                against the LBMA Good Delivery List (<code>lbma-service.ts</code>)
-                containing 34+ accredited refiners worldwide.
+                Treasuries fund accounts via USD Fedwire or our Phase 1
+                Stablecoin Bridge (USDC/USDT). Digital asset onboarding bypasses
+                legacy banking delays, providing instant liquidity.
               </p>
-              <span className="to-tag to-tag-engine">LBMA Verification · Evidence Gate</span>
+              <span className="to-tag to-tag-auth">USDC · Fedwire</span>
             </div>
 
             <div className="to-step">
               <div className="to-num">05</div>
-              <h4>Collateral Lock &amp; Price Lock</h4>
+              <h4>Wholesale Sourcing &amp; Allocation</h4>
               <p>
-                The policy engine (<code>policy-engine.ts</code>) computes a{" "}
-                <strong>Transaction Risk Index (TRI)</strong>. Before price lock,
-                the buyer{`'`}s firm must post <strong>5% collateral</strong> from their
-                CorporateWallet via <code>capital-engine.ts</code>. Multi-oracle
-                medianized pricing (Bloomberg B-PIPE, Refinitiv, OANDA) with a
-                <strong> 15 bps circuit breaker</strong> that triggers FREEZE on divergence.
-                LOCK_PRICE transitions to PENDING_COLLATERAL then PENDING_CHECKER_APPROVAL.
-                This fractional collateral requirement replaces legacy 100%
-                pre-funding models, drastically unlocking capital efficiency and
-                Return on Equity (ROE) for participating trading desks without
-                compromising the escrow&apos;s integrity.
+                AurumShield programmatically routes funds to vetted mine
+                originators, acquiring physical gold at wholesale discounts. The
+                asset is allocated at a Tier-1 facility (Malca-Amit) under the
+                user&apos;s title.
               </p>
-              <span className="to-tag to-tag-engine">Collateral Lock · Multi-Oracle · Circuit Breaker</span>
+              <span className="to-tag to-tag-engine">Vertical Integration</span>
             </div>
 
             <div className="to-step">
               <div className="to-num">06</div>
-              <h4>Maker-Checker Approval &amp; DvP Execution</h4>
+              <h4>Execute Goldwire (Title Transfer)</h4>
               <p>
-                The TRADER (Maker) submits the order. The TREASURY (Checker)
-                reviews via the maker-checker workflow and clicks {`"`}Approve &amp; Execute
-                DvP{`"`}, triggering a JIT <strong>WebAuthn/Passkey</strong> signature
-                (<code>navigator.credentials.get()</code>) cryptographically bound
-                to the canonicalized SHA-256 payload. The{" "}
-                <strong>DocuSign CLM</strong> generates the Master Bill of Sale
-                natively. Dual-rail router selects between{" "}
-                <strong>Modern Treasury</strong> and <strong>Moov</strong> with
-                automatic fallback. Each payout carries a deterministic{" "}
-                <strong>SHA-256 idempotency key</strong>. Approval stored in{" "}
-                <code>order_approvals</code> table.
+                The TRADER initiates a Goldwire. The TREASURY role approves via a
+                JIT <strong>WebAuthn</strong> signature. The engine instantly
+                reassigns the legal title of vaulted gold to the recipient. T+0
+                finality.
               </p>
-              <span className="to-tag to-tag-settle">Maker-Checker · WebAuthn · DocuSign CLM</span>
+              <span className="to-tag to-tag-settle">T+0 Finality</span>
             </div>
 
             <div className="to-step">
               <div className="to-num">07</div>
-              <h4>Sovereign Armored Logistics</h4>
+              <h4>Dual Off-Ramps: Fiat API or Physical</h4>
               <p>
-                All standard mail and USPS shipping has been removed. Gold is
-                transported exclusively via sovereign-grade armored carriers:{" "}
-                <strong>Malca-Amit</strong> (primary) and{" "}
-                <strong>Brink&apos;s</strong> (secondary/failover).
-                Full vault-to-vault chain-of-custody tracking.
-                Carrier assignment is deterministic based on notional value,
-                corridor, and availability.
+                Recipients choose their exit: instantly liquidate via API to
+                Dubai OTC partners for local fiat/USDC, OR initiate Sovereign
+                Kinetic Redemption to take physical delivery via Malca-Amit
+                armored transport.
               </p>
-              <span className="to-tag to-tag-ship">Malca-Amit · Brink&apos;s Armored</span>
+              <span className="to-tag to-tag-ship">OTC API · Malca-Amit</span>
             </div>
 
             <div className="to-step">
               <div className="to-num">08</div>
-              <h4>Delivery Confirmation &amp; Certificate</h4>
+              <h4>Cryptographic Finality</h4>
               <p>
-                Upon confirmed delivery, the certificate engine
-                (<code>certificate-engine.ts</code>) issues a{" "}
-                <strong>Gold Clearing Certificate</strong> (format:
-                AS-GC-YYYYMMDD-&lt;8HEX&gt;-&lt;SEQ&gt;). The certificate payload is
-                canonically serialized and signed with{" "}
-                <strong>SHA-256</strong> (with AWS KMS ECDSA signing in production).
-                Certificates are idempotent — one per settlement — and include full
-                economic context: buyer/seller LEIs, asset details, fee breakdown,
-                and settlement rail used.
+                Upon liquidation or physical delivery, the certificate engine
+                issues a <strong>SHA-256 signed Clearing Certificate</strong>{" "}
+                providing independently verifiable proof of the entire lifecycle.
               </p>
-              <span className="to-tag to-tag-settle">SHA-256 Signed · KMS ECDSA</span>
+              <span className="to-tag to-tag-settle">SHA-256 Signed</span>
             </div>
           </div>
 
