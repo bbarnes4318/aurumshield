@@ -30,17 +30,17 @@ export function HeroSection() {
         }}
       />
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center py-12 lg:py-24 max-w-7xl mx-auto px-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
-        <div className="flex flex-col justify-center space-y-6 lg:space-y-8 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
+        <div className="flex flex-col justify-center space-y-5 lg:space-y-6 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
           <motion.div
             custom={0}
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="mb-2 lg:mb-3 flex justify-center lg:justify-start"
+            className="mb-1 flex justify-center lg:justify-start"
           >
-            <GoldwireBrandLogo />
+            <GoldwireBrandLogo className="scale-110 lg:scale-125 origin-left" />
           </motion.div>
 
           <motion.h1
@@ -48,7 +48,7 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="font-heading text-[clamp(1.75rem,3.5vw,2.75rem)] font-bold tracking-tight text-white leading-[1.15] drop-shadow-sm"
+            className="font-heading text-[clamp(2.25rem,4.5vw,3.75rem)] font-bold tracking-tight text-white leading-[1.1] drop-shadow-sm"
           >
             Bypass SWIFT. <br />
             <span className="text-gold">Settle Millions in Seconds.</span>
