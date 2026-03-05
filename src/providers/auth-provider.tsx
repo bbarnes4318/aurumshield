@@ -32,6 +32,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 import { useUser, useOrganization } from "@clerk/nextjs";
 import type { User, Org, UserRole } from "@/lib/mock-data";
 import {
@@ -155,8 +156,15 @@ function ensureInit() {
    ================================================================ */
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const clerkEnabled = isClerkConfigured();
-  if (clerkEnabled) {
+
+  // Demo routes ALWAYS use mock auth — Clerk middleware doesn't run on
+  // marketing-served paths so ClerkProvider has no session state, causing
+  // useSession() to throw.  Mock auth is all we need for demos anyway.
+  const isDemoRoute = pathname.startsWith("/demo");
+
+  if (clerkEnabled && !isDemoRoute) {
     return <ClerkAuthAdapter>{children}</ClerkAuthAdapter>;
   }
 
@@ -171,7 +179,11 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
 
   // Also initialize mock store for demo-mode fallback
   ensureInit();
-  const mockState = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const mockState = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   // Determine if we're in demo mode (demo users bypass Clerk)
   const isDemoSession = mockState.user !== null && !isSignedIn;
@@ -191,16 +203,27 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
     return {
       id: clerkUser.id,
       email: clerkUser.primaryEmailAddress?.emailAddress ?? "",
-      name: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || "User",
+      name:
+        [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") ||
+        "User",
       role,
       orgId: organization?.id ?? `clerk-org-${clerkUser.id}`,
-      verificationStatus: clerkUser.primaryEmailAddress?.verification?.status === "verified"
-        ? "VERIFIED" as const
-        : "NOT_STARTED" as const,
+      verificationStatus:
+        clerkUser.primaryEmailAddress?.verification?.status === "verified"
+          ? ("VERIFIED" as const)
+          : ("NOT_STARTED" as const),
       createdAt: clerkUser.createdAt?.toISOString() ?? new Date().toISOString(),
       lastLoginAt: clerkUser.lastSignInAt?.toISOString() ?? null,
     };
-  }, [isLoaded, isSignedIn, clerkUser, organization, membership, isDemoSession, mockState.user]);
+  }, [
+    isLoaded,
+    isSignedIn,
+    clerkUser,
+    organization,
+    membership,
+    isDemoSession,
+    mockState.user,
+  ]);
 
   // Map Clerk org → AurumShield Org
   const org: Org | null = useMemo(() => {
@@ -215,7 +238,8 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
       legalName: organization.name,
       type: "company" as const,
       jurisdiction: "", // TODO: Map from org metadata if needed
-      createdAt: organization.createdAt?.toISOString() ?? new Date().toISOString(),
+      createdAt:
+        organization.createdAt?.toISOString() ?? new Date().toISOString(),
     };
   }, [organization, isDemoSession, mockState.org]);
 
@@ -226,7 +250,11 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
   const login = useCallback(
     (email: string): { success: boolean; error?: string } => {
       const u = findUserByEmail(email);
-      if (!u) return { success: false, error: "No account found. Use Clerk sign-in for real accounts." };
+      if (!u)
+        return {
+          success: false,
+          error: "No account found. Use Clerk sign-in for real accounts.",
+        };
       createSession(u.id);
       updateUser(u.id, { lastLoginAt: new Date().toISOString() });
       syncFromStorage();
@@ -245,7 +273,10 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
       jurisdiction: string;
     }): { success: boolean; error?: string } => {
       // When Clerk is enabled, signup should go through Clerk's SignUp flow
-      return { success: false, error: "Please use the sign-up form to create an account." };
+      return {
+        success: false,
+        error: "Please use the sign-up form to create an account.",
+      };
     },
     [],
   );
@@ -284,7 +315,11 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
 
 function MockAuthProvider({ children }: { children: ReactNode }) {
   ensureInit();
-  const authState = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const authState = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   const user = authState.user;
   const org = authState.org;
@@ -300,7 +335,11 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     (email: string): { success: boolean; error?: string } => {
       const u = findUserByEmail(email);
-      if (!u) return { success: false, error: "No account found for this email address." };
+      if (!u)
+        return {
+          success: false,
+          error: "No account found for this email address.",
+        };
       createSession(u.id);
       updateUser(u.id, { lastLoginAt: new Date().toISOString() });
       syncFromStorage();
@@ -318,7 +357,10 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
       jurisdiction: string;
     }): { success: boolean; error?: string } => {
       if (findUserByEmail(data.email)) {
-        return { success: false, error: "An account with this email already exists." };
+        return {
+          success: false,
+          error: "An account with this email already exists.",
+        };
       }
 
       const now = new Date().toISOString();
