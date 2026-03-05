@@ -29,18 +29,44 @@ const CLERK_ENABLED =
   CLERK_PUBLISHABLE_KEY !== "YOUR_PUBLISHABLE_KEY" &&
   CLERK_PUBLISHABLE_KEY.startsWith("pk_");
 
-/** Routes that must NOT be wrapped in ClerkProvider */
-const CLERK_BYPASS_PREFIXES = ["/demo"];
+/**
+ * Routes that must NOT be wrapped in ClerkProvider.
+ *
+ * CRITICAL: This list MUST stay in sync with every path the middleware
+ * serves via `NextResponse.next()` WITHOUT running `clerkMiddleware`.
+ * If Clerk middleware doesn't process the request, ClerkProvider has no
+ * session state and useSession() throws immediately.
+ *
+ * Marketing paths: /, /platform-overview, /technical-overview, /legal, /investor
+ * Public auth paths: /login, /signup, /forgot-password
+ * Demo paths: /demo
+ * Dev paths: /dev
+ */
+const CLERK_BYPASS_PREFIXES = [
+  "/demo",
+  "/platform-overview",
+  "/technical-overview",
+  "/legal",
+  "/investor",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/dev",
+];
+
+/** Exact paths (not prefix-based) that also bypass */
+const CLERK_BYPASS_EXACT = ["/"];
 
 export function ClerkWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // Demo routes bypass ClerkProvider entirely — Clerk middleware
-  // does not run on marketing-domain demo paths, so ClerkProvider
-  // has no session to hydrate and useSession() throws.
-  const isBypassRoute = CLERK_BYPASS_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
-  );
+  // Any route where the middleware does NOT run clerkMiddleware must
+  // bypass ClerkProvider — no session state = useSession() throws.
+  const isBypassRoute =
+    CLERK_BYPASS_EXACT.includes(pathname) ||
+    CLERK_BYPASS_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+    );
 
   if (!CLERK_ENABLED || isBypassRoute) {
     // Clerk not provisioned or demo route — render children directly.

@@ -30,7 +30,7 @@ export function HeroSection() {
         }}
       />
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
         <div className="flex flex-col justify-center space-y-5 lg:space-y-6 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
           <motion.div
@@ -48,10 +48,10 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="font-heading text-[clamp(2.25rem,4.5vw,3.75rem)] font-bold tracking-tight text-white leading-[1.1] drop-shadow-sm"
+            className="font-heading text-[clamp(2.25rem,4.5vw,3.75rem)] font-bold tracking-tight text-white leading-[1.1] drop-shadow-sm max-w-3xl text-balance"
           >
             Bypass SWIFT. <br />
-            <span className="text-gold">Settle Millions in Seconds.</span>
+            <span className="text-gold">Clear Millions Instantly.</span>
           </motion.h1>
 
           <motion.p
@@ -59,12 +59,12 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="text-base md:text-lg text-gray-300 leading-relaxed"
+            className="text-base md:text-lg text-gray-300 leading-relaxed max-w-2xl"
           >
-            The <strong>Goldwire protocol</strong> uses allocated physical gold
-            as a high-velocity transport layer. Settle cross-border corporate
-            transactions instantly, bypassing legacy banking friction and
-            capturing wholesale liquidity.
+            AurumShield is a Principal Market Maker clearinghouse. We bypass
+            legacy correspondent banking, utilizing vaulted physical gold as a
+            deterministic transport layer for instant, multi-million dollar
+            cross-border settlements.
           </motion.p>
 
           <motion.div

@@ -159,12 +159,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const clerkEnabled = isClerkConfigured();
 
-  // Demo routes ALWAYS use mock auth — Clerk middleware doesn't run on
-  // marketing-served paths so ClerkProvider has no session state, causing
-  // useSession() to throw.  Mock auth is all we need for demos anyway.
-  const isDemoRoute = pathname.startsWith("/demo");
+  // ── Paths where the middleware does NOT run clerkMiddleware ──
+  // ClerkProvider has no session state on these routes, so useSession()
+  // (called internally by useUser/useOrganization) will throw.
+  // This list MUST stay in sync with ClerkWrapper.CLERK_BYPASS_PREFIXES.
+  const BYPASS_PREFIXES = [
+    "/demo",
+    "/platform-overview",
+    "/technical-overview",
+    "/legal",
+    "/investor",
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/dev",
+  ];
+  const isBypassRoute =
+    pathname === "/" ||
+    BYPASS_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+    );
 
-  if (clerkEnabled && !isDemoRoute) {
+  if (clerkEnabled && !isBypassRoute) {
     return <ClerkAuthAdapter>{children}</ClerkAuthAdapter>;
   }
 
