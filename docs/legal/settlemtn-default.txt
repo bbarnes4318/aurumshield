@@ -1,0 +1,86 @@
+AURUMSHIELD SETTLEMENT DEFAULT MANAGEMENT FRAMEWORK
+
+Network: AurumShield Institutional Settlement Network
+Operator: PVN LLC
+
+1. PURPOSE
+
+This Settlement Default Management Framework establishes procedures for addressing participant failures to meet settlement obligations.
+
+The framework ensures orderly resolution of failed settlements while protecting the integrity of the AurumShield Network.
+
+2. DEFAULT EVENTS
+
+A participant is considered in default if it fails to:
+
+• deliver required settlement funds
+• deliver required bullion balances
+• meet collateral requirements
+• comply with regulatory obligations
+
+3. DEFAULT DETECTION
+
+The AurumShield settlement engine continuously monitors participant accounts.
+
+If a participant lacks sufficient funds or collateral to complete settlement, the system flags the account.
+
+4. DEFAULT RESPONSE PROCEDURE
+
+Upon detection of a default event, AurumShield may implement the following actions:
+
+Step 1 — Transaction Suspension
+
+Pending settlement transactions involving the defaulting participant are suspended.
+
+Step 2 — Collateral Evaluation
+
+AurumShield evaluates collateral held in the participant’s account.
+
+Collateral may include:
+
+• fiat balances
+• allocated bullion
+
+Step 3 — Collateral Liquidation
+
+If necessary, AurumShield may liquidate collateral to cover outstanding settlement obligations.
+
+Liquidation may occur through approved liquidity providers.
+
+Step 4 — Network Protection
+
+The defaulting participant may be temporarily or permanently removed from the network.
+
+5. LOSS ALLOCATION
+
+Losses resulting from a default are covered in the following order:
+
+participant collateral
+
+liquidation proceeds
+
+recovery from the participant
+
+AurumShield does not operate a mutualized loss pool.
+
+Participants do not share losses from other participants’ defaults.
+
+6. EMERGENCY MARKET CONDITIONS
+
+In extraordinary market conditions, AurumShield may implement temporary measures including:
+
+• settlement delays
+• liquidity provider substitution
+• trading suspensions
+
+These measures are intended to maintain orderly market functioning.
+
+7. NETWORK STABILITY
+
+AurumShield reserves the right to take any action reasonably necessary to preserve system integrity.
+
+Such actions may include:
+
+• restricting participant activity
+• adjusting collateral requirements
+• suspending network operations.

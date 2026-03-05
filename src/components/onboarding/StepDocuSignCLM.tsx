@@ -57,14 +57,16 @@ export function StepDocuSignCLM() {
       <div className="flex items-center gap-2 mb-1">
         <FileSignature className="h-4 w-4 text-color-2" />
         <h2 className="text-sm font-semibold text-color-3">
-          Master Agreement & Attestation
+          Master Commercial Agreement (MCA): Principal Market Maker &amp;
+          Settlement Terms
         </h2>
       </div>
 
       <p className="text-xs text-color-3/50 leading-relaxed -mt-2">
-        Review and execute the Master Participation Agreement via DocuSign CLM.
-        This contract governs all settlement activity on AurumShield and is
-        generated natively within the platform.
+        Review and execute the Master Commercial Agreement (MCA) via DocuSign
+        CLM. This contract governs all Principal Market Maker settlement
+        activity on AurumShield and must be signed by an authorized corporate
+        officer before treasury routing is enabled.
       </p>
 
       {/* ── Document Preview ── */}
@@ -75,10 +77,10 @@ export function StepDocuSignCLM() {
             <FileText className="h-4 w-4 text-color-2/60" />
             <div>
               <p className="text-xs font-semibold text-color-3/80">
-                Master Participation Agreement
+                Master Commercial Agreement (MCA)
               </p>
               <p className="text-[10px] text-color-3/30">
-                DocuSign CLM · v2026.02 · 14 pages
+                DocuSign CLM · v2026.03 · 18 pages
               </p>
             </div>
           </div>

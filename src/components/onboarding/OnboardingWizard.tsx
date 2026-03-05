@@ -29,7 +29,13 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Shield, CheckCircle2, LogOut, Loader2 } from "lucide-react";
+import {
+  Shield,
+  CheckCircle2,
+  LogOut,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 
 import {
   onboardingSchema,
@@ -50,6 +56,17 @@ import {
   useOnboardingState,
   useSaveOnboardingState,
 } from "@/hooks/use-onboarding-state";
+
+/* ----------------------------------------------------------------
+   Constants
+   ---------------------------------------------------------------- */
+
+/** Step index (1-based) of the DocuSign CLM / MCA gate. */
+const MCA_STEP = 6;
+
+/** Fatal error copy — displayed if a user attempts to bypass MCA signing. */
+const MCA_FATAL_MESSAGE =
+  "Legal indemnification required. The Master Commercial Agreement must be executed by an authorized corporate officer before treasury routing is enabled.";
 
 /* ----------------------------------------------------------------
    Progress Bar — 8-step
@@ -119,6 +136,7 @@ export function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
+  const [fatalMcaError, setFatalMcaError] = useState(false);
   const router = useRouter();
   const hasRestoredRef = useRef(false);
 
@@ -220,12 +238,21 @@ export function OnboardingWizard() {
     const valid = await trigger(stepFields as unknown as (keyof OnboardingFormData)[]);
     if (!valid) return;
 
+    /* ── MCA HARD GATE — Step 6 (DocuSign CLM) ── */
+    if (currentStep === MCA_STEP) {
+      const mcaSigned = getValues("agreementSigned");
+      if (mcaSigned !== true) {
+        setFatalMcaError(true);
+        return;
+      }
+    }
+
     const nextStep = currentStep + 1;
     if (currentStep < ONBOARDING_STEPS.length) {
       setCurrentStep(nextStep);
       saveProgress(nextStep);
     }
-  }, [currentStep, trigger, stepFields, saveProgress]);
+  }, [currentStep, trigger, stepFields, saveProgress, getValues]);
 
   const goBack = useCallback(() => {
     if (currentStep > 1) {
@@ -245,6 +272,12 @@ export function OnboardingWizard() {
 
   const onSubmit = useCallback(
     async (data: OnboardingFormData) => {
+      /* ── MCA HARD GATE — Final submission guard ── */
+      if (data.agreementSigned !== true) {
+        setFatalMcaError(true);
+        return;
+      }
+
       setIsSubmitting(true);
 
       // TODO: POST to /api/onboarding with the verified data
@@ -383,6 +416,42 @@ export function OnboardingWizard() {
             </button>
           )}
         </div>
+
+        {/* ── MCA Fatal Error Overlay ── */}
+        {fatalMcaError && (
+          <div className="fixed inset-0 z-999 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="mx-4 max-w-md rounded-xl border border-red-500/30 bg-[#0B0E14] p-6 shadow-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/15">
+                  <AlertTriangle className="h-5 w-5 text-red-400" />
+                </div>
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  Onboarding Blocked
+                </h3>
+              </div>
+              <p className="text-sm text-gray-300 leading-relaxed mb-6">
+                {MCA_FATAL_MESSAGE}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setFatalMcaError(false);
+                  setCurrentStep(MCA_STEP);
+                }}
+                className="
+                  w-full inline-flex items-center justify-center gap-2
+                  rounded-lg px-5 py-2.5
+                  bg-red-500/15 text-red-400 text-sm font-semibold
+                  border border-red-500/30
+                  hover:bg-red-500/25 active:bg-red-500/30
+                  transition-colors duration-150
+                "
+              >
+                Return to Agreement Signing
+              </button>
+            </div>
+          </div>
+        )}
       </form>
     </FormProvider>
   );

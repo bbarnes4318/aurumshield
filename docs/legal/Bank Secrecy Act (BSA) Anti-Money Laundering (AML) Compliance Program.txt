@@ -1,0 +1,469 @@
+AurumShield
+\
+Including Customer Identification Program (CIP)
+
+Entity: PVN LLC d/b/a AurumShield
+Regulatory Status: Money Services Business (MSB)
+Regulator: Financial Crimes Enforcement Network (FinCEN)
+Primary Statutes:
+
+Bank Secrecy Act (31 U.S.C. §5311-5330)
+
+USA PATRIOT Act
+
+FinCEN MSB Rules (31 CFR Chapter X)
+
+OFAC Sanctions Regulations
+
+Document Classification: Internal Compliance Policy
+Version: 1.0
+Approved By: Board of Managers – PVN LLC
+Effective Date: [Insert]
+
+1. Institutional Overview
+
+AurumShield operates a high-value B2B settlement infrastructure enabling corporate counterparties to settle obligations using:
+
+• Fiat bank wires
+• Stablecoin settlement bridges (USDC / USDT)
+• Allocated vaulted gold ownership transfers
+
+The system operates as a deterministic Delivery-versus-Payment (DvP) settlement mechanism.
+
+Given the high monetary value of transactions, AurumShield implements a Fail-Closed Compliance Architecture, meaning:
+
+No funds, digital assets, or metal title transfers may occur unless compliance clearance has been completed.
+
+This program establishes the framework for:
+
+Customer identity verification
+
+Sanctions screening
+
+Transaction monitoring
+
+Suspicious activity reporting
+
+Record retention
+
+Independent compliance testing
+
+2. Regulatory Framework
+
+AurumShield operates under the regulatory requirements applicable to Money Services Businesses (MSBs) as defined in 31 CFR §1010.100(ff).
+
+The company maintains compliance with:
+
+FinCEN AML Program Requirements
+
+31 CFR §1022.210 requires MSBs to implement a program that includes:
+
+Written internal controls
+
+Designated compliance officer
+
+Ongoing employee training
+
+Independent review
+
+Additional Applicable Regulations
+Regulation	Scope
+31 CFR §1022.220	Customer Identification Program
+31 CFR §1010.311	Currency Transaction Reporting
+31 CFR §1022.320	Suspicious Activity Reporting
+31 CFR §1010.410	Recordkeeping
+3. Compliance Governance
+3.1 Board Oversight
+
+The Board of Managers of PVN LLC maintains ultimate responsibility for AML compliance.
+
+Responsibilities include:
+
+Approving the AML program
+
+Ensuring adequate resources
+
+Reviewing compliance reports
+
+Overseeing independent audits
+
+3.2 Designation of BSA/AML Compliance Officer
+
+AurumShield appoints a BSA/AML Compliance Officer responsible for administering the AML program.
+
+The Compliance Officer reports directly to executive leadership and the Board.
+
+Authority
+
+The Compliance Officer possesses the authority to:
+
+Halt settlements
+
+Freeze platform accounts
+
+Block onboarding
+
+Escalate suspicious activity
+
+File regulatory reports
+
+Suspend counterparties
+
+No business unit may override compliance decisions.
+
+4. Risk-Based Compliance Framework
+
+AurumShield implements a risk-based AML program as recommended by FinCEN guidance.
+
+Risk exposure is evaluated across four dimensions:
+
+Customer Risk
+
+Factors include:
+
+Corporate ownership complexity
+
+Jurisdiction of incorporation
+
+Regulatory status
+
+Geographic Risk
+
+Heightened scrutiny for entities connected to:
+
+FATF grey/black list jurisdictions
+
+Sanctioned jurisdictions
+
+High-corruption environments
+
+Transaction Risk
+
+Risk indicators include:
+
+Unusually large transaction sizes
+
+Rapid asset transfers
+
+Unexplained economic purpose
+
+Product Risk
+
+AurumShield supports multiple asset rails:
+
+Asset Type	Risk Profile
+Fiat wire transfers	Moderate
+Stablecoin settlement	Elevated
+Allocated gold transfers	Moderate
+5. Customer Identification Program (CIP)
+
+AurumShield maintains a Customer Identification Program in accordance with 31 CFR §1022.220.
+
+The purpose of the CIP is to:
+
+Establish customer identity
+
+Verify beneficial ownership
+
+Prevent anonymous access to financial infrastructure
+
+No account may be activated without successful identity verification.
+
+6. Customer Due Diligence (CDD) & KYB
+
+AurumShield services corporate entities only.
+
+All customers must undergo Know Your Business (KYB) verification.
+
+Required Corporate Information
+
+Customers must provide:
+
+Legal entity name
+
+Jurisdiction of incorporation
+
+Business registration number
+
+Principal place of business
+
+Tax identification number
+
+Nature of business activity
+
+7. Beneficial Ownership Identification
+
+Under FinCEN’s Customer Due Diligence Rule, AurumShield must identify beneficial owners.
+
+A beneficial owner is defined as:
+
+• Any individual owning ≥25% of the entity
+• Any individual exercising significant control
+
+Each beneficial owner must undergo identity verification.
+
+8. Identity Verification Infrastructure
+
+AurumShield integrates with Veriff for automated identity verification.
+
+Veriff performs:
+
+Government ID Authentication
+
+Verification of government-issued identity documents.
+
+Biometric Liveness Detection
+
+Facial recognition and anti-spoofing verification.
+
+Corporate Registry Verification
+
+Automated validation against official corporate registries.
+
+Beneficial Ownership Mapping
+
+Extraction and verification of UBO ownership structures.
+
+Verification sessions produce tamper-evident verification reports.
+
+9. Sanctions Compliance
+
+AurumShield enforces strict sanctions compliance.
+
+All counterparties undergo screening against:
+
+OFAC SDN List
+
+OFAC Consolidated Sanctions List
+
+EU Sanctions List
+
+United Nations Sanctions List
+
+10. Sanctions Screening Infrastructure
+
+AurumShield integrates with OpenSanctions.
+
+Screening occurs at three stages:
+
+Onboarding Screening
+
+All entities and UBOs screened before account creation.
+
+Pre-Settlement Screening
+
+Screening occurs before each settlement transaction.
+
+Continuous Monitoring
+
+Customers are periodically re-screened.
+
+Matches trigger an automatic compliance review.
+
+11. Digital Asset Risk Monitoring
+
+Because AurumShield interacts with stablecoins, the system includes blockchain risk monitoring.
+
+Controls include:
+
+Wallet address risk scoring
+
+Exposure detection to illicit wallets
+
+Sanctions wallet screening
+
+Transactions involving high-risk blockchain exposure are halted.
+
+12. Transaction Monitoring
+
+AurumShield maintains automated transaction monitoring systems.
+
+The monitoring engine evaluates:
+
+Structuring
+
+Attempts to evade reporting thresholds through multiple smaller transactions.
+
+Layering
+
+Use of complex transaction patterns to obscure origin of funds.
+
+Velocity Anomalies
+
+Rapid movement of large funds across multiple counterparties.
+
+Economic Purpose Analysis
+
+Transactions inconsistent with a customer’s known business activity.
+
+Suspicious patterns trigger automated compliance alerts.
+
+13. Suspicious Activity Reporting (SAR)
+
+Under 31 CFR §1022.320, AurumShield files Suspicious Activity Reports when suspicious activity is detected.
+
+SAR triggers include:
+
+Suspected money laundering
+
+Terrorist financing indicators
+
+Structuring attempts
+
+Fraudulent identity submissions
+
+Sanctions evasion attempts
+
+SARs must be filed within 30 days of detection.
+
+14. Currency Transaction Reporting (CTR)
+
+CTR reporting is required under 31 CFR §1010.311.
+
+A CTR must be filed for cash transactions exceeding $10,000 in a single business day.
+
+Although AurumShield primarily processes electronic transfers, any cash-equivalent transaction exceeding this threshold must be reported.
+
+15. Compliance Escalation Procedures
+
+When suspicious activity is identified:
+
+Transaction is automatically halted
+
+Compliance investigation begins
+
+Enhanced due diligence performed
+
+Decision made to clear or escalate
+
+If warranted:
+
+SAR filed
+
+Account frozen
+
+Customer relationship terminated
+
+16. Recordkeeping Requirements
+
+AurumShield maintains detailed compliance records.
+
+Required records include:
+
+Customer onboarding documentation
+
+Identity verification sessions
+
+Sanctions screening results
+
+Transaction history
+
+SAR and CTR filings
+
+17. Cryptographic Audit Logging
+
+All compliance activity is logged using immutable audit records.
+
+Logs include:
+
+Timestamp
+
+Customer identifier
+
+Verification results
+
+Transaction metadata
+
+Compliance decision outcomes
+
+Logs are stored in append-only JSON format with cryptographic integrity protections.
+
+18. Record Retention Policy
+
+AurumShield retains AML records for a minimum of five (5) years.
+
+Records remain accessible for regulatory examination.
+
+19. Employee Training
+
+Employees receive annual AML training covering:
+
+AML regulatory obligations
+
+Suspicious activity detection
+
+Sanctions compliance
+
+Escalation procedures
+
+Training completion is documented.
+
+20. Independent Testing
+
+AurumShield conducts independent AML program testing annually.
+
+Testing may be performed by:
+
+External compliance consultants
+
+Independent internal auditors
+
+Testing reviews:
+
+Policy adequacy
+
+Transaction monitoring effectiveness
+
+SAR filing procedures
+
+Sanctions screening accuracy
+
+21. Prohibited Activities
+
+The AurumShield platform prohibits:
+
+Anonymous financial activity
+
+Transactions involving sanctioned parties
+
+Use of shell entities without disclosure
+
+Activity connected to illicit finance
+
+Violations result in account termination.
+
+22. Regulatory Cooperation
+
+AurumShield cooperates with lawful requests from:
+
+FinCEN
+
+OFAC
+
+Law enforcement agencies
+
+Financial institution partners
+
+Information is provided in accordance with legal requirements.
+
+23. Program Review
+
+This AML program is reviewed annually and updated to reflect:
+
+Regulatory changes
+
+Operational risk changes
+
+Technology updates
+
+Board Certification
+
+The Board of Managers of PVN LLC certifies that AurumShield maintains an AML program designed to prevent misuse of its financial infrastructure.
+
+Appendix A
+Compliance Technology Stack
+Function	Provider
+Identity Verification	Veriff
+Sanctions Screening	OpenSanctions
+Transaction Monitoring	Internal Risk Engine
+Audit Logging	Immutable JSON Ledger

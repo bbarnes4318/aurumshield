@@ -294,6 +294,21 @@ export default function TermsPage() {
         </li>
       </ul>
 
+      {/* ── Article 9 ── */}
+      <h2 className="text-xl font-bold text-white mt-12 mb-4">
+        ARTICLE 9: COMMODITIES LAW EXEMPTION &amp; ACTUAL DELIVERY
+      </h2>
+      <p className="text-gray-300 leading-relaxed mb-8">
+        AurumShield operates exclusively as a Principal Market Maker for spot
+        physical commodities. All transactions on the platform result in the
+        immediate allocation and transfer of legal cryptographic title to vaulted
+        physical bullion. By executing a Goldwire settlement, the User
+        acknowledges that actual delivery of the physical asset occurs
+        immediately (T+0), well within the 28-day requirement for the Actual
+        Delivery Exception under the Commodity Exchange Act. AurumShield does
+        not offer futures, options, margin, or unallocated paper derivatives.
+      </p>
+
       {/* ── Disclaimer ── */}
       <div className="mt-16 border-t border-slate-800 pt-8">
         <p className="text-xs text-slate-600 leading-relaxed italic">

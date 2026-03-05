@@ -1,0 +1,195 @@
+AurumShield
+Enterprise Anti-Money Laundering Risk Assessment
+
+Entity: PVN LLC d/b/a AurumShield
+Regulatory Classification: Money Services Business (MSB)
+Regulator: Financial Crimes Enforcement Network (FinCEN)
+
+Framework Basis
+
+This assessment follows guidance from:
+
+FinCEN BSA/AML Examination Manual
+
+FATF Risk-Based Approach Guidelines
+
+FFIEC BSA/AML Risk Assessment Framework
+
+Purpose
+
+This document evaluates the inherent money laundering risk associated with AurumShield’s business model and identifies the controls implemented to mitigate those risks.
+
+1. Risk Assessment Methodology
+
+AurumShield applies a three-stage risk scoring model.
+
+Stage 1 — Identify Inherent Risk
+
+Assess risk present before controls.
+
+Stage 2 — Evaluate Control Strength
+
+Evaluate the strength of the compliance controls.
+
+Stage 3 — Determine Residual Risk
+
+Residual risk = inherent risk minus control effectiveness.
+
+2. Risk Scoring Scale
+Score	Risk Level
+1	Low
+2	Moderate
+3	Elevated
+4	High
+5	Severe
+
+Residual risk is calculated using:
+
+Residual Risk = Inherent Risk – Control Strength
+3. Product Risk Assessment
+
+AurumShield supports multiple settlement rails.
+
+Product	Inherent Risk	Key Risks	Controls	Residual Risk
+Fiat wire settlement	3	Large value transfers	KYB, AML monitoring	2
+Stablecoin settlement (USDC/USDT)	4	blockchain anonymity risk	wallet screening	2
+Allocated gold settlement	3	commodity settlement manipulation	DvP controls	2
+4. Customer Risk Assessment
+
+AurumShield services corporate counterparties only.
+
+Customer Type	Inherent Risk	Key Risks	Controls	Residual Risk
+Regulated financial institutions	2	cross-border flows	KYB + sanctions screening	1
+Corporate treasuries	3	large transactions	transaction monitoring	2
+Precious metals dealers	4	commodity laundering	enhanced due diligence	2
+
+AurumShield does not support retail users.
+
+5. Geographic Risk Assessment
+
+Geographic exposure is assessed according to FATF risk guidance.
+
+Jurisdiction Category	Inherent Risk	Controls	Residual Risk
+United States / EU	2	sanctions screening	1
+OECD jurisdictions	2	KYB verification	1
+FATF grey-list jurisdictions	4	enhanced due diligence	2
+Sanctioned jurisdictions	5	prohibited	0
+
+AurumShield prohibits transactions involving OFAC-sanctioned jurisdictions.
+
+6. Transaction Risk Assessment
+
+Large transaction sizes increase AML risk.
+
+Transaction Type	Inherent Risk	Controls	Residual Risk
+High-value B2B wires	4	monitoring engine	2
+Stablecoin transfers	4	blockchain analytics	2
+Gold title transfers	3	DvP settlement controls	2
+7. Delivery Channel Risk
+
+AurumShield operates a digital institutional platform.
+
+Channel	Inherent Risk	Controls	Residual Risk
+Online onboarding	3	Veriff biometric verification	1
+API settlement access	3	authenticated API keys	1
+Institutional onboarding	2	manual compliance review	1
+8. Compliance Control Framework
+
+AurumShield implements the following controls.
+
+Identity Verification
+
+Provider: Veriff
+
+Controls include:
+
+Government ID validation
+
+Biometric liveness checks
+
+Corporate registry verification
+
+Sanctions Screening
+
+Provider: OpenSanctions
+
+Screening coverage:
+
+OFAC SDN List
+
+EU Consolidated Sanctions List
+
+United Nations Sanctions List
+
+Transaction Monitoring
+
+The platform includes a real-time AML monitoring engine that evaluates:
+
+structuring
+
+transaction velocity
+
+counterparty risk
+
+jurisdiction risk
+
+Blockchain Monitoring
+
+Stablecoin settlement monitoring includes:
+
+wallet exposure analysis
+
+sanctioned wallet detection
+
+illicit activity indicators
+
+9. Residual Risk Summary
+
+After applying compliance controls, AurumShield’s residual risk profile is assessed as:
+
+Risk Category	Residual Risk
+Customer Risk	Low-Moderate
+Geographic Risk	Low
+Product Risk	Moderate
+Transaction Risk	Moderate
+
+Overall enterprise risk classification:
+
+Moderate Institutional AML Risk
+
+This level is typical for high-value B2B financial infrastructure platforms.
+
+10. Risk Mitigation Strategy
+
+AurumShield mitigates AML risk through:
+
+• automated identity verification
+• sanctions screening
+• transaction monitoring
+• deterministic settlement controls
+
+The system operates under a Fail-Closed Compliance Model, meaning:
+
+Transactions cannot execute unless compliance clearance is achieved.
+
+11. Governance and Review
+
+The AML Risk Assessment is reviewed:
+
+• annually
+• upon major platform changes
+• upon regulatory updates
+
+Updates are approved by the Compliance Officer and Board of Managers.
+
+12. Board Certification
+
+The Board of Managers of PVN LLC certifies that this AML Risk Assessment accurately reflects the company’s risk exposure and compliance controls.
+
+Authorized By:
+
+Compliance Officer: ___________________
+
+Board Representative: ___________________
+
+Date: ___________________

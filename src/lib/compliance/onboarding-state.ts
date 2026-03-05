@@ -16,6 +16,8 @@ import { z } from "zod";
 export const ONBOARDING_STATUSES = [
   "IN_PROGRESS",
   "PROVIDER_PENDING",
+  "MCA_PENDING",
+  "MCA_SIGNED",
   "REVIEW",
   "COMPLETED",
   "ABANDONED",

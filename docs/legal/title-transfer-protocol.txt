@@ -1,0 +1,133 @@
+DOCUMENT V
+AURUMSHIELD BULLION TITLE TRANSFER PROTOCOL
+
+Network: AurumShield Institutional Settlement Network
+Operator: PVN LLC
+Version: 1.0
+
+1. PURPOSE
+
+This Bullion Title Transfer Protocol (“Protocol”) establishes the legal and operational framework governing the transfer of ownership of allocated bullion within the AurumShield Network.
+
+The Protocol ensures that all bullion transfers occur through a deterministic Delivery-versus-Payment (DvP) mechanism ensuring simultaneous transfer of value and title.
+
+2. LEGAL STRUCTURE OF TITLE
+
+Bullion held through AurumShield is maintained in allocated form at approved vault providers.
+
+Legal ownership of each bar is assigned to a specific participant within the AurumShield ledger.
+
+Title to bullion exists simultaneously in two forms:
+
+Physical Title Record
+Maintained by the vault provider inventory system.
+
+Digital Ownership Record
+Maintained by the AurumShield settlement ledger.
+
+The AurumShield ledger constitutes the authoritative operational record for settlement transfers.
+
+3. BAR IDENTIFICATION
+
+Each bullion bar is identified by the following attributes:
+
+• serial number
+• refiner
+• weight
+• purity
+• vault location
+
+These attributes form the unique bar identity record.
+
+4. DIGITAL TITLE REPRESENTATION
+
+For operational efficiency, AurumShield represents ownership of bullion bars through ledger-based digital title entries.
+
+Each entry represents a participant’s entitlement to specific bullion bars stored in vault custody.
+
+Digital title entries may represent:
+
+• whole bars
+• fractional bar interests
+
+Fractional ownership may occur when bars are partially transferred between counterparties.
+
+5. TRANSFER INITIATION
+
+A bullion transfer is initiated when a participant submits a Settlement Instruction through the AurumShield platform.
+
+The instruction must specify:
+
+• counterparty identifier
+• quantity of bullion
+• settlement price
+• settlement asset
+
+6. PRE-SETTLEMENT VALIDATION
+
+Before settlement execution, the AurumShield system verifies:
+
+• sufficient bullion balance
+• sufficient settlement funds
+• regulatory compliance checks
+• counterparty eligibility
+
+If any validation fails, the transfer request is rejected.
+
+7. ASSET LOCK
+
+Upon successful validation, the AurumShield system temporarily reserves the relevant bullion balance within the participant’s account.
+
+Reserved balances cannot be used for other transactions.
+
+8. DELIVERY-VERSUS-PAYMENT EXECUTION
+
+Settlement occurs through the AurumShield deterministic DvP state machine.
+
+The state machine performs the following actions simultaneously:
+
+Transfers digital title of bullion from seller to buyer.
+
+Transfers settlement value from buyer to seller.
+
+The settlement asset may include:
+
+• fiat funds received via Fedwire
+• digital settlement assets such as USDC or USDT.
+
+9. FINALIZATION
+
+Once the DvP process completes, the transaction enters the Finalized State.
+
+At this point:
+
+• ownership records are updated
+• the transfer becomes irreversible
+• vault inventory attribution is updated
+
+No participant or administrator can reverse the transaction once finalized.
+
+10. VAULT RECORD RECONCILIATION
+
+Periodic reconciliation is performed between:
+
+• AurumShield digital title records
+• vault provider physical inventory records
+
+This ensures consistency between digital and physical ownership records.
+
+11. PHYSICAL DELIVERY
+
+Participants may request physical withdrawal of bullion.
+
+Such withdrawals require:
+
+• bar identification
+• vault release authorization
+• logistics coordination
+
+Physical delivery requests are processed by the vault provider.
+
+12. GOVERNING LAW
+
+Title transfers executed through the AurumShield ledger are governed by Article 8 of the Uniform Commercial Code and the laws of the State of New York.

@@ -34,6 +34,8 @@ import {
   type TimelineEvent,
 } from "@/components/compliance/CaseTimeline";
 import { CaseMessageThread } from "@/components/compliance/CaseMessageThread";
+import { DecisionPanel } from "@/components/verification/decision-panel";
+import { getVerificationCase } from "@/lib/verification-engine";
 
 /* ── Types ── */
 
@@ -229,8 +231,8 @@ export default function CaseDetailPage() {
         </Link>
       </div>
 
-      {/* ── Two-column layout ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      {/* ── Three-column layout ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
         {/* Left: Timeline */}
         <div className="lg:col-span-3">
           <div className="rounded-xl border border-color-5/15 bg-color-1 p-5">
@@ -239,6 +241,21 @@ export default function CaseDetailPage() {
             </h2>
             <CaseTimeline events={events} />
           </div>
+        </div>
+
+        {/* Center: Decision Panel (BSA Compliance) */}
+        <div className="lg:col-span-2">
+          {(() => {
+            const vcCase = getVerificationCase(cc.userId);
+            if (!vcCase) return <div className="p-4 text-xs text-text-faint">No verification case found.</div>;
+            return (
+              <DecisionPanel
+                verificationCase={vcCase}
+                userId={cc.userId}
+                orgId={cc.orgId ?? "org-001"}
+              />
+            );
+          })()}
         </div>
 
         {/* Right: Message thread */}

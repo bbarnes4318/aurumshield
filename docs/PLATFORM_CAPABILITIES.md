@@ -29,7 +29,8 @@
 13. [Technical Stack & Infrastructure](#13-technical-stack--infrastructure)
 14. [Competitive Positioning](#14-competitive-positioning)
 15. [Regulatory Alignment](#15-regulatory-alignment)
-16. [Appendices](#16-appendices)
+16. [Banking Architecture & Fiat Custody](#16-banking-architecture--fiat-custody)
+17. [Appendices](#17-appendices)
 
 ---
 
@@ -668,7 +669,103 @@ AurumShield's architecture is designed to align with the following regulatory fr
 
 ---
 
-## 16. Appendices
+## 16. Banking Architecture & Fiat Custody
+
+AurumShield does not commingle corporate operating funds with client treasury deposits. All inbound US Dollar fiat is routed via Modern Treasury API directly into an FBO (For Benefit Of) ledgered account held at a regulated Tier-1 US partner bank. The proprietary PostgreSQL state-machine (`src/lib/settlement-engine.ts`) acts as the sub-ledger, ensuring mathematically deterministic 1:1 parity between the bank's FBO balance and the client's vaulted gold title.
+
+### 16.1 Fund Segregation Architecture
+
+The platform enforces a strict two-account topology at the banking layer:
+
+| Account                          | Purpose                                                               | Institution                       | Access                                           |
+| -------------------------------- | --------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------ |
+| **Operating Account**            | Platform revenue, clearing fees, payroll, and corporate expenses      | Tier-1 US partner bank            | AurumShield corporate officers only              |
+| **FBO (For Benefit Of) Account** | Client treasury deposits — fiat held in escrow pending DvP settlement | Tier-1 US partner bank (ledgered) | Programmatic access via Modern Treasury API only |
+
+No single operator or API key has simultaneous write access to both accounts. The FBO account is held "for the benefit of" each counterparty and is legally segregated from AurumShield's corporate balance sheet.
+
+### 16.2 Inbound Fiat Routing
+
+```
+Counterparty Bank
+       │
+       ▼
+┌──────────────────────────────────┐
+│   Modern Treasury API            │
+│   (Payment Orders + Webhooks)    │
+├──────────────────────────────────┤
+│   FBO Ledgered Account           │
+│   Tier-1 US Partner Bank         │
+│   (FDIC-insured up to limits)    │
+└──────────────────┬───────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────┐
+│   AurumShield Sub-Ledger         │
+│   PostgreSQL State Machine       │
+│   (settlement-engine.ts)         │
+│                                  │
+│   ┌────────────────────────────┐ │
+│   │ SETTLEMENT_ESCROW (DEBIT)  │ │
+│   │ SELLER_PROCEEDS  (CREDIT) │ │
+│   │ PLATFORM_FEE     (CREDIT) │ │
+│   │ ──────────────────────── │ │
+│   │ INVARIANT: Σ DEBIT = Σ CR │ │
+│   └────────────────────────────┘ │
+└──────────────────────────────────┘
+```
+
+All inbound wires are received into the FBO account. The Modern Treasury API issues webhook confirmations that trigger the settlement engine's `CONFIRM_FUNDS_FINAL` action, updating the sub-ledger. No funds are recognized in the system until the banking rail confirms receipt.
+
+### 16.3 Sub-Ledger Parity Invariant
+
+The double-entry clearing journal (`postClearingJournal` in `settlement-engine.ts`) enforces a balance invariant that mirrors the bank's FBO ledger:
+
+> **INVARIANT**: For every settlement clearing event, `SUM(DEBIT entries) === SUM(CREDIT entries)`. A violation of this invariant throws an `UnbalancedJournalError` and **blocks the settlement from completing**.
+
+This guarantee ensures that the AurumShield sub-ledger can never drift from the Tier-1 bank's FBO balance. The three account codes used in every DvP clearing journal are:
+
+| Account Code        | Direction | Represents                                                                  |
+| ------------------- | --------- | --------------------------------------------------------------------------- |
+| `SETTLEMENT_ESCROW` | DEBIT     | Funds leaving escrow control                                                |
+| `SELLER_PROCEEDS`   | CREDIT    | Net payout to the counterparty seller                                       |
+| `PLATFORM_FEE`      | CREDIT    | AurumShield clearing and indemnification fees (routed to Operating Account) |
+
+### 16.4 Outbound Settlement Rail
+
+When a DvP settlement executes (`EXECUTE_DVP` action), the settlement engine:
+
+1. **Posts a balanced clearing journal** — debit escrow, credit seller proceeds + platform fee.
+2. **Submits a payment order** to Modern Treasury specifying the FBO account as the originating account.
+3. **Transitions to `PROCESSING_RAIL`** — a locked state where no manual actions are permitted until the rail confirms.
+4. **Receives webhook confirmation** from Modern Treasury (`CONFIRM_RAIL_SETTLED`), finalizing the settlement as `SETTLED`.
+5. **Platform fees** are swept from the FBO account to the Operating Account via a separate, reconciled transfer.
+
+At no point does client treasury capital pass through AurumShield's operating balance. The FBO account acts as the sole custodial intermediary.
+
+### 16.5 Regulatory Controls
+
+| Control                       | Implementation                                                                                           |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **No Commingling**            | Separate FBO and Operating accounts at the bank level; programmatic API segregation via Modern Treasury  |
+| **Sub-Ledger Reconciliation** | Double-entry journal with balance assertion — any imbalance is a fatal `UnbalancedJournalError`          |
+| **Idempotent Clearing**       | Each journal carries a unique `idempotencyKey` (UUID); duplicate submissions return the existing journal |
+| **Audit Trail**               | Every fund movement produces append-only ledger entries with actor role, user ID, and timestamp          |
+| **Rail Lockout**              | `PROCESSING_RAIL` status prevents all manual actions while funds are mid-flight                          |
+| **Ambiguous State Handling**  | `AMBIGUOUS_STATE` status forces Treasury Admin reconciliation before any further actions                 |
+
+### 16.6 Bank Audit Attestation
+
+For the purposes of BaaS partner bank due diligence (Cross River Bank, Evolve Bank & Trust, or equivalent Tier-1 US institution):
+
+- AurumShield **does not hold, transmit, or process client funds** using its corporate operating accounts.
+- All client fiat deposits are routed exclusively through the FBO ledgered account.
+- AurumShield's proprietary settlement engine maintains a cryptographically verifiable sub-ledger that can be independently reconciled against the bank's FBO statement at any audit checkpoint.
+- The settlement engine source code (`src/lib/settlement-engine.ts`) and database schema (`008_clearing_ledger.sql`) are available for technical examination by the bank's compliance and engineering teams.
+
+---
+
+## 17. Appendices
 
 ### A. Settlement Status Reference
 

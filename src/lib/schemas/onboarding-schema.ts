@@ -99,7 +99,8 @@ export const stepMakerCheckerSchema = z.object({
    ---------------------------------------------------------------- */
 export const stepDocuSignSchema = z.object({
   agreementSigned: z.literal(true, {
-    message: "The Master Participation Agreement must be signed",
+    message:
+      "Legal indemnification required. The Master Commercial Agreement must be executed by an authorized corporate officer before treasury routing is enabled.",
   }),
   complianceAttested: z.literal(true, {
     message: "You must attest to AML/compliance obligations",

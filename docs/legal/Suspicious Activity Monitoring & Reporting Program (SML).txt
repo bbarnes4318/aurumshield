@@ -1,0 +1,320 @@
+AurumShield
+Suspicious Activity Monitoring & Reporting Program (SML)
+
+Entity: PVN LLC d/b/a AurumShield
+Regulatory Status: Registered Money Services Business (MSB)
+Regulatory Authority: Financial Crimes Enforcement Network (FinCEN)
+
+Applicable Regulations
+
+31 CFR §1022.320 — Suspicious Activity Reporting for MSBs
+
+31 CFR §1010.410 — Recordkeeping Requirements
+
+31 CFR §1022.210 — AML Program Requirements
+
+Document Version: 1.0
+Classification: Internal Compliance Policy
+
+1. Program Objective
+
+The Suspicious Activity Monitoring and Reporting Program (“SML”) establishes the framework used by AurumShield to:
+
+• Detect potential money laundering
+• Detect terrorist financing
+• Detect sanctions evasion
+• Identify financial fraud
+• Identify market manipulation
+• Detect illicit commodity settlement activity
+
+The program ensures compliance with the Bank Secrecy Act (BSA) and associated FinCEN regulations.
+
+Because AurumShield processes high-value corporate settlements, the monitoring framework is designed for institutional-scale transaction risk detection.
+
+2. Fail-Closed Monitoring Architecture
+
+AurumShield operates a Fail-Closed Compliance Model.
+
+This means:
+
+No transaction may settle unless the compliance monitoring engine confirms the transaction has passed all risk checks.
+
+If a risk rule triggers:
+
+• Transaction is automatically halted
+• Funds remain in escrow
+• Compliance investigation begins
+
+3. Monitoring Scope
+
+The monitoring program evaluates activity across:
+
+Customer Behavior
+
+Customer transaction patterns relative to known business activity.
+
+Counterparty Relationships
+
+Risk analysis of transaction counterparties.
+
+Transaction Flow
+
+Movement of assets through the AurumShield settlement network.
+
+Asset Layer Risk
+
+Monitoring across asset types:
+
+Asset Type	Monitoring Scope
+Fiat wires	Bank transaction monitoring
+Stablecoins	Blockchain analytics
+Gold ownership transfers	Asset settlement monitoring
+4. Monitoring Infrastructure
+
+The AurumShield monitoring stack includes the following components.
+
+Compliance Function	Infrastructure
+Identity verification	Veriff
+Sanctions screening	OpenSanctions
+Transaction monitoring	Internal risk engine
+Blockchain analytics	Wallet risk scoring
+Audit logging	Immutable ledger
+
+Monitoring occurs in real time and batch review cycles.
+
+5. Suspicious Activity Detection Categories
+
+The monitoring engine identifies suspicious activity across the following categories.
+
+5.1 Structuring
+
+Structuring occurs when a customer deliberately breaks a large transaction into multiple smaller transactions to avoid reporting thresholds.
+
+Examples include:
+
+• Multiple wire transfers slightly below reporting thresholds
+• Repeated transfers just below internal monitoring limits
+• Coordinated structuring across related accounts
+
+Structuring behavior generates automatic investigation alerts.
+
+5.2 Layering
+
+Layering involves complex transaction patterns intended to obscure the origin of funds.
+
+Indicators include:
+
+• Rapid transfers between multiple entities
+• Circular settlement flows
+• Settlement chains with no economic purpose
+
+Layering detection relies on transaction graph analysis.
+
+5.3 Velocity Anomalies
+
+Velocity monitoring detects abnormal transaction activity.
+
+Indicators include:
+
+• Sudden spikes in transaction size
+• Rapid asset transfers across multiple counterparties
+• Large settlements inconsistent with historical activity
+
+5.4 Economic Purpose Analysis
+
+Each transaction must demonstrate a legitimate economic purpose.
+
+Indicators of suspicious activity include:
+
+• Transactions inconsistent with stated business operations
+• High-value settlements without commercial justification
+• Repeated settlement reversals
+
+5.5 Sanctions Evasion
+
+Indicators include:
+
+• Attempts to transact with sanctioned jurisdictions
+• Entities linked to sanctioned persons
+• Transactions routed through sanctioned intermediaries
+
+Sanctions screening occurs through OpenSanctions integration.
+
+5.6 Digital Asset Risk
+
+Stablecoin settlement introduces additional AML risk.
+
+Monitoring includes:
+
+• Blockchain exposure analysis
+• Detection of sanctioned wallet addresses
+• Exposure to illicit financial networks
+
+Wallet addresses linked to:
+
+ransomware activity
+
+darknet markets
+
+sanctioned entities
+
+trigger immediate compliance review.
+
+5.7 Corporate Ownership Risk
+
+Corporate entities with complex ownership structures may present elevated AML risk.
+
+Indicators include:
+
+• Rapid changes in beneficial ownership
+• Use of shell companies
+• Multi-jurisdictional ownership chains
+
+6. Alert Generation
+
+When suspicious indicators are detected, the monitoring engine generates a compliance alert.
+
+Alerts are categorized by severity.
+
+Alert Level	Action
+Low	Automated review
+Medium	Compliance review
+High	Transaction halted
+7. Compliance Investigation Procedures
+
+Upon alert generation, the Compliance Officer initiates an investigation.
+
+The investigation process includes:
+
+Step 1 — Transaction Review
+
+Examination of transaction details and customer profile.
+
+Step 2 — Counterparty Review
+
+Analysis of transaction counterparties.
+
+Step 3 — Enhanced Due Diligence
+
+Additional documentation may be requested from the customer.
+
+Step 4 — Risk Determination
+
+Compliance determines whether activity is suspicious.
+
+8. Suspicious Activity Reporting (SAR)
+
+If suspicious activity is confirmed, AurumShield files a Suspicious Activity Report (SAR) with FinCEN.
+
+SAR Filing Threshold
+
+SAR filing is required when:
+
+• Suspicious transactions exceed $2,000
+• Potential money laundering is identified
+• Fraud or illicit activity is suspected
+
+Filing Deadline
+
+SARs must be filed within 30 days of detection.
+
+9. SAR Confidentiality
+
+SAR filings are strictly confidential.
+
+Information related to SARs may not be disclosed to:
+
+• Customers
+• External parties
+• Unauthorized employees
+
+Violation of SAR confidentiality may result in disciplinary action.
+
+10. Escalation Protocol
+
+When suspicious activity is confirmed:
+
+Settlement transaction is halted
+
+Account access may be suspended
+
+Compliance investigation continues
+
+SAR filing determination is made
+
+Accounts may be permanently terminated if illicit activity is confirmed.
+
+11. Monitoring Model Governance
+
+The AurumShield monitoring system is subject to governance procedures.
+
+These include:
+
+• Model documentation
+• Periodic rule review
+• False-positive reduction
+• Regulatory audit readiness
+
+Monitoring rules are reviewed at least annually.
+
+12. Recordkeeping
+
+All suspicious activity investigations are documented.
+
+Records include:
+
+• Alert data
+• Investigation notes
+• Supporting evidence
+• SAR filing documentation
+
+Records are retained for five (5) years.
+
+13. Independent Testing
+
+The Suspicious Activity Monitoring Program is independently tested annually.
+
+Testing evaluates:
+
+• Detection rule effectiveness
+• Alert accuracy
+• SAR filing procedures
+
+Testing may be conducted by external compliance firms.
+
+14. Regulatory Cooperation
+
+AurumShield cooperates with lawful requests from:
+
+• FinCEN
+• Federal law enforcement agencies
+• Banking partners
+• Regulatory authorities
+
+Information is provided in accordance with applicable law.
+
+15. Program Review
+
+This Suspicious Activity Monitoring Program is reviewed annually and updated to reflect:
+
+• Regulatory developments
+• Emerging financial crime risks
+• Platform operational changes
+
+Appendix A — Suspicious Activity Typologies
+
+Common typologies monitored include:
+
+• Trade-based money laundering
+• Commodity settlement manipulation
+• Shell company networks
+• Transaction structuring
+• Sanctions evasion
+
+Appendix B — Compliance Technology Stack
+Function	Provider
+Identity verification	Veriff
+Sanctions screening	OpenSanctions
+Transaction monitoring	Internal risk engine
+Blockchain risk analysis	Wallet scoring
+Audit logging	Immutable ledger

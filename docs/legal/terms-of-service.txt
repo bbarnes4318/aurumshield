@@ -1,0 +1,351 @@
+AurumShield
+Institutional Terms of Service and Risk Disclosures
+
+Effective Date: [Insert Date]
+
+These Institutional Terms of Service and Risk Disclosures (“Terms”) govern access to and use of the AurumShield platform operated by PVN LLC, a Delaware limited liability company (“AurumShield,” “Company,” “we,” “our,” or “us”).
+
+AurumShield operates a technology-enabled settlement infrastructure for institutional transfers of allocated physical precious metals and related settlement assets.
+
+These Terms constitute a legally binding agreement between AurumShield and the legal entity accessing the platform (“Participant”).
+
+By accessing or using the AurumShield platform, the Participant represents and warrants that:
+
+It is a legally formed institutional entity.
+
+It has authority to enter into binding commercial agreements.
+
+It agrees to comply with these Terms.
+
+1. Institutional Access Only
+
+The AurumShield platform is strictly restricted to institutional participants.
+
+Access is prohibited for:
+
+Retail investors
+
+Individual traders
+
+Natural persons acting in a personal capacity
+
+Unverified entities
+
+Entities lacking a Legal Entity Identifier (LEI)
+
+Eligible Participants include:
+
+Corporate treasuries
+
+Hedge funds
+
+Sovereign entities
+
+Sovereign wealth funds
+
+Commodity trading firms
+
+Regulated financial institutions
+
+Licensed precious metals dealers
+
+Institutional asset managers
+
+All Participants must complete institutional onboarding procedures including:
+
+Know-Your-Business (KYB) verification
+
+Ultimate Beneficial Owner (UBO) disclosure
+
+Sanctions screening
+
+AML risk review
+
+LEI verification
+
+AurumShield reserves the sole and absolute discretion to approve or deny platform access.
+
+2. Platform Function
+
+AurumShield provides institutional settlement infrastructure for the transfer of title to allocated physical precious metals.
+
+The platform facilitates:
+
+settlement instructions
+
+title transfer coordination
+
+value movement through approved settlement rails
+
+AurumShield acts solely as a principal infrastructure provider and settlement coordinator.
+
+AurumShield does not act as:
+
+a broker
+
+a fiduciary
+
+an investment adviser
+
+a commodity trading advisor
+
+a portfolio manager
+
+Participants are solely responsible for evaluating and executing their own transactions.
+
+3. Spot Commodity Transactions and Actual Delivery
+
+Transactions conducted through AurumShield represent spot commodity transactions involving the transfer of title to allocated physical precious metals.
+
+Such transactions are structured to constitute actual delivery transactions, consistent with the exemption framework applicable to spot commodity transactions under applicable U.S. commodity laws.
+
+Title transfer occurs through coordinated custody record updates maintained by professional vault operators.
+
+AurumShield does not operate a derivatives marketplace and does not facilitate leveraged commodity speculation.
+
+4. Settlement Infrastructure
+
+Settlement through the AurumShield platform may utilize multiple settlement mechanisms including:
+
+Fedwire transfers
+
+international bank wire networks
+
+institutional digital settlement rails
+
+stablecoin-based value transfer infrastructure
+
+The use of such rails allows for efficient cross-border settlement between verified institutional participants.
+
+5. Digital Asset Settlement Bridge Risk Disclosure
+
+Certain settlement flows may utilize blockchain-based digital settlement assets including:
+
+USD Coin (USDC)
+
+Tether (USDT)
+
+other approved settlement tokens
+
+These assets may be used solely as technical infrastructure for value transfer.
+
+Participants acknowledge and accept risks including:
+
+Smart Contract Risk
+
+Digital tokens rely on software code that may contain vulnerabilities.
+
+Network Congestion
+
+Blockchain networks may experience delays or transaction failures.
+
+Stablecoin Issuer Risk
+
+Stablecoins depend on the operational integrity and solvency of their issuers.
+
+Protocol Governance Risk
+
+Blockchain networks may change rules or experience forks.
+
+Cybersecurity Risk
+
+Digital infrastructure may be subject to attacks or technical failures.
+
+AurumShield does not guarantee the performance or stability of any blockchain network or digital asset issuer.
+
+6. Custody of Physical Metals
+
+Allocated metals referenced within AurumShield settlements are held by professional vault operators including but not limited to:
+
+Malca-Amit
+
+Brink’s
+
+other internationally recognized vault providers
+
+Metals are held on an allocated basis, meaning specific bullion bars are assigned to beneficial owners.
+
+Vault operators maintain independent inventory records including bar serial numbers and weights.
+
+7. Insurance Coverage
+
+Vault providers maintain all-risk insurance coverage typically underwritten by syndicates associated with Lloyd’s of London.
+
+Insurance coverage generally protects against:
+
+theft
+
+physical loss
+
+damage
+
+transportation risk
+
+Coverage is subject to the vault operator’s insurance terms.
+
+AurumShield does not provide independent insurance coverage for stored metal.
+
+8. Title Transfer Framework
+
+Title to allocated bullion is transferred through coordinated updates to custody records maintained by vault operators.
+
+Platform records represent digitally authenticated settlement instructions.
+
+Legal ownership of metal is ultimately governed by:
+
+vault custody agreements
+
+warehouse receipts
+
+applicable commercial law
+
+Where applicable, custody interests may be structured in a manner consistent with UCC Article 8 concepts relating to financial asset entitlement records.
+
+9. Compliance and Sanctions Monitoring
+
+Participants are subject to continuous compliance monitoring.
+
+AurumShield screens entities against international sanctions lists including:
+
+U.S. Treasury OFAC
+
+European Union sanctions lists
+
+United Nations sanctions lists
+
+politically exposed person databases
+
+AurumShield reserves the right to:
+
+suspend transactions
+
+delay settlement
+
+freeze accounts
+
+where compliance risks are detected.
+
+10. Settlement Finality
+
+Institutional settlement systems require deterministic execution.
+
+Once a settlement instruction has been completed, transactions are considered final and irrevocable.
+
+Participants acknowledge that reversal mechanisms may not exist once settlement has finalized.
+
+AurumShield may suspend settlement flows if system integrity or compliance concerns arise.
+
+11. Limitation of Liability
+
+To the maximum extent permitted by law, AurumShield and its affiliates shall not be liable for any:
+
+indirect damages
+
+consequential damages
+
+incidental damages
+
+lost profits
+
+market losses
+
+arising from:
+
+platform access
+
+blockchain infrastructure
+
+vault provider performance
+
+counterparty insolvency
+
+regulatory actions
+
+market volatility
+
+Total aggregate liability of AurumShield shall not exceed the fees paid by the Participant during the twelve months preceding the claim.
+
+12. Indemnification
+
+Participants agree to indemnify and hold harmless AurumShield and its affiliates against any claims arising from:
+
+misrepresentation of identity
+
+regulatory violations
+
+unauthorized use of the platform
+
+transactions executed by the Participant
+
+13. Force Majeure
+
+AurumShield shall not be liable for any delay or failure resulting from events beyond its reasonable control, including but not limited to:
+
+acts of God
+
+war or civil unrest
+
+cyber attacks
+
+telecommunications outages
+
+blockchain network failures
+
+government actions
+
+banking system disruptions
+
+14. Sovereign Participants
+
+Where Participants include sovereign entities or sovereign wealth funds, such entities expressly waive any claim to sovereign immunity with respect to disputes arising under these Terms.
+
+15. Suspension or Termination
+
+AurumShield may suspend or terminate access to the platform if:
+
+compliance concerns arise
+
+sanctions exposure is detected
+
+regulatory obligations require action
+
+platform abuse occurs
+
+Termination may occur without prior notice where necessary to protect platform integrity.
+
+16. Confidentiality
+
+Participants agree to maintain the confidentiality of all non-public information relating to:
+
+platform infrastructure
+
+operational procedures
+
+settlement processes
+
+Such information may not be disclosed without written authorization.
+
+17. Governing Law
+
+These Terms shall be governed by the laws of the State of Delaware, without regard to conflict-of-law principles.
+
+18. Dispute Resolution
+
+Any dispute arising from these Terms shall be resolved through binding arbitration administered under the rules of the American Arbitration Association.
+
+The seat of arbitration shall be Delaware, United States.
+
+19. Amendments
+
+AurumShield reserves the right to amend these Terms at any time.
+
+Continued use of the platform constitutes acceptance of the revised Terms.
+
+20. Contact Information
+
+Legal inquiries may be directed to:
+
+AurumShield Compliance Office
+PVN LLC
+[Insert Address]
+[Insert Compliance Email]
