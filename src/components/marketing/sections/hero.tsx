@@ -38,7 +38,7 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="mb-6 lg:mb-8 flex justify-center lg:justify-start"
+            className="mb-2 lg:mb-3 flex justify-center lg:justify-start"
           >
             <GoldwireBrandLogo />
           </motion.div>
@@ -48,7 +48,7 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="font-heading text-[clamp(2.5rem,5vw,4.5rem)] font-bold tracking-tight text-white leading-[1.1] drop-shadow-sm"
+            className="font-heading text-[clamp(1.75rem,3.5vw,2.75rem)] font-bold tracking-tight text-white leading-[1.15] drop-shadow-sm"
           >
             Bypass SWIFT. <br />
             <span className="text-gold">Settle Millions in Seconds.</span>

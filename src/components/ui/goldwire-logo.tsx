@@ -11,16 +11,16 @@ import React from "react";
  */
 export function GoldwireBrandLogo({ className = "" }: { className?: string }) {
   return (
-    <div className={`flex items-center gap-4 ${className}`}>
+    <div className={`flex items-center gap-2.5 ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/goldwire-icon.svg"
         alt=""
-        className="h-12 md:h-14 lg:h-16 w-auto"
+        className="h-7 md:h-8 lg:h-9 w-auto"
         aria-hidden="true"
       />
       <span
-        className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-[0.15em] uppercase bg-gradient-to-r from-[#F5EACF] via-[#D4AF37] to-[#BFA052] bg-clip-text text-transparent drop-shadow-sm select-none"
+        className="text-base md:text-lg lg:text-xl font-bold tracking-[0.15em] uppercase bg-gradient-to-r from-[#F5EACF] via-[#D4AF37] to-[#BFA052] bg-clip-text text-transparent drop-shadow-sm select-none"
         aria-label="Goldwire"
       >
         GOLDWIRE
