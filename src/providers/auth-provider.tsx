@@ -163,15 +163,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ClerkProvider has no session state on these routes, so useSession()
   // (called internally by useUser/useOrganization) will throw.
   // This list MUST stay in sync with ClerkWrapper.CLERK_BYPASS_PREFIXES.
+  //
+  // NOTE: /login, /signup, /forgot-password are NOT here — the middleware
+  // runs clerkMiddleware on them. They NEED ClerkAuthAdapter for Clerk's
+  // <SignIn> / <SignUp> components to work.
   const BYPASS_PREFIXES = [
     "/demo",
     "/platform-overview",
     "/technical-overview",
     "/legal",
     "/investor",
-    "/login",
-    "/signup",
-    "/forgot-password",
     "/dev",
   ];
   const isBypassRoute =

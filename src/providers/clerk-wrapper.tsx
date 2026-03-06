@@ -38,9 +38,12 @@ const CLERK_ENABLED =
  * session state and useSession() throws immediately.
  *
  * Marketing paths: /, /platform-overview, /technical-overview, /legal, /investor
- * Public auth paths: /login, /signup, /forgot-password
  * Demo paths: /demo
  * Dev paths: /dev
+ *
+ * NOTE: /login, /signup, /forgot-password are NOT bypassed — the middleware
+ * runs clerkMiddleware on these (they're public routes, not marketing routes).
+ * They NEED ClerkProvider to render Clerk's <SignIn> / <SignUp> components.
  */
 const CLERK_BYPASS_PREFIXES = [
   "/demo",
@@ -48,9 +51,6 @@ const CLERK_BYPASS_PREFIXES = [
   "/technical-overview",
   "/legal",
   "/investor",
-  "/login",
-  "/signup",
-  "/forgot-password",
   "/dev",
 ];
 

@@ -20,7 +20,6 @@ const PUBLIC_ROUTES = [
   "/signup",
   "/forgot-password",
   "/demo/login",
-  "/dev/login",
   "/dev",
   "/platform",
   "/platform-overview",
