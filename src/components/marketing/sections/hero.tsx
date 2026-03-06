@@ -30,9 +30,9 @@ export function HeroSection() {
         }}
       />
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start lg:items-center w-full pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
-        <div className="flex flex-col justify-center space-y-5 lg:space-y-6 max-w-2xl text-left">
+        <div className="w-full flex flex-col justify-center space-y-5 lg:space-y-6 max-w-2xl text-left">
           <motion.div
             custom={0}
             initial="hidden"
@@ -48,7 +48,7 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight"
+            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight max-w-3xl"
           >
             Bypass SWIFT. <br />
             <span className="text-gold">Clear Millions Instantly.</span>
