@@ -18,7 +18,7 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative w-full min-h-screen flex items-center"
+      className="relative w-full flex items-center"
       style={{ backgroundColor: "#0A1128" }}
     >
       {/* ── Radial gold gradient anchored behind CTA area ── */}
@@ -30,15 +30,15 @@ export function HeroSection() {
         }}
       />
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
-        <div className="flex flex-col justify-center space-y-5 lg:space-y-6 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
+        <div className="flex flex-col justify-center space-y-5 lg:space-y-6 max-w-2xl text-left">
           <motion.div
             custom={0}
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="mb-1 flex justify-center lg:justify-start"
+            className="mb-1 flex justify-start"
           >
             <GoldwireBrandLogo className="scale-110 lg:scale-125 origin-left" />
           </motion.div>
@@ -48,7 +48,7 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="font-heading text-[clamp(2.25rem,4.5vw,3.75rem)] font-bold tracking-tight text-white leading-[1.1] drop-shadow-sm max-w-3xl text-balance"
+            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight"
           >
             Bypass SWIFT. <br />
             <span className="text-gold">Clear Millions Instantly.</span>
@@ -72,7 +72,7 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="flex flex-col gap-4 sm:flex-row justify-center lg:justify-start"
+            className="flex flex-col gap-4 sm:flex-row justify-start"
           >
             <a
               href="#pipeline"
