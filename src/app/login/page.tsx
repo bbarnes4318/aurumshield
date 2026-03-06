@@ -12,12 +12,22 @@
 
    ClerkProvider wraps this page (NOT in the bypass list), so
    all Clerk hooks and components work correctly.
+
+   Safety: If Clerk is not configured (missing NEXT_PUBLIC key),
+   a fallback UI is shown instead of crashing.
    ================================================================ */
 
 import { SignIn } from "@clerk/nextjs";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
+
+/** Check if Clerk is configured at build time */
+const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const CLERK_AVAILABLE =
+  typeof CLERK_KEY === "string" &&
+  CLERK_KEY !== "YOUR_PUBLISHABLE_KEY" &&
+  CLERK_KEY.startsWith("pk_");
 
 export default function LoginPage() {
   return (
@@ -44,32 +54,52 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* ── Clerk SignIn ── */}
-        <div className="flex justify-center">
-          <SignIn
-            appearance={{
-              elements: {
-                rootBox: "w-full",
-                card: "bg-[#0f1a2b] border border-[#1e293b] shadow-lg rounded-md",
-                headerTitle: "text-[#cbd5e1]",
-                headerSubtitle: "text-[#94a3b8]",
-                socialButtonsBlockButton:
-                  "border-[#1e293b] bg-[rgba(255,255,255,0.04)] text-[#cbd5e1] hover:bg-[rgba(255,255,255,0.06)]",
-                formFieldLabel: "text-[#94a3b8]",
-                formFieldInput:
-                  "bg-[rgba(255,255,255,0.04)] border-[#1e293b] text-[#cbd5e1] placeholder:text-[#64748b]",
-                formButtonPrimary:
-                  "bg-[#c6a86b] hover:bg-[#d3b77d] text-slate-950 font-bold",
-                footerActionLink: "text-[#c6a86b] hover:text-[#d3b77d]",
-                identityPreviewEditButton:
-                  "text-[#c6a86b] hover:text-[#d3b77d]",
-              },
-            }}
-            routing="hash"
-            signUpUrl="/signup"
-            fallbackRedirectUrl="/platform"
-          />
-        </div>
+        {/* ── Auth UI ── */}
+        {CLERK_AVAILABLE ? (
+          <div className="flex justify-center">
+            <SignIn
+              appearance={{
+                elements: {
+                  rootBox: "w-full",
+                  card: "bg-[#0f1a2b] border border-[#1e293b] shadow-lg rounded-md",
+                  headerTitle: "text-[#cbd5e1]",
+                  headerSubtitle: "text-[#94a3b8]",
+                  socialButtonsBlockButton:
+                    "border-[#1e293b] bg-[rgba(255,255,255,0.04)] text-[#cbd5e1] hover:bg-[rgba(255,255,255,0.06)]",
+                  formFieldLabel: "text-[#94a3b8]",
+                  formFieldInput:
+                    "bg-[rgba(255,255,255,0.04)] border-[#1e293b] text-[#cbd5e1] placeholder:text-[#64748b]",
+                  formButtonPrimary:
+                    "bg-[#c6a86b] hover:bg-[#d3b77d] text-slate-950 font-bold",
+                  footerActionLink: "text-[#c6a86b] hover:text-[#d3b77d]",
+                  identityPreviewEditButton:
+                    "text-[#c6a86b] hover:text-[#d3b77d]",
+                },
+              }}
+              routing="hash"
+              signUpUrl="/signup"
+              fallbackRedirectUrl="/platform"
+            />
+          </div>
+        ) : (
+          /* Fallback when Clerk is not configured */
+          <div className="rounded-lg border border-[#1e293b] bg-[#0f1a2b] p-8 text-center">
+            <ShieldAlert className="mx-auto mb-4 h-10 w-10 text-amber-400/80" />
+            <h2 className="mb-2 text-lg font-semibold text-[#cbd5e1]">
+              Authentication Unavailable
+            </h2>
+            <p className="mb-6 text-sm text-[#94a3b8]">
+              The authentication service is currently being configured. Please
+              use the demo portal to access the platform.
+            </p>
+            <Link
+              href="/demo/login?demo=true"
+              className="inline-flex items-center gap-2 rounded-md bg-[#c6a86b] px-6 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-[#d3b77d]"
+            >
+              Access Demo Portal
+            </Link>
+          </div>
+        )}
 
         {/* ── Footer ── */}
         <p className="mt-8 text-center text-[10px] text-text-faint/50">
