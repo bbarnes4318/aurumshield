@@ -159,14 +159,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const clerkEnabled = isClerkConfigured();
 
-  // ── Paths where the middleware does NOT run clerkMiddleware ──
-  // ClerkProvider has no session state on these routes, so useSession()
-  // (called internally by useUser/useOrganization) will throw.
-  // This list MUST stay in sync with ClerkWrapper.CLERK_BYPASS_PREFIXES.
+  // ── Routes where Clerk hooks should NOT be called ──
+  // ClerkProvider is always mounted (see clerk-wrapper.tsx), but on
+  // marketing-domain routes the middleware does NOT run clerkMiddleware,
+  // so Clerk's internal session state is uninitialized. Calling useUser()
+  // or useOrganization() on those routes would return empty/undefined data
+  // or throw. We use MockAuthProvider for these instead.
   //
-  // NOTE: /login, /signup, /forgot-password are NOT here — the middleware
-  // runs clerkMiddleware on them. They NEED ClerkAuthAdapter for Clerk's
-  // <SignIn> / <SignUp> components to work.
+  // Auth pages (/login, /signup, /forgot-password) are NOT bypassed —
+  // the middleware runs clerkMiddleware on them so Clerk hooks work.
   const BYPASS_PREFIXES = [
     "/demo",
     "/platform-overview",
