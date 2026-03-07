@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDown } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { ClearingSeal } from "../ClearingSeal";
 import { GoldwireBrandLogo } from "@/components/ui/goldwire-logo";
 
@@ -30,61 +30,76 @@ export function HeroSection() {
         }}
       />
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start lg:items-center w-full pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center w-full pt-28 pb-16 lg:pt-36 lg:pb-28 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
-        <div className="w-full flex flex-col justify-center space-y-5 lg:space-y-6 max-w-2xl text-left">
+        <div className="w-full flex flex-col justify-center items-start max-w-2xl text-left">
+          {/* ── Product Identity Block ── */}
           <motion.div
             custom={0}
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="mb-1 flex justify-start"
+            className="mb-8 lg:mb-10"
           >
-            <GoldwireBrandLogo className="scale-110 lg:scale-125 origin-left" />
+            <GoldwireBrandLogo />
           </motion.div>
 
+          {/* ── Headline ── */}
           <motion.h1
             custom={1}
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight max-w-3xl"
+            className="font-heading text-[44px] md:text-[52px] lg:text-[64px] xl:text-[72px] font-extrabold tracking-[-0.02em] max-w-3xl"
+            style={{ lineHeight: 0.98 }}
           >
-            Bypass SWIFT. <br />
-            <span className="text-gold">Clear Millions Instantly.</span>
+            <span className="text-white">
+              Settle Millions Instantly
+            </span>
+            <br />
+            <span style={{ color: "#C9A84C" }}>
+              via Vaulted Gold.
+            </span>
           </motion.h1>
 
+          {/* ── Supporting Paragraph ── */}
           <motion.p
             custom={2}
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="text-base md:text-lg text-gray-300 leading-relaxed max-w-2xl"
+            className="mt-7 lg:mt-8 text-lg md:text-xl lg:text-[22px] text-slate-400 leading-relaxed max-w-xl"
           >
-            AurumShield is a Principal Market Maker clearinghouse. We bypass
-            legacy correspondent banking, utilizing vaulted physical gold as a
-            deterministic transport layer for instant, multi-million dollar
-            cross-border settlements.
+            AurumShield is a Principal Market Maker for global treasuries.
+            We convert high-notional fiat and digital assets into allocated
+            physical bullion, executing cross-border title transfers instantly
+            through a trustless, automated settlement engine.
           </motion.p>
 
+          {/* ── CTAs ── */}
           <motion.div
             custom={3}
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="flex flex-col gap-4 sm:flex-row justify-start"
+            className="mt-10 lg:mt-12 flex flex-col gap-4 sm:flex-row items-start"
           >
             <a
               href="#pipeline"
-              className="inline-flex items-center justify-center gap-2 bg-action-gold hover:bg-action-gold/90 text-slate-950 font-bold px-8 py-4 rounded-lg transition-all duration-200"
+              className="inline-flex items-center justify-center gap-2.5 font-bold px-10 py-4 rounded-lg text-slate-950 transition-all duration-200 hover:brightness-110"
+              style={{ backgroundColor: "#C9A84C" }}
             >
               Explore the Protocol
-              <ArrowDown className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4" />
             </a>
 
             <a
               href="#card"
-              className="inline-flex items-center justify-center gap-2 bg-transparent border border-gold/40 hover:border-gold text-gold font-bold px-8 py-4 rounded-lg transition-all duration-200"
+              className="inline-flex items-center justify-center gap-2 bg-transparent font-semibold px-8 py-4 rounded-lg transition-all duration-200 hover:border-[#C9A84C]"
+              style={{
+                border: "1px solid rgba(201,168,76,0.3)",
+                color: "#C9A84C",
+              }}
             >
               View Corporate Card
             </a>
