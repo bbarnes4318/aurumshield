@@ -34,11 +34,16 @@ export function StepParties({ form, counterparties, disabled }: Props) {
           <Building2 className="h-4 w-4 text-gold" />
         </div>
         <div>
-          <h2 className="font-heading text-base font-semibold text-text">Step 1 — Target Entity</h2>
-          <p className="text-xs text-text-faint">Select the corporate treasury that will receive the Goldwire settlement.</p>
+          <h2 className="font-heading text-base font-semibold text-text">
+            Step 1 — Counterparty &amp; Asset Selection
+          </h2>
+          <p className="text-xs text-text-faint">
+            Identify the institutional counterparty and define the settlement notional.
+          </p>
         </div>
       </div>
 
+      {/* Beneficiary Selector */}
       <div>
         <label className="typo-label mb-1.5 block" htmlFor="w-cp">
           Beneficiary Entity
@@ -63,28 +68,70 @@ export function StepParties({ form, counterparties, disabled }: Props) {
           <p className="mt-1 text-xs text-danger">{errors.beneficiaryEntityId.message}</p>
         )}
         {selectedCp && (
-          <div className="mt-3 rounded-lg bg-surface-2 border border-border p-3 space-y-2">
+          <div className="mt-3 rounded-lg bg-surface-2 border border-border p-4 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-text">{selectedCp.entity}</span>
+              <span className="text-sm font-semibold text-text">{selectedCp.entity}</span>
               <RiskBadge level={selectedCp.riskLevel} />
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs text-text-muted">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-text-muted">
               <div>
-                <span className="text-text-faint">LEI:</span> {selectedCp.legalEntityId}
+                <span className="text-text-faint">LEI:</span>{" "}
+                <span className="font-mono tracking-wider text-text">{selectedCp.legalEntityId}</span>
               </div>
               <div>
                 <span className="text-text-faint">Jurisdiction:</span> {selectedCp.jurisdiction}
               </div>
               <div>
                 <span className="text-text-faint">Status:</span>{" "}
-                <span className="capitalize text-success">{selectedCp.status}</span>
+                <span className="capitalize text-success font-medium">{selectedCp.status}</span>
               </div>
               <div>
-                <span className="text-text-faint">KYC:</span> Verified
+                <span className="text-text-faint">KYC:</span>{" "}
+                <span className="text-emerald-400 font-medium">Verified</span>
               </div>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Settlement Amount */}
+      <div>
+        <label className="typo-label mb-1.5 block" htmlFor="w-fiat">
+          Settlement Notional (USD)
+        </label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-faint font-medium font-mono">
+            $
+          </span>
+          <input
+            id="w-fiat"
+            type="number"
+            step="any"
+            {...register("fiatSettlementAmount", { valueAsNumber: true })}
+            disabled={disabled}
+            placeholder="5,000,000"
+            className={cn(FIELD, "pl-7 font-mono tabular-nums text-lg font-semibold")}
+          />
+        </div>
+        {errors.fiatSettlementAmount && (
+          <p className="mt-1 text-xs text-danger">{errors.fiatSettlementAmount.message}</p>
+        )}
+      </div>
+
+      {/* Internal Memo */}
+      <div>
+        <label className="typo-label mb-1.5 block" htmlFor="w-memo">
+          Internal Memo{" "}
+          <span className="text-text-faint font-normal">(optional)</span>
+        </label>
+        <input
+          id="w-memo"
+          type="text"
+          {...register("memo")}
+          disabled={disabled}
+          placeholder="Q1 supplier settlement — invoice #GW-2026-0391"
+          className={FIELD}
+        />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
   LayoutDashboard,
   Building2,
@@ -12,10 +12,14 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Settings,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/providers/auth-provider";
+import type { UserRole } from "@/lib/mock-data";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -26,15 +30,41 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** Roles that can see this item. If omitted, visible to all roles. */
+  allowedRoles?: UserRole[];
 }
 
+/* ── Roles considered "internal operators" — can see all admin links ── */
+const OPERATOR_ROLES: UserRole[] = [
+  "admin",
+  "compliance",
+  "treasury",
+  "vault_ops",
+];
+
+/* ── Roles considered "external clients" — restricted to buyer-visible links ── */
+const CLIENT_ROLES: UserRole[] = [
+  "buyer",
+  "seller",
+  "INSTITUTION_TRADER",
+  "INSTITUTION_TREASURY",
+  "BROKER_DEALER_API",
+];
+
+
 const NAV_ITEMS: NavItem[] = [
-  { label: "Command Center",      href: "/dashboard",          icon: LayoutDashboard },
-  { label: "Treasury Desk",       href: "/treasury",           icon: Building2       },
-  { label: "Execute Goldwire",    href: "/transactions/new",   icon: Send            },
-  { label: "Settlement Ledger",   href: "/transactions",       icon: ListTree        },
-  { label: "Sovereign Vault",     href: "/vault",              icon: Shield          },
-  { label: "Compliance & Audit",  href: "/audit",              icon: FileCheck       },
+  /* ── Operator-only links ── */
+  { label: "Command Center",      href: "/dashboard",              icon: LayoutDashboard, allowedRoles: OPERATOR_ROLES },
+  { label: "Treasury Ops",        href: "/treasury",               icon: Building2,       allowedRoles: OPERATOR_ROLES },
+  { label: "Execute Goldwire",    href: "/transactions/new",       icon: Send,            allowedRoles: OPERATOR_ROLES },
+  { label: "Settlement Ledger",   href: "/transactions",           icon: ListTree,        allowedRoles: OPERATOR_ROLES },
+  { label: "Sovereign Vault",     href: "/vault",                  icon: Shield,          allowedRoles: OPERATOR_ROLES },
+  { label: "Compliance & Audit",  href: "/audit",                  icon: FileCheck,       allowedRoles: OPERATOR_ROLES },
+
+  /* ── Client-visible links (buyer / seller / institution) ── */
+  { label: "Treasury Desk",       href: "/transactions",           icon: Building2,       allowedRoles: CLIENT_ROLES },
+  { label: "Compliance / KYB",    href: "/onboarding/compliance",  icon: ShieldCheck,     allowedRoles: CLIENT_ROLES },
+  { label: "Settings",            href: "/account",                icon: Settings,        allowedRoles: CLIENT_ROLES },
 ];
 
 /* ================================================================
@@ -49,11 +79,22 @@ function SidebarNav({
   onLinkClick?: () => void;
 }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const role: UserRole = user?.role ?? "buyer";
+
+  const visibleItems = useMemo(
+    () =>
+      NAV_ITEMS.filter((item) => {
+        if (!item.allowedRoles) return true;
+        return item.allowedRoles.includes(role);
+      }),
+    [role],
+  );
 
   return (
     <nav className="flex-1 overflow-y-auto py-4 px-2" aria-label="Main navigation">
       <ul className="space-y-0.5">
-        {NAV_ITEMS.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon;
           const isActive =
             item.href === "/dashboard"
