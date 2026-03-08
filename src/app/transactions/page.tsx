@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
-import { Banknote, Hexagon, Shield, Copy, Check, ArrowLeft, Loader2 } from "lucide-react";
+import { useState, useCallback, useTransition, useMemo } from "react";
+import { Banknote, Hexagon, Shield, Copy, Check, ArrowLeft, Loader2, Truck, Lock } from "lucide-react";
+import { calculateArmoredFreight, type ArmoredFreightQuote } from "@/lib/services/brinks-service";
 import {
   generateFiatDepositInstructions,
   generateDigitalDepositInstructions,
@@ -97,6 +98,11 @@ type TerminalView =
   | { kind: "digital"; details: DigitalDepositInstructions };
 
 /* ================================================================
+   SETTLEMENT DESTINATION
+   ================================================================ */
+type SettlementDest = "vault" | "physical";
+
+/* ================================================================
    PAGE
    ================================================================ */
 export default function TransactionsPage() {
@@ -104,7 +110,35 @@ export default function TransactionsPage() {
   const [view, setView] = useState<TerminalView>({ kind: "input" });
   const [isPending, startTransition] = useTransition();
   const [pendingRail, setPendingRail] = useState<"fedwire" | "stablecoin" | null>(null);
+  const [settlementDest, setSettlementDest] = useState<SettlementDest>("vault");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [_freightQuote, setFreightQuote] = useState<ArmoredFreightQuote | null>(null);
   const amount = parseAmount(rawValue);
+
+  /* ── Derived logistics premium (live-calculated) ── */
+  const logisticsPremium = useMemo(() => {
+    if (settlementDest !== "physical" || amount <= 0) return 0;
+    // Deterministic client-side mirror: $2,500 flat + 0.15% of notional
+    return 2_500 + amount * 0.0015;
+  }, [settlementDest, amount]);
+
+  const totalAmountDue = useMemo(() => {
+    return settlementDest === "physical" ? amount + logisticsPremium : amount;
+  }, [amount, logisticsPremium, settlementDest]);
+
+  /** Recalculate freight when destination or amount changes */
+  const handleDestinationChange = useCallback(
+    (dest: SettlementDest) => {
+      setSettlementDest(dest);
+      if (dest === "physical" && amount > 0) {
+        // Fire & forget — update freight quote in background
+        calculateArmoredFreight(amount, deliveryAddress || "TBD").then(setFreightQuote);
+      } else {
+        setFreightQuote(null);
+      }
+    },
+    [amount, deliveryAddress],
+  );
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,7 +158,6 @@ export default function TransactionsPage() {
         );
         setView({ kind: "wire", details: instructions });
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("[AurumShield] Failed to generate wire instructions:", err);
       } finally {
         setPendingRail(null);
@@ -140,7 +173,6 @@ export default function TransactionsPage() {
         const instructions = await generateDigitalDepositInstructions(amount);
         setView({ kind: "digital", details: instructions });
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("[AurumShield] Failed to generate digital deposit instructions:", err);
       } finally {
         setPendingRail(null);
@@ -173,7 +205,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* ─── CENTRAL CARD — View Swap ─── */}
-      <div className="w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900/50 p-8 sm:p-10 shadow-2xl shadow-black/40">
+      <div className="w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900/50 p-6 sm:p-8 shadow-2xl shadow-black/40">
 
         {/* ══════════════════════════════════════════════════════════
            FEDWIRE SETTLEMENT INSTRUCTIONS VIEW
@@ -392,7 +424,7 @@ export default function TransactionsPage() {
            ══════════════════════════════════════════════════════════ */}
         {view.kind === "input" && (
           <>
-            <div className="mb-8 text-center">
+            <div className="mb-5 text-center">
               <div className="mb-1 flex items-center justify-center gap-2.5">
                 <Shield className="h-5 w-5 text-slate-500" />
                 <h1 className="text-3xl font-light tracking-tight text-slate-100">
@@ -427,7 +459,7 @@ export default function TransactionsPage() {
             </div>
 
             {/* ── Auto-Calculating Receipt ── */}
-            <div className="mb-8 rounded-xl border border-slate-800/60 bg-slate-950/40 px-5 py-4">
+            <div className="mb-5 rounded-xl border border-slate-800/60 bg-slate-950/40 px-5 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
@@ -462,6 +494,140 @@ export default function TransactionsPage() {
                   <span className="font-mono text-lg font-semibold tabular-nums text-amber-500/90">
                     ${formatSpot(MOCK_SPOT_PRICE)}
                     <span className="text-sm text-slate-500">/oz</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ─── Settlement Destination Toggle ─── */}
+            <div className="mb-5">
+              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                Settlement Destination
+              </span>
+              <div className="grid grid-cols-2 gap-0 rounded-xl border border-slate-700/60 bg-slate-950/60 p-1">
+                {/* Option 1 — Allocated Vault Storage */}
+                <button
+                  id="dest-vault"
+                  type="button"
+                  onClick={() => handleDestinationChange("vault")}
+                  className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-2.5 text-center transition-all duration-200 ${
+                    settlementDest === "vault"
+                      ? "bg-slate-800 shadow-inner shadow-black/20"
+                      : "hover:bg-slate-900/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Lock className={`h-3.5 w-3.5 ${
+                      settlementDest === "vault" ? "text-emerald-400" : "text-slate-500"
+                    }`} />
+                    <span className={`text-xs font-semibold ${
+                      settlementDest === "vault" ? "text-slate-100" : "text-slate-400"
+                    }`}>
+                      Allocated Vault Storage
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-medium ${
+                    settlementDest === "vault" ? "text-emerald-500/70" : "text-slate-600"
+                  }`}>
+                    +0.15% Annual LBMA Storage
+                  </span>
+                </button>
+
+                {/* Option 2 — Armored Physical Delivery */}
+                <button
+                  id="dest-physical"
+                  type="button"
+                  onClick={() => handleDestinationChange("physical")}
+                  className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-2.5 text-center transition-all duration-200 ${
+                    settlementDest === "physical"
+                      ? "bg-slate-800 shadow-inner shadow-black/20"
+                      : "hover:bg-slate-900/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Truck className={`h-3.5 w-3.5 ${
+                      settlementDest === "physical" ? "text-amber-400" : "text-slate-500"
+                    }`} />
+                    <span className={`text-xs font-semibold ${
+                      settlementDest === "physical" ? "text-slate-100" : "text-slate-400"
+                    }`}>
+                      Armored Physical Delivery
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-medium ${
+                    settlementDest === "physical" ? "text-amber-500/70" : "text-slate-600"
+                  }`}>
+                    Insured Transit via Brink&apos;s / Malca-Amit
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* ─── Physical Delivery Panel (conditional) ─── */}
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                settlementDest === "physical"
+                  ? "max-h-[280px] opacity-100 mb-5"
+                  : "max-h-0 opacity-0 mb-0"
+              }`}
+            >
+              <div className="rounded-xl border border-slate-800/60 bg-slate-950/40 px-4 py-4 space-y-4">
+                {/* Secure Delivery Address */}
+                <div>
+                  <label
+                    htmlFor="delivery-address"
+                    className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-slate-500"
+                  >
+                    Secure Delivery Address
+                  </label>
+                  <input
+                    id="delivery-address"
+                    type="text"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    placeholder="Sub-custodian facility or bonded warehouse address"
+                    autoComplete="off"
+                    className="w-full rounded-lg border border-slate-700/60 bg-slate-950/80 px-4 py-2.5 text-sm font-medium text-slate-200 placeholder:text-slate-600 outline-none transition-colors focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                  />
+                </div>
+
+                <div className="h-px bg-slate-800/60" />
+
+                {/* Logistics Premium Breakdown */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                    Logistics Premium
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Armored Transport Base</span>
+                    <span className="font-mono text-sm font-semibold tabular-nums text-slate-300">
+                      $2,500.00
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Insurance Ad-Valorem (0.15%)</span>
+                    <span className="font-mono text-sm font-semibold tabular-nums text-slate-300">
+                      ${formatUSD(amount * 0.0015)}
+                    </span>
+                  </div>
+                  <div className="h-px bg-slate-800/40" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-amber-500/80">Total Logistics Premium</span>
+                    <span className="font-mono text-sm font-bold tabular-nums text-amber-400">
+                      ${formatUSD(logisticsPremium)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="h-px bg-slate-800/60" />
+
+                {/* Updated Total Amount Due */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                    Total Amount Due
+                  </span>
+                  <span className="font-mono text-lg font-bold tabular-nums text-white">
+                    ${formatUSD(totalAmountDue)}
                   </span>
                 </div>
               </div>
