@@ -53,13 +53,9 @@ export function HeroSection() {
             className="font-heading text-[44px] md:text-[52px] lg:text-[64px] xl:text-[72px] font-extrabold tracking-[-0.02em] max-w-3xl"
             style={{ lineHeight: 0.98 }}
           >
-            <span className="text-white">
-              Settle Millions Instantly
-            </span>
+            <span className="text-white">Settle Millions Instantly</span>
             <br />
-            <span style={{ color: "#C9A84C" }}>
-              via Vaulted Gold.
-            </span>
+            <span style={{ color: "var(--gold)" }}>via Vaulted Gold.</span>
           </motion.h1>
 
           {/* ── Supporting Paragraph ── */}
@@ -70,8 +66,8 @@ export function HeroSection() {
             variants={fade}
             className="mt-7 lg:mt-8 text-lg md:text-xl lg:text-[22px] text-slate-400 leading-relaxed max-w-xl"
           >
-            AurumShield is a Principal Market Maker for global treasuries.
-            We convert high-notional fiat and digital assets into allocated
+            AurumShield is a Principal Market Maker for global treasuries. We
+            convert high-notional fiat and digital assets into allocated
             physical bullion, executing cross-border title transfers instantly
             through a trustless, automated settlement engine.
           </motion.p>
@@ -87,7 +83,7 @@ export function HeroSection() {
             <a
               href="#pipeline"
               className="inline-flex items-center justify-center gap-2.5 font-bold px-10 py-4 rounded-lg text-slate-950 transition-all duration-200 hover:brightness-110"
-              style={{ backgroundColor: "#C9A84C" }}
+              style={{ backgroundColor: "var(--gold)" }}
             >
               Explore the Protocol
               <ArrowRight className="h-4 w-4" />
@@ -95,10 +91,11 @@ export function HeroSection() {
 
             <a
               href="#card"
-              className="inline-flex items-center justify-center gap-2 bg-transparent font-semibold px-8 py-4 rounded-lg transition-all duration-200 hover:border-[#C9A84C]"
+              className="inline-flex items-center justify-center gap-2 bg-transparent font-semibold px-8 py-4 rounded-lg transition-all duration-200"
               style={{
-                border: "1px solid rgba(201,168,76,0.3)",
-                color: "#C9A84C",
+                border:
+                  "1px solid color-mix(in srgb, var(--gold) 30%, transparent)",
+                color: "var(--gold)",
               }}
             >
               View Corporate Card
