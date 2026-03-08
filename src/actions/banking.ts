@@ -153,3 +153,68 @@ export async function generateFiatDepositInstructions(
     isLive: false,
   };
 }
+
+/* ================================================================
+   DIGITAL ASSET DEPOSIT — MPC Wallet Address Generation
+   ================================================================
+   Called from the OTC Trading Terminal when the buyer selects the
+   stablecoin (USDC/USDT) funding route. Returns a unique ERC-20
+   compatible deposit address generated via MPC wallet infrastructure
+   (e.g., Tholos / Fireblocks).
+
+   Currently returns mock data. Will be wired to a live MPC vault
+   provider in a future iteration.
+   ================================================================ */
+
+/** Structured result for the digital asset deposit instructions panel. */
+export interface DigitalDepositInstructions {
+  /** ERC-20 compatible deposit wallet address (0x...) */
+  depositAddress: string;
+  /** Supported network label */
+  network: string;
+  /** Accepted stablecoin tickers */
+  acceptedTokens: string;
+  /** ISO 8601 expiration timestamp for the deposit window */
+  expiresAt: string;
+  /** Duration in minutes for the deposit window */
+  expirationMinutes: number;
+  /** True if data came from a live MPC provider, false if mock */
+  isLive: boolean;
+}
+
+/**
+ * Generate digital asset deposit instructions for a stablecoin settlement.
+ *
+ * Simulates connecting to an MPC wallet infrastructure provider and
+ * returning a unique ERC-20 deposit address with a time-limited window.
+ *
+ * TODO: Wire to live Tholos / Fireblocks MPC vault API.
+ *
+ * @param amount — Settlement amount in USD (used for logging / metadata)
+ */
+export async function generateDigitalDepositInstructions(
+  amount: number,
+): Promise<DigitalDepositInstructions> {
+  // Simulate MPC enclave provisioning latency
+  await new Promise((resolve) => setTimeout(resolve, 800));
+
+  const expirationMinutes = 15;
+  const expiresAt = new Date(
+    Date.now() + expirationMinutes * 60 * 1000,
+  ).toISOString();
+
+  console.log(
+    `[AurumShield] Generated digital deposit instructions: ` +
+      `amount=$${amount.toLocaleString()} ` +
+      `expires=${expiresAt} (mock MPC)`,
+  );
+
+  return {
+    depositAddress: "0x8A2e4C9bF3D7e1A5f0B6c8d2E4F7a9C1b3D5e7F9",
+    network: "Ethereum (ERC-20)",
+    acceptedTokens: "USDC / USDT",
+    expiresAt,
+    expirationMinutes,
+    isLive: false,
+  };
+}

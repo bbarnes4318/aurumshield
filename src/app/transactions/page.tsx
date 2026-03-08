@@ -2,7 +2,12 @@
 
 import { useState, useCallback, useTransition } from "react";
 import { Banknote, Hexagon, Shield, Copy, Check, ArrowLeft, Loader2 } from "lucide-react";
-import { generateFiatDepositInstructions, type FiatDepositInstructions } from "@/actions/banking";
+import {
+  generateFiatDepositInstructions,
+  generateDigitalDepositInstructions,
+  type FiatDepositInstructions,
+  type DigitalDepositInstructions,
+} from "@/actions/banking";
 
 /* ================================================================
    MOCK SPOT PRICE
@@ -84,12 +89,21 @@ function CopyButton({ value }: { value: string }) {
 }
 
 /* ================================================================
+   VIEW TYPE — Determines which card content is shown
+   ================================================================ */
+type TerminalView =
+  | { kind: "input" }
+  | { kind: "wire"; details: FiatDepositInstructions }
+  | { kind: "digital"; details: DigitalDepositInstructions };
+
+/* ================================================================
    PAGE
    ================================================================ */
 export default function TransactionsPage() {
   const [rawValue, setRawValue] = useState("");
-  const [wireDetails, setWireDetails] = useState<FiatDepositInstructions | null>(null);
+  const [view, setView] = useState<TerminalView>({ kind: "input" });
   const [isPending, startTransition] = useTransition();
+  const [pendingRail, setPendingRail] = useState<"fedwire" | "stablecoin" | null>(null);
   const amount = parseAmount(rawValue);
 
   const handleChange = useCallback(
@@ -101,31 +115,42 @@ export default function TransactionsPage() {
 
   /** Execute via Fedwire — calls server action to generate virtual FBO account */
   const handleFedwire = useCallback(() => {
+    setPendingRail("fedwire");
     startTransition(async () => {
       try {
         const instructions = await generateFiatDepositInstructions(
           "temp-counterparty-id",
           `AurumShield Terminal — $${rawValue} USD`,
         );
-        setWireDetails(instructions);
+        setView({ kind: "wire", details: instructions });
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error("[AurumShield] Failed to generate wire instructions:", err);
+      } finally {
+        setPendingRail(null);
       }
     });
   }, [rawValue]);
 
-  /** Execute via Stablecoin — placeholder for future wiring */
+  /** Execute via Stablecoin — calls server action to generate MPC deposit address */
   const handleStablecoin = useCallback(() => {
-    // eslint-disable-next-line no-console
-    console.log(
-      `[AurumShield] Execute via Stablecoin — $${rawValue || "0"} USD → ${formatOunces(amount)} oz Au`,
-    );
-  }, [rawValue, amount]);
+    setPendingRail("stablecoin");
+    startTransition(async () => {
+      try {
+        const instructions = await generateDigitalDepositInstructions(amount);
+        setView({ kind: "digital", details: instructions });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("[AurumShield] Failed to generate digital deposit instructions:", err);
+      } finally {
+        setPendingRail(null);
+      }
+    });
+  }, [amount]);
 
-  /** Return to the input view from settlement instructions */
+  /** Return to the input view */
   const handleReturnToTerminal = useCallback(() => {
-    setWireDetails(null);
+    setView({ kind: "input" });
   }, []);
 
   return (
@@ -149,19 +174,18 @@ export default function TransactionsPage() {
 
       {/* ─── CENTRAL CARD — View Swap ─── */}
       <div className="w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900/50 p-8 sm:p-10 shadow-2xl shadow-black/40">
-        {wireDetails ? (
-          /* ════════════════════════════════════════════════════════
-             SETTLEMENT INSTRUCTIONS VIEW
-             ════════════════════════════════════════════════════════ */
+
+        {/* ══════════════════════════════════════════════════════════
+           FEDWIRE SETTLEMENT INSTRUCTIONS VIEW
+           ══════════════════════════════════════════════════════════ */}
+        {view.kind === "wire" && (
           <>
-            {/* Header */}
             <div className="mb-6 text-center">
               <h1 className="text-2xl font-light tracking-tight text-slate-100">
                 Fedwire Transfer Instructions
               </h1>
             </div>
 
-            {/* Warning Banner */}
             <div className="mb-6 rounded-lg border border-amber-800/30 bg-amber-950/20 px-5 py-3.5">
               <p className="text-sm leading-relaxed text-amber-200/80">
                 Initiate a same-day wire transfer from your registered corporate account.
@@ -169,9 +193,7 @@ export default function TransactionsPage() {
               </p>
             </div>
 
-            {/* The Ledger Box */}
             <div className="mb-8 space-y-5 rounded-xl border border-slate-800 bg-slate-950 p-6">
-              {/* Amount Due */}
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                   Amount Due
@@ -183,49 +205,45 @@ export default function TransactionsPage() {
 
               <div className="h-px bg-slate-800" />
 
-              {/* Bank Name */}
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                   Bank Name
                 </span>
                 <div className="mt-1 text-lg font-medium text-slate-200">
-                  {wireDetails.bankName}
+                  {view.details.bankName}
                 </div>
               </div>
 
               <div className="h-px bg-slate-800" />
 
-              {/* Routing Number */}
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                     Routing Number
                   </span>
                   <div className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-wider text-slate-100">
-                    {wireDetails.routingNumber}
+                    {view.details.routingNumber}
                   </div>
                 </div>
-                <CopyButton value={wireDetails.routingNumber} />
+                <CopyButton value={view.details.routingNumber} />
               </div>
 
               <div className="h-px bg-slate-800" />
 
-              {/* Account Number */}
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                     Account Number
                   </span>
                   <div className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-wider text-slate-100">
-                    {wireDetails.accountNumber}
+                    {view.details.accountNumber}
                   </div>
                 </div>
-                <CopyButton value={wireDetails.accountNumber} />
+                <CopyButton value={view.details.accountNumber} />
               </div>
 
               <div className="h-px bg-slate-800" />
 
-              {/* Beneficiary */}
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                   Beneficiary
@@ -236,7 +254,6 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            {/* Return Button */}
             <button
               id="wire-initiated"
               type="button"
@@ -247,12 +264,134 @@ export default function TransactionsPage() {
               I Have Initiated This Wire
             </button>
           </>
-        ) : (
-          /* ════════════════════════════════════════════════════════
-             INPUT VIEW (Default Terminal)
-             ════════════════════════════════════════════════════════ */
+        )}
+
+        {/* ══════════════════════════════════════════════════════════
+           DIGITAL ASSET SETTLEMENT INSTRUCTIONS VIEW
+           ══════════════════════════════════════════════════════════ */}
+        {view.kind === "digital" && (
           <>
-            {/* Header */}
+            <div className="mb-6 text-center">
+              <h1 className="text-2xl font-light tracking-tight text-slate-100">
+                Digital Asset Settlement
+                <span className="ml-2 text-amber-500/80">●</span>
+              </h1>
+            </div>
+
+            <div className="mb-6 rounded-lg border border-amber-800/30 bg-amber-950/20 px-5 py-3.5">
+              <p className="text-sm leading-relaxed text-amber-200/80">
+                Send <span className="font-semibold text-amber-100">exactly</span> the
+                requested amount via the ERC-20 network. Funds sent on other networks
+                will be permanently lost.
+              </p>
+            </div>
+
+            <div className="mb-8 space-y-5 rounded-xl border border-slate-800 bg-slate-950 p-6">
+              {/* Amount Due */}
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  Amount Due
+                </span>
+                <div className="mt-1 flex items-baseline gap-3">
+                  <span className="font-mono text-3xl font-semibold tabular-nums text-white">
+                    {formatUSD(amount)}
+                  </span>
+                  <span className="text-sm font-semibold tracking-wide text-amber-500/70">
+                    {view.details.acceptedTokens}
+                  </span>
+                </div>
+              </div>
+
+              <div className="h-px bg-slate-800" />
+
+              {/* Network */}
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  Network
+                </span>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-800">
+                    <Hexagon className="h-3 w-3 text-amber-500" />
+                  </div>
+                  <span className="text-lg font-medium text-slate-200">
+                    {view.details.network}
+                  </span>
+                </div>
+              </div>
+
+              <div className="h-px bg-slate-800" />
+
+              {/* Deposit Address */}
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                      Deposit Address
+                    </span>
+                    <div className="mt-1 font-mono text-lg font-semibold tabular-nums leading-relaxed text-amber-500 break-all">
+                      {view.details.depositAddress}
+                    </div>
+                  </div>
+                  <div className="mt-5 shrink-0">
+                    <CopyButton value={view.details.depositAddress} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px bg-slate-800" />
+
+              {/* QR Code Placeholder + Expiration */}
+              <div className="flex items-center justify-between gap-6">
+                <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-slate-900">
+                  <div className="text-center">
+                    <div className="mb-1 text-slate-600">
+                      <svg className="mx-auto h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="3" height="3" />
+                        <line x1="21" y1="14" x2="21" y2="14.01" />
+                        <line x1="21" y1="21" x2="21" y2="21.01" />
+                        <line x1="17" y1="18" x2="17" y2="18.01" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-medium text-slate-600">QR Code</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                      Session Expires
+                    </span>
+                    <div className="mt-1 font-mono text-lg font-semibold tabular-nums text-slate-300">
+                      {view.details.expirationMinutes} minutes
+                    </div>
+                  </div>
+                  <p className="text-xs leading-relaxed text-slate-600">
+                    Address valid for a single deposit within the expiration window.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              id="digital-transfer-initiated"
+              type="button"
+              onClick={handleReturnToTerminal}
+              className="group flex w-full items-center justify-center gap-3 rounded-xl border border-emerald-800/40 bg-emerald-950/30 px-6 py-4 text-sm font-semibold text-emerald-400 transition-all hover:border-emerald-700/60 hover:bg-emerald-950/50 active:scale-[0.98]"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              I Have Initiated This Transfer
+            </button>
+          </>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════
+           INPUT VIEW (Default Terminal)
+           ══════════════════════════════════════════════════════════ */}
+        {view.kind === "input" && (
+          <>
             <div className="mb-8 text-center">
               <div className="mb-1 flex items-center justify-center gap-2.5">
                 <Shield className="h-5 w-5 text-slate-500" />
@@ -290,7 +429,6 @@ export default function TransactionsPage() {
             {/* ── Auto-Calculating Receipt ── */}
             <div className="mb-8 rounded-xl border border-slate-800/60 bg-slate-950/40 px-5 py-4">
               <div className="flex items-center justify-between gap-4">
-                {/* Left: Guaranteed Allocation */}
                 <div className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                     Guaranteed Allocation
@@ -315,10 +453,8 @@ export default function TransactionsPage() {
                   </div>
                 </div>
 
-                {/* Divider */}
                 <div className="h-10 w-px bg-slate-800" />
 
-                {/* Right: Spot Execution */}
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                     Spot Execution
@@ -331,7 +467,7 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            {/* ─── C. Dual-Rail Action Triggers ─── */}
+            {/* ─── Dual-Rail Action Triggers ─── */}
             <div className="grid grid-cols-2 gap-4">
               {/* Button 1 — Fedwire */}
               <button
@@ -341,16 +477,18 @@ export default function TransactionsPage() {
                 disabled={isPending}
                 className="group flex flex-col items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-800/60 px-4 py-5 transition-all hover:border-slate-600 hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
               >
-                {isPending ? (
+                {isPending && pendingRail === "fedwire" ? (
                   <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                 ) : (
                   <Banknote className="h-6 w-6 text-slate-400 transition-colors group-hover:text-slate-200" />
                 )}
                 <span className="text-sm font-semibold text-slate-200">
-                  {isPending ? "Generating Virtual FBO Account..." : "Execute via Fedwire"}
+                  {isPending && pendingRail === "fedwire"
+                    ? "Generating Virtual FBO Account..."
+                    : "Execute via Fedwire"}
                 </span>
                 <span className="text-[11px] font-medium tracking-wide text-slate-500">
-                  {isPending ? "Please wait" : "Domestic USD"}
+                  {isPending && pendingRail === "fedwire" ? "Please wait" : "Domestic USD"}
                 </span>
               </button>
 
@@ -362,12 +500,18 @@ export default function TransactionsPage() {
                 disabled={isPending}
                 className="group flex flex-col items-center gap-2 rounded-xl border border-amber-700/30 bg-amber-950/15 px-4 py-5 transition-all hover:border-amber-600/50 hover:bg-amber-950/25 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
               >
-                <Hexagon className="h-6 w-6 text-amber-500/80 transition-colors group-hover:text-amber-400" />
+                {isPending && pendingRail === "stablecoin" ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-500/80" />
+                ) : (
+                  <Hexagon className="h-6 w-6 text-amber-500/80 transition-colors group-hover:text-amber-400" />
+                )}
                 <span className="text-sm font-semibold text-amber-400/90">
-                  Execute via Stablecoin
+                  {isPending && pendingRail === "stablecoin"
+                    ? "Generating Secure MPC Enclave..."
+                    : "Execute via Stablecoin"}
                 </span>
                 <span className="text-[11px] font-medium tracking-wide text-amber-600/70">
-                  Instant T-Zero
+                  {isPending && pendingRail === "stablecoin" ? "Please wait" : "Instant T-Zero"}
                 </span>
               </button>
             </div>
@@ -380,7 +524,7 @@ export default function TransactionsPage() {
         className="pointer-events-none absolute inset-0 z-0"
         aria-hidden="true"
       >
-        <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-900/[0.04] blur-3xl" />
+        <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-900/4 blur-3xl" />
       </div>
     </div>
   );
