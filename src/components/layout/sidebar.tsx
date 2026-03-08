@@ -12,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Settings,
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
@@ -64,7 +63,7 @@ const NAV_ITEMS: NavItem[] = [
   /* ── Client-visible links (buyer / seller / institution) ── */
   { label: "Treasury Desk",       href: "/transactions",           icon: Building2,       allowedRoles: CLIENT_ROLES },
   { label: "Compliance / KYB",    href: "/onboarding/compliance",  icon: ShieldCheck,     allowedRoles: CLIENT_ROLES },
-  { label: "Settings",            href: "/account",                icon: Settings,        allowedRoles: CLIENT_ROLES },
+
 ];
 
 /* ================================================================

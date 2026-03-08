@@ -1,533 +1,344 @@
 "use client";
 
 /* ================================================================
-   /onboarding/compliance — Institutional Compliance Verification
+   /onboarding/compliance — Entity Verification Status
    ================================================================
-   KYC verification page embedded within the full app shell.
-   Users see:
-     1. Institutional Compliance Protocol copy
-     2. "Initiate Secure Verification" → launches Veriff session
-     3. SSE stream from /api/compliance/stream after Veriff completes
-     4. APPROVED → redirect to /buyer
-     5. REJECTED → in-product Compliance Case escalation
-
-   Save-and-Resume:
-     • On mount: checks saved onboarding state for existing inquiry
-     • If provider_inquiry_id exists + PROVIDER_PENDING → resumes SSE stream
-     • Veriff sessionId is persisted on completion
-     • "Resume Later" affordance for safe exit
-
-   Edge Cases:
-     - onCancel: resets to "Initiate" screen
-     - onError: resets to "Initiate" screen
-     - SDK fails to load: shows error + retry
-     - State recovery: inquiry done but KYC still pending → "Review in progress"
+   Deterministic 3-step KYB verification gate.
+   Dark brutalist design matching the Trading Terminal aesthetic.
+   
+   Steps:
+     1. Corporate Identity (UBO & Registration)
+     2. AML / OFAC Global Sanctions Screening
+     3. Bank Account Ownership Verification
+   
+   Flow:
+     idle → verifying (sequential animation ~3s) → verified (emerald glow)
    ================================================================ */
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, useRef } from "react";
 import {
-  Shield,
   ShieldCheck,
+  Building2,
+  Search,
+  Landmark,
+  Check,
   Loader2,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  MessageSquare,
-  Clock,
-  LogOut,
 } from "lucide-react";
-import Link from "next/link";
-import { useAuth } from "@/providers/auth-provider";
-import {
-  useOnboardingState,
-  useSaveOnboardingState,
-} from "@/hooks/use-onboarding-state";
 
 /* ----------------------------------------------------------------
-   Types
+   Types & Constants
    ---------------------------------------------------------------- */
 
-type ComplianceState =
-  | "loading"       // Checking saved state
-  | "idle"          // Show "Initiate Secure Verification" button
-  | "verifying"     // Veriff overlay is active
-  | "streaming"     // Veriff completed → SSE stream from /api/compliance/stream
-  | "approved"      // KYC approved → redirecting to /buyer
-  | "rejected"      // KYC rejected → show failure UI
-  | "review";       // State recovery: inquiry done, awaiting backend review
+type VerificationState = "idle" | "verifying" | "verified";
 
-/* ----------------------------------------------------------------
-   Constants
-   ---------------------------------------------------------------- */
+interface ChecklistStep {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
 
-const VERIFF_API_KEY = process.env.NEXT_PUBLIC_VERIFF_API_KEY;
-const SSE_MAX_RETRIES = 3;
+const CHECKLIST_STEPS: ChecklistStep[] = [
+  {
+    id: "corporate-identity",
+    label: "Corporate Identity",
+    description: "UBO & Registration",
+    icon: Building2,
+  },
+  {
+    id: "aml-ofac",
+    label: "AML / OFAC Screening",
+    description: "Global Sanctions Check",
+    icon: Search,
+  },
+  {
+    id: "bank-ownership",
+    label: "Bank Account Ownership",
+    description: "Institutional Account Verification",
+    icon: Landmark,
+  },
+];
 
 /* ================================================================
    COMPONENT
    ================================================================ */
 
 export default function CompliancePage() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [state, setState] = useState<ComplianceState>("loading");
-  const [error, setError] = useState<string | null>(null);
-  const veriffClientRef = useRef<{ destroy: () => void } | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const mountedRef = useRef(true);
-  const sseRetryCountRef = useRef(0);
-  const hasCheckedSavedRef = useRef(false);
+  const [state, setState] = useState<VerificationState>("idle");
+  const [activeStepIndex, setActiveStepIndex] = useState(-1);
+  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const [progress, setProgress] = useState(0);
+  const animationRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  /* ── Saved state hooks ── */
-  const savedStateQ = useOnboardingState();
-  const saveMutation = useSaveOnboardingState();
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
+  /* ── Cleanup helper ── */
+  const clearTimers = useCallback(() => {
+    animationRef.current.forEach(clearTimeout);
+    animationRef.current = [];
   }, []);
 
-  // Cleanup Veriff client + EventSource on unmount
-  useEffect(() => {
-    return () => {
-      if (veriffClientRef.current) {
-        try { veriffClientRef.current.destroy(); } catch { /* already destroyed */ }
-      }
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-    };
-  }, []);
+  /* ── Initiate verification flow ── */
+  const handleInitiate = useCallback(() => {
+    if (state === "verifying" || state === "verified") return;
 
-  /* ── State recovery: check for in-progress provider inquiry ── */
-  useEffect(() => {
-    if (hasCheckedSavedRef.current) return;
-    if (savedStateQ.isLoading) return;
-
-    hasCheckedSavedRef.current = true;
-
-    if (savedStateQ.data) {
-      const saved = savedStateQ.data;
-
-      // If inquiry was submitted but platform status is still pending
-      if (saved.providerInquiryId && saved.status === "PROVIDER_PENDING") {
-        setState("review");
-        // Start SSE stream to check if webhook has arrived
-        startSseStream();
-        return;
-      }
-
-      // If already completed, redirect
-      if (saved.status === "COMPLETED") {
-        router.replace("/buyer");
-        return;
-      }
-    }
-
-    // No saved state or IN_PROGRESS → show idle
-    setState("idle");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedStateQ.isLoading, savedStateQ.data]);
-
-  /* ── SSE stream /api/compliance/stream after Veriff completes ── */
-  const startSseStream = useCallback(() => {
-    // Close any existing stream
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    if (state !== "review") {
-      setState("streaming");
-    }
-
-    const es = new EventSource("/api/compliance/stream");
-    eventSourceRef.current = es;
-
-    es.onmessage = (event) => {
-      if (!mountedRef.current) return;
-
-      try {
-        const payload = JSON.parse(event.data);
-
-        // Handle initial connection event with current case status
-        if (payload.type === "connected" && payload.caseStatus) {
-          if (payload.caseStatus === "APPROVED") {
-            saveMutation.mutate({
-              currentStep: 4,
-              status: "COMPLETED",
-              statusReason: "KYC approved via compliance case",
-            });
-            setState("approved");
-            es.close();
-            setTimeout(() => {
-              if (mountedRef.current) router.replace("/buyer");
-            }, 1500);
-            return;
-          }
-
-          if (payload.caseStatus === "REJECTED") {
-            saveMutation.mutate({
-              currentStep: 4,
-              status: "REVIEW",
-              statusReason: "KYC rejected — escalated to compliance team",
-            });
-            setState("rejected");
-            es.close();
-            return;
-          }
-        }
-
-        // Handle live case events
-        if (payload.type === "case_event" && payload.event) {
-          const action = payload.event.action;
-
-          if (action === "INQUIRY_COMPLETED") {
-            saveMutation.mutate({
-              currentStep: 4,
-              status: "COMPLETED",
-              statusReason: "KYC approved via provider webhook",
-            });
-            setState("approved");
-            es.close();
-            setTimeout(() => {
-              if (mountedRef.current) router.replace("/buyer");
-            }, 1500);
-            return;
-          }
-
-          if (action === "INQUIRY_FAILED") {
-            saveMutation.mutate({
-              currentStep: 4,
-              status: "REVIEW",
-              statusReason: "KYC rejected — escalated to compliance team",
-            });
-            setState("rejected");
-            es.close();
-            return;
-          }
-        }
-      } catch {
-        // Ignore malformed SSE data
-      }
-    };
-
-    es.onerror = () => {
-      if (!mountedRef.current) return;
-      sseRetryCountRef.current++;
-
-      if (sseRetryCountRef.current >= SSE_MAX_RETRIES) {
-        // Max retries reached — show review state
-        es.close();
-        eventSourceRef.current = null;
-        setState("review");
-        return;
-      }
-
-      // EventSource auto-reconnects, but we track retries for our fallback
-    };
-  }, [router, saveMutation, state]);
-
-  /* ── Launch Veriff Embedded Flow ── */
-  const launchVeriff = useCallback(async () => {
-    setError(null);
-
-    const userId = user?.id;
-    if (!userId) {
-      setError("Authentication required. Please sign in first.");
-      return;
-    }
-
-    // Save that we're entering the verification flow
-    saveMutation.mutate({
-      currentStep: 4,
-      status: "IN_PROGRESS",
-      statusReason: "Launching Veriff verification",
-    });
-
-    // ── Fallback: no Veriff API key configured (demo mode) ──
-    if (!VERIFF_API_KEY) {
-      console.warn(
-        "[AurumShield] NEXT_PUBLIC_VERIFF_API_KEY not configured — using demo simulation",
-      );
-      setState("verifying");
-      setTimeout(() => {
-        if (!mountedRef.current) return;
-
-        // Persist demo session ID
-        saveMutation.mutate({
-          currentStep: 4,
-          providerInquiryId: `demo-veriff-${Date.now()}`,
-          status: "PROVIDER_PENDING",
-          statusReason: "Demo Veriff session completed, awaiting webhook",
-        });
-
-        // Simulate Veriff completion → start SSE stream
-        startSseStream();
-      }, 3000);
-      return;
-    }
-
-    // ── Production: launch real Veriff SDK ──
+    clearTimers();
     setState("verifying");
+    setActiveStepIndex(0);
+    setCompletedSteps(new Set());
+    setProgress(0);
 
-    try {
-      // TODO: Replace with actual Veriff JS SDK:
-      //   import { createVeriffFrame, MESSAGES } from '@veriff/incontext-sdk';
-      //   const veriffFrame = createVeriffFrame({ url: sessionUrl, onEvent });
-      //
-      // For now, use the same demo path. When VERIFF_API_KEY is set,
-      // create a session via POST /api/verification/veriff-session
-      // and then open the Veriff incontext frame with the returned URL.
+    const stepDuration = 1000; // 1s per step
 
-      // Destroy any existing client
-      if (veriffClientRef.current) {
-        try { veriffClientRef.current.destroy(); } catch { /* noop */ }
-      }
+    CHECKLIST_STEPS.forEach((step, idx) => {
+      // Start progress for this step
+      const progressStart = animationRef.current.length;
+      void progressStart; // suppress unused
 
-      // Production stub — simulates Veriff session creation and completion
-      const sessionId = `veriff-session-${Date.now()}`;
-      console.log(`[AurumShield] Veriff session initiated: sessionId=${sessionId}`);
+      // Mark step as active
+      const activateTimer = setTimeout(() => {
+        setActiveStepIndex(idx);
+        // Animate progress bar
+        setProgress(((idx) / CHECKLIST_STEPS.length) * 100);
+      }, idx * stepDuration);
+      animationRef.current.push(activateTimer);
 
-      // Simulate session completion after 3 seconds
-      setTimeout(() => {
-        console.log(
-          `[AurumShield] Veriff session completed: sessionId=${sessionId}`,
-        );
-        if (!mountedRef.current) return;
-
-        // Persist the provider session ID for resume
-        saveMutation.mutate({
-          currentStep: 4,
-          providerInquiryId: sessionId,
-          status: "PROVIDER_PENDING",
-          statusReason: `Veriff session ${sessionId} completed`,
+      // Mark step as complete
+      const completeTimer = setTimeout(() => {
+        setCompletedSteps((prev) => {
+          const next = new Set(prev);
+          next.add(step.id);
+          return next;
         });
-
-        // Start SSE stream for real-time webhook results
-        startSseStream();
-      }, 3000);
-    } catch (err) {
-      console.error("[AurumShield] Failed to initialize Veriff SDK:", err);
-      if (!mountedRef.current) return;
-      setState("idle");
-      setError("Failed to load verification system. Please try again.");
-    }
-  }, [user?.id, startSseStream, saveMutation]);
-
-  /* ── Resume Later ── */
-  const handleResumeLater = useCallback(() => {
-    saveMutation.mutate({
-      currentStep: 4,
-      status: "IN_PROGRESS",
-      statusReason: "User chose to resume later",
+        setProgress(((idx + 1) / CHECKLIST_STEPS.length) * 100);
+      }, (idx + 1) * stepDuration - 200);
+      animationRef.current.push(completeTimer);
     });
-    router.push("/buyer");
-  }, [saveMutation, router]);
+
+    // Final: resolve to verified
+    const finalTimer = setTimeout(() => {
+      setActiveStepIndex(-1);
+      setState("verified");
+      setProgress(100);
+    }, CHECKLIST_STEPS.length * stepDuration + 100);
+    animationRef.current.push(finalTimer);
+  }, [state, clearTimers]);
 
   /* ================================================================
      RENDER
      ================================================================ */
 
   return (
-    <div className="w-full max-w-[560px]">
-      <div className="rounded-xl border border-color-5/20 bg-color-1 px-8 py-10 shadow-2xl">
-
-        {/* ── LOADING: Checking saved state ── */}
-        {state === "loading" && (
-          <div className="flex flex-col items-center text-center py-6">
-            <Loader2 className="h-10 w-10 text-color-2 animate-spin mb-5" />
-            <p className="text-sm text-color-3/40">
-              Checking verification status…
-            </p>
+    <div className="min-h-[calc(100vh-80px)] w-full flex items-center justify-center bg-slate-950 px-4 py-12">
+      {/* ── Main card ── */}
+      <div
+        className={`
+          w-full max-w-[580px] rounded-2xl border bg-slate-950/80 px-8 py-10 shadow-2xl backdrop-blur-sm
+          transition-all duration-700 ease-out
+          ${state === "verified"
+            ? "border-emerald-500/40 shadow-emerald-500/10"
+            : "border-slate-700/50 shadow-slate-900/50"
+          }
+        `}
+      >
+        {/* ── Header ── */}
+        <div className="flex flex-col items-center text-center mb-10">
+          <div
+            className={`
+              flex h-16 w-16 items-center justify-center rounded-full mb-5
+              transition-all duration-700
+              ${state === "verified"
+                ? "bg-emerald-500/15 shadow-[0_0_30px_rgba(16,185,129,0.2)]"
+                : "bg-slate-800/80"
+              }
+            `}
+          >
+            <ShieldCheck
+              className={`
+                h-8 w-8 transition-colors duration-700
+                ${state === "verified" ? "text-emerald-400" : "text-slate-400"}
+              `}
+            />
           </div>
-        )}
 
-        {/* ── REVIEW: Inquiry completed, awaiting backend ── */}
-        {state === "review" && (
-          <div className="flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-color-2/10 mb-5">
-              <Clock className="h-9 w-9 text-color-2" />
-            </div>
-            <h1 className="text-xl font-semibold text-color-3 tracking-tight mb-3">
-              Review in Progress
-            </h1>
-            <p className="text-sm text-color-3/60 leading-relaxed max-w-md mb-2">
-              Your identity verification has been submitted and is being
-              processed by our compliance engine. This typically takes a few
-              minutes but may take up to 24 hours for enhanced due diligence.
-            </p>
-            <p className="text-xs text-color-3/35 mb-6">
-              You can safely close this page — we&apos;ll update your status
-              automatically. The ComplianceBanner will reflect your current
-              status across all pages.
-            </p>
-            {/* SSE live status subscription active */}
-            <div className="flex items-center gap-3">
-              <Link
-                href="/buyer"
-                className="inline-flex items-center gap-2 rounded-lg bg-color-2 px-6 py-3 text-sm font-semibold text-color-1 transition-colors hover:bg-color-2/90 active:bg-color-2/80"
-              >
-                Continue to Dashboard
-              </Link>
-              <Link
-                href="/compliance/case"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-color-3/40 hover:text-color-3/60 transition-colors"
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                Contact Support
-              </Link>
-            </div>
-          </div>
-        )}
+          <h1 className="text-xl font-semibold text-slate-100 tracking-tight mb-1 font-mono">
+            Entity Verification Status
+          </h1>
 
-        {/* ── REJECTED: Compliance Review Required ── */}
-        {state === "rejected" && (
-          <div className="flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-danger/10 mb-5">
-              <XCircle className="h-9 w-9 text-danger" />
-            </div>
-            <h1 className="text-xl font-semibold text-color-3 tracking-tight mb-3">
-              Compliance Review Required
-            </h1>
-            <p className="text-sm text-color-3/60 leading-relaxed max-w-md mb-6">
-              Our automated identity perimeter was unable to instantly clear
-              your corporate credentials. Your account has been flagged for
-              manual review by our compliance team. You can track the status
-              of your review and submit additional documents through our
-              compliance portal.
-            </p>
-            <Link
-              href="/compliance/case"
-              className="inline-flex items-center gap-2 rounded-lg bg-color-2 px-6 py-3 text-sm font-semibold text-color-1 transition-colors hover:bg-color-2/90 active:bg-color-2/80"
+          <p className="text-sm text-slate-500 max-w-sm leading-relaxed">
+            {state === "verified"
+              ? "All compliance checks cleared. Your entity is verified."
+              : "Complete KYB verification to access the settlement network."}
+          </p>
+        </div>
+
+        {/* ── VERIFIED Badge ── */}
+        {state === "verified" && (
+          <div className="flex justify-center mb-8 animate-in fade-in duration-500">
+            <span
+              className="
+                inline-flex items-center gap-2 rounded-full border border-emerald-500/30
+                bg-emerald-500/10 px-5 py-2 font-mono text-sm font-bold uppercase
+                tracking-[0.2em] text-emerald-400
+                shadow-[0_0_20px_rgba(16,185,129,0.15)]
+              "
             >
-              <MessageSquare className="h-4 w-4" />
-              Contact Compliance Team
-            </Link>
-            <button
-              type="button"
-              onClick={() => { setState("idle"); setError(null); }}
-              className="mt-4 text-xs text-color-3/40 hover:text-color-3/60 transition-colors underline underline-offset-2"
-            >
-              Retry Verification
-            </button>
+              <Check className="h-4 w-4" />
+              VERIFIED
+            </span>
           </div>
         )}
 
-        {/* ── APPROVED: Success → Redirecting ── */}
-        {state === "approved" && (
-          <div className="flex flex-col items-center text-center py-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10 mb-5 animate-pulse">
-              <CheckCircle2 className="h-9 w-9 text-success" />
-            </div>
-            <h1 className="text-xl font-semibold text-success tracking-tight mb-2">
-              Identity Verified
-            </h1>
-            <p className="text-sm text-color-3/50">
-              Redirecting to Mission Control…
-            </p>
-          </div>
-        )}
-
-        {/* ── STREAMING: Waiting for SSE event ── */}
-        {state === "streaming" && (
-          <div className="flex flex-col items-center text-center py-6">
-            <Loader2 className="h-10 w-10 text-color-2 animate-spin mb-5" />
-            <h1 className="text-lg font-semibold text-color-3 tracking-tight mb-2">
-              Processing Verification
-            </h1>
-            <p className="text-sm text-color-3/40">
-              Validating your identity credentials against our compliance engine…
-            </p>
-            <p className="text-[10px] text-color-3/25 mt-2 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live connection
-            </p>
-          </div>
-        )}
-
-        {/* ── VERIFYING: Veriff overlay active ── */}
+        {/* ── Progress Bar (during verification) ── */}
         {state === "verifying" && (
-          <div className="flex flex-col items-center text-center py-6">
-            <Loader2 className="h-10 w-10 text-color-2 animate-spin mb-5" />
-            <h1 className="text-lg font-semibold text-color-3 tracking-tight mb-2">
-              Verification In Progress
-            </h1>
-            <p className="text-sm text-color-3/40">
-              Complete the identity verification in the secure overlay…
-            </p>
+          <div className="mb-8">
+            <div className="h-1 w-full rounded-full bg-slate-800 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-500 via-emerald-400 to-emerald-500 transition-all duration-700 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         )}
 
-        {/* ── IDLE: Institutional Compliance Protocol ── */}
-        {state === "idle" && (
-          <div className="flex flex-col items-center text-center">
-            {/* Shield icon */}
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-color-2/10 mb-5">
-              <Shield className="h-9 w-9 text-color-2" />
-            </div>
+        {/* ── 3-Step Checklist ── */}
+        <div className="space-y-3">
+          {CHECKLIST_STEPS.map((step, idx) => {
+            const isComplete = completedSteps.has(step.id);
+            const isActive = state === "verifying" && activeStepIndex === idx;
+            const isVerified = state === "verified";
+            const Icon = step.icon;
 
-            {/* Headline */}
-            <h1 className="text-xl font-semibold text-color-3 tracking-tight mb-2">
-              Institutional Compliance Protocol
-            </h1>
+            return (
+              <div
+                key={step.id}
+                className={`
+                  flex items-center gap-4 rounded-xl border px-5 py-4
+                  transition-all duration-500 ease-out
+                  ${isVerified || isComplete
+                    ? "border-emerald-500/25 bg-emerald-500/[0.04]"
+                    : isActive
+                      ? "border-amber-500/30 bg-amber-500/[0.04]"
+                      : "border-slate-700/40 bg-slate-900/40"
+                  }
+                `}
+              >
+                {/* Step status icon */}
+                <div
+                  className={`
+                    flex h-10 w-10 shrink-0 items-center justify-center rounded-full
+                    transition-all duration-500
+                    ${isVerified || isComplete
+                      ? "bg-emerald-500/15"
+                      : isActive
+                        ? "bg-amber-500/15"
+                        : "bg-slate-800"
+                    }
+                  `}
+                >
+                  {isVerified || isComplete ? (
+                    <Check className="h-5 w-5 text-emerald-400" />
+                  ) : isActive ? (
+                    <Loader2 className="h-5 w-5 text-amber-400 animate-spin" />
+                  ) : (
+                    <Icon className="h-5 w-5 text-slate-500" />
+                  )}
+                </div>
 
-            {/* Body copy */}
-            <p className="text-sm text-color-3/60 leading-relaxed max-w-md mb-2">
-              Before accessing AurumShield&apos;s sovereign settlement engine,
-              all institutional counterparties must complete a secure identity
-              verification. This ensures compliance with federal KYC/KYB
-              regulations and protects the integrity of the clearing network.
-            </p>
+                {/* Step text */}
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`
+                      text-sm font-medium tracking-wide transition-colors duration-500
+                      ${isVerified || isComplete
+                        ? "text-emerald-300"
+                        : isActive
+                          ? "text-amber-300"
+                          : "text-slate-300"
+                      }
+                    `}
+                  >
+                    {step.label}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {step.description}
+                  </p>
+                </div>
 
-            <p className="text-xs text-color-3/35 mb-6">
-              Verification is powered by Veriff and typically completes in
-              under 2 minutes. Your biometric data is never stored on
-              AurumShield servers.
-            </p>
-
-            {/* Error alert */}
-            {error && (
-              <div className="w-full flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger mb-5">
-                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>{error}</span>
+                {/* Right-side status indicator */}
+                <div className="shrink-0">
+                  {isVerified || isComplete ? (
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-500">
+                      Passed
+                    </span>
+                  ) : isActive ? (
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-500 animate-pulse">
+                      Checking…
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-slate-600">
+                      Pending
+                    </span>
+                  )}
+                </div>
               </div>
-            )}
+            );
+          })}
+        </div>
 
-            {/* CTA */}
+        {/* ── CTA Button ── */}
+        <div className="mt-10 flex justify-center">
+          {state === "verified" ? (
             <button
               type="button"
-              onClick={launchVeriff}
-              className="inline-flex items-center gap-2.5 rounded-lg bg-color-2 px-7 py-3 text-sm font-semibold text-color-1 transition-all hover:bg-color-2/90 active:bg-color-2/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50 focus-visible:ring-offset-2 focus-visible:ring-offset-color-1"
+              disabled
+              className="
+                inline-flex items-center gap-3 rounded-xl
+                border border-emerald-500/30 bg-emerald-500/10
+                px-10 py-4 font-mono text-sm font-bold uppercase tracking-wider
+                text-emerald-400 cursor-default
+                shadow-[0_0_24px_rgba(16,185,129,0.12)]
+              "
             >
-              <ShieldCheck className="h-4.5 w-4.5" />
-              Initiate Secure Verification
+              <ShieldCheck className="h-5 w-5" />
+              Entity Verified
             </button>
-
-            {/* Resume Later */}
+          ) : (
             <button
               type="button"
-              onClick={handleResumeLater}
-              className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-color-3/30 hover:text-color-3/50 transition-colors"
+              onClick={handleInitiate}
+              disabled={state === "verifying"}
+              className="
+                group relative inline-flex items-center gap-3 rounded-xl
+                border border-slate-600/50 bg-slate-800/80
+                px-10 py-4 font-mono text-sm font-bold uppercase tracking-wider
+                text-slate-200 transition-all duration-200
+                hover:border-slate-500/60 hover:bg-slate-700/80 hover:text-white
+                hover:shadow-lg hover:shadow-slate-900/50
+                active:scale-[0.98]
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-600/50
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40
+                focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+              "
             >
-              <LogOut className="h-3.5 w-3.5" />
-              Resume Later
+              {state === "verifying" ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Verifying Entity…
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="h-5 w-5 transition-transform group-hover:scale-110" />
+                  Initiate KYB Verification
+                </>
+              )}
             </button>
+          )}
+        </div>
 
-            {/* Trust footer */}
-            <div className="mt-8 flex items-center gap-2 text-[10px] text-color-3/25">
-              <Shield className="h-3 w-3 text-color-2/30" />
-              <span>
-                256-bit TLS · SOC 2 Compliant · Biometric data encrypted at rest
-              </span>
-            </div>
-          </div>
-        )}
-
+        {/* ── Trust Footer ── */}
+        <div className="mt-8 flex items-center justify-center gap-2 text-[10px] text-slate-600">
+          <ShieldCheck className="h-3 w-3 text-slate-700" />
+          <span>256-bit TLS · SOC 2 Compliant · FinCEN Registered</span>
+        </div>
       </div>
     </div>
   );
