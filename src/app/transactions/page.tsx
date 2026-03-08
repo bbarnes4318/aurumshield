@@ -1,221 +1,215 @@
 "use client";
 
-import { Suspense } from "react";
-import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { ArrowRight, Shield, Landmark, Coins } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Banknote, Hexagon, Shield } from "lucide-react";
 
 /* ================================================================
-   MOCK CLEARING ACTIVITY
+   MOCK SPOT PRICE
    ================================================================ */
-interface ClearingEntry {
-  id: string;
-  reference: string;
-  counterparty: string;
-  amount: string;
-  currency: string;
-  status: string;
-  statusColor: string;
-  timestamp: string;
+const MOCK_SPOT_PRICE = 2345.5;
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+
+/** Strip non-digits, format with commas */
+function formatWithCommas(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("en-US");
 }
 
-const MOCK_CLEARING: ClearingEntry[] = [
-  {
-    id: "1",
-    reference: "GW-2026-00482",
-    counterparty: "Rothschild & Co.",
-    amount: "4,250,000.00",
-    currency: "USD",
-    status: "T-Zero Settled",
-    statusColor: "text-emerald-400",
-    timestamp: "2026-03-06 · 14:32 UTC",
-  },
-  {
-    id: "2",
-    reference: "GW-2026-00481",
-    counterparty: "JP Morgan Commodities",
-    amount: "12,800,000.00",
-    currency: "USD",
-    status: "Awaiting Fedwire",
-    statusColor: "text-amber-400",
-    timestamp: "2026-03-06 · 11:07 UTC",
-  },
-  {
-    id: "3",
-    reference: "GW-2026-00479",
-    counterparty: "PAMP SA Geneva",
-    amount: "1,920,000.00",
-    currency: "USDC",
-    status: "Vault Allocated",
-    statusColor: "text-sky-400",
-    timestamp: "2026-03-05 · 09:45 UTC",
-  },
-];
+/** Parse a comma-formatted string back to a number (or 0) */
+function parseAmount(formatted: string): number {
+  const n = Number(formatted.replace(/,/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Format ounces to 4 decimal places */
+function formatOunces(usd: number): string {
+  if (usd <= 0) return "0.0000";
+  return (usd / MOCK_SPOT_PRICE).toLocaleString("en-US", {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  });
+}
+
+/** Format spot price */
+function formatSpot(price: number): string {
+  return price.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 /* ================================================================
-   SKELETON
+   PAGE
    ================================================================ */
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-10 w-80 rounded bg-surface-3" />
-      <div className="h-5 w-[32rem] rounded bg-surface-3" />
-      <div className="h-20 w-full rounded-[var(--radius)] bg-surface-3" />
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="h-48 rounded-[var(--radius)] bg-surface-3" />
-        <div className="h-48 rounded-[var(--radius)] bg-surface-3" />
-      </div>
-      <div className="h-64 rounded-[var(--radius)] bg-surface-3" />
-    </div>
+export default function TransactionsPage() {
+  const [rawValue, setRawValue] = useState("");
+  const amount = parseAmount(rawValue);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setRawValue(formatWithCommas(e.target.value));
+    },
+    [],
   );
-}
 
-/* ================================================================
-   TREASURY DESK CONTENT
-   ================================================================ */
-function TreasuryDeskContent() {
+  const handleExecute = useCallback(
+    (rail: "fedwire" | "stablecoin") => {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[AurumShield] Execute via ${rail === "fedwire" ? "Fedwire" : "Stablecoin"} — $${rawValue || "0"} USD → ${formatOunces(amount)} oz Au`,
+      );
+    },
+    [rawValue, amount],
+  );
+
   return (
-    <div className="section-gap">
-      {/* ── A. Treasury Header ── */}
-      <PageHeader
-        title="Corporate Treasury Desk"
-        description="Manage high-notional settlements, track physical allocations, and review cryptographic provenance."
-      />
-
-      {/* ── B. Compliance Perimeter Card ── */}
-      <div className="card-base flex items-center gap-4 px-6 py-5 sm:px-8">
-        <div className="flex items-center gap-3">
-          <Shield className="h-5 w-5 text-emerald-500 shrink-0" />
+    <div className="relative flex h-full flex-col items-center justify-center overflow-hidden bg-slate-950 -mx-5 -mt-5 -mb-5 lg:-mx-8 px-4">
+      {/* ─── A. Trust Perimeter Badge ─── */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10">
+        <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-800/40 bg-emerald-950/30 px-5 py-2 backdrop-blur-sm">
           <span className="relative flex h-2.5 w-2.5 shrink-0">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
           </span>
-          <span className="text-sm font-semibold text-emerald-500 whitespace-nowrap">
-            KYB &amp; OFAC Cleared
+          <span className="text-xs font-semibold tracking-wide text-emerald-400">
+            Entity KYB Cleared
+          </span>
+          <span className="text-emerald-700">•</span>
+          <span className="text-xs font-medium tracking-wide text-emerald-500/80">
+            Limit: Unrestricted
           </span>
         </div>
-        <div className="hidden h-5 w-px bg-border sm:block" />
-        <p className="text-sm text-text-muted leading-relaxed">
-          Entity is authorized for unrestricted Principal Market Maker clearing
-          via US Fedwire and Digital Asset bridges.
-        </p>
       </div>
 
-      {/* ── C. Action Row ── */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Fiat Card */}
-        <div className="card-base flex flex-col justify-between p-6 sm:p-8">
-          <div>
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10">
-                <Landmark className="h-5 w-5 text-gold" />
-              </div>
-              <h3 className="typo-h3">Initiate USD Settlement</h3>
-            </div>
-            <p className="text-sm text-text-muted leading-relaxed">
-              Route via Fedwire FBO — execute same-day domestic wire transfers
-              with deterministic clearing confirmation and full OFAC screening
-              embedded at the network level.
-            </p>
+      {/* ─── B. Central Execution Card ─── */}
+      <div className="w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900/50 p-8 sm:p-10 shadow-2xl shadow-black/40">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="mb-1 flex items-center justify-center gap-2.5">
+            <Shield className="h-5 w-5 text-slate-500" />
+            <h1 className="text-3xl font-light tracking-tight text-slate-100">
+              Acquire Vaulted Gold
+            </h1>
           </div>
-          <div className="mt-6">
-            <Link
-              href="/transactions/new"
-              className="inline-flex items-center gap-2 rounded-[var(--radius-input)] bg-gold px-5 py-2.5 text-sm font-semibold text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed"
-            >
-              New USD Transfer
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+          <p className="text-sm text-slate-500">
+            T-Zero mathematical settlement via physically allocated bullion.
+          </p>
+        </div>
+
+        {/* ── Giant USD Input ── */}
+        <div className="relative mb-6">
+          <div className="flex items-center rounded-xl border border-slate-700/80 bg-slate-950/60 px-5 py-4 transition-colors focus-within:border-slate-600 focus-within:ring-1 focus-within:ring-slate-600/50">
+            <span className="mr-1 select-none text-5xl font-light text-slate-500 font-mono">
+              $
+            </span>
+            <input
+              id="usd-amount-input"
+              type="text"
+              inputMode="numeric"
+              value={rawValue}
+              onChange={handleChange}
+              placeholder="0"
+              autoComplete="off"
+              className="w-full bg-transparent text-5xl font-mono font-medium tabular-nums text-slate-100 placeholder:text-slate-700 outline-none"
+            />
+            <span className="ml-3 shrink-0 select-none text-sm font-semibold tracking-wider text-slate-600 uppercase">
+              USD
+            </span>
           </div>
         </div>
 
-        {/* Digital Card */}
-        <div className="card-base flex flex-col justify-between p-6 sm:p-8">
-          <div>
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/10">
-                <Coins className="h-5 w-5 text-sky-400" />
-              </div>
-              <h3 className="typo-h3">Initiate Digital Settlement</h3>
-            </div>
-            <p className="text-sm text-text-muted leading-relaxed">
-              Route via USDC/USDT MPC Bridge — settle cross-border digital asset
-              transfers with multi-party computation custody and on-chain
-              provenance attestation.
-            </p>
-          </div>
-          <div className="mt-6">
-            <Link
-              href="/transactions/new"
-              className="inline-flex items-center gap-2 rounded-[var(--radius-input)] border border-border bg-transparent px-5 py-2.5 text-sm font-semibold text-text transition-colors hover:bg-surface-2 hover:border-text-faint"
-            >
-              New Stablecoin Transfer
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* ── D. Active Ledger ── */}
-      <div className="card-base overflow-hidden">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4 sm:px-8">
-          <h2 className="typo-h3">Recent Clearing Activity</h2>
-          <span className="typo-label text-text-faint">Last 72 Hours</span>
-        </div>
-
-        <div className="divide-y divide-border/60">
-          {MOCK_CLEARING.map((entry) => (
-            <div
-              key={entry.id}
-              className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-8 transition-colors hover:bg-surface-2/30"
-            >
-              {/* Left: Reference + Counterparty */}
-              <div className="flex items-center gap-4 min-w-0">
-                <span className="font-mono text-sm font-medium text-gold whitespace-nowrap">
-                  {entry.reference}
-                </span>
-                <span className="hidden h-4 w-px bg-border sm:block" />
-                <span className="text-sm text-text-muted truncate">
-                  {entry.counterparty}
-                </span>
-              </div>
-
-              {/* Center: Amount + Currency */}
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="font-mono text-sm font-semibold tabular-nums text-text">
-                  {entry.amount}
-                </span>
-                <span className="font-mono text-xs text-text-faint">
-                  {entry.currency}
-                </span>
-              </div>
-
-              {/* Right: Status + Timestamp */}
-              <div className="flex items-center gap-4 shrink-0">
-                <span
-                  className={`text-xs font-semibold uppercase tracking-wider ${entry.statusColor}`}
+        {/* ── Auto-Calculating Receipt ── */}
+        <div className="mb-8 rounded-xl border border-slate-800/60 bg-slate-950/40 px-5 py-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left: Guaranteed Allocation */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                Guaranteed Allocation
+              </span>
+              <div className="flex items-center gap-2">
+                {/* Gold bar icon (inline SVG for precise visual) */}
+                <svg
+                  className="h-4 w-4 shrink-0 text-amber-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  {entry.status}
+                  <path d="M6 20h12l3-8H3l3 8z" />
+                  <path d="M8 12l2-8h4l2 8" />
+                </svg>
+                <span className="font-mono text-lg font-semibold tabular-nums text-slate-100">
+                  {formatOunces(amount)}
                 </span>
-                <span className="font-mono text-xs text-text-faint whitespace-nowrap">
-                  {entry.timestamp}
-                </span>
+                <span className="text-sm font-medium text-slate-500">oz</span>
               </div>
             </div>
-          ))}
+
+            {/* Divider */}
+            <div className="h-10 w-px bg-slate-800" />
+
+            {/* Right: Spot Execution */}
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                Spot Execution
+              </span>
+              <span className="font-mono text-lg font-semibold tabular-nums text-amber-500/90">
+                ${formatSpot(MOCK_SPOT_PRICE)}
+                <span className="text-sm text-slate-500">/oz</span>
+              </span>
+            </div>
+          </div>
         </div>
+
+        {/* ─── C. Dual-Rail Action Triggers ─── */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Button 1 — Fedwire */}
+          <button
+            id="execute-fedwire"
+            type="button"
+            onClick={() => handleExecute("fedwire")}
+            className="group flex flex-col items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-800/60 px-4 py-5 transition-all hover:border-slate-600 hover:bg-slate-800 active:scale-[0.98]"
+          >
+            <Banknote className="h-6 w-6 text-slate-400 transition-colors group-hover:text-slate-200" />
+            <span className="text-sm font-semibold text-slate-200">
+              Execute via Fedwire
+            </span>
+            <span className="text-[11px] font-medium tracking-wide text-slate-500">
+              Domestic USD
+            </span>
+          </button>
+
+          {/* Button 2 — Stablecoin */}
+          <button
+            id="execute-stablecoin"
+            type="button"
+            onClick={() => handleExecute("stablecoin")}
+            className="group flex flex-col items-center gap-2 rounded-xl border border-amber-700/30 bg-amber-950/15 px-4 py-5 transition-all hover:border-amber-600/50 hover:bg-amber-950/25 active:scale-[0.98]"
+          >
+            <Hexagon className="h-6 w-6 text-amber-500/80 transition-colors group-hover:text-amber-400" />
+            <span className="text-sm font-semibold text-amber-400/90">
+              Execute via Stablecoin
+            </span>
+            <span className="text-[11px] font-medium tracking-wide text-amber-600/70">
+              Instant T-Zero
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Ambient gradient glow behind card ── */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        aria-hidden="true"
+      >
+        <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-900/[0.04] blur-3xl" />
       </div>
     </div>
-  );
-}
-
-/* ================================================================
-   PAGE EXPORT
-   ================================================================ */
-export default function TransactionsPage() {
-  return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <TreasuryDeskContent />
-    </Suspense>
   );
 }
