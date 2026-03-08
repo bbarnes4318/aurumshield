@@ -45,8 +45,8 @@ export interface SettlementPayoutRequest {
 export interface SettlementPayoutResult {
   /** Whether the payout was executed successfully */
   success: boolean;
-  /** Rail that was used — always "modern_treasury" */
-  railUsed: "modern_treasury";
+  /** Rail that was used for this payout */
+  railUsed: "modern_treasury" | "column";
   /** External IDs from Modern Treasury (payment order IDs) */
   externalIds: string[];
   /** Seller payout amount in cents */

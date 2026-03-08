@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -45,6 +45,7 @@ import type { SettlementActionPayload, SettlementActionType } from "@/lib/settle
 import type { SettlementStatus, LedgerEntry, UserRole } from "@/lib/mock-data";
 import { mockCorridors, mockHubs } from "@/lib/mock-data";
 import { SettlementRailsVisualization } from "@/components/demo/SettlementRailsVisualization";
+import { manuallyClearFunds, type ClearFundsResult } from "@/actions/clearing";
 
 /* ---------- Status chip config ---------- */
 const STATUS_CONFIG: Record<SettlementStatus, { label: string; color: string }> = {
@@ -192,6 +193,12 @@ function SettlementDetailContent() {
   const [failReason, setFailReason] = useState("");
   const [resolveReason, setResolveReason] = useState("");
 
+  /* ── Operations Control Panel state ── */
+  const [adminNotes, setAdminNotes] = useState("");
+  const [isClearingFunds, setIsClearingFunds] = useState(false);
+  const [clearingComplete, setClearingComplete] = useState(false);
+  const [clearResult, setClearResult] = useState<ClearFundsResult | null>(null);
+
   const settlement = settlementQ.data;
   const ledger = ledgerQ.data ?? [];
 
@@ -215,6 +222,24 @@ function SettlementDetailContent() {
         : { blockers: [], warns: [], requiredActions: [] },
     [settlement, corridor, hub],
   );
+
+  const handleClearFunds = useCallback(async () => {
+    if (!settlement || !adminNotes.trim()) return;
+    setIsClearingFunds(true);
+    try {
+      const result = await manuallyClearFunds(settlement.id, adminNotes.trim());
+      if (result.success) {
+        setClearResult(result);
+        setClearingComplete(true);
+      } else {
+        setActionError(result.error ?? "Clearing operation failed.");
+      }
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : "Unknown clearing error");
+    } finally {
+      setIsClearingFunds(false);
+    }
+  }, [settlement, adminNotes]);
 
 
   const userRole = (user?.role ?? "buyer") as UserRole;
@@ -277,6 +302,201 @@ function SettlementDetailContent() {
           {statusCfg.label}
         </span>
       </div>
+
+      {/* ═══ OPERATIONS CONTROL PANEL — AWAITING_FUNDS ═══ */}
+      {settlement.status === "AWAITING_FUNDS" && (
+        <div className="mb-6 print:hidden">
+          {clearingComplete && clearResult ? (
+            /* ── Success Receipt ── */
+            <div
+              className="relative rounded-lg border-2 border-emerald-500/60 p-6 overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(6,78,59,0.15) 100%)",
+                boxShadow: "0 0 30px rgba(16,185,129,0.15), inset 0 1px 0 rgba(16,185,129,0.1)",
+              }}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.12),transparent_70%)]" />
+              <div className="relative z-10 flex flex-col items-center text-center gap-4">
+                <div className="flex items-center justify-center h-14 w-14 rounded-full border-2 border-emerald-500/40 bg-emerald-500/10">
+                  <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+                </div>
+                <div>
+                  <h3
+                    className="text-lg font-black uppercase tracking-[0.2em] text-emerald-400"
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  >
+                    T-Zero Settlement Complete
+                  </h3>
+                  <p className="text-xs text-emerald-300/70 mt-1 tracking-wide">
+                    State machine executed — funds verified and settlement cleared
+                  </p>
+                </div>
+                <div className="w-full max-w-md space-y-2 mt-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-emerald-400/60">Settlement</span>
+                    <span
+                      className="text-emerald-300 font-bold"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      {clearResult.settlementId}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-emerald-400/60">New Status</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {clearResult.newStatus}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-emerald-400/60">Cleared At</span>
+                    <span
+                      className="tabular-nums text-emerald-300"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      {new Date(clearResult.clearedAt).toLocaleString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-emerald-400/60">Audit Notes</span>
+                    <span className="text-emerald-300 text-right max-w-[240px] truncate">
+                      {clearResult.adminNotes}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* ── Active Clearing Panel ── */
+            <div
+              className="relative rounded-lg border-2 border-amber-500/60 p-5 overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(30,41,59,1) 0%, rgba(15,23,42,1) 100%)",
+                boxShadow: "0 0 30px rgba(245,158,11,0.12), inset 0 1px 0 rgba(245,158,11,0.08)",
+              }}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(245,158,11,0.06),transparent_60%)]" />
+              <div className="relative z-10 space-y-4">
+                {/* Header */}
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center h-9 w-9 rounded-md border border-amber-500/30 bg-amber-500/10 shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-amber-400 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3
+                      className="text-sm font-black uppercase tracking-[0.15em] text-amber-400"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      Operations Control Panel
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      Awaiting Manual Fund Verification. Verify receipt of funds in&nbsp;
+                      <span className="text-amber-400/80 font-semibold">corporate treasury</span>
+                      &nbsp;before executing.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-slate-700/60" />
+
+                {/* Settlement context */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded border border-slate-700/50 bg-slate-800/50 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500">Settlement</p>
+                    <p
+                      className="text-xs text-slate-200 font-bold mt-0.5"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      {settlement.id}
+                    </p>
+                  </div>
+                  <div className="rounded border border-slate-700/50 bg-slate-800/50 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500">Notional</p>
+                    <p
+                      className="text-xs text-slate-200 font-bold mt-0.5 tabular-nums"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      ${settlement.notionalUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="rounded border border-slate-700/50 bg-slate-800/50 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500">Weight</p>
+                    <p
+                      className="text-xs text-slate-200 font-bold mt-0.5 tabular-nums"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      {settlement.weightOz} oz
+                    </p>
+                  </div>
+                </div>
+
+                {/* Admin Audit Notes Input */}
+                <div>
+                  <label
+                    htmlFor="admin-audit-notes"
+                    className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5"
+                  >
+                    Admin Audit Notes
+                  </label>
+                  <input
+                    id="admin-audit-notes"
+                    type="text"
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder='Wire received via Chase'
+                    disabled={isClearingFunds}
+                    className="w-full h-10 rounded-md border border-slate-600/50 bg-slate-800/80 px-3 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all disabled:opacity-50"
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  />
+                </div>
+
+                {/* AUTHORIZE Button */}
+                <button
+                  id="authorize-clear-funds-btn"
+                  onClick={handleClearFunds}
+                  disabled={isClearingFunds || !adminNotes.trim()}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-3 rounded-md border-2 px-6 py-4 text-sm font-black uppercase tracking-[0.15em] transition-all",
+                    isClearingFunds
+                      ? "border-emerald-600/40 bg-emerald-900/30 text-emerald-400/70 cursor-wait"
+                      : !adminNotes.trim()
+                        ? "border-slate-700/40 bg-slate-800/40 text-slate-600 cursor-not-allowed"
+                        : "border-emerald-500/50 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 hover:border-emerald-500/70 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] active:scale-[0.99]",
+                  )}
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  {isClearingFunds ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Executing State Machine...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-5 w-5" />
+                      Authorize: Mark Funds Cleared
+                    </>
+                  )}
+                </button>
+
+                {/* Footnote */}
+                <p className="text-[10px] text-slate-600 text-center">
+                  This action is irreversible and will be recorded on the immutable escrow ledger.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ═══ AMBIGUOUS_STATE Critical Warning Banner ═══ */}
       {settlement.status === "AMBIGUOUS_STATE" && (

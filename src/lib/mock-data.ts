@@ -3205,7 +3205,7 @@ export const mockSettlements: SettlementCase[] = [
     weightOz: 50,
     pricePerOzLocked: 2052.25,
     notionalUsd: 102612.5,
-    status: "ESCROW_OPEN",
+    status: "AWAITING_FUNDS",
     openedAt: "2026-02-16T08:00:00Z",
     updatedAt: "2026-02-16T08:00:00Z",
     fundsConfirmedFinal: false,
