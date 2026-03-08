@@ -1,22 +1,5 @@
 "use client";
 
-/* ================================================================
-   PLATFORM ROUTER — "Traffic Cop"
-   ================================================================
-   Post-login landing page. Checks the user's role from the auth
-   provider and redirects them to the correct surface:
-
-   admin / treasury / compliance / vault_ops → /dashboard
-   seller                                    → /seller
-   buyer (default)                           → /buyer
-   unauthenticated                           → /login
-
-   NOTE: KYC status no longer gates navigation. Buyers always
-   land on /buyer. The ComplianceBanner (rendered in the AppShell)
-   prompts verification, and server-side capability checks in
-   authz.ts enforce action-level gating.
-   ================================================================ */
-
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
@@ -34,7 +17,7 @@ export default function PlatformRouter() {
       return;
     }
 
-    // STRICT ROLE-BASED ROUTING (no KYC gatekeeping)
+    // STRICT ROLE-BASED ROUTING
     switch (user.role) {
       case "admin":
       case "treasury":
@@ -43,13 +26,11 @@ export default function PlatformRouter() {
         router.replace("/dashboard");
         break;
       case "seller":
-        router.replace("/seller");
-        break;
       case "buyer":
       default:
-        // Always route buyers to /buyer — ComplianceBanner
-        // and capability-based UI gating handle the rest.
-        router.replace("/buyer");
+        // Route standard counterparties to their transaction ledger, 
+        // avoiding the missing /buyer route crash.
+        router.replace("/transactions");
         break;
     }
   }, [user, isLoading, isAuthenticated, router]);

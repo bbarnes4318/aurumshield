@@ -1,14 +1,31 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback, useTransition } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { WizardFormData } from "./wizard-schema";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, Fingerprint, Lock, Landmark, Coins } from "lucide-react";
+import {
+  ShieldCheck,
+  Fingerprint,
+  Lock,
+  Landmark,
+  Coins,
+  Copy,
+  Check,
+  Loader2,
+  Building2,
+  AlertTriangle,
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { generateFiatDepositInstructions } from "@/actions/banking";
+import type { FiatDepositInstructions } from "@/actions/banking";
 
 /* ── Constants — same as step-settlement for consistency ── */
 const MOCK_GOLD_SPOT_USD = 2_342.50;
 const NETWORK_FEE_RATE = 0.01;
+
+/* ── Mock counterparty ID for demo mode ── */
+const DEMO_COUNTERPARTY_ID = "demo-counterparty-001";
 
 const FIELD = cn(
   "w-full rounded-[var(--radius-input)] border border-border bg-surface-2 px-3 py-2 text-sm text-text",
@@ -24,6 +41,87 @@ const ROUTE_LABEL: Record<string, { icon: typeof Landmark; label: string; detail
   stablecoin: { icon: Coins, label: "Enterprise MPC Stablecoin", detail: "USDC/USDT Bridge" },
 };
 
+/* ── Copy to Clipboard Hook ── */
+function useCopyToClipboard(resetMs = 2000) {
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copy = useCallback(
+    async (value: string, fieldName: string) => {
+      try {
+        await navigator.clipboard.writeText(value);
+        setCopiedField(fieldName);
+        setTimeout(() => setCopiedField(null), resetMs);
+      } catch {
+        // Fallback for non-secure contexts
+        const textarea = document.createElement("textarea");
+        textarea.value = value;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        setCopiedField(fieldName);
+        setTimeout(() => setCopiedField(null), resetMs);
+      }
+    },
+    [resetMs],
+  );
+
+  return { copiedField, copy };
+}
+
+/* ── Copiable Field Component ── */
+function CopiableField({
+  label,
+  value,
+  fieldName,
+  copiedField,
+  onCopy,
+  mono = true,
+}: {
+  label: string;
+  value: string;
+  fieldName: string;
+  copiedField: string | null;
+  onCopy: (value: string, fieldName: string) => void;
+  mono?: boolean;
+}) {
+  const isCopied = copiedField === fieldName;
+
+  return (
+    <div className="group flex items-center justify-between rounded-md bg-bg/60 border border-border/40 px-3.5 py-2.5 transition-colors hover:border-gold/30">
+      <div className="min-w-0">
+        <span className="text-[10px] uppercase tracking-widest text-text-faint font-medium block mb-0.5">
+          {label}
+        </span>
+        <span
+          className={cn(
+            "text-sm font-semibold text-text block truncate",
+            mono && "font-mono tabular-nums tracking-wider",
+          )}
+        >
+          {value}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={() => onCopy(value, fieldName)}
+        className={cn(
+          "ml-3 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-all",
+          isCopied
+            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+            : "border-border/50 bg-surface-2 text-text-faint hover:text-gold hover:border-gold/40 hover:bg-gold/5",
+        )}
+        title={isCopied ? "Copied!" : `Copy ${label}`}
+      >
+        {isCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
+}
+
+/* ── Props ── */
 interface Props {
   form: UseFormReturn<WizardFormData>;
   beneficiaryName: string;
@@ -51,6 +149,27 @@ export function StepReview({ form, beneficiaryName, isExecuting, onExecute }: Pr
 
   const routeInfo = fundingRoute ? ROUTE_LABEL[fundingRoute] : null;
   const RouteIcon = routeInfo?.icon ?? Landmark;
+
+  /* ── Fedwire deposit instructions via TanStack Query ── */
+  const isFedwire = fundingRoute === "fedwire";
+
+  const {
+    data: depositInstructions,
+    isLoading: isLoadingInstructions,
+    error: instructionsError,
+  } = useQuery<FiatDepositInstructions>({
+    queryKey: ["fiat-deposit-instructions", DEMO_COUNTERPARTY_ID, isFedwire],
+    queryFn: () =>
+      generateFiatDepositInstructions(
+        DEMO_COUNTERPARTY_ID,
+        `Goldwire Settlement — ${beneficiaryName}`,
+      ),
+    enabled: isFedwire,
+    staleTime: 5 * 60 * 1000, // Cache for 5 min — same virtual account per session
+    retry: 2,
+  });
+
+  const { copiedField, copy } = useCopyToClipboard();
 
   return (
     <div className="space-y-5">
@@ -131,6 +250,106 @@ export function StepReview({ form, beneficiaryName, isExecuting, onExecute }: Pr
           )}
         </div>
       </div>
+
+      {/* ════════════════════════════════════════════════════════════
+         FEDWIRE SETTLEMENT INSTRUCTIONS — Dynamic from Column N.A.
+         ════════════════════════════════════════════════════════════
+         Only shown when fundingRoute === 'fedwire'.
+         Data fetched via TanStack Query → server action → ColumnBankService.
+         ════════════════════════════════════════════════════════════ */}
+      {isFedwire && (
+        <div className="rounded-lg border border-border bg-surface-2 overflow-hidden">
+          <div className="bg-blue-500/[0.06] border-b border-blue-500/20 px-5 py-3 flex items-center gap-2">
+            <Building2 className="h-3.5 w-3.5 text-blue-400" />
+            <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
+              Fedwire Settlement Instructions
+            </span>
+            {depositInstructions && !depositInstructions.isLive && (
+              <span className="ml-auto text-[10px] font-mono text-amber-400/70 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                SANDBOX
+              </span>
+            )}
+          </div>
+
+          <div className="px-5 py-4">
+            {/* Loading state */}
+            {isLoadingInstructions && (
+              <div className="flex items-center justify-center gap-3 py-6">
+                <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
+                <span className="text-sm text-text-muted">
+                  Generating virtual account…
+                </span>
+              </div>
+            )}
+
+            {/* Error state */}
+            {instructionsError && !isLoadingInstructions && (
+              <div className="flex items-center gap-2 py-4 px-3 rounded-md bg-danger/10 border border-danger/20">
+                <AlertTriangle className="h-4 w-4 text-danger shrink-0" />
+                <span className="text-sm text-danger">
+                  Failed to generate wire instructions. Please retry or contact treasury.
+                </span>
+              </div>
+            )}
+
+            {/* Success state */}
+            {depositInstructions && !isLoadingInstructions && (
+              <div className="space-y-2.5">
+                <p className="text-xs text-text-faint leading-relaxed mb-3">
+                  Wire the exact notional amount below to the following FBO account.
+                  Funds are held in escrow by{" "}
+                  <span className="font-semibold text-text-muted">
+                    {depositInstructions.bankName}
+                  </span>{" "}
+                  until Delivery-vs-Payment execution.
+                </p>
+
+                <CopiableField
+                  label="Receiving Bank"
+                  value={depositInstructions.bankName}
+                  fieldName="bankName"
+                  copiedField={copiedField}
+                  onCopy={copy}
+                  mono={false}
+                />
+
+                <CopiableField
+                  label="ABA Routing Number"
+                  value={depositInstructions.routingNumber}
+                  fieldName="routingNumber"
+                  copiedField={copiedField}
+                  onCopy={copy}
+                />
+
+                <CopiableField
+                  label="Account Number"
+                  value={depositInstructions.accountNumber}
+                  fieldName="accountNumber"
+                  copiedField={copiedField}
+                  onCopy={copy}
+                />
+
+                <div className="mt-3 pt-3 border-t border-border/40">
+                  <CopiableField
+                    label="Exact Wire Amount (USD)"
+                    value={fmt(calc.total)}
+                    fieldName="wireAmount"
+                    copiedField={copiedField}
+                    onCopy={copy}
+                  />
+                </div>
+
+                <p className="text-[10px] text-text-faint/70 mt-2 leading-relaxed">
+                  Virtual Account ID:{" "}
+                  <span className="font-mono text-text-faint">
+                    {depositInstructions.virtualAccountId}
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Reference Code */}
       <div>
