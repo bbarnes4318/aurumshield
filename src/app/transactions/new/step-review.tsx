@@ -15,7 +15,10 @@ import {
   Loader2,
   Building2,
   AlertTriangle,
+  Package,
+  ArrowRight,
 } from "lucide-react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { generateFiatDepositInstructions } from "@/actions/banking";
 import type { FiatDepositInstructions } from "@/actions/banking";
@@ -349,6 +352,19 @@ export function StepReview({ form, beneficiaryName, isExecuting, onExecute }: Pr
             )}
           </div>
         </div>
+      )}
+
+      {/* View Order Status — shown when wire instructions are generated */}
+      {isFedwire && depositInstructions && !isLoadingInstructions && (
+        <Link
+          id="view-order-tracking-institutional"
+          href="/orders/ord-1"
+          className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-400 transition-all hover:bg-amber-500/15 hover:border-amber-500/50 no-underline"
+        >
+          <Package className="h-4 w-4" />
+          View Order Status & Tracking
+          <ArrowRight className="h-4 w-4" />
+        </Link>
       )}
 
       {/* Reference Code */}

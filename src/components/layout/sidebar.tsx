@@ -13,6 +13,7 @@ import {
   ChevronRight,
   X,
   ShieldCheck,
+  ClipboardList,
   ToggleLeft,
   ToggleRight,
 } from "lucide-react";
@@ -68,6 +69,7 @@ const NAV_ITEMS: NavItem[] = [
 
   /* ── Client-visible links (buyer / seller / institution) ── */
   { label: "Treasury Desk",       href: "/transactions",           icon: Building2,       allowedRoles: CLIENT_ROLES, proToggleKey: "dashboard" },
+  { label: "Order History & Tracking", href: "/orders",            icon: ClipboardList,   allowedRoles: CLIENT_ROLES },
   { label: "Compliance / KYB",    href: "/onboarding/compliance",  icon: ShieldCheck,     allowedRoles: CLIENT_ROLES },
 
 ];

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
-import { X, Plus, Minus, Lock, Truck, Loader2, Copy, Check, ArrowRight, ChevronLeft } from "lucide-react";
+import { X, Plus, Minus, Lock, Truck, Loader2, Copy, Check, ArrowRight, ChevronLeft, Package } from "lucide-react";
+import Link from "next/link";
 import { z } from "zod";
 import {
   generateFiatDepositInstructions,
@@ -642,6 +643,17 @@ export function BuyPanel({
               >
                 ✓ I Have Initiated This Wire
               </button>
+
+              {/* View Order Status */}
+              <Link
+                id="view-order-tracking-retail"
+                href="/orders/ord-1"
+                className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-amber-700/40 bg-amber-950/20 px-6 py-4 text-sm font-semibold text-amber-400 transition-all hover:border-amber-600/60 hover:bg-amber-950/40 active:scale-[0.98] no-underline"
+              >
+                <Package className="h-4 w-4" />
+                View Order Status & Tracking
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
             </div>
           )}
         </div>
