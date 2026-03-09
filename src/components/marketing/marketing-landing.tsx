@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import {
   ArrowRight,
   CheckCircle,
@@ -32,6 +33,12 @@ import {
 import { HeroSection } from "./sections/hero";
 import { InstitutionalTrustMarquee } from "./sections/trust-marquee";
 import { InstitutionalInfrastructureGrid } from "./sections/infrastructure-grid";
+import { InstitutionalVolumeScalingTable } from "./sections/volume-scaling-table";
+
+const InstitutionalBarShowcase = dynamic(
+  () => import("./sections/bar-showcase").then((m) => m.InstitutionalBarShowcase),
+  { ssr: false, loading: () => <div className="h-[520px] bg-[#070B12] rounded-md border border-slate-800 flex items-center justify-center"><span className="font-mono text-xs text-slate-500 uppercase tracking-widest">Loading 3D Viewport…</span></div> },
+);
 import { MarketWeaknessSection } from "./sections/market-weakness";
 import { RiskModelSection } from "./sections/risk-model";
 import { ComplianceGate } from "./sections/compliance-gate";
@@ -1227,6 +1234,8 @@ export function MarketingLanding() {
 
       <InstitutionalTrustMarquee />
       <InstitutionalInfrastructureGrid />
+      <InstitutionalVolumeScalingTable />
+      <InstitutionalBarShowcase />
       <MarketWeaknessSection />
 
       {/* ── SWIFT vs Goldwire Comparison ── */}

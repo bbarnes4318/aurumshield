@@ -16,6 +16,21 @@ import {
   ClipboardList,
   ToggleLeft,
   ToggleRight,
+  Globe,
+  Activity,
+  Users,
+  Settings,
+  BookOpen,
+  Landmark,
+  AlertTriangle,
+  Scale,
+  FlaskConical,
+  Eye,
+  DollarSign,
+  BadgeCheck,
+  Network,
+  Map,
+  CalendarClock,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -58,23 +73,116 @@ const CLIENT_ROLES: UserRole[] = [
 /* ── localStorage key for Pro Toggle persistence ── */
 const PRO_TOGGLE_KEY = "aurumshield:pro-execution-desk";
 
-const NAV_ITEMS: NavItem[] = [
-  /* ── Operator-only links ── */
+/* ── Operator-only nav items — grouped by section ── */
+
+/* Core Operations */
+const OPERATOR_OPS: NavItem[] = [
   { label: "Command Center",      href: "/dashboard",              icon: LayoutDashboard, allowedRoles: OPERATOR_ROLES },
   { label: "Execute Goldwire",    href: "/transactions/new",       icon: Send,            allowedRoles: OPERATOR_ROLES },
   { label: "Settlement Ledger",   href: "/transactions",           icon: ListTree,        allowedRoles: OPERATOR_ROLES },
-  { label: "Compliance & Audit",  href: "/audit",                  icon: FileCheck,       allowedRoles: OPERATOR_ROLES },
+  { label: "Settlements",         href: "/settlements",            icon: Landmark,        allowedRoles: OPERATOR_ROLES },
+  { label: "Reservations",        href: "/reservations",           icon: CalendarClock,   allowedRoles: OPERATOR_ROLES },
+  { label: "Counterparties",      href: "/counterparties",         icon: Users,           allowedRoles: OPERATOR_ROLES },
+];
 
-  /* ── Client-visible links (buyer / seller / institution) ── */
+/* Risk & Compliance */
+const OPERATOR_RISK: NavItem[] = [
+  { label: "Compliance & Audit",  href: "/audit",                  icon: FileCheck,       allowedRoles: OPERATOR_ROLES },
+  { label: "Claims",              href: "/claims",                 icon: AlertTriangle,   allowedRoles: OPERATOR_ROLES },
+  { label: "Supervisory",         href: "/supervisory",            icon: Eye,             allowedRoles: OPERATOR_ROLES },
+  { label: "Capital Controls",    href: "/capital-controls",       icon: Scale,           allowedRoles: OPERATOR_ROLES },
+  { label: "Reinsurance",         href: "/reinsurance",            icon: Shield,          allowedRoles: OPERATOR_ROLES },
+];
+
+/* Market Infrastructure */
+const OPERATOR_MARKET: NavItem[] = [
+  { label: "Corridors",           href: "/corridors",              icon: Network,         allowedRoles: OPERATOR_ROLES },
+  { label: "Hubs",                href: "/hubs",                   icon: Map,             allowedRoles: OPERATOR_ROLES },
+  { label: "Intraday",            href: "/intraday",               icon: Activity,        allowedRoles: OPERATOR_ROLES },
+  { label: "Investor",            href: "/investor",               icon: DollarSign,      allowedRoles: OPERATOR_ROLES },
+  { label: "Platform Overview",   href: "/platform-overview",      icon: Globe,           allowedRoles: OPERATOR_ROLES },
+];
+
+/* Platform Admin */
+const OPERATOR_ADMIN: NavItem[] = [
+  { label: "Pricing Engine",      href: "/admin/pricing",          icon: Settings,        allowedRoles: OPERATOR_ROLES },
+  { label: "Roles & Access",      href: "/admin/roles",            icon: BadgeCheck,      allowedRoles: OPERATOR_ROLES },
+  { label: "Policy Engine",       href: "/admin/policy",           icon: BookOpen,        allowedRoles: OPERATOR_ROLES },
+  { label: "Labs",                href: "/labs",                   icon: FlaskConical,    allowedRoles: OPERATOR_ROLES },
+];
+
+const OPERATOR_NAV: NavItem[] = [...OPERATOR_OPS, ...OPERATOR_RISK, ...OPERATOR_MARKET, ...OPERATOR_ADMIN];
+
+/* ── Client-visible nav items (buyer / seller / institution) ── */
+const BUYER_NAV: NavItem[] = [
   { label: "Treasury Desk",       href: "/transactions",           icon: Building2,       allowedRoles: CLIENT_ROLES, proToggleKey: "dashboard" },
   { label: "Institutional Portal",href: "/institutional-portal",   icon: Shield,          allowedRoles: CLIENT_ROLES },
   { label: "Order History",       href: "/orders",                 icon: ClipboardList,   allowedRoles: CLIENT_ROLES },
   { label: "Compliance / KYB",    href: "/onboarding/compliance",  icon: ShieldCheck,     allowedRoles: CLIENT_ROLES },
 ];
 
+/* Combined for legacy filtering */
+const NAV_ITEMS: NavItem[] = [...OPERATOR_NAV, ...BUYER_NAV];
+
 /* ================================================================
    Shared nav renderer — used by both Sidebar and MobileDrawer
    ================================================================ */
+
+function NavLink({
+  item,
+  href,
+  collapsed,
+  pathname,
+  onLinkClick,
+}: {
+  item: NavItem;
+  href: string;
+  collapsed: boolean;
+  pathname: string;
+  onLinkClick?: () => void;
+}) {
+  const Icon = item.icon;
+  const isActive =
+    href === "/dashboard"
+      ? pathname === "/dashboard"
+      : pathname === href || pathname.startsWith(href + "/");
+
+  return (
+    <li>
+      <Link
+        href={href}
+        onClick={onLinkClick}
+        className={cn(
+          "flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] font-normal tracking-wide transition-colors duration-100",
+          isActive
+            ? "bg-slate-800 text-white font-medium"
+            : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200",
+          collapsed && "justify-center px-0"
+        )}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <Icon
+          className={cn(
+            "h-4 w-4 shrink-0",
+            isActive ? "text-white" : "text-slate-500"
+          )}
+        />
+        {!collapsed && <span className="truncate">{item.label}</span>}
+      </Link>
+    </li>
+  );
+}
+
+function SectionHeader({ label, collapsed }: { label: string; collapsed: boolean }) {
+  if (collapsed) return <li className="my-2 border-t border-slate-800" />;
+  return (
+    <li className="pt-4 pb-1 px-2.5">
+      <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">
+        {label}
+      </p>
+    </li>
+  );
+}
 
 function SidebarNav({
   collapsed,
@@ -86,6 +194,7 @@ function SidebarNav({
   const pathname = usePathname();
   const { user } = useAuth();
   const role: UserRole = user?.role ?? "buyer";
+  const isOperator = OPERATOR_ROLES.includes(role);
   const isClient = CLIENT_ROLES.includes(role);
 
   /* ── Pro Toggle State (client roles only) ── */
@@ -114,15 +223,6 @@ function SidebarNav({
     });
   }, []);
 
-  const visibleItems = useMemo(
-    () =>
-      NAV_ITEMS.filter((item) => {
-        if (!item.allowedRoles) return true;
-        return item.allowedRoles.includes(role);
-      }),
-    [role],
-  );
-
   /** Resolve the actual href for an item, factoring in proToggleKey */
   const resolveHref = useCallback(
     (item: NavItem): string => {
@@ -134,43 +234,106 @@ function SidebarNav({
     [proMode, isClient],
   );
 
-  return (
-    <nav className="flex-1 overflow-y-auto py-4 px-2" aria-label="Main navigation">
-      <ul className="space-y-0.5">
-        {visibleItems.map((item) => {
-          const Icon = item.icon;
-          const href = resolveHref(item);
-          const isActive =
-            href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname === href || pathname.startsWith(href + "/");
+  /* ── Admin Buyer Impersonation Toggle ── */
+  const [buyerView, setBuyerView] = useState(false);
 
-          return (
-            <li key={item.label}>
-              <Link
-                href={href}
-                onClick={onLinkClick}
-                className={cn(
-                  "flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] font-normal tracking-wide transition-colors duration-100",
-                  isActive
-                    ? "bg-slate-800 text-white font-medium"
-                    : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200",
-                  collapsed && "justify-center px-0"
-                )}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <Icon
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    isActive ? "text-white" : "text-slate-500"
-                  )}
-                />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+  return (
+    <nav className="flex-1 overflow-y-auto py-4 px-2 flex flex-col" aria-label="Main navigation">
+      {isOperator && buyerView ? (
+        /* ══════ BUYER IMPERSONATION MODE ══════ */
+        <>
+          {/* Return to Admin banner */}
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={() => setBuyerView(false)}
+              className="mb-3 flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-950/20 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-blue-300 hover:bg-blue-950/40 transition-all"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Return to Admin
+            </button>
+          )}
+          {collapsed && (
+            <button
+              type="button"
+              onClick={() => setBuyerView(false)}
+              className="mb-3 flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-950/20 p-2 text-blue-300 hover:bg-blue-950/40 transition-all"
+              title="Return to Admin"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+          {!collapsed && (
+            <div className="mb-2 flex items-center gap-2 px-2.5">
+              <Users className="h-3 w-3 text-gold" />
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-gold/60">
+                Buyer Experience
+              </p>
+            </div>
+          )}
+          <ul className="space-y-0.5 flex-1">
+            {BUYER_NAV.map((item) => (
+              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            ))}
+          </ul>
+        </>
+      ) : isOperator ? (
+        /* ══════ ADMIN MODE ══════ */
+        <>
+          <ul className="space-y-0.5 flex-1">
+            <SectionHeader label="Operations" collapsed={collapsed} />
+            {OPERATOR_OPS.map((item) => (
+              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            ))}
+
+            <SectionHeader label="Risk & Compliance" collapsed={collapsed} />
+            {OPERATOR_RISK.map((item) => (
+              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            ))}
+
+            <SectionHeader label="Market Infrastructure" collapsed={collapsed} />
+            {OPERATOR_MARKET.map((item) => (
+              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            ))}
+
+            <SectionHeader label="Platform Admin" collapsed={collapsed} />
+            {OPERATOR_ADMIN.map((item) => (
+              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            ))}
+          </ul>
+
+          {/* View as Buyer toggle */}
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={() => setBuyerView(true)}
+              className="mt-4 w-full flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gold hover:bg-gold/10 transition-all"
+            >
+              <Eye className="h-4 w-4 text-gold shrink-0" />
+              <span>View Buyer Experience</span>
+            </button>
+          )}
+          {collapsed && (
+            <button
+              type="button"
+              onClick={() => setBuyerView(true)}
+              className="mt-4 flex items-center justify-center rounded-lg border border-gold/30 bg-gold/5 p-2 text-gold hover:bg-gold/10 transition-all"
+              title="View Buyer Experience"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+          )}
+        </>
+      ) : (
+        /* ══════ CLIENT MODE ══════ */
+        <>
+          <ul className="space-y-0.5 flex-1">
+            {BUYER_NAV.map((item) => (
+              <NavLink key={item.label} item={item} href={resolveHref(item)} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            ))}
+          </ul>
+        </>
+      )}
 
       {/* ══════ Pro Execution Desk Toggle (Client roles only) ══════ */}
       {isClient && !collapsed && (
