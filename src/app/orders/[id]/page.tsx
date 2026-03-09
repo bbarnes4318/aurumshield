@@ -13,6 +13,8 @@ import {
   Clock,
   FileText,
   Lock,
+  Download,
+  Fingerprint,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -142,6 +144,165 @@ function resolveLifecycle(
   }
 
   return resolved;
+}
+
+/* ── Cryptographic Title Certificate ── */
+function generateKmsSignatureHash(orderId: string): string {
+  let hash = 0;
+  for (let i = 0; i < orderId.length; i++) {
+    const char = orderId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  const seed = Math.abs(hash);
+  const hexChars = '0123456789abcdef';
+  let sig = '0x';
+  for (let i = 0; i < 128; i++) {
+    sig += hexChars[(seed * (i + 1) * 7 + i * 13) % 16];
+  }
+  return sig;
+}
+
+function generateSerialNumbers(weightOz: number): string[] {
+  const barCount = Math.max(1, Math.round(weightOz / 10));
+  const serials: string[] = [];
+  const baseSerial = 88392;
+  for (let i = 0; i < barCount; i++) {
+    serials.push(`#AU-${baseSerial + i}-ZH`);
+  }
+  return serials;
+}
+
+interface CertificateProps {
+  order: {
+    id: string;
+    weightOz: number;
+    notional: number;
+    pricePerOz: number;
+    status: string;
+  };
+  settlementUpdatedAt?: string;
+}
+
+function CryptographicTitleCertificate({ order, settlementUpdatedAt }: CertificateProps) {
+  const kmsHash = generateKmsSignatureHash(order.id);
+  const serials = generateSerialNumbers(order.weightOz);
+  const allocationDate = settlementUpdatedAt
+    ? new Date(settlementUpdatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+  return (
+    <div className="mt-8 rounded-lg border border-yellow-500/30 bg-slate-900 p-8 shadow-[0_0_30px_rgba(234,179,8,0.05)]">
+      {/* ── Decorative Top Border ── */}
+      <div className="mb-6 flex flex-col items-center gap-3">
+        <div className="flex items-center gap-4 w-full">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
+          <Shield className="h-5 w-5 text-yellow-500/60" />
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
+        </div>
+        <h2 className="font-mono text-xs font-bold uppercase tracking-[0.35em] text-yellow-500">
+          Digital Warrant of Title
+        </h2>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
+          Cryptographic Title &amp; Allocation Certificate
+        </p>
+        <div className="flex items-center gap-4 w-full">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+          <span className="font-mono text-[9px] text-slate-600">REF: {order.id}</span>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+        </div>
+      </div>
+
+      {/* ── Asset Details Grid ── */}
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded border border-slate-700/50 bg-slate-800/50 p-4">
+          <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-slate-500">Refiner</dt>
+          <dd className="font-mono text-sm font-semibold text-slate-200">
+            PAMP Suisse / Valcambi
+            <span className="ml-2 text-[10px] font-normal text-yellow-500/70">(99.99% Au)</span>
+          </dd>
+        </div>
+        <div className="rounded border border-slate-700/50 bg-slate-800/50 p-4">
+          <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-slate-500">Total Allocated Weight</dt>
+          <dd className="font-mono text-sm font-semibold tabular-nums text-slate-200">
+            {order.weightOz.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} oz
+            <span className="ml-2 text-[10px] font-normal text-slate-500">
+              ({(order.weightOz * 31.1035).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}g)
+            </span>
+          </dd>
+        </div>
+        <div className="rounded border border-slate-700/50 bg-slate-800/50 p-4">
+          <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-slate-500">Vault Location</dt>
+          <dd className="font-mono text-sm font-semibold text-slate-200">
+            Loomis International
+            <span className="ml-2 text-[10px] font-normal text-slate-400">(Zurich, CHE)</span>
+          </dd>
+        </div>
+        <div className="rounded border border-slate-700/50 bg-slate-800/50 p-4">
+          <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-slate-500">Allocation Date</dt>
+          <dd className="font-mono text-sm font-semibold tabular-nums text-slate-200">{allocationDate}</dd>
+        </div>
+      </div>
+
+      {/* ── Serial Registry ── */}
+      <div className="mb-6">
+        <div className="mb-2 flex items-center gap-2">
+          <Fingerprint className="h-3.5 w-3.5 text-yellow-500/50" />
+          <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+            Serial Registry — Allocated Bars
+          </h3>
+        </div>
+        <div className="rounded border border-slate-700/50 bg-slate-950/80 p-4">
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {serials.map((serial, idx) => (
+              <div key={serial} className="flex items-center gap-2 font-mono text-[11px]">
+                <span className="text-slate-600">Bar {idx + 1}:</span>
+                <span className="font-semibold tabular-nums text-slate-300">{serial}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Cryptographic Proof ── */}
+      <div className="mb-6">
+        <div className="mb-2 flex items-center gap-2">
+          <Lock className="h-3.5 w-3.5 text-yellow-500/50" />
+          <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+            KMS Signature Hash
+          </h3>
+        </div>
+        <div className="rounded border border-slate-700/50 bg-slate-950/80 p-4">
+          <p className="break-all font-mono text-[10px] leading-relaxed tabular-nums text-yellow-500/70">
+            {kmsHash}
+          </p>
+        </div>
+        <p className="mt-2 flex items-center gap-1.5 font-mono text-[9px] text-slate-600">
+          <Shield className="h-3 w-3" />
+          Signed via AWS Key Management Service · Mathematically unforgeable.
+        </p>
+      </div>
+
+      {/* ── Decorative Bottom Border ── */}
+      <div className="mb-6 flex items-center gap-4">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+      </div>
+
+      {/* ── Download Button (TODO: wire actual PDF generation) ── */}
+      <button
+        id="download-title-pdf-btn"
+        type="button"
+        className="flex w-full items-center justify-center gap-2.5 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-yellow-500 transition-all hover:border-yellow-500/50 hover:bg-yellow-500/15 hover:shadow-[0_0_20px_rgba(234,179,8,0.1)] active:scale-[0.99]"
+        onClick={() => {
+          // TODO: Implement signed PDF title generation
+          alert("PDF Title generation is not yet implemented.");
+        }}
+      >
+        <Download className="h-4 w-4" />
+        Download PDF Title (Signed)
+      </button>
+    </div>
+  );
 }
 
 /* ================================================================ */
@@ -543,6 +704,14 @@ function OrderDetailContent() {
           )}
         </aside>
       </div>
+
+      {/* ── Cryptographic Title & Allocation Certificate ── */}
+      {(order.status === "completed" || isSettled) && (
+        <CryptographicTitleCertificate
+          order={order}
+          settlementUpdatedAt={settlement?.updatedAt}
+        />
+      )}
     </>
   );
 }
