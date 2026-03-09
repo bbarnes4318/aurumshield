@@ -61,17 +61,15 @@ const PRO_TOGGLE_KEY = "aurumshield:pro-execution-desk";
 const NAV_ITEMS: NavItem[] = [
   /* ── Operator-only links ── */
   { label: "Command Center",      href: "/dashboard",              icon: LayoutDashboard, allowedRoles: OPERATOR_ROLES },
-  { label: "Treasury Ops",        href: "/treasury",               icon: Building2,       allowedRoles: OPERATOR_ROLES },
   { label: "Execute Goldwire",    href: "/transactions/new",       icon: Send,            allowedRoles: OPERATOR_ROLES },
   { label: "Settlement Ledger",   href: "/transactions",           icon: ListTree,        allowedRoles: OPERATOR_ROLES },
-  { label: "Sovereign Vault",     href: "/vault",                  icon: Shield,          allowedRoles: OPERATOR_ROLES },
   { label: "Compliance & Audit",  href: "/audit",                  icon: FileCheck,       allowedRoles: OPERATOR_ROLES },
 
   /* ── Client-visible links (buyer / seller / institution) ── */
   { label: "Treasury Desk",       href: "/transactions",           icon: Building2,       allowedRoles: CLIENT_ROLES, proToggleKey: "dashboard" },
-  { label: "Order History & Tracking", href: "/orders",            icon: ClipboardList,   allowedRoles: CLIENT_ROLES },
+  { label: "Institutional Portal",href: "/institutional-portal",   icon: Shield,          allowedRoles: CLIENT_ROLES },
+  { label: "Order History",       href: "/orders",                 icon: ClipboardList,   allowedRoles: CLIENT_ROLES },
   { label: "Compliance / KYB",    href: "/onboarding/compliance",  icon: ShieldCheck,     allowedRoles: CLIENT_ROLES },
-
 ];
 
 /* ================================================================

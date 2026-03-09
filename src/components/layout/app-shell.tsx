@@ -28,6 +28,7 @@ const PUBLIC_ROUTES = [
   "/legal",
   "/investor",
   "/simple-home",
+  "/institutional-portal",
 ];
 
 interface AppShellProps {
