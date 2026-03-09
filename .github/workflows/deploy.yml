@@ -26,6 +26,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Write .env.production from GitHub Secret so NEXT_PUBLIC_* vars
+      # are available at Docker build time (inlined into the JS bundle).
+      # To set this up: go to GitHub repo → Settings → Secrets → Actions
+      # and create a secret named ENV_PRODUCTION containing the full
+      # contents of your .env.production file.
+      - name: Generate .env.production from secret
+        run: echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
+
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
