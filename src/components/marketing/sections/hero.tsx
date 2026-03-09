@@ -1,16 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ArrowDown } from "lucide-react";
+import { ClearingSeal } from "../ClearingSeal";
+import { GoldwireBrandLogo } from "@/components/ui/goldwire-logo";
 
-/* ── Institutional easing — stable, high-end bezier ── */
-const EASE = [0.16, 1, 0.3, 1] as const;
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
+const fade = {
+  hidden: { opacity: 0, y: 14 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.18, duration: 0.6, ease: EASE },
+    transition: { delay: i * 0.15, duration: 0.7, ease: "easeOut" as const },
   }),
 };
 
@@ -18,85 +18,84 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative w-full flex flex-col items-center justify-center text-center min-h-[85vh]"
-      style={{ backgroundColor: "#0A0A0A" }}
+      className="relative w-full flex items-center"
+      style={{ backgroundColor: "#0A1128" }}
     >
-      {/* ── Subtle radial ambient glow ── */}
+      {/* ── Radial gold gradient anchored behind CTA area ── */}
       <div
-        className="pointer-events-none absolute inset-0 z-0"
+        className="pointer-events-none absolute left-[20%] top-[60%] h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full z-0"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 60%, rgba(212,175,55,0.04) 0%, transparent 65%)",
+            "radial-gradient(circle, rgba(212,175,55,0.05) 0%, transparent 70%)",
         }}
       />
 
-      <div className="relative z-10 flex flex-col items-center px-6 max-w-5xl mx-auto pt-32 pb-20">
-        {/* ── Pre-header ── */}
-        <motion.span
-          custom={0}
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          className="text-xs uppercase tracking-widest text-slate-400 font-mono mb-8"
-        >
-          INSTITUTIONAL PRECIOUS METALS ARCHITECTURE
-        </motion.span>
-
-        {/* ── Main Header ── */}
-        <motion.h1
-          custom={1}
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-[1.05] max-w-4xl"
-          style={{ fontFamily: "var(--font-inter), sans-serif" }}
-        >
-          Absolute Sovereign Wealth Preservation.{" "}
-          <span className="text-slate-400">Zero Counterparty Risk.</span>
-        </motion.h1>
-
-        {/* ── Subheader ── */}
-        <motion.p
-          custom={2}
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          className="mt-8 text-lg md:text-xl text-slate-400 leading-relaxed max-w-2xl"
-          style={{ lineHeight: 1.6 }}
-        >
-          Deterministic settlement of LBMA-accredited 400-oz Good Delivery bars
-          through bankruptcy-remote, allocated custody vaults. No rehypothecation.
-          No fractional exposure. Absolute finality.
-        </motion.p>
-
-        {/* ── CTA ── */}
-        <motion.div
-          custom={3}
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          className="mt-12 flex flex-col sm:flex-row gap-4 items-center"
-        >
-          <a
-            href="#pipeline"
-            className="inline-flex items-center justify-center gap-2.5 font-bold px-10 py-4 rounded-lg text-[#0A0A0A] transition-colors duration-200"
-            style={{ backgroundColor: "#D4AF37" }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "#ca8a04")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "#D4AF37")
-            }
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start lg:items-center w-full pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
+        {/* ── Left Column ── */}
+        <div className="w-full flex flex-col justify-center space-y-5 lg:space-y-6 max-w-2xl text-left">
+          <motion.div
+            custom={0}
+            initial="hidden"
+            animate="visible"
+            variants={fade}
+            className="mb-1 flex justify-start"
           >
-            Explore the Protocol
-          </a>
-          <a
-            href="#custody"
-            className="inline-flex items-center justify-center gap-2 bg-transparent font-semibold px-8 py-4 rounded-lg transition-all duration-200 text-slate-300 border border-slate-700 hover:border-slate-500 hover:text-white"
+            <GoldwireBrandLogo className="scale-110 lg:scale-125 origin-left" />
+          </motion.div>
+
+          <motion.h1
+            custom={1}
+            initial="hidden"
+            animate="visible"
+            variants={fade}
+            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight max-w-3xl"
           >
-            View Custody Infrastructure
-          </a>
-        </motion.div>
+            Settle Millions <span className="text-gold">Instantly</span>
+            <br />
+            with Verified Gold.
+          </motion.h1>
+
+          <motion.p
+            custom={2}
+            initial="hidden"
+            animate="visible"
+            variants={fade}
+            className="text-base md:text-lg text-gray-300 leading-relaxed max-w-2xl"
+          >
+            AurumShield is a Principal Market Maker clearinghouse. We bypass
+            legacy correspondent banking, utilizing vaulted physical gold as a
+            deterministic transport layer for instant, multi-million dollar
+            cross-border settlements.
+          </motion.p>
+
+          <motion.div
+            custom={3}
+            initial="hidden"
+            animate="visible"
+            variants={fade}
+            className="flex flex-col gap-4 sm:flex-row justify-start"
+          >
+            <a
+              href="#pipeline"
+              className="inline-flex items-center justify-center gap-2 bg-action-gold hover:bg-action-gold/90 text-slate-950 font-bold px-8 py-4 rounded-lg transition-all duration-200"
+            >
+              Explore the Protocol
+              <ArrowDown className="h-4 w-4" />
+            </a>
+
+            <a
+              href="#card"
+              className="inline-flex items-center justify-center gap-2 bg-transparent border border-gold/40 hover:border-gold text-gold font-bold px-8 py-4 rounded-lg transition-all duration-200"
+            >
+              View Corporate Card
+            </a>
+          </motion.div>
+        </div>
+
+        {/* ── Right Column — Clearing Seal ── */}
+        <div className="hidden lg:block">
+          <ClearingSeal />
+        </div>
       </div>
     </section>
   );

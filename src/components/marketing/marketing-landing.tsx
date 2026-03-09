@@ -121,7 +121,7 @@ export function Navigation() {
 
   return (
     <>
-      <nav className="fixed top-0 z-50 w-full backdrop-blur-md border-b border-slate-800 bg-[#0A0A0A]/80">
+      <nav className="fixed top-0 z-50 w-full backdrop-blur-md border-b border-slate-800 bg-[#0A1128]/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
           {/* LEFT: Logo */}
           <div className="flex items-center gap-8 lg:gap-12">
@@ -155,10 +155,7 @@ export function Navigation() {
           <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
             <a
               href={`${APP_URL}/signup`}
-              className="hidden sm:inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-bold text-[#0A0A0A] transition-colors"
-              style={{ backgroundColor: "#D4AF37" }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ca8a04")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#D4AF37")}
+              className="hidden sm:inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-bold text-[#0A1128] transition-colors bg-gold hover:bg-gold-hover"
             >
               Request Corporate Mandate
             </a>
@@ -188,7 +185,7 @@ export function Navigation() {
       {/* ── Mobile Menu Panel ── */}
       <div
         ref={menuRef}
-        className={`fixed inset-y-0 right-0 z-[60] w-72 max-w-[85vw] bg-[#0A0A0A] border-l border-slate-800 shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
+        className={`fixed inset-y-0 right-0 z-[60] w-72 max-w-[85vw] bg-[#0A1128] border-l border-slate-800 shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
           mobileOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -197,7 +194,7 @@ export function Navigation() {
       >
         {/* Close button */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#D4AF37" }}>
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
             Navigation
           </span>
           <button
@@ -227,8 +224,7 @@ export function Navigation() {
           <a
             href={`${APP_URL}/signup`}
             onClick={closeMobile}
-            className="mt-4 flex items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-bold text-[#0A0A0A] transition-colors active:scale-[0.98]"
-            style={{ backgroundColor: "#D4AF37" }}
+            className="mt-4 flex items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-bold text-[#0A1128] transition-colors active:scale-[0.98] bg-gold hover:bg-gold-hover"
           >
             Request Corporate Mandate
             <ArrowRight className="h-4 w-4" />
@@ -1229,7 +1225,7 @@ function SiteFooter() {
    ================================================================ */
 export function MarketingLanding() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white antialiased font-sans">
+    <div className="min-h-screen bg-[#0A1128] text-white antialiased font-sans">
       <Navigation />
       <HeroSection />
 

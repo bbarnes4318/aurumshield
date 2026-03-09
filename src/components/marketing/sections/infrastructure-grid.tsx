@@ -43,7 +43,7 @@ const PILLARS: Pillar[] = [
 
 export function InstitutionalInfrastructureGrid() {
   return (
-    <section id="procurement" className="py-24 lg:py-32" style={{ backgroundColor: "#0A0A0A" }}>
+    <section id="procurement" className="py-24 lg:py-32" style={{ backgroundColor: "#0A1128" }}>
       <div className="mx-auto max-w-7xl px-6">
         {/* ── Section Header ── */}
         <div className="mb-16 max-w-3xl">
@@ -70,7 +70,7 @@ export function InstitutionalInfrastructureGrid() {
               <div
                 key={pillar.title}
                 className="group p-8 lg:p-10 transition-colors duration-300 hover:bg-[#111827]"
-                style={{ backgroundColor: "#0A0A0A" }}
+                style={{ backgroundColor: "#0A1128" }}
               >
                 {/* Icon */}
                 <div className="mb-8">

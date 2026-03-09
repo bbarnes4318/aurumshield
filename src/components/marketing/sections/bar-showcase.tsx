@@ -157,7 +157,7 @@ function CanvasFallback() {
 
 export function InstitutionalBarShowcase() {
   return (
-    <section className="py-24 lg:py-32 relative overflow-hidden" style={{ backgroundColor: "#0A0A0A" }}>
+    <section className="py-24 lg:py-32 relative overflow-hidden" style={{ backgroundColor: "#0A1128" }}>
       <div className="mx-auto max-w-7xl px-6">
         {/* ── Section Header ── */}
         <div className="mb-12 max-w-3xl">

@@ -53,7 +53,7 @@ const COLUMNS = [
 
 export function InstitutionalVolumeScalingTable() {
   return (
-    <section className="py-24 lg:py-32" style={{ backgroundColor: "#0A0A0A" }}>
+    <section className="py-24 lg:py-32" style={{ backgroundColor: "#0A1128" }}>
       <div className="mx-auto max-w-7xl px-6">
         {/* ── Section Header ── */}
         <div className="mb-14 max-w-3xl">

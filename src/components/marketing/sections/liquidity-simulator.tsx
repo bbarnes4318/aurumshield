@@ -53,7 +53,7 @@ export function GoldwireLiquiditySimulator() {
   const sliderPercent = (ounces / 400) * 100;
 
   return (
-    <section className="py-24 lg:py-32" style={{ backgroundColor: "#0A0A0A" }}>
+    <section className="py-24 lg:py-32" style={{ backgroundColor: "#0A1128" }}>
       <div className="mx-auto max-w-7xl px-6">
         {/* ── Section Header ── */}
         <div className="mb-14 max-w-3xl">
@@ -153,7 +153,7 @@ export function GoldwireLiquiditySimulator() {
                   style={{
                     left: `calc(${sliderPercent}% - 10px)`,
                     backgroundColor: "#D4AF37",
-                    borderColor: "#0A0A0A",
+                    borderColor: "#0A1128",
                     boxShadow: "0 0 12px rgba(212,175,55,0.3)",
                   }}
                 />
