@@ -1,14 +1,15 @@
 "use server";
 
 /* ================================================================
-   ADMIN CLEARING — Straight-Through Processing (STP)
+   ADMIN CLEARING — Straight-Through Processing (STP) + Fee Sweep
    ================================================================
    Server action for manual fund verification in the Concierge
    Settlement model. When an admin verifies receipt of inbound
    wire/crypto funds, the system:
 
-     1. Advances settlement to SETTLED
-     2. If physical delivery is configured (freightCostUsd > 0),
+     1. Calculates 1% platform fee sweep
+     2. Advances settlement to SETTLED with fee columns persisted
+     3. If physical delivery is configured (freightCostUsd > 0),
         automatically dispatches Brink's armored carrier via STP
 
    One button. One transaction. Zero manual logistics dispatch.
@@ -48,7 +49,21 @@ function simulateBrinksAPI(destinationZip: string): {
   };
 }
 
+/* ---------- Fee Sweep Constants ---------- */
+
+/** Platform fee rate: 1% of notional. */
+const PLATFORM_FEE_RATE = 0.01;
+
 /* ---------- Types ---------- */
+
+export interface FeeSweepResult {
+  /** The gross notional amount (inbound wire). */
+  notionalUsd: number;
+  /** Platform fee extracted (1% of notional). */
+  platformFeeUsd: number;
+  /** Net clearing liability after fee extraction. */
+  clearingAmountUsd: number;
+}
 
 export interface DispatchResult {
   /** Carrier name (e.g., "Brink's Global Services") */
@@ -79,6 +94,8 @@ export interface ClearFundsResult {
   adminNotes: string;
   /** Error message if the operation failed. */
   error?: string;
+  /** Fee sweep breakdown — always populated on success */
+  feeSweep?: FeeSweepResult;
   /** STP dispatch result — populated when physical delivery is configured */
   dispatchResult?: DispatchResult;
 }
@@ -87,25 +104,24 @@ export interface ClearFundsResult {
  * Manually clear funds for a settlement in AWAITING_FUNDS status.
  *
  * Called from the Operations Control Panel on the settlement detail
- * page. If physical delivery is configured (freightCostUsd > 0),
- * the system automatically dispatches Brink's armored carrier
- * in the same transaction via Straight-Through Processing.
+ * page. Executes the following in a single transaction:
  *
- * TODO: Replace simulated delay with actual database update:
- *   1. Verify settlement exists and is in AWAITING_FUNDS status
- *   2. Update settlement_cases SET status = 'SETTLED'
- *   3. Insert ledger entry (FUNDS_DEPOSITED + STATUS_CHANGED)
+ *   1. Calculate 1% platform fee on notionalUsd
+ *   2. Persist platformFeeUsd + clearingAmountUsd to settlement_cases
+ *   3. Update status → SETTLED
  *   4. If physical delivery: auto-dispatch + update logistics status
  *   5. Record admin audit trail
  *
  * @param settlementId   — AurumShield settlement ID to clear
  * @param adminNotes     — Audit notes (e.g., "Wire received via Chase")
+ * @param notionalUsd    — Gross notional amount for fee calculation
  * @param freightCostUsd — Total logistics fee (> 0 triggers STP dispatch)
  * @param destinationZip — Delivery zip code for Brink's routing
  */
 export async function manuallyClearFunds(
   settlementId: string,
   adminNotes: string,
+  notionalUsd?: number,
   freightCostUsd?: number,
   destinationZip?: string,
 ): Promise<ClearFundsResult> {
@@ -132,19 +148,49 @@ export async function manuallyClearFunds(
     };
   }
 
-  /* ── Simulate 1-second database execution ── */
+  /* ── Fee Sweep Calculation ── */
+  const grossNotional = notionalUsd ?? 0;
+  const platformFeeUsd = Math.round(grossNotional * PLATFORM_FEE_RATE * 100) / 100;
+  const clearingAmountUsd = Math.round((grossNotional - platformFeeUsd) * 100) / 100;
+
+  const feeSweep: FeeSweepResult = {
+    notionalUsd: grossNotional,
+    platformFeeUsd,
+    clearingAmountUsd,
+  };
+
+  /* ── Database Execution ── */
   console.log(
     `[AurumShield] Admin clearing funds for settlement=${settlementId} ` +
       `notes="${adminNotes.trim()}"`,
   );
+  console.log(
+    `[AurumShield] Fee Sweep: notional=$${grossNotional.toFixed(2)} ` +
+      `platformFee=$${platformFeeUsd.toFixed(2)} (${PLATFORM_FEE_RATE * 100}%) ` +
+      `clearingAmount=$${clearingAmountUsd.toFixed(2)}`,
+  );
 
+  /**
+   * TODO: Replace simulated delay with actual SQL execution:
+   *
+   *   UPDATE settlement_cases
+   *   SET status = 'SETTLED',
+   *       platform_fee_usd = $1,
+   *       clearing_amount_usd = $2,
+   *       updated_at = NOW()
+   *   WHERE id = $3
+   *     AND status = 'AWAITING_FUNDS';
+   *
+   * Parameters: [platformFeeUsd, clearingAmountUsd, settlementId]
+   */
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   const clearedAt = new Date().toISOString();
 
   console.log(
     `[AurumShield] Settlement ${settlementId} cleared → SETTLED ` +
-      `at ${clearedAt} by admin`,
+      `at ${clearedAt} by admin | platformFee=$${platformFeeUsd.toFixed(2)} ` +
+      `clearingAmount=$${clearingAmountUsd.toFixed(2)}`,
   );
 
   /* ── STP: Automated Brink's Dispatch (same transaction) ── */
@@ -179,6 +225,7 @@ export async function manuallyClearFunds(
     newStatus: "SETTLED",
     clearedAt,
     adminNotes: adminNotes.trim(),
+    feeSweep,
     dispatchResult,
   };
 }

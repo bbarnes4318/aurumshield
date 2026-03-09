@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
   Building2,
@@ -13,6 +13,8 @@ import {
   ChevronRight,
   X,
   ShieldCheck,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -31,6 +33,8 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   /** Roles that can see this item. If omitted, visible to all roles. */
   allowedRoles?: UserRole[];
+  /** If set, this item's href is dynamically overridden by Pro Toggle state. */
+  proToggleKey?: "dashboard";
 }
 
 /* ── Roles considered "internal operators" — can see all admin links ── */
@@ -50,6 +54,8 @@ const CLIENT_ROLES: UserRole[] = [
   "BROKER_DEALER_API",
 ];
 
+/* ── localStorage key for Pro Toggle persistence ── */
+const PRO_TOGGLE_KEY = "aurumshield:pro-execution-desk";
 
 const NAV_ITEMS: NavItem[] = [
   /* ── Operator-only links ── */
@@ -61,7 +67,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Compliance & Audit",  href: "/audit",                  icon: FileCheck,       allowedRoles: OPERATOR_ROLES },
 
   /* ── Client-visible links (buyer / seller / institution) ── */
-  { label: "Treasury Desk",       href: "/transactions",           icon: Building2,       allowedRoles: CLIENT_ROLES },
+  { label: "Treasury Desk",       href: "/transactions",           icon: Building2,       allowedRoles: CLIENT_ROLES, proToggleKey: "dashboard" },
   { label: "Compliance / KYB",    href: "/onboarding/compliance",  icon: ShieldCheck,     allowedRoles: CLIENT_ROLES },
 
 ];
@@ -80,6 +86,33 @@ function SidebarNav({
   const pathname = usePathname();
   const { user } = useAuth();
   const role: UserRole = user?.role ?? "buyer";
+  const isClient = CLIENT_ROLES.includes(role);
+
+  /* ── Pro Toggle State (client roles only) ── */
+  const [proMode, setProMode] = useState(false);
+
+  // Hydrate from localStorage on mount
+  useEffect(() => {
+    if (!isClient) return;
+    try {
+      const stored = localStorage.getItem(PRO_TOGGLE_KEY);
+      if (stored === "true") setProMode(true);
+    } catch {
+      // SSR or localStorage unavailable — default OFF
+    }
+  }, [isClient]);
+
+  const handleTogglePro = useCallback(() => {
+    setProMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(PRO_TOGGLE_KEY, String(next));
+      } catch {
+        // localStorage unavailable
+      }
+      return next;
+    });
+  }, []);
 
   const visibleItems = useMemo(
     () =>
@@ -90,20 +123,32 @@ function SidebarNav({
     [role],
   );
 
+  /** Resolve the actual href for an item, factoring in proToggleKey */
+  const resolveHref = useCallback(
+    (item: NavItem): string => {
+      if (item.proToggleKey === "dashboard" && isClient) {
+        return proMode ? "/transactions" : "/dashboard/retail";
+      }
+      return item.href;
+    },
+    [proMode, isClient],
+  );
+
   return (
     <nav className="flex-1 overflow-y-auto py-4 px-2" aria-label="Main navigation">
       <ul className="space-y-0.5">
         {visibleItems.map((item) => {
           const Icon = item.icon;
+          const href = resolveHref(item);
           const isActive =
-            item.href === "/dashboard"
+            href === "/dashboard"
               ? pathname === "/dashboard"
-              : pathname === item.href || pathname.startsWith(item.href + "/");
+              : pathname === href || pathname.startsWith(href + "/");
 
           return (
-            <li key={item.href}>
+            <li key={item.label}>
               <Link
-                href={item.href}
+                href={href}
                 onClick={onLinkClick}
                 className={cn(
                   "flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] font-normal tracking-wide transition-colors duration-100",
@@ -126,6 +171,32 @@ function SidebarNav({
           );
         })}
       </ul>
+
+      {/* ══════ Pro Execution Desk Toggle (Client roles only) ══════ */}
+      {isClient && !collapsed && (
+        <div className="mt-6 mx-1">
+          <button
+            id="pro-execution-desk-toggle"
+            type="button"
+            onClick={handleTogglePro}
+            className={cn(
+              "w-full flex items-center gap-2.5 rounded-md border px-3 py-2 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+              proMode
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"
+                : "border-slate-700/50 bg-slate-800/50 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
+            )}
+            aria-pressed={proMode}
+            title={proMode ? "Switch to Retail Dashboard" : "Switch to Pro Execution Desk"}
+          >
+            {proMode ? (
+              <ToggleRight className="h-4 w-4 text-emerald-400 shrink-0" />
+            ) : (
+              <ToggleLeft className="h-4 w-4 text-slate-600 shrink-0" />
+            )}
+            <span>Pro Execution Desk</span>
+          </button>
+        </div>
+      )}
     </nav>
   );
 }

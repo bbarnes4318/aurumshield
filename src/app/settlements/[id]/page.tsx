@@ -228,7 +228,11 @@ function SettlementDetailContent() {
     if (!settlement || !adminNotes.trim()) return;
     setIsClearingFunds(true);
     try {
-      const result = await manuallyClearFunds(settlement.id, adminNotes.trim());
+      const result = await manuallyClearFunds(
+        settlement.id,
+        adminNotes.trim(),
+        settlement.notionalUsd,
+      );
       if (result.success) {
         setClearResult(result);
         setClearingComplete(true);
@@ -370,6 +374,40 @@ function SettlementDetailContent() {
                       {clearResult.adminNotes}
                     </span>
                   </div>
+
+                  {/* ── Fee Sweep Breakdown in Receipt ── */}
+                  {clearResult.feeSweep && (
+                    <>
+                      <div className="border-t border-emerald-500/20 my-2" />
+                      <div className="flex justify-between text-xs">
+                        <span className="text-emerald-400/60">Inbound Wire</span>
+                        <span
+                          className="text-emerald-300 font-bold tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                        >
+                          ${clearResult.feeSweep.notionalUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-emerald-400/60">Platform Fee (1%)</span>
+                        <span
+                          className="text-emerald-400 font-black tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                        >
+                          ${clearResult.feeSweep.platformFeeUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-emerald-400/60">Vault Clearing</span>
+                        <span
+                          className="text-emerald-300 font-bold tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                        >
+                          ${clearResult.feeSweep.clearingAmountUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* ── STP: Automated Logistics Handoff ── */}
@@ -519,6 +557,64 @@ function SettlementDetailContent() {
                     className="w-full h-10 rounded-md border border-slate-600/50 bg-slate-800/80 px-3 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all disabled:opacity-50"
                     style={{ fontFamily: "'JetBrains Mono', monospace" }}
                   />
+                </div>
+
+                {/* ═══ LEDGER SWEEP PREVIEW ═══ */}
+                <div
+                  className="rounded-lg border border-slate-600/40 overflow-hidden"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(10,15,30,1) 100%)",
+                  }}
+                >
+                  <div className="px-4 py-2.5 border-b border-slate-700/50 flex items-center gap-2">
+                    <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
+                    <span
+                      className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      Ledger Sweep Preview
+                    </span>
+                  </div>
+                  <div className="px-4 py-3 space-y-2.5">
+                    {/* Inbound Wire */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-slate-400">Inbound Wire</span>
+                      <span
+                        className="text-sm text-slate-200 font-bold tabular-nums"
+                        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                      >
+                        ${settlement.notionalUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="border-t border-dashed border-slate-700/40" />
+
+                    {/* Platform Fee */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-emerald-400 font-semibold">
+                        Platform Fee Sweep (1%)
+                      </span>
+                      <span
+                        className="text-sm text-emerald-400 font-black tabular-nums"
+                        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                      >
+                        ${(Math.round(settlement.notionalUsd * 0.01 * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="border-t border-dashed border-slate-700/40" />
+
+                    {/* Vault Clearing Liability */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-slate-400">Vault Clearing Liability</span>
+                      <span
+                        className="text-sm text-slate-200 font-bold tabular-nums"
+                        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                      >
+                        ${(settlement.notionalUsd - Math.round(settlement.notionalUsd * 0.01 * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* AUTHORIZE Button */}
