@@ -288,19 +288,16 @@ function CryptographicTitleCertificate({ order, settlementUpdatedAt }: Certifica
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
       </div>
 
-      {/* ── Download Button (TODO: wire actual PDF generation) ── */}
-      <button
-        id="download-title-pdf-btn"
-        type="button"
-        className="flex w-full items-center justify-center gap-2.5 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-yellow-500 transition-all hover:border-yellow-500/50 hover:bg-yellow-500/15 hover:shadow-[0_0_20px_rgba(234,179,8,0.1)] active:scale-[0.99]"
-        onClick={() => {
-          // TODO: Implement signed PDF title generation
-          alert("PDF Title generation is not yet implemented.");
-        }}
+      {/* ── Download Cryptographic Title ── */}
+      <a
+        id="download-title-json-btn"
+        href={`/api/certificates/${order.id}/download`}
+        download={`Warrant_of_Title_${order.id}.json`}
+        className="flex w-full items-center justify-center gap-2.5 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-yellow-500 transition-all hover:border-yellow-500/50 hover:bg-yellow-500/15 hover:shadow-[0_0_20px_rgba(234,179,8,0.1)] active:scale-[0.99] no-underline"
       >
         <Download className="h-4 w-4" />
-        Download PDF Title (Signed)
-      </button>
+        Download Cryptographic Title (.json)
+      </a>
     </div>
   );
 }
