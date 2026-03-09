@@ -26,13 +26,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Write .env.production from GitHub Secret so NEXT_PUBLIC_* vars
-      # are available at Docker build time (inlined into the JS bundle).
-      # To set this up: go to GitHub repo → Settings → Secrets → Actions
-      # and create a secret named ENV_PRODUCTION containing the full
-      # contents of your .env.production file.
-      - name: Generate .env.production from secret
-        run: echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
+      # Write .env.production so NEXT_PUBLIC_* vars are inlined into
+      # the JS bundle at Docker build time.  These are PUBLIC client-side
+      # keys (visible in browser source) — safe to have in the workflow.
+      # Server-side secrets (CLERK_SECRET_KEY, etc.) are injected via
+      # ECS task-definition environment variables, NOT baked into the image.
+      - name: Generate .env.production for build
+        run: |
+          cat <<'EOF' > .env.production
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2hhcm1pbmctbWFsYW11dGUtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA
+          NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+          NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
+          NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+          NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+          NEXT_PUBLIC_FINGERPRINT_API_KEY=v2Sh4oHVmFlGimLgPvBQ
+          NEXT_PUBLIC_PERSONA_TEMPLATE_ID=itmpl_Pfrnmyw2tVKVktTxHazqZ5sMQGeE
+          NEXT_PUBLIC_ROOT_URL=https://aurumshield.vip
+          NEXT_PUBLIC_APP_URL=https://app.aurumshield.vip
+          EOF
+          sed -i 's/^          //' .env.production
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
