@@ -1,186 +1,134 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { AnimatePresence } from "framer-motion";
-import { InstitutionalPortalWrapper } from "@/components/institutional/InstitutionalPortalWrapper";
-import { TrustAndSecuritySidebar } from "@/components/institutional/TrustAndSecuritySidebar";
-import { TradeExecutionTerminal } from "@/components/institutional/TradeExecutionTerminal";
-import { LogisticsAndVaultingPanel } from "@/components/institutional/LogisticsAndVaultingPanel";
-import { FundingSettlementPanel } from "@/components/institutional/FundingSettlementPanel";
-import { ChainOfCustodyDashboard } from "@/components/institutional/ChainOfCustodyDashboard";
-import { cn } from "@/lib/utils";
 import {
+  ShieldCheck,
   BarChart3,
   Truck,
+  Lock,
   Landmark,
   Shield,
   Check,
+  MapPinned,
+  CreditCard,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useWizardStore } from "./wizard-store";
+import type { WizardStep } from "./wizard-store";
+
+/* ── Step Components ── */
+import { InstitutionalPortalWrapper } from "./InstitutionalPortalWrapper";
+import { TrustAndSecuritySidebar } from "./TrustAndSecuritySidebar";
+import { KycAmlGateway } from "./KycAmlGateway";
+import { TradeExecutionTerminal } from "./TradeExecutionTerminal";
+import { SecureLogisticsRouting } from "./SecureLogisticsRouting";
+import { VaultingLegalStructuring } from "./VaultingLegalStructuring";
+import { FundingSettlementPanel } from "./FundingSettlementPanel";
+import { ChainOfCustodyDashboard } from "./ChainOfCustodyDashboard";
+import { SecureTransitHandoff } from "./SecureTransitHandoff";
+import GoldwireLiquidityNexus from "./GoldwireLiquidityNexus";
 
 /* ================================================================
-   InstitutionalWizard — Orchestrator
+   InstitutionalWizard — V2 Orchestrator
    ================================================================
-   Manages wizard state across all 5 steps with full data retention.
-   Clicking "Back" never loses mock inputs. Desktop-only (1080p/1440p).
-   
-   State model:
-   - barCount: number of 400-oz bars (default 48 for $100M demo)
-   - carrier: "brinks" | "loomis"
-   - jurisdiction: "london" | "zurich" | "new_york"
-   - storageType: "allocated" | "unallocated"
-   - paymentMethod: "wire" | "goldwire" | null
+   7 views (6 wizard steps + tracking handoff).
+   Zustand for all state. Horizontal stepper. Zero scroll.
    ================================================================ */
 
-const WIZARD_STEPS = [
-  { id: 1, label: "Trade Execution", sublabel: "Asset Allocation", icon: BarChart3 },
-  { id: 2, label: "Logistics & Vaulting", sublabel: "Routing & Custody", icon: Truck },
-  { id: 3, label: "Funding", sublabel: "Settlement", icon: Landmark },
-  { id: 4, label: "Chain of Custody", sublabel: "Audit Receipt", icon: Shield },
-] as const;
+const STEPS = [
+  { step: 1 as WizardStep, label: "KYC / AML",       icon: ShieldCheck },
+  { step: 2 as WizardStep, label: "Trade Exec",       icon: BarChart3 },
+  { step: 3 as WizardStep, label: "Logistics",        icon: Truck },
+  { step: 4 as WizardStep, label: "Vaulting",         icon: Lock },
+  { step: 5 as WizardStep, label: "Funding",          icon: Landmark },
+  { step: 6 as WizardStep, label: "Custody",          icon: Shield },
+  { step: 7 as WizardStep, label: "Transit",          icon: MapPinned },
+  { step: 8 as WizardStep, label: "Liquidity",        icon: CreditCard },
+];
 
-type WizardStep = 1 | 2 | 3 | 4;
+function StepContent({ step }: { step: WizardStep }) {
+  switch (step) {
+    case 1: return <KycAmlGateway />;
+    case 2: return <TradeExecutionTerminal />;
+    case 3: return <SecureLogisticsRouting />;
+    case 4: return <VaultingLegalStructuring />;
+    case 5: return <FundingSettlementPanel />;
+    case 6: return <ChainOfCustodyDashboard />;
+    case 7: return <SecureTransitHandoff />;
+    case 8: return <GoldwireLiquidityNexus />;
+    default: return null;
+  }
+}
 
-export function InstitutionalWizard() {
-  const [currentStep, setCurrentStep] = useState<WizardStep>(1);
-
-  // ── Retained State Across Steps ──
-  const [barCount, setBarCount] = useState(48); // ~$100M default
-  const [carrier, setCarrier] = useState<"brinks" | "loomis">("brinks");
-  const [jurisdiction, setJurisdiction] = useState<"london" | "zurich" | "new_york">("london");
-  const [storageType, setStorageType] = useState<"allocated" | "unallocated">("allocated");
-  const [paymentMethod, setPaymentMethod] = useState<"wire" | "goldwire" | null>(null);
-
-  // ── Derived ──
-  const BASE_SPOT = 5171.92;
-  const totalOz = barCount * 400;
-  const grossValue = totalOz * BASE_SPOT;
-  const totalAmount = grossValue + grossValue * 0.0005 + grossValue * 0.0003; // spot + premium + platform
-
-  const goTo = useCallback((step: WizardStep) => {
-    setCurrentStep(step);
-  }, []);
+export default function InstitutionalWizard() {
+  const { currentStep, goTo } = useWizardStore();
+  const isFullBleedView = currentStep === 7 || currentStep === 8;
 
   return (
     <InstitutionalPortalWrapper sidebar={<TrustAndSecuritySidebar />}>
-      {/* ── Horizontal Stepper ── */}
-      <div className="shrink-0 border-b border-slate-800/60 bg-[#060d1b] px-6 py-4">
-        <div className="flex items-center">
-          {WIZARD_STEPS.map((step, idx) => {
-            const isActive = step.id === currentStep;
-            const isCompleted = step.id < currentStep;
-            const isPending = step.id > currentStep;
-            const Icon = step.icon;
+      {/* ── Stepper (hidden in tracking view for full-bleed map) ── */}
+      {!isFullBleedView && (
+        <div className="shrink-0 h-12 border-b border-slate-800/60 bg-[#060d1b] px-4 flex items-center gap-1 overflow-hidden">
+          {STEPS.map((s, idx) => {
+            const Icon = s.icon;
+            const isActive = s.step === currentStep;
+            const isCompleted = s.step < currentStep;
+            const isClickable = isCompleted;
 
             return (
-              <div key={step.id} className="flex items-center flex-1">
+              <div key={s.step} className="flex items-center">
                 <button
                   type="button"
-                  onClick={() => goTo(step.id as WizardStep)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all",
-                    isActive && "bg-gold/10 border border-gold/30",
-                    isCompleted && "cursor-pointer hover:bg-slate-800/50",
-                    isPending && "cursor-pointer hover:bg-slate-800/30"
-                  )}
+                  onClick={isClickable ? () => goTo(s.step) : undefined}
+                  disabled={!isClickable}
+                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-all text-[10px] ${
+                    isActive
+                      ? "bg-gold/10 border border-gold/30 text-gold font-semibold"
+                      : isCompleted
+                        ? "text-emerald-400 hover:bg-slate-800/50 cursor-pointer"
+                        : "text-slate-600 cursor-default"
+                  }`}
                 >
-                  <div
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg transition-all",
-                      isActive && "bg-gold/20 text-gold",
-                      isCompleted && "bg-emerald-500/10 text-emerald-400",
-                      isPending && "bg-slate-800 text-slate-500"
-                    )}
-                  >
-                    {isCompleted ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Icon className="h-4 w-4" />
-                    )}
-                  </div>
-                  <div className="text-left">
-                    <p
-                      className={cn(
-                        "text-xs font-semibold",
-                        isActive && "text-gold",
-                        isCompleted && "text-emerald-400",
-                        isPending && "text-slate-500"
-                      )}
-                    >
-                      {step.label}
-                    </p>
-                    <p className="text-[10px] text-slate-600">{step.sublabel}</p>
-                  </div>
+                  {isCompleted ? (
+                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/20">
+                      <Check className="h-2.5 w-2.5 text-emerald-400" />
+                    </div>
+                  ) : (
+                    <Icon className={`h-3.5 w-3.5 ${isActive ? "text-gold" : "text-slate-600"}`} />
+                  )}
+                  <span className="hidden xl:inline">{s.label}</span>
                 </button>
-
-                {/* Connector */}
-                {idx < WIZARD_STEPS.length - 1 && (
-                  <div className="flex-1 mx-2">
-                    <div
-                      className={cn(
-                        "h-px w-full",
-                        step.id < currentStep ? "bg-emerald-500/30" : "bg-slate-800"
-                      )}
-                    />
-                  </div>
+                {idx < STEPS.length - 1 && (
+                  <div className={`mx-1 h-px w-4 ${s.step < currentStep ? "bg-emerald-500/30" : "bg-slate-800"}`} />
                 )}
               </div>
             );
           })}
-        </div>
-      </div>
 
-      {/* ── Active Panel ── */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1100px]">
-          <AnimatePresence mode="wait">
-            {currentStep === 1 && (
-              <TradeExecutionTerminal
-                key="trade"
-                barCount={barCount}
-                onBarCountChange={setBarCount}
-                onPriceLocked={() => goTo(2)}
-              />
-            )}
-            {currentStep === 2 && (
-              <LogisticsAndVaultingPanel
-                key="logistics"
-                carrier={carrier}
-                onCarrierChange={setCarrier}
-                jurisdiction={jurisdiction}
-                onJurisdictionChange={setJurisdiction}
-                storageType={storageType}
-                onStorageTypeChange={setStorageType}
-                onContinue={() => goTo(3)}
-              />
-            )}
-            {currentStep === 3 && (
-              <FundingSettlementPanel
-                key="funding"
-                paymentMethod={paymentMethod}
-                onPaymentMethodChange={setPaymentMethod}
-                onContinue={() => goTo(4)}
-                totalAmount={totalAmount}
-              />
-            )}
-            {currentStep === 4 && (
-              <ChainOfCustodyDashboard key="custody" barCount={barCount} />
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* ── Back Button (steps 2-4) ── */}
-      {currentStep > 1 && (
-        <div className="shrink-0 border-t border-slate-800/60 bg-[#060d1b] px-6 py-3">
-          <button
-            type="button"
-            onClick={() => goTo((currentStep - 1) as WizardStep)}
-            className="text-xs font-medium text-slate-500 transition-colors hover:text-slate-300"
-          >
-            ← Back to {WIZARD_STEPS[currentStep - 2].label}
-          </button>
+          {/* Back button */}
+          {currentStep > 1 && currentStep <= 6 && (
+            <button type="button" onClick={() => goTo((currentStep - 1) as WizardStep)}
+              className="ml-auto rounded-lg border border-slate-700/40 px-3 py-1.5 text-[10px] text-slate-500 hover:text-white hover:bg-slate-800/50 transition">
+              ← Back
+            </button>
+          )}
         </div>
       )}
+
+      {/* ── Step Content with transitions ── */}
+      <div className="flex-1 min-h-0 overflow-hidden relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, x: 15 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -15 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0"
+          >
+            <StepContent step={currentStep} />
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </InstitutionalPortalWrapper>
   );
 }

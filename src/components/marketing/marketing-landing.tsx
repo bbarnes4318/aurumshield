@@ -30,7 +30,8 @@ import {
 
 /* ── Section Imports ── */
 import { HeroSection } from "./sections/hero";
-import { TrustBand } from "./sections/trust-band";
+import { InstitutionalTrustMarquee } from "./sections/trust-marquee";
+import { InstitutionalInfrastructureGrid } from "./sections/infrastructure-grid";
 import { MarketWeaknessSection } from "./sections/market-weakness";
 import { RiskModelSection } from "./sections/risk-model";
 import { ComplianceGate } from "./sections/compliance-gate";
@@ -45,8 +46,15 @@ const GLASS_CARD =
   "bg-white/[0.02] border border-slate-800 rounded-md hover:border-gold/30 transition-all duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]";
 
 /* ================================================================
-   NAVIGATION — Mobile-optimized with hamburger menu
+   NAVIGATION — Glassmorphism sticky nav with institutional links
    ================================================================ */
+const NAV_LINKS = [
+  { label: "Institutional Procurement", href: "#procurement" },
+  { label: "Allocated Custody", href: "#custody" },
+  { label: "Secure Logistics", href: "#logistics" },
+  { label: "The Goldwire Network", href: "#pipeline" },
+] as const;
+
 export function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -105,9 +113,9 @@ export function Navigation() {
 
   return (
     <>
-      <nav className="fixed top-0 z-50 w-full bg-[#0A1128]/90 backdrop-blur-xl border-b border-slate-800">
+      <nav className="fixed top-0 z-50 w-full backdrop-blur-md border-b border-slate-800 bg-[#0A0A0A]/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-          {/* LEFT: Logo + Desktop links */}
+          {/* LEFT: Logo */}
           <div className="flex items-center gap-8 lg:gap-12">
             <Link href="/" className="flex items-center flex-shrink-0">
               <Image
@@ -121,35 +129,30 @@ export function Navigation() {
               />
             </Link>
 
-            <div className="hidden lg:flex items-center gap-8 border-l border-slate-800 pl-8">
-              <Link
-                href="/platform-overview"
-                className="text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
-              >
-                Platform Dossier
-              </Link>
-              <Link
-                href="/technical-overview"
-                className="text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
-              >
-                System Architecture
-              </Link>
+            {/* Desktop links */}
+            <div className="hidden lg:flex items-center gap-7">
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="text-[13px] font-medium text-slate-400 transition-colors duration-200 hover:text-white tracking-wide"
+                >
+                  {link.label}
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* RIGHT: Desktop actions + Mobile hamburger */}
+          {/* RIGHT: CTA + Mobile hamburger */}
           <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
             <a
-              href={`${APP_URL}/login`}
-              className="hidden sm:inline-block text-sm font-semibold text-gray-400 transition-colors hover:text-white tracking-wide"
-            >
-              Client Portal
-            </a>
-            <a
               href={`${APP_URL}/signup`}
-              className="hidden sm:inline-flex items-center gap-2 rounded-md bg-gold hover:bg-gold/90 px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors"
+              className="hidden sm:inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-bold text-[#0A0A0A] transition-colors"
+              style={{ backgroundColor: "#D4AF37" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ca8a04")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#D4AF37")}
             >
-              Request Access
+              Request Corporate Mandate
             </a>
 
             {/* Mobile hamburger — visible below lg */}
@@ -177,7 +180,7 @@ export function Navigation() {
       {/* ── Mobile Menu Panel ── */}
       <div
         ref={menuRef}
-        className={`fixed inset-y-0 right-0 z-[60] w-72 max-w-[85vw] bg-[#0A1128] border-l border-slate-800 shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
+        className={`fixed inset-y-0 right-0 z-[60] w-72 max-w-[85vw] bg-[#0A0A0A] border-l border-slate-800 shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
           mobileOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -186,7 +189,7 @@ export function Navigation() {
       >
         {/* Close button */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#D4AF37" }}>
             Navigation
           </span>
           <button
@@ -200,38 +203,26 @@ export function Navigation() {
 
         {/* Links */}
         <nav className="flex flex-col px-5 py-6 gap-1">
-          <Link
-            href="/platform-overview"
-            onClick={closeMobile}
-            className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <Globe className="h-4 w-4 text-gold" />
-            Platform Dossier
-          </Link>
-          <Link
-            href="/technical-overview"
-            onClick={closeMobile}
-            className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <FileText className="h-4 w-4 text-gold" />
-            System Architecture
-          </Link>
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              onClick={closeMobile}
+              className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              {link.label}
+            </a>
+          ))}
 
           <div className="h-px bg-slate-800 my-3" />
 
           <a
-            href={`${APP_URL}/login`}
-            onClick={closeMobile}
-            className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            Client Portal
-          </a>
-          <a
             href={`${APP_URL}/signup`}
             onClick={closeMobile}
-            className="mt-4 flex items-center justify-center gap-2 rounded-md bg-gold hover:bg-gold/90 px-5 py-3 text-sm font-bold text-slate-950 transition-colors active:scale-[0.98]"
+            className="mt-4 flex items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-bold text-[#0A0A0A] transition-colors active:scale-[0.98]"
+            style={{ backgroundColor: "#D4AF37" }}
           >
-            Request Access
+            Request Corporate Mandate
             <ArrowRight className="h-4 w-4" />
           </a>
         </nav>
@@ -1230,11 +1221,12 @@ function SiteFooter() {
    ================================================================ */
 export function MarketingLanding() {
   return (
-    <div className="min-h-screen bg-[#0A1128] text-white antialiased font-sans">
+    <div className="min-h-screen bg-[#0A0A0A] text-white antialiased font-sans">
       <Navigation />
       <HeroSection />
 
-      <TrustBand />
+      <InstitutionalTrustMarquee />
+      <InstitutionalInfrastructureGrid />
       <MarketWeaknessSection />
 
       {/* ── SWIFT vs Goldwire Comparison ── */}

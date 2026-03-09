@@ -826,3 +826,18 @@ body.presentation-mode .typo-mono {
   border-color: rgba(198, 168, 90, 0.4);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
 }
+
+/* ----------------------------------------------------------------
+   17. INSTITUTIONAL TRUST MARQUEE — Infinite horizontal scroll
+   ---------------------------------------------------------------- */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}

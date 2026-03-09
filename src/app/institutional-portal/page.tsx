@@ -1,4 +1,4 @@
-import { InstitutionalWizard } from "@/components/institutional/InstitutionalWizard";
+import InstitutionalWizard from "@/components/institutional/InstitutionalWizard";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

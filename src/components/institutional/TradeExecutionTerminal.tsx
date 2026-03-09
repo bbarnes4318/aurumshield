@@ -4,337 +4,286 @@ import { cn } from "@/lib/utils";
 import {
   Lock,
   TrendingUp,
-  AlertTriangle,
   Zap,
   BarChart3,
   ArrowRight,
+  Info,
+  X,
+  ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useWizardStore, computeFees } from "./wizard-store";
 
 /* ================================================================
-   TradeExecutionTerminal — Step 1
+   TradeExecutionTerminal — Step 2 (V2)
    ================================================================
-   "Price Lock" terminal. Real-time spot price, 400-oz bar quantity
-   selector, fee breakdown, and Lock Price CTA.
-   
-   Hardcoded "Wow" Data:
-   - Spot $5,171.92 with simulated fluctuations
-   - Default $100M order (~48 bars)
-   - Fee compression at 0.05% (5 bps)
+   - Dynamic tiered fees (inverse scaling)
+   - Fee compression info tooltip
+   - Frosted-glass price lock confirmation modal
+   - Post-confirmation cryptographic lock animation
+   - Zero scroll — fits in viewport
    ================================================================ */
 
 const TROY_OZ_PER_BAR = 400;
 const BASE_SPOT = 5171.92;
-const INSTITUTIONAL_PREMIUM_BPS = 5; // 0.05%
-const PLATFORM_FEE_BPS = 3; // 0.03%
 
-interface TradeExecutionTerminalProps {
-  barCount: number;
-  onBarCountChange: (count: number) => void;
-  onPriceLocked: () => void;
-}
+export function TradeExecutionTerminal() {
+  const {
+    barCount, setBarCount,
+    priceLocked, setPriceLocked,
+    spotPrice,
+    logisticsCost,
+    goNext,
+  } = useWizardStore();
 
-function useSpotPrice() {
-  const [spot, setSpot] = useState(BASE_SPOT);
-  const [prevSpot, setPrevSpot] = useState(BASE_SPOT);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSpot((prev) => {
-        setPrevSpot(prev);
-        const fluctuation = (Math.random() - 0.48) * 2.8;
-        return Math.max(prev + fluctuation, BASE_SPOT - 15);
-      });
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
-
-  return { spot, prevSpot, direction: spot >= prevSpot ? "up" : "down" };
-}
-
-export function TradeExecutionTerminal({
-  barCount,
-  onBarCountChange,
-  onPriceLocked,
-}: TradeExecutionTerminalProps) {
-  const { spot, direction } = useSpotPrice();
-  const [isLocked, setIsLocked] = useState(false);
+  const [liveSpot, setLiveSpot] = useState(spotPrice);
+  const [direction, setDirection] = useState<"up" | "down">("up");
+  const [showModal, setShowModal] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [showFeeTooltip, setShowFeeTooltip] = useState(false);
   const [lockCountdown, setLockCountdown] = useState(0);
 
-  const totalOz = barCount * TROY_OZ_PER_BAR;
-  const grossValue = totalOz * spot;
-  const institutionalPremium = grossValue * (INSTITUTIONAL_PREMIUM_BPS / 10000);
-  const platformFee = grossValue * (PLATFORM_FEE_BPS / 10000);
-  const totalAcquisition = grossValue + institutionalPremium + platformFee;
-  const totalTonnage = (totalOz * 31.1035) / 1_000_000; // troy oz to metric tonnes
+  useEffect(() => {
+    if (priceLocked) return;
+    const t = setInterval(() => {
+      setLiveSpot((prev) => {
+        const next = prev + (Math.random() - 0.48) * 2.8;
+        setDirection(next >= prev ? "up" : "down");
+        return Math.max(next, BASE_SPOT - 15);
+      });
+    }, 2500);
+    return () => clearInterval(t);
+  }, [priceLocked]);
 
-  const handleLockPrice = useCallback(() => {
-    setIsLocked(true);
+  const fees = computeFees(barCount, liveSpot, logisticsCost);
+  const totalOz = barCount * TROY_OZ_PER_BAR;
+
+  const handleLockClick = useCallback(() => setShowModal(true), []);
+
+  const handleConfirmLock = useCallback(() => {
+    setShowModal(false);
+    setPriceLocked(true);
     setLockCountdown(120);
-  }, []);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  }, [setPriceLocked]);
 
   useEffect(() => {
-    if (!isLocked || lockCountdown <= 0) return;
+    if (!priceLocked || lockCountdown <= 0) return;
     const t = setInterval(() => {
-      setLockCountdown((c) => {
-        if (c <= 1) {
-          clearInterval(t);
-          return 0;
-        }
-        return c - 1;
-      });
+      setLockCountdown((c) => (c <= 1 ? 0 : c - 1));
     }, 1000);
     return () => clearInterval(t);
-  }, [isLocked, lockCountdown]);
+  }, [priceLocked, lockCountdown]);
 
   const fmtUSD = (n: number) =>
-    n.toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-
-  const fmtBPS = (bps: number) => `${bps} bps (${(bps / 100).toFixed(2)}%)`;
+    n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.35 }}
-      className="space-y-6 p-6"
-    >
-      {/* ── Step Header ── */}
-      <div>
-        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-gold/60">
-          — Step 1 of 5
-        </p>
-        <h2 className="font-heading text-2xl font-bold tracking-tight text-white mt-1">
+    <div className="flex h-full flex-col p-4 overflow-hidden">
+      {/* Header */}
+      <div className="mb-3 shrink-0">
+        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-gold/60">Step 2 of 6</p>
+        <h2 className="font-heading text-xl font-bold tracking-tight text-white mt-0.5">
           Trade Execution & Asset Allocation
         </h2>
-        <p className="text-sm text-slate-400 mt-1">
-          Lock the institutional spot price and configure your LBMA Good
-          Delivery bar allocation.
-        </p>
       </div>
 
-      {/* ── Live Price Terminal ── */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-gold" />
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-              Gold Spot Price (XAU/USD)
-            </span>
+      {/* Main grid — 2x2 */}
+      <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
+        {/* ── Live Price ── */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-gold" />
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">XAU/USD Spot</span>
+            </div>
+            <span className={cn("h-1.5 w-1.5 rounded-full", priceLocked ? "bg-emerald-400" : "bg-gold animate-pulse")} />
           </div>
-          <div className="flex items-center gap-1.5">
-            <span
-              className={cn(
-                "h-2 w-2 rounded-full",
-                isLocked ? "bg-emerald-400" : "bg-gold animate-pulse"
-              )}
-            />
-            <span className="font-mono text-[10px] text-slate-500">
-              {isLocked ? "PRICE LOCKED" : "LIVE FEED"}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-baseline gap-4">
-          <span
-            className={cn(
-              "font-mono text-4xl font-bold tabular-nums text-white transition-colors duration-300",
-              direction === "up" && !isLocked && "text-emerald-300",
-              direction === "down" && !isLocked && "text-red-300"
-            )}
-          >
-            {fmtUSD(spot)}
+          <span className={cn(
+            "font-mono text-3xl font-bold tabular-nums text-white transition-colors",
+            !priceLocked && direction === "up" && "text-emerald-300",
+            !priceLocked && direction === "down" && "text-red-300"
+          )}>
+            {fmtUSD(liveSpot)}
           </span>
-          <span className="font-mono text-xs text-slate-500">/ troy oz</span>
-        </div>
+          <span className="font-mono text-[9px] text-slate-600 mt-0.5">/ troy oz</span>
 
-        <div className="mt-3 flex items-center gap-4">
-          <div className="flex items-center gap-1.5 rounded bg-slate-800/50 px-2.5 py-1">
-            <span className="text-[10px] text-slate-500">
-              Institutional Premium
-            </span>
-            <span className="font-mono text-[10px] font-semibold text-gold">
-              {fmtBPS(INSTITUTIONAL_PREMIUM_BPS)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded bg-slate-800/50 px-2.5 py-1">
-            <span className="text-[10px] text-slate-500">Platform Fee</span>
-            <span className="font-mono text-[10px] font-semibold text-slate-300">
-              {fmtBPS(PLATFORM_FEE_BPS)}
-            </span>
-          </div>
-        </div>
-
-        {isLocked && lockCountdown > 0 && (
-          <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-800/40 bg-emerald-950/20 px-3 py-2">
-            <Lock className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="text-xs text-emerald-300">
-              Price locked for{" "}
-              <span className="font-mono font-bold tabular-nums">
-                {Math.floor(lockCountdown / 60)}:
-                {(lockCountdown % 60).toString().padStart(2, "0")}
+          {priceLocked && lockCountdown > 0 && (
+            <div className="mt-2 flex items-center gap-1.5 rounded bg-emerald-950/30 border border-emerald-800/30 px-2.5 py-1.5">
+              <Lock className="h-3 w-3 text-emerald-400" />
+              <span className="text-[10px] text-emerald-300">
+                Locked — {Math.floor(lockCountdown / 60)}:{(lockCountdown % 60).toString().padStart(2, "0")}
               </span>
-            </span>
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
 
-      {/* ── Asset Allocation ── */}
-      <div className="grid grid-cols-2 gap-5">
-        {/* Bar Selection */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-3">
+        {/* ── Bar Selector ── */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 flex flex-col">
+          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 mb-2">
             LBMA Good Delivery 400-oz Bars
           </p>
-
-          <div className="flex items-center gap-4 mb-4">
-            <button
-              type="button"
-              onClick={() => onBarCountChange(Math.max(1, barCount - 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-lg font-bold text-white transition hover:border-gold/50 hover:bg-slate-700"
-            >
-              −
-            </button>
-            <input
-              type="number"
-              value={barCount}
-              onChange={(e) =>
-                onBarCountChange(Math.max(1, parseInt(e.target.value) || 1))
-              }
-              className="h-12 w-24 rounded-lg border border-gold/30 bg-slate-950 text-center font-mono text-2xl font-bold tabular-nums text-white focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold/30"
-            />
-            <button
-              type="button"
-              onClick={() => onBarCountChange(barCount + 1)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-lg font-bold text-white transition hover:border-gold/50 hover:bg-slate-700"
-            >
-              +
-            </button>
+          <div className="flex items-center gap-3 mb-3">
+            <button type="button" onClick={() => setBarCount(barCount - 1)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-sm font-bold text-white hover:border-gold/50">−</button>
+            <input type="number" value={barCount}
+              onChange={(e) => setBarCount(parseInt(e.target.value) || 1)}
+              className="h-10 w-20 rounded-lg border border-gold/30 bg-slate-950 text-center font-mono text-xl font-bold tabular-nums text-white focus:border-gold focus:outline-none" />
+            <button type="button" onClick={() => setBarCount(barCount + 1)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-sm font-bold text-white hover:border-gold/50">+</button>
           </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Total Troy Ounces</span>
-              <span className="font-mono font-semibold tabular-nums text-white">
-                {totalOz.toLocaleString()} oz
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Total Tonnage</span>
-              <span className="font-mono font-semibold tabular-nums text-white">
-                {totalTonnage.toFixed(3)} MT
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Bar Specification</span>
-              <span className="font-mono text-xs text-slate-400">
-                995+ Fine · 350–430 oz
-              </span>
-            </div>
+          <div className="space-y-1 text-[11px]">
+            <div className="flex justify-between"><span className="text-slate-500">Troy Ounces</span><span className="font-mono tabular-nums text-white">{totalOz.toLocaleString()} oz</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Tonnage</span><span className="font-mono tabular-nums text-white">{((totalOz * 31.1035) / 1e6).toFixed(3)} MT</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Specification</span><span className="font-mono text-[10px] text-slate-400">995+ Fine · 350–430 oz</span></div>
           </div>
         </div>
 
-        {/* Fee Breakdown */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-          <div className="flex items-center gap-2 mb-3">
+        {/* ── Fee Breakdown ── */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 flex flex-col">
+          <div className="flex items-center gap-1.5 mb-2">
             <BarChart3 className="h-3.5 w-3.5 text-gold" />
-            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500">
-              Fee Breakdown
-            </p>
+            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">Fee Structure</p>
+            <button type="button" className="ml-auto relative"
+              onMouseEnter={() => setShowFeeTooltip(true)}
+              onMouseLeave={() => setShowFeeTooltip(false)}>
+              <Info className="h-3 w-3 text-gold/40 hover:text-gold" />
+              {showFeeTooltip && (
+                <div className="absolute bottom-full right-0 mb-2 w-64 rounded-lg border border-slate-700 bg-slate-900 p-3 text-[10px] text-slate-300 shadow-xl z-50">
+                  As your volume scales, execution friction compresses. You are accessing
+                  direct wholesale OTC pricing — bypassing retail spreads entirely.
+                </div>
+              )}
+            </button>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-400">
-                Gross Value ({totalOz.toLocaleString()} oz × spot)
-              </span>
-              <span className="font-mono text-sm font-semibold tabular-nums text-white">
-                {fmtUSD(grossValue)}
-              </span>
+          <div className="space-y-1.5 text-[11px] flex-1">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Gross Value</span>
+              <span className="font-mono tabular-nums text-white">{fmtUSD(fees.grossValue)}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-400">
-                Institutional Premium ({INSTITUTIONAL_PREMIUM_BPS} bps)
-              </span>
-              <span className="font-mono text-sm tabular-nums text-gold">
-                +{fmtUSD(institutionalPremium)}
-              </span>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Platform Fee ({fees.platformFeeBps} bps)</span>
+              <span className="font-mono tabular-nums text-gold">+{fmtUSD(fees.platformFee)}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-400">
-                Platform Fee ({PLATFORM_FEE_BPS} bps)
-              </span>
-              <span className="font-mono text-sm tabular-nums text-slate-400">
-                +{fmtUSD(platformFee)}
-              </span>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Physical Premium ({fees.physicalPremiumBps} bps)</span>
+              <span className="font-mono tabular-nums text-slate-300">+{fmtUSD(fees.physicalPremium)}</span>
             </div>
-
             <hr className="border-slate-800" />
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-white">
-                Total Acquisition Capital
-              </span>
-              <span className="font-mono text-xl font-bold tabular-nums text-gold">
-                {fmtUSD(totalAcquisition)}
-              </span>
+            <div className="flex justify-between">
+              <span className="text-sm font-semibold text-white">Total Capital</span>
+              <span className="font-mono text-base font-bold tabular-nums text-gold">{fmtUSD(fees.subtotal)}</span>
             </div>
           </div>
 
-          {/* Fee compression callout */}
-          <div className="mt-4 flex items-center gap-2 rounded-lg border border-gold/20 bg-gold/5 px-3 py-2">
-            <Zap className="h-3.5 w-3.5 text-gold" />
-            <span className="text-[10px] text-gold">
-              Institutional fee compression:{" "}
-              <span className="font-mono font-bold">
-                {((INSTITUTIONAL_PREMIUM_BPS + PLATFORM_FEE_BPS) / 100).toFixed(
-                  2
-                )}
-                %
-              </span>{" "}
-              all-in — vs. 1.5–3% retail
+          <div className="mt-2 flex items-center gap-1.5 rounded border border-gold/15 bg-gold/5 px-2.5 py-1.5">
+            <Zap className="h-3 w-3 text-gold" />
+            <span className="text-[9px] text-gold">
+              All-in: <span className="font-mono font-bold">{((fees.platformFeeBps + fees.physicalPremiumBps) / 100).toFixed(2)}%</span> — vs 1.5–3% retail
             </span>
           </div>
         </div>
+
+        {/* ── Action Panel ── */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 flex flex-col justify-end">
+          {!priceLocked ? (
+            <button type="button" onClick={handleLockClick}
+              className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-gold py-3.5 text-sm font-bold uppercase tracking-wider text-black hover:shadow-[0_0_30px_rgba(198,168,107,0.25)] transition-all">
+              <Lock className="h-4 w-4" />
+              Lock Institutional Price
+            </button>
+          ) : (
+            <button type="button" onClick={goNext}
+              className="w-full flex items-center justify-center gap-2.5 rounded-xl border-2 border-emerald-500/50 bg-emerald-950/30 py-3.5 text-sm font-bold uppercase tracking-wider text-emerald-300 hover:bg-emerald-950/50 transition-all">
+              <ArrowRight className="h-4 w-4" />
+              Proceed to Logistics
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* ── Lock Price CTA ── */}
-      {!isLocked ? (
-        <button
-          type="button"
-          onClick={handleLockPrice}
-          className="flex w-full items-center justify-center gap-3 rounded-xl bg-gold py-4 text-sm font-bold uppercase tracking-wider text-black transition-all hover:bg-gold-hover hover:shadow-[0_0_30px_rgba(198,168,107,0.25)]"
-        >
-          <Lock className="h-4 w-4" />
-          Lock Institutional Price — {fmtUSD(totalAcquisition)}
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={onPriceLocked}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-emerald-500/50 bg-emerald-950/30 py-4 text-sm font-bold uppercase tracking-wider text-emerald-300 transition-all hover:bg-emerald-950/50"
-        >
-          <ArrowRight className="h-4 w-4" />
-          Proceed to Logistics Routing
-        </button>
-      )}
+      {/* ══════ Frosted-Glass Price Lock Modal ══════ */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="w-[440px] rounded-2xl border border-slate-700/60 bg-slate-900/95 backdrop-blur-lg p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <Lock className="h-5 w-5 text-gold" />
+                  <h3 className="font-heading text-lg font-bold text-white">Confirm Execution</h3>
+                </div>
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-800 hover:text-white transition">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
 
-      {/* ── Warning ── */}
-      <div className="flex items-center gap-2 text-[10px] text-slate-600">
-        <AlertTriangle className="h-3 w-3" />
-        <span>
-          All prices denominated in USD. Settlement subject to T+0 via Goldwire
-          or T+2 via traditional wire. Past performance is not indicative of
-          future results.
-        </span>
-      </div>
-    </motion.div>
+              <div className="rounded-lg border border-slate-800 bg-slate-950/80 p-4 mb-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Asset</span>
+                  <span className="font-mono text-white">{barCount} × 400oz LBMA Bars</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Locked Price</span>
+                  <span className="font-mono text-white">{fmtUSD(liveSpot)} / oz</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Total Capital</span>
+                  <span className="font-mono font-bold text-gold">{fmtUSD(fees.subtotal)}</span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-500 mb-4">
+                By clicking confirm, you are locking the institutional spot price
+                for 120 seconds. This action cannot be undone.
+              </p>
+
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="flex-1 rounded-xl border border-slate-700 bg-slate-800/50 py-3 text-sm font-medium text-slate-400 transition hover:bg-slate-800">
+                  Cancel
+                </button>
+                <button type="button" onClick={handleConfirmLock}
+                  className="flex-1 rounded-xl bg-gold py-3 text-sm font-bold uppercase tracking-wider text-black transition hover:shadow-[0_0_25px_rgba(198,168,107,0.3)]">
+                  Confirm & Lock
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════ "Execution Secured" Toast ══════ */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            className="fixed bottom-6 right-[310px] z-50 flex items-center gap-2.5 rounded-xl border border-emerald-500/40 bg-emerald-950/90 backdrop-blur-md px-5 py-3 shadow-xl"
+          >
+            <ShieldCheck className="h-5 w-5 text-emerald-400" />
+            <div>
+              <p className="text-sm font-bold text-emerald-300">Execution Secured</p>
+              <p className="font-mono text-[9px] text-emerald-500/60">Price locked at {fmtUSD(liveSpot)} for 120s</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
