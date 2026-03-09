@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, useCallback, useTransition, useMemo } from "react";
-import { Banknote, Hexagon, Shield, Copy, Check, ArrowLeft, Loader2, Truck, Lock } from "lucide-react";
-import { calculateArmoredFreight, type ArmoredFreightQuote } from "@/lib/services/brinks-service";
+import { useState, useCallback, useTransition } from "react";
+import { Banknote, Hexagon, Shield, Copy, Check, ArrowLeft, Loader2, Truck, Lock, ShieldCheck } from "lucide-react";
+import {
+  verifyAddressAndQuote,
+  type FreightQuoteResult,
+  type FreightAddress,
+} from "@/actions/logistics";
 import {
   generateFiatDepositInstructions,
   generateDigitalDepositInstructions,
@@ -101,6 +105,16 @@ type TerminalView =
    SETTLEMENT DESTINATION
    ================================================================ */
 type SettlementDest = "vault" | "physical";
+type AddressType = "commercial" | "residential";
+
+/* ── US State Options ── */
+const US_STATES = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
+  "HI","ID","IL","IN","IA","KS","KY","LA","ME","MD",
+  "MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC",
+  "SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
+] as const;
 
 /* ================================================================
    PAGE
@@ -111,34 +125,64 @@ export default function TransactionsPage() {
   const [isPending, startTransition] = useTransition();
   const [pendingRail, setPendingRail] = useState<"fedwire" | "stablecoin" | null>(null);
   const [settlementDest, setSettlementDest] = useState<SettlementDest>("vault");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [_freightQuote, setFreightQuote] = useState<ArmoredFreightQuote | null>(null);
+
+  /* ── Structured Address Form ── */
+  const [addrStreet, setAddrStreet] = useState("");
+  const [addrCity, setAddrCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+  const [addrZip, setAddrZip] = useState("");
+  const [addrType, setAddrType] = useState<AddressType>("commercial");
+
+  /* ── Freight Quote State ── */
+  const [freightQuote, setFreightQuote] = useState<FreightQuoteResult | null>(null);
+  const [freightPending, setFreightPending] = useState(false);
+  const [freightError, setFreightError] = useState<string | null>(null);
+  const [routeVerified, setRouteVerified] = useState(false);
+
   const amount = parseAmount(rawValue);
 
-  /* ── Derived logistics premium (live-calculated) ── */
-  const logisticsPremium = useMemo(() => {
-    if (settlementDest !== "physical" || amount <= 0) return 0;
-    // Deterministic client-side mirror: $2,500 flat + 0.15% of notional
-    return 2_500 + amount * 0.0015;
-  }, [settlementDest, amount]);
+  /* ── Derived totals ── */
+  const totalLogisticsFee = routeVerified && freightQuote ? freightQuote.totalLogisticsFee : 0;
+  const totalAmountDue = settlementDest === "physical" ? amount + totalLogisticsFee : amount;
 
-  const totalAmountDue = useMemo(() => {
-    return settlementDest === "physical" ? amount + logisticsPremium : amount;
-  }, [amount, logisticsPremium, settlementDest]);
-
-  /** Recalculate freight when destination or amount changes */
+  /** Toggle destination — reset quote when switching */
   const handleDestinationChange = useCallback(
     (dest: SettlementDest) => {
       setSettlementDest(dest);
-      if (dest === "physical" && amount > 0) {
-        // Fire & forget — update freight quote in background
-        calculateArmoredFreight(amount, deliveryAddress || "TBD").then(setFreightQuote);
-      } else {
-        setFreightQuote(null);
-      }
+      setFreightQuote(null);
+      setFreightError(null);
+      setRouteVerified(false);
     },
-    [amount, deliveryAddress],
+    [],
   );
+
+  /** Verify Route & Calculate Freight — calls the live server action */
+  const handleVerifyRoute = useCallback(() => {
+    if (!addrZip || amount <= 0) return;
+    setFreightPending(true);
+    setFreightError(null);
+    setRouteVerified(false);
+    setFreightQuote(null);
+
+    const address: FreightAddress = {
+      streetAddress: addrStreet,
+      city: addrCity,
+      state: addrState,
+      zipCode: addrZip,
+      addressType: addrType,
+    };
+
+    verifyAddressAndQuote(address, amount)
+      .then((quote) => {
+        setFreightQuote(quote);
+        setRouteVerified(true);
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        setFreightError(msg);
+      })
+      .finally(() => setFreightPending(false));
+  }, [addrStreet, addrCity, addrState, addrZip, addrType, amount]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -567,69 +611,219 @@ export default function TransactionsPage() {
             <div
               className={`overflow-hidden transition-all duration-300 ease-in-out ${
                 settlementDest === "physical"
-                  ? "max-h-[280px] opacity-100 mb-5"
+                  ? "max-h-[600px] opacity-100 mb-4"
                   : "max-h-0 opacity-0 mb-0"
               }`}
             >
-              <div className="rounded-xl border border-slate-800/60 bg-slate-950/40 px-4 py-4 space-y-4">
-                {/* Secure Delivery Address */}
+              <div className="rounded-xl border border-slate-800/60 bg-slate-950/40 px-4 py-3 space-y-3">
+
+                {/* ── Route Verified Badge ── */}
+                {routeVerified && (
+                  <div className="flex items-center gap-2 rounded-lg border border-emerald-700/40 bg-emerald-950/30 px-3 py-2">
+                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                    <span className="text-xs font-bold tracking-wide text-emerald-400 uppercase">
+                      Route Verified
+                    </span>
+                    {freightQuote && (
+                      <span className="ml-auto font-mono text-xs font-semibold tabular-nums text-emerald-500/70">
+                        {freightQuote.distanceMiles.toLocaleString()} mi
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Address Form ── */}
                 <div>
                   <label
-                    htmlFor="delivery-address"
-                    className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-slate-500"
+                    htmlFor="addr-street"
+                    className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-500"
                   >
-                    Secure Delivery Address
+                    Street Address
                   </label>
                   <input
-                    id="delivery-address"
+                    id="addr-street"
                     type="text"
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                    placeholder="Sub-custodian facility or bonded warehouse address"
+                    value={addrStreet}
+                    onChange={(e) => { setAddrStreet(e.target.value); setRouteVerified(false); }}
+                    readOnly={routeVerified}
+                    placeholder="123 Vault Street, Suite 400"
                     autoComplete="off"
-                    className="w-full rounded-lg border border-slate-700/60 bg-slate-950/80 px-4 py-2.5 text-sm font-medium text-slate-200 placeholder:text-slate-600 outline-none transition-colors focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                    className={`w-full rounded-lg border bg-slate-950/80 px-3 py-2 text-sm font-medium text-slate-200 placeholder:text-slate-600 outline-none transition-colors ${
+                      routeVerified
+                        ? "border-emerald-800/30 bg-emerald-950/10 cursor-not-allowed"
+                        : "border-slate-700/60 focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                    }`}
                   />
                 </div>
 
-                <div className="h-px bg-slate-800/60" />
-
-                {/* Logistics Premium Breakdown */}
-                <div className="space-y-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                    Logistics Premium
-                  </span>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Armored Transport Base</span>
-                    <span className="font-mono text-sm font-semibold tabular-nums text-slate-300">
-                      $2,500.00
-                    </span>
+                <div className="grid grid-cols-5 gap-2">
+                  <div className="col-span-2">
+                    <label htmlFor="addr-city" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-500">City</label>
+                    <input
+                      id="addr-city"
+                      type="text"
+                      value={addrCity}
+                      onChange={(e) => { setAddrCity(e.target.value); setRouteVerified(false); }}
+                      readOnly={routeVerified}
+                      placeholder="New York"
+                      autoComplete="off"
+                      className={`w-full rounded-lg border bg-slate-950/80 px-3 py-2 text-sm font-medium text-slate-200 placeholder:text-slate-600 outline-none transition-colors ${
+                        routeVerified
+                          ? "border-emerald-800/30 bg-emerald-950/10 cursor-not-allowed"
+                          : "border-slate-700/60 focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                      }`}
+                    />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Insurance Ad-Valorem (0.15%)</span>
-                    <span className="font-mono text-sm font-semibold tabular-nums text-slate-300">
-                      ${formatUSD(amount * 0.0015)}
-                    </span>
+                  <div>
+                    <label htmlFor="addr-state" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-500">State</label>
+                    <select
+                      id="addr-state"
+                      value={addrState}
+                      onChange={(e) => { setAddrState(e.target.value); setRouteVerified(false); }}
+                      disabled={routeVerified}
+                      className={`w-full rounded-lg border bg-slate-950/80 px-2 py-2 text-sm font-medium text-slate-200 outline-none transition-colors appearance-none ${
+                        routeVerified
+                          ? "border-emerald-800/30 bg-emerald-950/10 cursor-not-allowed"
+                          : "border-slate-700/60 focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                      }`}
+                    >
+                      <option value="" className="bg-slate-900">—</option>
+                      {US_STATES.map((s) => (
+                        <option key={s} value={s} className="bg-slate-900">{s}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="h-px bg-slate-800/40" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-amber-500/80">Total Logistics Premium</span>
-                    <span className="font-mono text-sm font-bold tabular-nums text-amber-400">
-                      ${formatUSD(logisticsPremium)}
-                    </span>
+                  <div className="col-span-2">
+                    <label htmlFor="addr-zip" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-500">Zip Code</label>
+                    <input
+                      id="addr-zip"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={5}
+                      value={addrZip}
+                      onChange={(e) => { setAddrZip(e.target.value.replace(/\D/g, "").slice(0, 5)); setRouteVerified(false); }}
+                      readOnly={routeVerified}
+                      placeholder="10005"
+                      autoComplete="off"
+                      className={`w-full rounded-lg border bg-slate-950/80 px-3 py-2 text-sm font-mono font-semibold tabular-nums text-slate-200 placeholder:text-slate-600 outline-none transition-colors ${
+                        routeVerified
+                          ? "border-emerald-800/30 bg-emerald-950/10 cursor-not-allowed"
+                          : "border-slate-700/60 focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                      }`}
+                    />
                   </div>
                 </div>
 
-                <div className="h-px bg-slate-800/60" />
-
-                {/* Updated Total Amount Due */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                    Total Amount Due
-                  </span>
-                  <span className="font-mono text-lg font-bold tabular-nums text-white">
-                    ${formatUSD(totalAmountDue)}
-                  </span>
+                {/* ── Address Type Toggle ── */}
+                <div>
+                  <span className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-500">Address Type</span>
+                  <div className="grid grid-cols-2 gap-0 rounded-lg border border-slate-700/60 bg-slate-950/60 p-0.5">
+                    <button
+                      id="addr-type-commercial"
+                      type="button"
+                      onClick={() => { if (!routeVerified) setAddrType("commercial"); }}
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                        addrType === "commercial"
+                          ? "bg-slate-800 text-slate-100 shadow-inner shadow-black/20"
+                          : "text-slate-500 hover:text-slate-300"
+                      }`}
+                    >
+                      Commercial
+                    </button>
+                    <button
+                      id="addr-type-residential"
+                      type="button"
+                      onClick={() => { if (!routeVerified) setAddrType("residential"); }}
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                        addrType === "residential"
+                          ? "bg-slate-800 text-slate-100 shadow-inner shadow-black/20"
+                          : "text-slate-500 hover:text-slate-300"
+                      }`}
+                    >
+                      Residential
+                    </button>
+                  </div>
                 </div>
+
+                {/* ── Error Display ── */}
+                {freightError && (
+                  <div className="rounded-lg border border-red-800/40 bg-red-950/20 px-3 py-2">
+                    <p className="text-xs font-medium leading-relaxed text-red-400">{freightError}</p>
+                  </div>
+                )}
+
+                {/* ── Verify Route Button (shown when NOT verified) ── */}
+                {!routeVerified && (
+                  <button
+                    id="verify-route"
+                    type="button"
+                    onClick={handleVerifyRoute}
+                    disabled={freightPending || !addrZip || amount <= 0}
+                    className="group flex w-full items-center justify-center gap-2.5 rounded-xl border border-amber-700/40 bg-amber-950/20 px-4 py-3 text-sm font-bold tracking-wide text-amber-400 uppercase transition-all hover:border-amber-600/60 hover:bg-amber-950/30 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {freightPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Pinging Armored Logistics Network...
+                      </>
+                    ) : (
+                      <>
+                        <Truck className="h-4 w-4" />
+                        Verify Route &amp; Calculate Freight
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* ── Verified Quote Breakdown ── */}
+                {routeVerified && freightQuote && (
+                  <>
+                    <div className="h-px bg-slate-800/60" />
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                        Logistics Premium
+                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">Dispatch Base</span>
+                        <span className="font-mono text-sm font-semibold tabular-nums text-slate-300">
+                          ${formatUSD(freightQuote.baseDispatch)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">
+                          Transit Mileage ({freightQuote.distanceMiles.toLocaleString()} mi × $4.50)
+                        </span>
+                        <span className="font-mono text-sm font-semibold tabular-nums text-slate-300">
+                          ${formatUSD(freightQuote.mileageSurcharge)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">Lloyd&apos;s Insurance (15bps)</span>
+                        <span className="font-mono text-sm font-semibold tabular-nums text-slate-300">
+                          ${formatUSD(freightQuote.insurancePremium)}
+                        </span>
+                      </div>
+                      <div className="h-px bg-slate-800/40" />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-amber-500/80">Total Logistics Fee</span>
+                        <span className="font-mono text-sm font-bold tabular-nums text-amber-400">
+                          ${formatUSD(freightQuote.totalLogisticsFee)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-slate-800/60" />
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                        Total Amount Due
+                      </span>
+                      <span className="font-mono text-lg font-bold tabular-nums text-white">
+                        ${formatUSD(totalAmountDue)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
