@@ -22,6 +22,7 @@ import {
   Activity,
   FileText,
   RotateCcw,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -370,6 +371,69 @@ function SettlementDetailContent() {
                     </span>
                   </div>
                 </div>
+
+                {/* ── STP: Automated Logistics Handoff ── */}
+                {clearResult.dispatchResult && (
+                  <div className="w-full max-w-md mt-4">
+                    <div className="border-t border-emerald-500/20 pt-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-emerald-400" />
+                        <span
+                          className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-400"
+                          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                        >
+                          Automated Logistics Handoff
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                          <span className="text-emerald-300">Brink&apos;s API Pinged</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                          <span className="text-emerald-300">Waybill Auto-Generated</span>
+                          <span
+                            className="ml-auto text-emerald-500/70 font-mono text-[10px]"
+                            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                          >
+                            {clearResult.dispatchResult.waybillId}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="rounded border border-emerald-500/20 bg-emerald-950/30 px-3 py-2 space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-emerald-400/60">Carrier</span>
+                          <span className="text-emerald-300 font-semibold">
+                            {clearResult.dispatchResult.carrier}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-emerald-400/60">Tracking #</span>
+                          <span
+                            className="text-emerald-300 font-bold"
+                            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                          >
+                            {clearResult.dispatchResult.trackingNumber}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-emerald-400/60">Status</span>
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            {clearResult.dispatchResult.logisticsStatus.replace("_", " ")}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-emerald-400/60">Est. Transit</span>
+                          <span className="text-emerald-300 tabular-nums">
+                            {clearResult.dispatchResult.estimatedTransitDays} business days
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

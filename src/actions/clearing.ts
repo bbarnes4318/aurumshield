@@ -1,16 +1,69 @@
 "use server";
 
 /* ================================================================
-   ADMIN CLEARING — Concierge Settlement Operations
+   ADMIN CLEARING — Straight-Through Processing (STP)
    ================================================================
    Server action for manual fund verification in the Concierge
-   Settlement model. An admin verifies receipt of inbound wire/crypto
-   funds in the corporate treasury, then triggers the state machine
-   to advance the settlement to SETTLED.
+   Settlement model. When an admin verifies receipt of inbound
+   wire/crypto funds, the system:
+
+     1. Advances settlement to SETTLED
+     2. If physical delivery is configured (freightCostUsd > 0),
+        automatically dispatches Brink's armored carrier via STP
+
+   One button. One transaction. Zero manual logistics dispatch.
 
    This file runs ENTIRELY on the server — no secrets are exposed
    to the client.
    ================================================================ */
+
+/* ---------- Brink's API Simulation ---------- */
+
+/**
+ * Simulate a Brink's Global Services API call to generate a waybill
+ * and dispatch an armored carrier.
+ *
+ * Returns a deterministic tracking number:
+ *   BRK-US-{ZipCode}-{Random4Digits}
+ *
+ * TODO: Replace with live Brink's API integration when contracts
+ * are finalized with Brink's / Malca-Amit.
+ */
+function simulateBrinksAPI(destinationZip: string): {
+  trackingNumber: string;
+  carrier: string;
+  waybillId: string;
+  estimatedTransitDays: number;
+} {
+  const rand4 = String(Math.floor(1000 + Math.random() * 9000));
+  const zip = destinationZip || "00000";
+  const trackingNumber = `BRK-US-${zip}-${rand4}`;
+  const waybillId = `WB-${Date.now().toString(36).toUpperCase()}-${rand4}`;
+
+  return {
+    trackingNumber,
+    carrier: "Brink's Global Services",
+    waybillId,
+    estimatedTransitDays: 3,
+  };
+}
+
+/* ---------- Types ---------- */
+
+export interface DispatchResult {
+  /** Carrier name (e.g., "Brink's Global Services") */
+  carrier: string;
+  /** Tracking number (e.g., BRK-US-10005-4821) */
+  trackingNumber: string;
+  /** Waybill ID for the generated shipment */
+  waybillId: string;
+  /** ISO 8601 timestamp of the automated dispatch */
+  dispatchedAt: string;
+  /** Current logistics status */
+  logisticsStatus: "IN_TRANSIT";
+  /** Estimated transit window in business days */
+  estimatedTransitDays: number;
+}
 
 /** Structured result returned after a manual clearing operation. */
 export interface ClearFundsResult {
@@ -26,28 +79,35 @@ export interface ClearFundsResult {
   adminNotes: string;
   /** Error message if the operation failed. */
   error?: string;
+  /** STP dispatch result — populated when physical delivery is configured */
+  dispatchResult?: DispatchResult;
 }
 
 /**
  * Manually clear funds for a settlement in AWAITING_FUNDS status.
  *
  * Called from the Operations Control Panel on the settlement detail
- * page. The admin has verified receipt of inbound funds (wire or
- * stablecoin) in the corporate treasury and is authorizing the
- * state machine to advance the settlement to SETTLED.
+ * page. If physical delivery is configured (freightCostUsd > 0),
+ * the system automatically dispatches Brink's armored carrier
+ * in the same transaction via Straight-Through Processing.
  *
  * TODO: Replace simulated delay with actual database update:
  *   1. Verify settlement exists and is in AWAITING_FUNDS status
  *   2. Update settlement_cases SET status = 'SETTLED'
  *   3. Insert ledger entry (FUNDS_DEPOSITED + STATUS_CHANGED)
- *   4. Record admin audit trail
+ *   4. If physical delivery: auto-dispatch + update logistics status
+ *   5. Record admin audit trail
  *
- * @param settlementId — AurumShield settlement ID to clear
- * @param adminNotes   — Audit notes (e.g., "Wire received via Chase")
+ * @param settlementId   — AurumShield settlement ID to clear
+ * @param adminNotes     — Audit notes (e.g., "Wire received via Chase")
+ * @param freightCostUsd — Total logistics fee (> 0 triggers STP dispatch)
+ * @param destinationZip — Delivery zip code for Brink's routing
  */
 export async function manuallyClearFunds(
   settlementId: string,
   adminNotes: string,
+  freightCostUsd?: number,
+  destinationZip?: string,
 ): Promise<ClearFundsResult> {
   /* ── Validate inputs ── */
   if (!settlementId?.trim()) {
@@ -87,11 +147,38 @@ export async function manuallyClearFunds(
       `at ${clearedAt} by admin`,
   );
 
+  /* ── STP: Automated Brink's Dispatch (same transaction) ── */
+  let dispatchResult: DispatchResult | undefined;
+
+  if (freightCostUsd && freightCostUsd > 0 && destinationZip) {
+    console.log(
+      `[AurumShield] STP: Physical delivery detected (freight=$${freightCostUsd.toFixed(2)}). ` +
+        `Auto-dispatching Brink's to ZIP ${destinationZip}...`,
+    );
+
+    const brinksResponse = simulateBrinksAPI(destinationZip);
+
+    dispatchResult = {
+      carrier: brinksResponse.carrier,
+      trackingNumber: brinksResponse.trackingNumber,
+      waybillId: brinksResponse.waybillId,
+      dispatchedAt: new Date().toISOString(),
+      logisticsStatus: "IN_TRANSIT",
+      estimatedTransitDays: brinksResponse.estimatedTransitDays,
+    };
+
+    console.log(
+      `[AurumShield] STP: Brink's API pinged → tracking=${dispatchResult.trackingNumber} ` +
+        `waybill=${dispatchResult.waybillId} status=IN_TRANSIT`,
+    );
+  }
+
   return {
     success: true,
     settlementId,
     newStatus: "SETTLED",
     clearedAt,
     adminNotes: adminNotes.trim(),
+    dispatchResult,
   };
 }
