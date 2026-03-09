@@ -8,8 +8,9 @@ import * as THREE from "three";
 /* ================================================================
    INSTITUTIONAL BAR SHOWCASE
    ================================================================
-   Interactive 3D visualization of a 400-oz LBMA Good Delivery bar
-   with HUD-style hallmark annotations.
+   Interactive 3D visualization of a 400-oz LBMA Good Delivery bar.
+   Clean SaaS layout with generous whitespace, clear typography
+   hierarchy, and a responsive spec-card grid.
    ================================================================ */
 
 /* ── Hallmark annotation data ── */
@@ -36,6 +37,34 @@ const HALLMARKS = [
   },
 ] as const;
 
+/* ── Spec card data ── */
+const SPEC_CARDS = [
+  {
+    label: "Gross Weight",
+    value: "400.000",
+    unit: "troy oz",
+    detail: "Cast ingot, LBMA tolerance ±0.025%",
+  },
+  {
+    label: "Purity",
+    value: "999.9",
+    unit: "fineness",
+    detail: "Minimum 995.0 per Good Delivery standard",
+  },
+  {
+    label: "Standard",
+    value: "LBMA GD",
+    unit: "certified",
+    detail: "London Bullion Market Association accredited",
+  },
+  {
+    label: "Refinery",
+    value: "Argor-Heraeus",
+    unit: "SA, Switzerland",
+    detail: "LBMA-accredited since 1978, ISO 9001 certified",
+  },
+] as const;
+
 /* ── 400-oz Good Delivery bar geometry (trapezoidal prism) ── */
 function GoldBar() {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -49,42 +78,42 @@ function GoldBar() {
 
   // Trapezoidal prism via custom BufferGeometry
   const geometry = useMemo(() => {
-    // 400-oz bar approximate proportions (scaled):
-    // Bottom face wider, top face narrower (tapered cast mold shape)
-    const bw = 1.4; // bottom width
-    const bh = 0.6; // bottom depth
-    const tw = 1.1; // top width
-    const th = 0.45; // top depth
-    const h = 0.3; // height
+    const bw = 1.4;
+    const bh = 0.6;
+    const tw = 1.1;
+    const th = 0.45;
+    const h = 0.3;
 
-    // 8 vertices: bottom quad (wider) + top quad (narrower)
     const vertices = new Float32Array([
-      // Bottom face (y = 0)
-      -bw / 2, 0, -bh / 2, // 0: back-left
-       bw / 2, 0, -bh / 2, // 1: back-right
-       bw / 2, 0,  bh / 2, // 2: front-right
-      -bw / 2, 0,  bh / 2, // 3: front-left
-      // Top face (y = h)
-      -tw / 2, h, -th / 2, // 4: back-left
-       tw / 2, h, -th / 2, // 5: back-right
-       tw / 2, h,  th / 2, // 6: front-right
-      -tw / 2, h,  th / 2, // 7: front-left
+      -bw / 2,
+      0,
+      -bh / 2,
+      bw / 2,
+      0,
+      -bh / 2,
+      bw / 2,
+      0,
+      bh / 2,
+      -bw / 2,
+      0,
+      bh / 2,
+      -tw / 2,
+      h,
+      -th / 2,
+      tw / 2,
+      h,
+      -th / 2,
+      tw / 2,
+      h,
+      th / 2,
+      -tw / 2,
+      h,
+      th / 2,
     ]);
 
-    // 12 triangles (6 faces × 2 tris each)
     const indices = new Uint16Array([
-      // Bottom
-      0, 2, 1, 0, 3, 2,
-      // Top
-      4, 5, 6, 4, 6, 7,
-      // Front
-      3, 6, 2, 3, 7, 6,
-      // Back
-      0, 1, 5, 0, 5, 4,
-      // Left
-      0, 4, 7, 0, 7, 3,
-      // Right
-      1, 2, 6, 1, 6, 5,
+      0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7, 3, 6, 2, 3, 7, 6, 0, 1, 5, 0, 5, 4, 0,
+      4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5,
     ]);
 
     const geo = new THREE.BufferGeometry();
@@ -96,11 +125,7 @@ function GoldBar() {
 
   return (
     <mesh ref={meshRef} geometry={geometry} castShadow receiveShadow>
-      <meshStandardMaterial
-        color="#D4AF37"
-        roughness={0.65}
-        metalness={0.8}
-      />
+      <meshStandardMaterial color="#D4AF37" roughness={0.65} metalness={0.8} />
 
       {/* ── HUD Hallmark Annotations ── */}
       {HALLMARKS.map((hm) => (
@@ -111,15 +136,21 @@ function GoldBar() {
           occlude={false}
           style={{ pointerEvents: "none" }}
         >
-          <div className="flex flex-col items-center" style={{ pointerEvents: "none" }}>
-            {/* Connector dot */}
+          <div
+            className="flex flex-col items-center"
+            style={{ pointerEvents: "none" }}
+          >
             <div
               className="h-1.5 w-1.5 rounded-full mb-1"
-              style={{ backgroundColor: "#D4AF37", boxShadow: "0 0 6px rgba(212,175,55,0.4)" }}
+              style={{
+                backgroundColor: "#D4AF37",
+                boxShadow: "0 0 6px rgba(212,175,55,0.4)",
+              }}
             />
-            {/* Connector line */}
-            <div className="w-px h-4 mb-1" style={{ backgroundColor: "rgba(148,163,184,0.4)" }} />
-            {/* Data tag */}
+            <div
+              className="w-px h-4 mb-1"
+              style={{ backgroundColor: "rgba(148,163,184,0.4)" }}
+            />
             <div
               className="px-2.5 py-1.5 rounded font-mono text-center whitespace-nowrap shadow-xl"
               style={{
@@ -157,12 +188,18 @@ function CanvasFallback() {
 
 export function InstitutionalBarShowcase() {
   return (
-    <section className="py-24 lg:py-32 relative overflow-hidden" style={{ backgroundColor: "#0A1128" }}>
-      <div className="mx-auto max-w-7xl px-6">
-        {/* ── Section Header ── */}
-        <div className="mb-12 max-w-3xl">
-          <div className="flex items-center gap-4 mb-5">
-            <div className="h-px w-8" style={{ backgroundColor: "rgba(212,175,55,0.5)" }} />
+    <section
+      className="py-28 lg:py-40 relative overflow-hidden"
+      style={{ backgroundColor: "#0A1128" }}
+    >
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        {/* ── Section Header — generous spacing ── */}
+        <div className="mb-16 max-w-3xl">
+          <div className="flex items-center gap-4 mb-6">
+            <div
+              className="h-px w-10"
+              style={{ backgroundColor: "rgba(212,175,55,0.5)" }}
+            />
             <p
               className="font-mono text-[11px] font-bold uppercase tracking-[0.2em]"
               style={{ color: "#D4AF37" }}
@@ -171,22 +208,29 @@ export function InstitutionalBarShowcase() {
             </p>
           </div>
           <h2
-            className="text-[clamp(1.75rem,3.5vw,2.75rem)] font-bold tracking-tight text-white leading-tight"
-            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+            className="text-[clamp(2rem,4vw,3rem)] font-bold tracking-tight leading-[1.15]"
+            style={{
+              fontFamily: "var(--font-inter), sans-serif",
+              color: "#f1f5f9",
+            }}
           >
             Industrial Scale.{" "}
-            <span className="text-slate-400">Institutional Precision.</span>
+            <span style={{ color: "#94a3b8" }}>Institutional Precision.</span>
           </h2>
-          <p className="mt-4 text-base text-slate-400 max-w-2xl" style={{ lineHeight: 1.6 }}>
-            Every bar settled through the Goldwire network is a cast 400-troy-ounce
-            LBMA Good Delivery bar bearing four mandatory hallmarks for institutional
-            chain-of-custody verification.
+          <p
+            className="mt-6 text-lg max-w-2xl"
+            style={{ lineHeight: 1.75, color: "#cbd5e1" }}
+          >
+            Every bar settled through the Goldwire network is a cast
+            400-troy-ounce LBMA Good Delivery bar bearing four mandatory
+            hallmarks. Institutional chain-of-custody verification is
+            structurally enforced — not optional.
           </p>
         </div>
 
         {/* ── 3D Canvas Container ── */}
         <div
-          className="relative rounded-md border border-slate-800 overflow-hidden"
+          className="relative rounded-lg border border-slate-800/80 overflow-hidden"
           style={{
             height: "min(520px, 60vh)",
             backgroundColor: "#070B12",
@@ -208,7 +252,6 @@ export function InstitutionalBarShowcase() {
               gl={{ antialias: true, alpha: true }}
               style={{ background: "transparent" }}
             >
-              {/* Lighting: soft ambient + targeted spots for cast-metal look */}
               <ambientLight intensity={0.3} />
               <directionalLight
                 position={[3, 4, 2]}
@@ -225,11 +268,8 @@ export function InstitutionalBarShowcase() {
                 intensity={0.6}
                 castShadow
               />
-
               <Environment preset="warehouse" />
-
               <GoldBar />
-
               <OrbitControls
                 enableZoom={false}
                 enablePan={false}
@@ -242,40 +282,58 @@ export function InstitutionalBarShowcase() {
             </Canvas>
           </Suspense>
 
-          {/* ── Bottom HUD info strip ── */}
-          <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-5 py-3 border-t border-slate-800" style={{ backgroundColor: "rgba(10,10,10,0.85)", backdropFilter: "blur(8px)" }}>
-            <div className="flex items-center gap-6">
-              <div>
-                <span className="block font-mono text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                  WEIGHT
-                </span>
-                <span className="font-mono text-sm font-bold text-white">
-                  400.000 ozt
-                </span>
-              </div>
-              <div className="h-6 w-px bg-slate-700" />
-              <div>
-                <span className="block font-mono text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                  PURITY
-                </span>
-                <span className="font-mono text-sm font-bold text-white">
-                  999.9
-                </span>
-              </div>
-              <div className="h-6 w-px bg-slate-700" />
-              <div>
-                <span className="block font-mono text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                  STANDARD
-                </span>
-                <span className="font-mono text-sm font-bold text-white">
-                  LBMA GD
-                </span>
-              </div>
+          {/* ── Bottom HUD ── */}
+          <div
+            className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-3.5 border-t border-slate-800"
+            style={{
+              backgroundColor: "rgba(10,10,10,0.85)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                INTERACTIVE • DRAG TO ROTATE
+              </span>
             </div>
-            <span className="hidden sm:block font-mono text-[9px] uppercase tracking-wider" style={{ color: "rgba(212,175,55,0.5)" }}>
-              DRAG TO ROTATE • INSTITUTIONAL VIEW
+            <span
+              className="hidden sm:block font-mono text-[9px] uppercase tracking-wider"
+              style={{ color: "rgba(212,175,55,0.5)" }}
+            >
+              INSTITUTIONAL VIEW
             </span>
           </div>
+        </div>
+
+        {/* ── Spec Card Grid — 4-column responsive ── */}
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {SPEC_CARDS.map((card) => (
+            <div
+              key={card.label}
+              className="group relative rounded-lg border border-slate-800/80 p-6 transition-all duration-300 hover:border-[rgba(212,175,55,0.3)]"
+              style={{ backgroundColor: "#0D1320" }}
+            >
+              {/* Hover glow */}
+              <div className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-b from-[rgba(212,175,55,0.03)] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+              <div className="relative z-10">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-3">
+                  {card.label}
+                </p>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="font-mono text-2xl font-bold tabular-nums text-white">
+                    {card.value}
+                  </span>
+                  <span className="font-mono text-xs text-slate-500">
+                    {card.unit}
+                  </span>
+                </div>
+                <p className="text-[13px] leading-relaxed text-slate-400 mt-3">
+                  {card.detail}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>

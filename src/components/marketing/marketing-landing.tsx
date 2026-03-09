@@ -57,10 +57,8 @@ const GLASS_CARD =
    NAVIGATION — Glassmorphism sticky nav with institutional links
    ================================================================ */
 const NAV_LINKS = [
-  { label: "Institutional Procurement", href: "#procurement" },
-  { label: "Allocated Custody", href: "#custody" },
-  { label: "Secure Logistics", href: "#logistics" },
-  { label: "The Goldwire Network", href: "#pipeline" },
+  { label: "Platform Dossier", href: "/platform-dossier" },
+  { label: "System Architecture", href: "/system-architecture" },
 ] as const;
 
 export function Navigation() {
@@ -152,12 +150,18 @@ export function Navigation() {
           </div>
 
           {/* RIGHT: CTA + Mobile hamburger */}
-          <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
+          <div className="flex items-center gap-6 sm:gap-8 flex-shrink-0">
+            <a
+              href={APP_URL}
+              className="hidden lg:inline-flex text-[13px] font-medium text-slate-400 transition-colors duration-200 hover:text-white tracking-wide"
+            >
+              Client Portal
+            </a>
             <a
               href={`${APP_URL}/signup`}
               className="hidden sm:inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-bold text-[#0A1128] transition-colors bg-gold hover:bg-gold-hover"
             >
-              Request Corporate Mandate
+              Request Access
             </a>
 
             {/* Mobile hamburger — visible below lg */}
@@ -219,6 +223,14 @@ export function Navigation() {
             </a>
           ))}
 
+          <a
+            href={APP_URL}
+            onClick={closeMobile}
+            className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            Client Portal
+          </a>
+
           <div className="h-px bg-slate-800 my-3" />
 
           <a
@@ -226,7 +238,7 @@ export function Navigation() {
             onClick={closeMobile}
             className="mt-4 flex items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-bold text-[#0A1128] transition-colors active:scale-[0.98] bg-gold hover:bg-gold-hover"
           >
-            Request Corporate Mandate
+            Request Access
             <ArrowRight className="h-4 w-4" />
           </a>
         </nav>
