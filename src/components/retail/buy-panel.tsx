@@ -1,13 +1,21 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
-import { X, Plus, Minus, Lock, Truck, Loader2, Copy, Check, ArrowRight, ChevronLeft, Package } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { X, Plus, Minus, Lock, Truck, Loader2, Copy, Check, ArrowRight, ChevronLeft, Package, ArrowLeft, AlertTriangle } from "lucide-react";
 import { z } from "zod";
 import {
   generateFiatDepositInstructions,
   type FiatDepositInstructions,
 } from "@/actions/banking";
+import {
+  verifyAddressAndQuote,
+  type FreightQuoteResult,
+  type FreightAddress,
+} from "@/actions/logistics";
+import {
+  createRetailOrder,
+} from "@/actions/orders";
 
 /* ================================================================
    TYPES
@@ -107,6 +115,8 @@ export function BuyPanel({
   product: RetailProduct;
   onClose: () => void;
 }) {
+  const router = useRouter();
+
   /* ── Step State ── */
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
@@ -123,11 +133,22 @@ export function BuyPanel({
   });
   const [addressErrors, setAddressErrors] = useState<Partial<Record<keyof AddressFields, string>>>({});
 
+  /* ── Freight Quote State ── */
+  const [freightQuote, setFreightQuote] = useState<FreightQuoteResult | null>(null);
+  const [freightLoading, setFreightLoading] = useState(false);
+  const [freightError, setFreightError] = useState<string | null>(null);
+
   /* ── Step 3: Payment ── */
   const [isPending, startTransition] = useTransition();
   const [wireDetails, setWireDetails] = useState<FiatDepositInstructions | null>(null);
 
+  /* ── Order Creation State ── */
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
   const subtotal = product.priceUsd * quantity;
+  const logisticsFee = destination === "ship" && freightQuote ? freightQuote.totalLogisticsFee : 0;
+  const grandTotal = subtotal + logisticsFee;
 
   /* ── Handlers ── */
 
@@ -137,12 +158,16 @@ export function BuyPanel({
   const updateAddress = useCallback((field: keyof AddressFields, value: string) => {
     setAddress((prev) => ({ ...prev, [field]: field === "zipCode" ? value.replace(/\D/g, "").slice(0, 5) : value }));
     setAddressErrors((prev) => ({ ...prev, [field]: undefined }));
+    // Reset freight quote when address changes
+    setFreightQuote(null);
+    setFreightError(null);
   }, []);
 
   const advanceToStep2 = useCallback(() => setStep(2), []);
 
-  const advanceToStep3 = useCallback(() => {
+  const advanceToStep3 = useCallback(async () => {
     if (destination === "ship") {
+      // ── Validate address with Zod ──
       const result = addressSchema.safeParse(address);
       if (!result.success) {
         const fieldErrors: Partial<Record<keyof AddressFields, string>> = {};
@@ -153,31 +178,85 @@ export function BuyPanel({
         setAddressErrors(fieldErrors);
         return;
       }
+
+      // ── Call verifyAddressAndQuote for freight pricing ──
+      if (!freightQuote) {
+        setFreightLoading(true);
+        setFreightError(null);
+        try {
+          const freightAddr: FreightAddress = {
+            streetAddress: address.streetAddress,
+            city: address.city,
+            state: address.state,
+            zipCode: address.zipCode,
+            addressType: "residential",
+          };
+          const quote = await verifyAddressAndQuote(freightAddr, subtotal);
+          setFreightQuote(quote);
+          setFreightLoading(false);
+          setStep(3);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Failed to calculate shipping. Please try again.";
+          setFreightError(message);
+          setFreightLoading(false);
+          return;
+        }
+        return;
+      }
     }
     setStep(3);
-  }, [destination, address]);
+  }, [destination, address, freightQuote, subtotal]);
 
   const handleGenerateWire = useCallback(() => {
     startTransition(async () => {
       try {
         const instructions = await generateFiatDepositInstructions(
           "retail-counterparty-id",
-          `AurumShield Retail — ${quantity}x ${product.shortName} ($${formatUSD(subtotal)})`,
+          `AurumShield Retail — ${quantity}x ${product.shortName} ($${formatUSD(grandTotal)})`,
         );
         setWireDetails(instructions);
       } catch (err) {
         console.error("[AurumShield Retail] Wire generation failed:", err);
       }
     });
-  }, [quantity, product.shortName, subtotal]);
+  }, [quantity, product.shortName, grandTotal]);
 
   const goBack = useCallback(() => {
     if (step === 3 && wireDetails) {
       setWireDetails(null);
       return;
     }
+    if (step === 3) {
+      setStep(2);
+      return;
+    }
     setStep((s) => Math.max(s - 1, 1) as 1 | 2 | 3);
   }, [step, wireDetails]);
+
+  /* ── Handle "I Have Initiated This Wire" — Create Order & Route ── */
+  const handleWireInitiated = useCallback(async () => {
+    setIsCreatingOrder(true);
+    setOrderError(null);
+    try {
+      const result = await createRetailOrder({
+        productId: product.id,
+        productName: product.name,
+        weightOzPerUnit: product.weightOz,
+        quantity,
+        pricePerUnit: product.priceUsd,
+        destination,
+        shippingAddress: destination === "ship" ? address : undefined,
+        logisticsFeeUsd: logisticsFee,
+        grandTotalUsd: grandTotal,
+      });
+      // Route to the order detail page
+      router.push(`/orders/${result.orderId}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create order. Please try again.";
+      setOrderError(message);
+      setIsCreatingOrder(false);
+    }
+  }, [product, quantity, destination, address, logisticsFee, grandTotal, router]);
 
   /* ── Step Indicator ── */
   const steps = ["Quantity", "Destination", "Pay"];
@@ -331,7 +410,7 @@ export function BuyPanel({
                   <button
                     id="dest-vault-retail"
                     type="button"
-                    onClick={() => setDestination("vault")}
+                    onClick={() => { setDestination("vault"); setFreightQuote(null); setFreightError(null); }}
                     className={`group flex flex-col items-center gap-3 rounded-md border p-5 transition-all duration-200 ${
                       destination === "vault"
                         ? "border-gold/40 bg-gold/5 shadow-lg shadow-gold/5"
@@ -397,7 +476,7 @@ export function BuyPanel({
               <div
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${
                   destination === "ship"
-                    ? "max-h-[500px] opacity-100"
+                    ? "max-h-[600px] opacity-100"
                     : "max-h-0 opacity-0"
                 }`}
               >
@@ -417,7 +496,7 @@ export function BuyPanel({
                       value={address.streetAddress}
                       onChange={(e) => updateAddress("streetAddress", e.target.value)}
                       placeholder="123 Gold Avenue, Suite 400"
-                      autoComplete="off"
+                      autoComplete="street-address"
                       className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none transition-colors focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
                     />
                     {addressErrors.streetAddress && (
@@ -437,7 +516,7 @@ export function BuyPanel({
                         value={address.city}
                         onChange={(e) => updateAddress("city", e.target.value)}
                         placeholder="New York"
-                        autoComplete="off"
+                        autoComplete="address-level2"
                         className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none transition-colors focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
                       />
                       {addressErrors.city && (
@@ -452,6 +531,7 @@ export function BuyPanel({
                         id="retail-state"
                         value={address.state}
                         onChange={(e) => updateAddress("state", e.target.value)}
+                        autoComplete="address-level1"
                         className="w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-2.5 text-sm text-slate-200 outline-none transition-colors appearance-none focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
                       >
                         <option value="" className="bg-slate-900">—</option>
@@ -475,7 +555,7 @@ export function BuyPanel({
                         value={address.zipCode}
                         onChange={(e) => updateAddress("zipCode", e.target.value)}
                         placeholder="10005"
-                        autoComplete="off"
+                        autoComplete="postal-code"
                         className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm font-mono font-semibold tabular-nums text-slate-200 placeholder:text-slate-600 outline-none transition-colors focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
                       />
                       {addressErrors.zipCode && (
@@ -483,13 +563,21 @@ export function BuyPanel({
                       )}
                     </div>
                   </div>
+
+                  {/* ── Freight Error Banner ── */}
+                  {freightError && (
+                    <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-3">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                      <p className="text-xs leading-relaxed text-red-300">{freightError}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
           {/* ══════════════════════════════════════════════════════
-             STEP 3 — PAY
+             STEP 3 — PAY (Order Summary, before wire generation)
              ══════════════════════════════════════════════════════ */}
           {step === 3 && !wireDetails && (
             <div className="space-y-6">
@@ -509,6 +597,10 @@ export function BuyPanel({
                     <span className="font-mono tabular-nums text-slate-300">${formatUSD(product.priceUsd)}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Subtotal</span>
+                    <span className="font-mono tabular-nums text-slate-300">${formatUSD(subtotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Destination</span>
                     <span className="text-slate-300">
                       {destination === "vault" ? "🔒 Vault Storage" : "📦 Ship to Me"}
@@ -525,11 +617,41 @@ export function BuyPanel({
                   )}
                 </div>
 
+                {/* ── Freight Cost Breakdown (Ship to Me only) ── */}
+                {destination === "ship" && freightQuote && (
+                  <div className="space-y-2 border-t border-slate-800 pt-3">
+                    <span className="block text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                      Armored Freight & Insurance
+                    </span>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Base Dispatch</span>
+                        <span className="font-mono tabular-nums text-slate-400">${formatUSD(freightQuote.baseDispatch)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Mileage Surcharge ({freightQuote.distanceMiles} mi)</span>
+                        <span className="font-mono tabular-nums text-slate-400">${formatUSD(freightQuote.mileageSurcharge)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Lloyd&apos;s Insurance (15bps)</span>
+                        <span className="font-mono tabular-nums text-slate-400">${formatUSD(freightQuote.insurancePremium)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm border-t border-slate-800/60 pt-1.5">
+                        <span className="font-semibold text-gold/80">Total Logistics Fee</span>
+                        <span className="font-mono font-semibold tabular-nums text-gold">${formatUSD(freightQuote.totalLogisticsFee)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Grand Total ── */}
                 <div className="border-t border-slate-800 pt-3">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-sm font-semibold text-slate-300">Total</span>
+                    <span className="text-sm font-semibold text-slate-300">
+                      {destination === "ship" ? "Wire Total (incl. Freight)" : "Total"}
+                    </span>
                     <span className="font-mono text-3xl font-bold tabular-nums text-white">
-                      ${formatUSD(subtotal)}
+                      ${formatUSD(grandTotal)}
                     </span>
                   </div>
                 </div>
@@ -563,6 +685,16 @@ export function BuyPanel({
              ══════════════════════════════════════════════════════ */}
           {step === 3 && wireDetails && (
             <div className="space-y-6">
+              {/* ── Back Button (visible even on wire details view) ── */}
+              <button
+                type="button"
+                onClick={goBack}
+                className="flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-slate-200"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Back to Order Summary
+              </button>
+
               <div className="rounded-md border border-gold/20 bg-gold/5 px-5 py-3.5">
                 <p className="text-sm leading-relaxed text-gold/80">
                   Wire the exact amount below from your bank account.
@@ -571,14 +703,19 @@ export function BuyPanel({
               </div>
 
               <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-                {/* Amount Due */}
+                {/* Amount Due — INCLUDES FREIGHT */}
                 <div>
                   <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                     Amount Due
                   </span>
                   <div className="mt-1 font-mono text-3xl font-bold tabular-nums text-white">
-                    ${formatUSD(subtotal)}
+                    ${formatUSD(grandTotal)}
                   </div>
+                  {destination === "ship" && freightQuote && (
+                    <p className="mt-0.5 text-[10px] text-slate-500">
+                      Includes ${formatUSD(freightQuote.totalLogisticsFee)} armored freight &amp; insurance
+                    </p>
+                  )}
                 </div>
 
                 <div className="h-px bg-slate-800" />
@@ -636,41 +773,91 @@ export function BuyPanel({
                 </div>
               </div>
 
-              {/* Done */}
+              {/* ── Order Error Banner ── */}
+              {orderError && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                  <p className="text-xs leading-relaxed text-red-300">{orderError}</p>
+                </div>
+              )}
+
+              {/* ── "I Have Initiated This Wire" → Creates Order → Routes to /orders/[id] ── */}
               <button
                 id="wire-done-retail"
                 type="button"
-                onClick={onClose}
-                className="group flex w-full items-center justify-center gap-3 rounded-md border border-gold/30 bg-gold/10 px-6 py-4 text-sm font-semibold text-gold transition-all hover:border-gold/50 hover:bg-gold/20 active:scale-[0.98]"
+                onClick={handleWireInitiated}
+                disabled={isCreatingOrder}
+                className="group flex w-full items-center justify-center gap-3 rounded-md border border-gold/30 bg-gold/10 px-6 py-4 text-sm font-semibold text-gold transition-all hover:border-gold/50 hover:bg-gold/20 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
               >
-                ✓ I Have Initiated This Wire
+                {isCreatingOrder ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating Your Order…
+                  </>
+                ) : (
+                  <>
+                    ✓ I Have Initiated This Wire
+                  </>
+                )}
               </button>
 
-              {/* View Order Status */}
-              <Link
+              {/* ── View Order Status (also creates order first) ── */}
+              <button
                 id="view-order-tracking-retail"
-                href="/orders/ord-1"
-                className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-amber-700/40 bg-amber-950/20 px-6 py-4 text-sm font-semibold text-amber-400 transition-all hover:border-amber-600/60 hover:bg-amber-950/40 active:scale-[0.98] no-underline"
+                type="button"
+                onClick={handleWireInitiated}
+                disabled={isCreatingOrder}
+                className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-amber-700/40 bg-amber-950/20 px-6 py-4 text-sm font-semibold text-amber-400 transition-all hover:border-amber-600/60 hover:bg-amber-950/40 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
               >
-                <Package className="h-4 w-4" />
-                View Order Status & Tracking
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
+                {isCreatingOrder ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading…
+                  </>
+                ) : (
+                  <>
+                    <Package className="h-4 w-4" />
+                    View Order Status & Tracking
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>
 
         {/* ── Footer CTA (Steps 1 & 2 only) ── */}
         {step < 3 && (
-          <div className="border-t border-slate-800 px-6 py-4">
+          <div className="border-t border-slate-800 px-6 py-4 space-y-2">
+            {/* Back Button (Step 2 only) */}
+            {step === 2 && (
+              <button
+                type="button"
+                onClick={goBack}
+                className="flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-6 py-3 text-sm font-medium text-slate-400 transition-all hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200 active:scale-[0.98]"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Quantity
+              </button>
+            )}
             <button
               id={step === 1 ? "continue-to-destination" : "continue-to-pay"}
               type="button"
               onClick={step === 1 ? advanceToStep2 : advanceToStep3}
-              className="group flex w-full items-center justify-center gap-3 rounded-md bg-gold px-6 py-4 text-base font-bold text-slate-950 shadow-lg shadow-gold/10 transition-all hover:bg-gold-hover active:scale-[0.98]"
+              disabled={freightLoading}
+              className="group flex w-full items-center justify-center gap-3 rounded-md bg-gold px-6 py-4 text-base font-bold text-slate-950 shadow-lg shadow-gold/10 transition-all hover:bg-gold-hover active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
             >
-              {step === 1 ? "Choose Destination" : "Review & Pay"}
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+              {freightLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Calculating Armored Freight…
+                </>
+              ) : (
+                <>
+                  {step === 1 ? "Choose Destination" : "Review & Pay"}
+                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+                </>
+              )}
             </button>
           </div>
         )}
