@@ -40,6 +40,7 @@ const InstitutionalBarShowcase = dynamic(
   { ssr: false, loading: () => <div className="h-[520px] bg-[#070B12] rounded-md border border-slate-800 flex items-center justify-center"><span className="font-mono text-xs text-slate-500 uppercase tracking-widest">Loading 3D Viewport…</span></div> },
 );
 import { MarketWeaknessSection } from "./sections/market-weakness";
+import { GoldwireLiquiditySimulator } from "./sections/liquidity-simulator";
 import { RiskModelSection } from "./sections/risk-model";
 import { ComplianceGate } from "./sections/compliance-gate";
 import { TelemetryTerminal } from "./telemetry-terminal";
@@ -1236,6 +1237,7 @@ export function MarketingLanding() {
       <InstitutionalInfrastructureGrid />
       <InstitutionalVolumeScalingTable />
       <InstitutionalBarShowcase />
+      <GoldwireLiquiditySimulator />
       <MarketWeaknessSection />
 
       {/* ── SWIFT vs Goldwire Comparison ── */}
