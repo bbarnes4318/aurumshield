@@ -21,6 +21,8 @@ export interface RetailProduct {
   purity: string;
   subtext: string;
   priceUsd: number;
+  image?: string;
+  featured?: boolean;
 }
 
 type DestinationType = "vault" | "ship";
@@ -230,9 +232,9 @@ export function BuyPanel({
                 <div
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors duration-300 ${
                     isComplete
-                      ? "bg-emerald-600 text-white"
+                      ? "bg-gold text-slate-950"
                       : isActive
-                        ? "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50"
+                        ? "bg-gold/20 text-gold ring-1 ring-gold/50"
                         : "bg-slate-800 text-slate-600"
                   }`}
                 >
@@ -240,13 +242,13 @@ export function BuyPanel({
                 </div>
                 <span
                   className={`text-[10px] font-semibold uppercase tracking-wider ${
-                    isActive ? "text-emerald-400" : isComplete ? "text-slate-400" : "text-slate-600"
+                    isActive ? "text-gold" : isComplete ? "text-slate-400" : "text-slate-600"
                   }`}
                 >
                   {label}
                 </span>
                 {i < steps.length - 1 && (
-                  <div className={`ml-auto h-px flex-1 ${isComplete ? "bg-emerald-700" : "bg-slate-800"}`} />
+                  <div className={`ml-auto h-px flex-1 ${isComplete ? "bg-gold/40" : "bg-slate-800"}`} />
                 )}
               </div>
             );
@@ -330,27 +332,27 @@ export function BuyPanel({
                     id="dest-vault-retail"
                     type="button"
                     onClick={() => setDestination("vault")}
-                    className={`group flex flex-col items-center gap-3 rounded-2xl border p-5 transition-all duration-200 ${
+                    className={`group flex flex-col items-center gap-3 rounded-md border p-5 transition-all duration-200 ${
                       destination === "vault"
-                        ? "border-emerald-700/60 bg-emerald-950/30 shadow-lg shadow-emerald-900/20"
-                        : "border-slate-800 bg-slate-900/50 hover:border-slate-700"
+                        ? "border-gold/40 bg-gold/5 shadow-lg shadow-gold/5"
+                        : "border-slate-800 bg-white/[0.02] hover:border-slate-700"
                     }`}
                   >
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                      destination === "vault" ? "bg-emerald-600/20" : "bg-slate-800"
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-md ${
+                      destination === "vault" ? "bg-gold/10 border border-gold/20" : "bg-slate-800"
                     }`}>
                       <Lock className={`h-6 w-6 ${
-                        destination === "vault" ? "text-emerald-400" : "text-slate-500"
+                        destination === "vault" ? "text-gold" : "text-slate-500"
                       }`} />
                     </div>
                     <div className="text-center">
                       <span className={`block text-sm font-semibold ${
-                        destination === "vault" ? "text-emerald-300" : "text-slate-300"
+                        destination === "vault" ? "text-gold" : "text-slate-300"
                       }`}>
                         Keep in Vault
                       </span>
                       <span className={`mt-0.5 block text-[10px] ${
-                        destination === "vault" ? "text-emerald-500/70" : "text-slate-600"
+                        destination === "vault" ? "text-gold/60" : "text-slate-600"
                       }`}>
                         Insured LBMA Storage
                       </span>
@@ -362,27 +364,27 @@ export function BuyPanel({
                     id="dest-ship-retail"
                     type="button"
                     onClick={() => setDestination("ship")}
-                    className={`group flex flex-col items-center gap-3 rounded-2xl border p-5 transition-all duration-200 ${
+                    className={`group flex flex-col items-center gap-3 rounded-md border p-5 transition-all duration-200 ${
                       destination === "ship"
-                        ? "border-amber-700/60 bg-amber-950/30 shadow-lg shadow-amber-900/20"
-                        : "border-slate-800 bg-slate-900/50 hover:border-slate-700"
+                        ? "border-gold/40 bg-gold/5 shadow-lg shadow-gold/5"
+                        : "border-slate-800 bg-white/[0.02] hover:border-slate-700"
                     }`}
                   >
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                      destination === "ship" ? "bg-amber-600/20" : "bg-slate-800"
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-md ${
+                      destination === "ship" ? "bg-gold/10 border border-gold/20" : "bg-slate-800"
                     }`}>
                       <Truck className={`h-6 w-6 ${
-                        destination === "ship" ? "text-amber-400" : "text-slate-500"
+                        destination === "ship" ? "text-gold" : "text-slate-500"
                       }`} />
                     </div>
                     <div className="text-center">
                       <span className={`block text-sm font-semibold ${
-                        destination === "ship" ? "text-amber-300" : "text-slate-300"
+                        destination === "ship" ? "text-gold" : "text-slate-300"
                       }`}>
                         Ship to Me
                       </span>
                       <span className={`mt-0.5 block text-[10px] ${
-                        destination === "ship" ? "text-amber-500/70" : "text-slate-600"
+                        destination === "ship" ? "text-gold/60" : "text-slate-600"
                       }`}>
                         Armored Delivery
                       </span>
@@ -539,7 +541,7 @@ export function BuyPanel({
                 type="button"
                 onClick={handleGenerateWire}
                 disabled={isPending}
-                className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-600 px-6 py-5 text-base font-bold text-white shadow-lg shadow-emerald-900/30 transition-all hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
+                className="group flex w-full items-center justify-center gap-3 rounded-md bg-gold px-6 py-5 text-base font-bold text-slate-950 shadow-lg shadow-gold/10 transition-all hover:bg-gold-hover active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
               >
                 {isPending ? (
                   <>
@@ -561,8 +563,8 @@ export function BuyPanel({
              ══════════════════════════════════════════════════════ */}
           {step === 3 && wireDetails && (
             <div className="space-y-6">
-              <div className="rounded-lg border border-emerald-800/30 bg-emerald-950/20 px-5 py-3.5">
-                <p className="text-sm leading-relaxed text-emerald-300/80">
+              <div className="rounded-md border border-gold/20 bg-gold/5 px-5 py-3.5">
+                <p className="text-sm leading-relaxed text-gold/80">
                   Wire the exact amount below from your bank account.
                   Your gold will be allocated upon receipt.
                 </p>
@@ -639,7 +641,7 @@ export function BuyPanel({
                 id="wire-done-retail"
                 type="button"
                 onClick={onClose}
-                className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-emerald-700/40 bg-emerald-950/30 px-6 py-4 text-sm font-semibold text-emerald-400 transition-all hover:border-emerald-600/60 hover:bg-emerald-950/50 active:scale-[0.98]"
+                className="group flex w-full items-center justify-center gap-3 rounded-md border border-gold/30 bg-gold/10 px-6 py-4 text-sm font-semibold text-gold transition-all hover:border-gold/50 hover:bg-gold/20 active:scale-[0.98]"
               >
                 ✓ I Have Initiated This Wire
               </button>
@@ -665,7 +667,7 @@ export function BuyPanel({
               id={step === 1 ? "continue-to-destination" : "continue-to-pay"}
               type="button"
               onClick={step === 1 ? advanceToStep2 : advanceToStep3}
-              className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-600 px-6 py-4 text-base font-bold text-white shadow-lg shadow-emerald-900/30 transition-all hover:bg-emerald-500 active:scale-[0.98]"
+              className="group flex w-full items-center justify-center gap-3 rounded-md bg-gold px-6 py-4 text-base font-bold text-slate-950 shadow-lg shadow-gold/10 transition-all hover:bg-gold-hover active:scale-[0.98]"
             >
               {step === 1 ? "Choose Destination" : "Review & Pay"}
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
