@@ -42,3 +42,5 @@ next-env.d.ts
 
 # infrastructure (contains task definitions with secrets)
 /infrastructure/
+
+edenor-pdf-template/
