@@ -31,6 +31,8 @@ import {
   Network,
   Map,
   CalendarClock,
+  Package,
+  Truck,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -115,9 +117,10 @@ const OPERATOR_NAV: NavItem[] = [...OPERATOR_OPS, ...OPERATOR_RISK, ...OPERATOR_
 
 /* ── Client-visible nav items (buyer / seller / institution) ── */
 const BUYER_NAV: NavItem[] = [
+  { label: "Sovereign Marketplace",href: "/dashboard/retail",       icon: Package,         allowedRoles: CLIENT_ROLES },
+  { label: "Order History & Tracking", href: "/orders",             icon: Truck,           allowedRoles: CLIENT_ROLES },
   { label: "Treasury Desk",       href: "/transactions",           icon: Building2,       allowedRoles: CLIENT_ROLES, proToggleKey: "dashboard" },
   { label: "Institutional Portal",href: "/institutional-portal",   icon: Shield,          allowedRoles: CLIENT_ROLES },
-  { label: "Order History",       href: "/orders",                 icon: ClipboardList,   allowedRoles: CLIENT_ROLES },
   { label: "Compliance / KYB",    href: "/onboarding/compliance",  icon: ShieldCheck,     allowedRoles: CLIENT_ROLES },
 ];
 
