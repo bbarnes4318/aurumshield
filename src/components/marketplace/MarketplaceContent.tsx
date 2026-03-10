@@ -22,7 +22,6 @@ import { runReservationExpirySweep } from "@/lib/api";
 import { fetchSpotPrice } from "@/lib/actions/checkout-actions";
 import { trackEvent } from "@/lib/analytics";
 import type { Listing } from "@/lib/mock-data";
-import { CheckoutModalWrapper } from "@/components/checkout/CheckoutModalWrapper";
 import { AssetCard } from "@/components/marketplace/AssetCard";
 import {
   MarketplaceFilterBar,
@@ -193,6 +192,7 @@ export function MarketplaceContent() {
   const [formFilter, setFormFilter] = useState("");
   const [vaultFilter, setVaultFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("");
+  // TODO: Wire up new perimeter-gated checkout flow
   const [reserveTarget, setReserveTarget] = useState<Listing | null>(null);
   const [liveSpot, setLiveSpot] = useState(DEFAULT_SPOT_PRICE);
 
@@ -314,14 +314,6 @@ export function MarketplaceContent() {
         </div>
       )}
 
-      {/* ── Checkout Modal (Phase 3) ── */}
-      {reserveTarget && (
-        <CheckoutModalWrapper
-          listing={reserveTarget}
-          maxWeightOz={reserveTarget.totalWeightOz}
-          onClose={() => setReserveTarget(null)}
-        />
-      )}
     </div>
   );
 }

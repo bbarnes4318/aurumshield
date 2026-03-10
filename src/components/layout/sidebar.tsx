@@ -117,7 +117,7 @@ const OPERATOR_NAV: NavItem[] = [...OPERATOR_OPS, ...OPERATOR_RISK, ...OPERATOR_
 
 /* ── Client-visible nav items (buyer / seller / institution) ── */
 const BUYER_NAV: NavItem[] = [
-  { label: "Sovereign Marketplace",href: "/dashboard/retail",       icon: Package,         allowedRoles: CLIENT_ROLES },
+  { label: "Sovereign Marketplace",href: "/perimeter/register",     icon: Package,         allowedRoles: CLIENT_ROLES },
   { label: "Order History & Tracking", href: "/orders",             icon: Truck,           allowedRoles: CLIENT_ROLES },
   { label: "Treasury Desk",       href: "/transactions",           icon: Building2,       allowedRoles: CLIENT_ROLES, proToggleKey: "dashboard" },
   { label: "Institutional Portal",href: "/institutional-portal",   icon: Shield,          allowedRoles: CLIENT_ROLES },
@@ -230,7 +230,7 @@ function SidebarNav({
   const resolveHref = useCallback(
     (item: NavItem): string => {
       if (item.proToggleKey === "dashboard" && isClient) {
-        return proMode ? "/transactions" : "/dashboard/retail";
+        return proMode ? "/transactions" : "/perimeter/register";
       }
       return item.href;
     },

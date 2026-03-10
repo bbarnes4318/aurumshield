@@ -47,6 +47,7 @@ const isPublicRoute = createRouteMatcher([
   "/technical-overview(.*)",
   "/legal(.*)",
   "/investor(.*)",
+  "/perimeter/(.*)",
 ]);
 
 /* ── Helpers ── */
