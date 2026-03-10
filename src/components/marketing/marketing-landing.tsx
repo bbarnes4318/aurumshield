@@ -944,6 +944,121 @@ function SovereignAssetsSection() {
 }
 
 /* ================================================================
+   INSTITUTIONAL BUYER JOURNEY — 6-Phase Overview
+   ================================================================ */
+const JOURNEY_PHASES = [
+  {
+    phase: "01",
+    title: "Identity Registration",
+    description:
+      "Clerk-secured institutional email verification and 2FA TOTP authorization. Cryptographically sealed session binding.",
+    href: "/perimeter/register",
+    status: "COMPLIANCE GATE",
+  },
+  {
+    phase: "02",
+    title: "KYC / KYB / AML Screening",
+    description:
+      "Document upload, corporate identity verification, and automated OFAC SDN, EU Consolidated, and UN Security Council sanctions screening.",
+    href: "/perimeter/verify",
+    status: "COMPLIANCE GATE",
+  },
+  {
+    phase: "03",
+    title: "Sovereign Asset Catalog",
+    description:
+      "Post-verification access to the 3-tier asset catalog: LBMA Good Delivery bullion, semi-purified doré bars, and raw geological yield.",
+    href: "/marketplace",
+    status: "ASSET SELECTION",
+  },
+  {
+    phase: "04",
+    title: "Execution Terminal",
+    description:
+      "Full settlement math with transparent line-item breakdown — spot execution, Brink's transit, insurance, and platform fees. 60-second cryptographic price lock.",
+    href: "/checkout",
+    status: "PRICE LOCK",
+  },
+  {
+    phase: "05",
+    title: "Capital Settlement",
+    description:
+      "5-step clearing pipeline: Plaid treasury authentication, liquidity verification, Column N.A. Fedwire drawdown, SHA-256 title generation, and Brink's logistics.",
+    href: "/settlement",
+    status: "CLEARING",
+  },
+  {
+    phase: "06",
+    title: "Goldwire Liquidity Nexus",
+    description:
+      "Post-settlement treasury dashboard. View vaulted collateral, execute fractional liquidations via the Goldwire card network against live spot.",
+    href: "/goldwire",
+    status: "TREASURY",
+  },
+] as const;
+
+function BuyerJourneySection() {
+  return (
+    <section className="py-24 lg:py-32" style={{ backgroundColor: "#070B16" }}>
+      <div className="mx-auto max-w-7xl px-6">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-px w-8 bg-gold/50" />
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
+            EXECUTION ARCHITECTURE
+          </p>
+        </div>
+        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
+          The Institutional Buyer Journey
+        </h2>
+        <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-400">
+          A strictly gated, 6-phase pipeline from identity verification through
+          capital settlement and collateral management. Every phase enforces
+          compliance, transparency, and cryptographic finality.
+        </p>
+
+        {/* Phase Grid */}
+        <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {JOURNEY_PHASES.map((phase) => (
+            <Link
+              key={phase.phase}
+              href={phase.href}
+              className="group flex flex-col border border-gray-800 bg-white/[0.02] rounded-md p-6 transition-all duration-200 hover:border-gold/40 hover:bg-gold/[0.03]"
+            >
+              {/* Phase number + status */}
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-mono text-2xl font-bold text-gold/60">
+                  {phase.phase}
+                </span>
+                <span className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-emerald-400/70 border border-emerald-500/20 px-2 py-0.5 rounded-sm bg-emerald-500/5">
+                  {phase.status}
+                </span>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-gold transition-colors">
+                {phase.title}
+              </h3>
+
+              {/* Description */}
+              <p className="text-sm leading-relaxed text-gray-400 flex-1">
+                {phase.description}
+              </p>
+
+              {/* Link indicator */}
+              <div className="mt-4 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-wider text-gold/50 group-hover:text-gold transition-colors">
+                <span>Enter Phase</span>
+                <ArrowRight className="h-3 w-3" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ================================================================
    FINAL CTA
    ================================================================ */
 function FinalCTA() {
@@ -1179,6 +1294,7 @@ export function MarketingLanding() {
       <ArchitectureSection />
       <ComplianceSection />
       <ComplianceGate />
+      <BuyerJourneySection />
       <SovereignAssetsSection />
       <FinalCTA />
       <SiteFooter />
