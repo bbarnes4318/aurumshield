@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import {
   ArrowRight,
   CheckCircle,
@@ -30,11 +31,20 @@ import {
 
 /* ── Section Imports ── */
 import { HeroSection } from "./sections/hero";
-import { TrustBand } from "./sections/trust-band";
+import { InstitutionalTrustMarquee } from "./sections/trust-marquee";
+import { InstitutionalInfrastructureGrid } from "./sections/infrastructure-grid";
+import { InstitutionalVolumeScalingTable } from "./sections/volume-scaling-table";
+
+const InstitutionalBarShowcase = dynamic(
+  () => import("./sections/bar-showcase").then((m) => m.InstitutionalBarShowcase),
+  { ssr: false, loading: () => <div className="h-[520px] bg-[#070B12] rounded-md border border-slate-800 flex items-center justify-center"><span className="font-mono text-xs text-slate-500 uppercase tracking-widest">Loading 3D Viewport…</span></div> },
+);
 import { MarketWeaknessSection } from "./sections/market-weakness";
+import { GoldwireLiquiditySimulator } from "./sections/liquidity-simulator";
 import { RiskModelSection } from "./sections/risk-model";
 import { ComplianceGate } from "./sections/compliance-gate";
 import { TelemetryTerminal } from "./telemetry-terminal";
+import SystemComparisonChart from "./SystemComparisonChart";
 
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://app.aurumshield.vip";
@@ -148,10 +158,10 @@ export function Navigation() {
               Client Portal
             </a>
             <a
-              href={`${APP_URL}/signup`}
+              href="/buy/register"
               className="hidden sm:inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-bold text-[#0A1128] transition-colors bg-gold hover:bg-gold-hover"
             >
-              Request Access
+              Get Started
             </a>
 
             {/* Mobile hamburger — visible below lg */}
@@ -224,11 +234,11 @@ export function Navigation() {
           <div className="h-px bg-slate-800 my-3" />
 
           <a
-            href={`${APP_URL}/signup`}
+            href="/buy/register"
             onClick={closeMobile}
             className="mt-4 flex items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-bold text-[#0A1128] transition-colors active:scale-[0.98] bg-gold hover:bg-gold-hover"
           >
-            Request Access
+            Get Started
             <ArrowRight className="h-4 w-4" />
           </a>
         </nav>
@@ -285,7 +295,7 @@ function SettlementLifecycleSection() {
             SETTLEMENT LIFECYCLE
           </p>
         </div>
-        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
+        <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
           Deterministic Settlement Lifecycle
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
@@ -308,7 +318,7 @@ function SettlementLifecycleSection() {
                     {s.step}
                   </span>
                 </div>
-                <h3 className="text-base font-bold uppercase tracking-wide text-white mb-2">
+                <h3 className="font-heading text-base font-bold uppercase tracking-wide text-white mb-2">
                   {s.label}
                 </h3>
                 <p className="text-sm leading-relaxed text-gray-300">
@@ -418,21 +428,31 @@ function ExposureSection() {
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-200">
               In legacy markets, a T+2 settlement window creates exponential
-              counterparty risk. AurumShield&apos;s engine executes atomically,
+              counterparty risk. The Goldwire protocol executes atomically,
               collapsing the settlement window to zero and eliminating temporal
               exposure entirely.
             </p>
 
             <div className="mt-8 space-y-3">
               {[
-                { prefix: "Bilateral trust requirements:", suffix: "Eliminated." },
-                { prefix: "Asset reconciliation:", suffix: "Instant & Absolute." },
-                { prefix: "Counterparty default risk:", suffix: "Mathematically Zero." },
+                {
+                  prefix: "Bilateral trust requirements:",
+                  suffix: "Eliminated.",
+                },
+                {
+                  prefix: "Asset reconciliation:",
+                  suffix: "Instant & Absolute.",
+                },
+                {
+                  prefix: "Counterparty default risk:",
+                  suffix: "Mathematically Zero.",
+                },
               ].map((item) => (
                 <div key={item.prefix} className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-gold mt-0.5 shrink-0" />
                   <span className="text-base text-gray-200">
-                    {item.prefix} <strong className="text-white">{item.suffix}</strong>
+                    {item.prefix}{" "}
+                    <strong className="text-white">{item.suffix}</strong>
                   </span>
                 </div>
               ))}
@@ -445,73 +465,76 @@ function ExposureSection() {
 }
 
 /* ================================================================
-   KINETIC RISK — Sovereign Custody Layer
+   GOLDWIRE ARCHITECTURE — 3-Step Pipeline
    ================================================================ */
-function KineticRiskSection() {
+function GoldwireArchitectureSection() {
   return (
-    <section className="pb-24 lg:pb-32 pt-4 lg:pt-8">
-      {/* Architectural Divider */}
+    <section id="pipeline" className="pb-24 lg:pb-32 pt-4 lg:pt-8">
       <div className="mx-auto max-w-7xl px-6 mb-16 lg:mb-20">
         <div className="h-px w-full bg-gradient-to-r from-slate-800 via-slate-800/50 to-transparent" />
       </div>
       <div className="mx-auto max-w-7xl px-6">
-        {/* ── Premium card wrapper for section header ── */}
-        <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 lg:p-10 backdrop-blur-sm mb-16">
+        <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 lg:p-10 backdrop-blur-sm mb-12 text-center max-w-4xl mx-auto flex flex-col items-center">
           <div className="flex items-center gap-4 mb-4">
             <div className="h-px w-8 bg-gold/50" />
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-              PHYSICAL PERIMETER
+              THE GOLDWIRE PIPELINE
             </p>
+            <div className="h-px w-8 bg-gold/50" />
           </div>
-          <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
-            The Sovereign Custody Layer: Kinetic Risk Eliminated
+          <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white">
+            Instant Fiat-to-Fiat Settlement via Physical Gold.
           </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-            Physical transport of bullion exposes participants to severe kinetic
-            threats—supply chain interception, transport extortion, and
-            counterfeit asset injection. AurumShield bypasses the physical rail
-            entirely. Bullion is confined within sovereign-grade vault networks,
-            and ownership is settled atomically.
+          <p className="mt-4 text-base leading-relaxed text-gray-300 max-w-2xl">
+            We have vertically integrated the entire physical supply chain. You
+            deposit fiat, we source wholesale bullion, execute a digital title
+            transfer, and liquidate it in the target jurisdiction. Zero legacy
+            banking friction.
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* Large Feature - Spans 8 columns */}
-          <div className="lg:col-span-8 bg-white/[0.02] border border-white/10 rounded-2xl p-8 sm:p-10 backdrop-blur-sm flex flex-col justify-center">
-            <h3 className="text-xl font-bold text-white mb-4">
-              Sovereign Vault Confinement
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
+            <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
+              <span className="font-mono font-bold text-gold">01</span>
+            </div>
+            <h3 className="font-heading text-lg font-bold text-white mb-3">
+              Wholesale Sourcing
             </h3>
-            <p className="text-base leading-relaxed text-slate-400 max-w-2xl">
-              From vetted mine extraction to final settlement, assets remain
-              locked in secure, insured facilities operated exclusively by
-              Tier-1 logistics partners like Malca-Amit and Brink&apos;s. Asset
-              provenance is cryptographically verified, and physical reality is
-              maintained without kinetic exposure.
+            <p className="text-sm leading-relaxed text-slate-400">
+              Users wire USD to our master treasury. We instantly purchase
+              physical gold directly from vetted mine originators, capturing
+              wholesale spreads and allocating sovereign-grade bullion at
+              Malca-Amit.
             </p>
           </div>
-
-          {/* Stacked Side Features - Span 4 columns */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex-1">
-              <h3 className="text-base font-bold text-white mb-2">
-                Armored Transit Eliminated
-              </h3>
-              <p className="text-sm leading-relaxed text-slate-400">
-                Because settlement occurs atomically at the vault level,
-                participants never need to manage armed transport or supply
-                chain security.
-              </p>
+          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
+            <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
+              <span className="font-mono font-bold text-gold">02</span>
             </div>
-            <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex-1">
-              <h3 className="text-base font-bold text-white mb-2">
-                Geopolitical Insulation
-              </h3>
-              <p className="text-sm leading-relaxed text-slate-400">
-                Assets remain sequestered in highly stable jurisdictions,
-                eliminating the risk of local extortion, confiscation, or
-                transit interception.
-              </p>
+            <h3 className="font-heading text-lg font-bold text-white mb-3">
+              Deterministic Transfer
+            </h3>
+            <p className="text-sm leading-relaxed text-slate-400">
+              The Goldwire protocol executes the transfer. Our engine
+              cryptographically reassigns the legal title of the physical metal
+              inside the vault in under 10 seconds. Physical transport is never
+              required.
+            </p>
+          </div>
+          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
+            <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
+              <span className="font-mono font-bold text-gold">03</span>
             </div>
+            <h3 className="font-heading text-lg font-bold text-white mb-3">
+              Local Liquidation
+            </h3>
+            <p className="text-sm leading-relaxed text-slate-400">
+              The recipient clicks liquidate. Our API automatically sells the
+              gold to our regional OTC Liquidity Partners (e.g., in Dubai), who
+              instantly wire local fiat directly to the recipient&apos;s
+              corporate account.
+            </p>
           </div>
         </div>
       </div>
@@ -539,10 +562,11 @@ function ArchitectureSection() {
               Military-Grade Settlement Infrastructure
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-              AurumShield interposes as the central counterparty between buyers
-              and sellers. The platform provides two primary access vectors: a
-              full-featured institutional web application and a programmatic
-              REST API for integration into existing trading systems.
+              The Goldwire network interposes as the central counterparty
+              between buyers and sellers. The platform provides two primary
+              access vectors: a full-featured institutional web application and
+              a programmatic REST API for integration into existing trading
+              systems.
             </p>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
               Both interfaces connect to the same deterministic settlement
@@ -582,7 +606,7 @@ function ArchitectureSection() {
                     <Fingerprint className="h-6 w-6 text-gold" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">
+                    <h3 className="font-heading text-lg font-semibold text-white mb-2">
                       Maker-Checker Biometric Authorization
                     </h3>
                     <p className="text-base leading-relaxed text-gray-300 max-w-md">
@@ -603,7 +627,7 @@ function ArchitectureSection() {
                     <Cpu className="h-6 w-6 text-gold" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">
+                    <h3 className="font-heading text-lg font-semibold text-white mb-2">
                       Atomic Escrow Engine
                     </h3>
                     <p className="text-base leading-relaxed text-gray-300 max-w-md">
@@ -622,7 +646,7 @@ function ArchitectureSection() {
                     <Code className="h-6 w-6 text-gold" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">
+                    <h3 className="font-heading text-lg font-semibold text-white mb-2">
                       Immutable Settlement Finality
                     </h3>
                     <p className="text-base leading-relaxed text-gray-300 max-w-md">
@@ -706,11 +730,11 @@ function ComplianceSection() {
             AUDIT REPORT
           </p>
         </div>
-        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
+        <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
           Regulatory &amp; Cryptographic Compliance
         </h2>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-400">
-          Aarumshield operates exceeding global financial regulatory standards.
+          AurumShield operates exceeding global financial regulatory standards.
           Our infrastructure is continuously audited for absolute cryptographic
           and operational integrity.
         </p>
@@ -836,24 +860,14 @@ function ComplianceSection() {
    ================================================================ */
 function VaultDivider() {
   return (
-    <div className="w-full h-64 overflow-hidden relative">
+    <div className="w-full h-[400px] relative overflow-hidden border-y border-white/10">
+      <div className="absolute inset-0 bg-slate-950/60 z-10"></div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/vault-divider-bg.png"
-        alt=""
-        className="object-cover w-full h-full opacity-40 grayscale"
-        aria-hidden="true"
+        alt="Vault Infrastructure"
+        className="absolute inset-0 w-full h-full object-cover grayscale opacity-50 z-0"
       />
-      {/* Navy tint overlay */}
-      <div className="absolute inset-0 bg-[#0A1128]/50 pointer-events-none" />
-      {/* Bottom gradient bleed */}
-      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0A1128] to-transparent pointer-events-none" />
-      {/* Top gradient bleed */}
-      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0A1128] to-transparent pointer-events-none" />
-      {/* Center accent line */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="h-px w-32 bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-      </div>
     </div>
   );
 }
@@ -884,15 +898,16 @@ function SovereignAssetsSection() {
               </p>
             </div>
 
-            <h2 className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-bold tracking-tight text-white max-w-2xl leading-tight">
-              Sovereign Asset Acquisition.
+            <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] font-bold tracking-tight text-white max-w-2xl leading-tight">
+              Wholesale Supply Chain Integration.
             </h2>
 
             <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-gray-400">
-              For ultra-high-net-worth individuals and institutional treasuries,
-              Aarumshield facilitates the direct acquisition of physical,
-              operational gold mines. Bypass the fractional markets entirely and
-              secure sovereign-grade, ground-floor assets.
+              Because AurumShield is vertically integrated directly with vetted
+              gold mine originators, institutional treasuries bypass fractional
+              broker markups entirely. The Goldwire network provides direct,
+              unlimited access to sovereign-grade, wholesale physical liquidity
+              at the source.
             </p>
 
             {/* Divider */}
@@ -901,10 +916,10 @@ function SovereignAssetsSection() {
             {/* Feature bullets */}
             <div className="grid gap-4 sm:grid-cols-2 mb-10">
               {[
-                "Direct mine originator access",
-                "Full geological due diligence",
-                "Title transfer & sovereign vaulting",
-                "Institutional-grade legal structuring",
+                "Direct mine originator sourcing",
+                "Zero fractional retail markups",
+                "Guaranteed sovereign vault allocation",
+                "Instant Title transfer via Goldwire",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3">
                   <CheckCircle className="h-4 w-4 text-gold/60 shrink-0" />
@@ -934,7 +949,8 @@ function SovereignAssetsSection() {
           {/* Classification footer */}
           <div className="border-t border-gold/10 bg-gold/[0.02] px-8 sm:px-14 lg:px-20 py-4">
             <p className="font-mono text-[10px] text-gold/40 tracking-wider uppercase">
-              This offering is restricted to qualified institutional investors and sovereign wealth entities.
+              This offering is restricted to qualified institutional investors
+              and sovereign wealth entities.
             </p>
           </div>
         </div>
@@ -944,114 +960,83 @@ function SovereignAssetsSection() {
 }
 
 /* ================================================================
-   INSTITUTIONAL BUYER JOURNEY — 6-Phase Overview
+   GOLDWIRE CARD — Physical Corporate Instrument Showcase
    ================================================================ */
-const JOURNEY_PHASES = [
-  {
-    phase: "01",
-    title: "Identity Registration",
-    description:
-      "Clerk-secured institutional email verification and 2FA TOTP authorization. Cryptographically sealed session binding.",
-    href: "/perimeter/register",
-    status: "COMPLIANCE GATE",
-  },
-  {
-    phase: "02",
-    title: "KYC / KYB / AML Screening",
-    description:
-      "Document upload, corporate identity verification, and automated OFAC SDN, EU Consolidated, and UN Security Council sanctions screening.",
-    href: "/perimeter/verify",
-    status: "COMPLIANCE GATE",
-  },
-  {
-    phase: "03",
-    title: "Sovereign Asset Catalog",
-    description:
-      "Post-verification access to the 3-tier asset catalog: LBMA Good Delivery bullion, semi-purified doré bars, and raw geological yield.",
-    href: "/marketplace",
-    status: "ASSET SELECTION",
-  },
-  {
-    phase: "04",
-    title: "Execution Terminal",
-    description:
-      "Full settlement math with transparent line-item breakdown — spot execution, Brink's transit, insurance, and platform fees. 60-second cryptographic price lock.",
-    href: "/checkout",
-    status: "PRICE LOCK",
-  },
-  {
-    phase: "05",
-    title: "Capital Settlement",
-    description:
-      "5-step clearing pipeline: Plaid treasury authentication, liquidity verification, Column N.A. Fedwire drawdown, SHA-256 title generation, and Brink's logistics.",
-    href: "/settlement",
-    status: "CLEARING",
-  },
-  {
-    phase: "06",
-    title: "Goldwire Liquidity Nexus",
-    description:
-      "Post-settlement treasury dashboard. View vaulted collateral, execute fractional liquidations via the Goldwire card network against live spot.",
-    href: "/goldwire",
-    status: "TREASURY",
-  },
-] as const;
-
-function BuyerJourneySection() {
+function GoldwireCardSection() {
   return (
-    <section className="py-24 lg:py-32" style={{ backgroundColor: "#070B16" }}>
-      <div className="mx-auto max-w-7xl px-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="h-px w-8 bg-gold/50" />
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-            EXECUTION ARCHITECTURE
-          </p>
-        </div>
-        <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
-          The Institutional Buyer Journey
-        </h2>
-        <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-400">
-          A strictly gated, 6-phase pipeline from identity verification through
-          capital settlement and collateral management. Every phase enforces
-          compliance, transparency, and cryptographic finality.
-        </p>
+    <section id="card" className="py-24 lg:py-32 relative overflow-hidden bg-[#0A1128]">
+      {/* Background ambient glow */}
+      <div className="absolute top-1/2 left-3/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold/5 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Phase Grid */}
-        <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {JOURNEY_PHASES.map((phase) => (
-            <Link
-              key={phase.phase}
-              href={phase.href}
-              className="group flex flex-col border border-gray-800 bg-white/[0.02] rounded-md p-6 transition-all duration-200 hover:border-gold/40 hover:bg-gold/[0.03]"
-            >
-              {/* Phase number + status */}
-              <div className="flex items-center justify-between mb-4">
-                <span className="font-mono text-2xl font-bold text-gold/60">
-                  {phase.phase}
-                </span>
-                <span className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-emerald-400/70 border border-emerald-500/20 px-2 py-0.5 rounded-sm bg-emerald-500/5">
-                  {phase.status}
-                </span>
+      <div className="mx-auto max-w-7xl px-6 relative z-10">
+        <div className="bg-[#0B0E14] border border-slate-800 rounded-3xl p-8 lg:p-16 shadow-2xl overflow-hidden relative">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10">
+            {/* Left Column: The Copy */}
+            <div>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="h-px w-8 bg-gold/50" />
+                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
+                  THE CORPORATE INSTRUMENT
+                </p>
               </div>
-
-              {/* Title */}
-              <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-gold transition-colors">
-                {phase.title}
-              </h3>
-
-              {/* Description */}
-              <p className="text-sm leading-relaxed text-gray-400 flex-1">
-                {phase.description}
+              <h2 className="font-heading text-[clamp(2rem,4vw,3rem)] font-bold tracking-tight text-white leading-tight mb-6">
+                Physical Sovereignty.
+                <br />
+                <span className="text-gray-400">Digital Velocity.</span>
+              </h2>
+              <p className="text-lg leading-relaxed text-gray-300 mb-8">
+                Anchor your digital settlement network in undeniable physical
+                reality. The Goldwire Corporate Card allows institutional
+                treasuries to instantly liquidate vaulted bullion to local fiat
+                at any point of sale globally.
               </p>
 
-              {/* Link indicator */}
-              <div className="mt-4 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-wider text-gold/50 group-hover:text-gold transition-colors">
-                <span>Enter Phase</span>
-                <ArrowRight className="h-3 w-3" />
+              <ul className="space-y-4 mb-10">
+                {[
+                  "Direct API liquidation to local fiat",
+                  "Zero legacy FX friction or banking limits",
+                  "Milled from heavy metal for sovereign-tier clients",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="mt-1 shrink-0 h-1.5 w-1.5 rounded-full bg-gold" />
+                    <span className="text-slate-300">{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href="/signup"
+                className="inline-flex items-center gap-2 rounded-lg bg-gold/10 border border-gold/30 px-6 py-3 text-sm font-semibold text-gold transition-all hover:bg-gold/20"
+              >
+                Request Card Issuance
+              </a>
+            </div>
+
+            {/* Right Column: The Floating Card Image */}
+            <div className="relative flex justify-center items-center h-full min-h-[400px]">
+              {/* Inner glow directly behind the card */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent blur-3xl opacity-50 rounded-full" />
+
+              {/* The Image with a continuous floating animation */}
+              <div
+                className="relative w-full max-w-[450px] transform hover:scale-105 transition-transform duration-700 ease-out"
+                style={{ animation: "goldwireFloat 6s ease-in-out infinite" }}
+              >
+                <style>{`
+                  @keyframes goldwireFloat {
+                    0% { transform: translateY(0px); }
+                    50% { transform: translateY(-15px); }
+                    100% { transform: translateY(0px); }
+                  }
+                `}</style>
+                <img
+                  src="/gold-wire.png"
+                  alt="Goldwire Corporate Card"
+                  className="w-full h-auto drop-shadow-[0_25px_35px_rgba(0,0,0,0.8)] relative z-10"
+                />
               </div>
-            </Link>
-          ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1068,7 +1053,7 @@ function FinalCTA() {
         <div className="border border-slate-800 bg-[#0B0E14] rounded-md overflow-hidden shadow-2xl">
           <div className="p-10 sm:p-16 text-center flex flex-col items-center">
             <Lock className="h-10 w-10 text-gold mb-6 opacity-80" />
-            <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white mb-4">
+            <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white mb-4">
               Infrastructure Access is Strictly Gated.
             </h2>
             <p className="text-base text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
@@ -1078,10 +1063,10 @@ function FinalCTA() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <a
-                href={`${APP_URL}/signup`}
+                href="/buy/register"
                 className="inline-flex items-center justify-center gap-2 bg-gold hover:bg-gold/90 text-slate-950 font-bold px-10 py-4 rounded-md transition-all duration-200"
               >
-                Request Institutional Access
+                Get Started
                 <ArrowRight className="h-5 w-5" />
               </a>
             </div>
@@ -1256,29 +1241,43 @@ export function MarketingLanding() {
       <Navigation />
       <HeroSection />
 
-      <TrustBand />
+      {/* #1 — THE HOOK */}
+      <InstitutionalTrustMarquee />
+      <InstitutionalInfrastructureGrid />
+      <InstitutionalVolumeScalingTable />
+      <InstitutionalBarShowcase />
+      <GoldwireLiquiditySimulator />
       <MarketWeaknessSection />
-      <KineticRiskSection />
+
+      {/* ── SWIFT vs Goldwire Comparison ── */}
+      <section className="py-16 lg:py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <SystemComparisonChart />
+        </div>
+      </section>
+
+      <GoldwireArchitectureSection />
       <SettlementLifecycleSection />
+      <GoldwireCardSection />
 
       {/* ── Live Engine Telemetry ── */}
-      <section className="py-24 lg:py-32 bg-[#0A1128] border-b border-slate-800/50 relative">
+      <section className="py-16 lg:py-24 bg-[#0A1128] border-b border-slate-800/50 relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(198,168,107,0.03)_0%,transparent_70%)] pointer-events-none" />
 
         <div className="mx-auto max-w-7xl px-6 w-full relative z-10">
-          <div className="mb-12 max-w-3xl text-left items-start">
+          <div className="flex flex-col items-start text-left max-w-2xl mb-12">
             <div className="flex items-center gap-4 mb-6">
               <div className="h-px w-8 bg-gold/50" />
               <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
                 LIVE ENGINE TELEMETRY
               </p>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
+            <h2 className="font-heading text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
               Deterministic Settlement. Zero Counterparty Risk.
             </h2>
-            <p className="text-gray-300 text-sm md:text-base leading-relaxed">
-              Trust is a liability in physical markets. Watch our clearing engine
-              in real-time as it locks capital, verifies sovereign vault
+            <p className="text-gray-300 text-sm md:text-base leading-relaxed text-left">
+              Trust is a liability in physical markets. Watch our clearing
+              engine in real-time as it locks capital, verifies sovereign vault
               provenance, and executes a flawless Delivery-versus-Payment (DvP)
               swap with absolute finality.
             </p>
@@ -1294,8 +1293,9 @@ export function MarketingLanding() {
       <ArchitectureSection />
       <ComplianceSection />
       <ComplianceGate />
-      <BuyerJourneySection />
       <SovereignAssetsSection />
+
+      {/* #5 — THE CLOSE */}
       <FinalCTA />
       <SiteFooter />
     </div>
