@@ -81,7 +81,7 @@ function CopyButton({ value }: { value: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="ml-2 inline-flex items-center justify-center rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300 active:scale-95"
+      className="ml-2 inline-flex items-center justify-center rounded-sm p-1.5 text-slate-600 transition-colors hover:bg-slate-800 hover:text-slate-300 active:scale-95"
       aria-label={`Copy ${value}`}
     >
       {copied ? (
@@ -105,7 +105,7 @@ function formatUSD(amount: number): string {
 }
 
 /* ================================================================
-   BUY PANEL — Slide-out 3-step Checkout
+   BUY PANEL — Institutional Slide-Out Checkout Terminal
    ================================================================ */
 
 export function BuyPanel({
@@ -265,13 +265,13 @@ export function BuyPanel({
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
         aria-hidden
       />
 
-      {/* Panel */}
-      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-slate-800 bg-slate-950 shadow-2xl shadow-black/50 animate-slide-in-right">
+      {/* Panel — Institutional dark terminal shell */}
+      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-slate-800 bg-slate-950 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-slide-in-right">
         {/* ── Header ── */}
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
           <div className="flex items-center gap-3">
@@ -279,21 +279,27 @@ export function BuyPanel({
               <button
                 type="button"
                 onClick={goBack}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+                className="flex h-8 w-8 items-center justify-center rounded-sm border border-slate-700 bg-slate-900 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300"
                 aria-label="Go back"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
             )}
             <div>
-              <h2 className="text-lg font-semibold text-slate-100">{product.name}</h2>
-              <p className="text-xs text-slate-500">{product.purity}</p>
+              <div className="mb-1 inline-flex items-center gap-1.5 rounded-sm border border-[#c6a86b]/25 bg-[#c6a86b]/5 px-2 py-0.5">
+                <Lock className="h-2.5 w-2.5 text-[#c6a86b]" />
+                <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#c6a86b]">
+                  Secure Checkout
+                </span>
+              </div>
+              <h2 className="text-base font-semibold text-slate-200">{product.name}</h2>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-slate-600">{product.purity}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+            className="flex h-8 w-8 items-center justify-center rounded-sm border border-slate-700 bg-slate-900 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -301,7 +307,7 @@ export function BuyPanel({
         </div>
 
         {/* ── Step Indicator Bar ── */}
-        <div className="flex items-center gap-1 border-b border-slate-800/60 px-6 py-3">
+        <div className="flex items-center gap-1 border-b border-slate-800/60 bg-slate-950 px-6 py-3">
           {steps.map((label, i) => {
             const stepNum = i + 1;
             const isActive = stepNum === step;
@@ -309,25 +315,25 @@ export function BuyPanel({
             return (
               <div key={label} className="flex flex-1 items-center gap-2">
                 <div
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors duration-300 ${
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-sm font-mono text-[10px] font-bold transition-colors duration-300 ${
                     isComplete
-                      ? "bg-gold text-slate-950"
+                      ? "bg-[#c6a86b] text-slate-950"
                       : isActive
-                        ? "bg-gold/20 text-gold ring-1 ring-gold/50"
-                        : "bg-slate-800 text-slate-600"
+                        ? "bg-[#c6a86b]/15 text-[#c6a86b] ring-1 ring-[#c6a86b]/40"
+                        : "bg-slate-900 text-slate-600 border border-slate-800"
                   }`}
                 >
                   {isComplete ? "✓" : stepNum}
                 </div>
                 <span
-                  className={`text-[10px] font-semibold uppercase tracking-wider ${
-                    isActive ? "text-gold" : isComplete ? "text-slate-400" : "text-slate-600"
+                  className={`font-mono text-[10px] font-bold uppercase tracking-widest ${
+                    isActive ? "text-[#c6a86b]" : isComplete ? "text-slate-400" : "text-slate-600"
                   }`}
                 >
                   {label}
                 </span>
                 {i < steps.length - 1 && (
-                  <div className={`ml-auto h-px flex-1 ${isComplete ? "bg-gold/40" : "bg-slate-800"}`} />
+                  <div className={`ml-auto h-px flex-1 ${isComplete ? "bg-[#c6a86b]/40" : "bg-slate-800"}`} />
                 )}
               </div>
             );
@@ -343,7 +349,7 @@ export function BuyPanel({
           {step === 1 && (
             <div className="space-y-8">
               <div>
-                <span className="mb-3 block text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                <span className="mb-3 block font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                   How many bars?
                 </span>
                 <div className="flex items-center justify-center gap-6">
@@ -352,13 +358,13 @@ export function BuyPanel({
                     type="button"
                     onClick={decrement}
                     disabled={quantity <= 1}
-                    className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 text-slate-300 transition-all hover:border-slate-600 hover:bg-slate-800 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                    className="flex h-14 w-14 items-center justify-center rounded-sm border border-slate-700 bg-slate-900 text-slate-300 transition-all hover:border-slate-600 hover:bg-slate-800 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <Minus className="h-6 w-6" />
                   </button>
                   <div className="flex flex-col items-center">
                     <span className="font-mono text-6xl font-bold tabular-nums text-white">{quantity}</span>
-                    <span className="mt-1 text-xs text-slate-500">
+                    <span className="mt-1 font-mono text-[10px] uppercase tracking-widest text-slate-600">
                       {quantity === 1 ? "bar" : "bars"}
                     </span>
                   </div>
@@ -367,27 +373,27 @@ export function BuyPanel({
                     type="button"
                     onClick={increment}
                     disabled={quantity >= 10}
-                    className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 text-slate-300 transition-all hover:border-slate-600 hover:bg-slate-800 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                    className="flex h-14 w-14 items-center justify-center rounded-sm border border-slate-700 bg-slate-900 text-slate-300 transition-all hover:border-slate-600 hover:bg-slate-800 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <Plus className="h-6 w-6" />
                   </button>
                 </div>
               </div>
 
-              {/* Subtotal */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
+              {/* Subtotal — Financial ledger style */}
+              <div className="border border-slate-800 bg-slate-900 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-400">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
                     {quantity} × {product.shortName}
                   </span>
-                  <span className="text-sm text-slate-500">${formatUSD(product.priceUsd)} each</span>
+                  <span className="font-mono text-sm tabular-nums text-slate-400">${formatUSD(product.priceUsd)} each</span>
                 </div>
                 <div className="mt-3 border-t border-slate-800 pt-3">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                       Subtotal
                     </span>
-                    <span className="font-mono text-3xl font-bold tabular-nums text-white">
+                    <span className="font-mono text-3xl font-bold tabular-nums text-[#c6a86b]">
                       ${formatUSD(subtotal)}
                     </span>
                   </div>
@@ -402,7 +408,7 @@ export function BuyPanel({
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <span className="mb-3 block text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                <span className="mb-3 block font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                   Where should we put your gold?
                 </span>
                 <div className="grid grid-cols-2 gap-3">
@@ -411,27 +417,27 @@ export function BuyPanel({
                     id="dest-vault-retail"
                     type="button"
                     onClick={() => { setDestination("vault"); setFreightQuote(null); setFreightError(null); }}
-                    className={`group flex flex-col items-center gap-3 rounded-md border p-5 transition-all duration-200 ${
+                    className={`group flex flex-col items-center gap-3 rounded-sm border p-5 transition-all duration-200 ${
                       destination === "vault"
-                        ? "border-gold/40 bg-gold/5 shadow-lg shadow-gold/5"
-                        : "border-slate-800 bg-white/[0.02] hover:border-slate-700"
+                        ? "border-[#c6a86b] bg-slate-900 shadow-[inset_0_0_20px_rgba(198,168,107,0.06)]"
+                        : "border-slate-800 bg-slate-900 hover:border-slate-700"
                     }`}
                   >
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-md ${
-                      destination === "vault" ? "bg-gold/10 border border-gold/20" : "bg-slate-800"
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-sm ${
+                      destination === "vault" ? "bg-[#c6a86b]/10 border border-[#c6a86b]/25" : "bg-slate-800 border border-slate-700"
                     }`}>
                       <Lock className={`h-6 w-6 ${
-                        destination === "vault" ? "text-gold" : "text-slate-500"
+                        destination === "vault" ? "text-[#c6a86b]" : "text-slate-500"
                       }`} />
                     </div>
                     <div className="text-center">
                       <span className={`block text-sm font-semibold ${
-                        destination === "vault" ? "text-gold" : "text-slate-300"
+                        destination === "vault" ? "text-[#c6a86b]" : "text-slate-300"
                       }`}>
                         Keep in Vault
                       </span>
-                      <span className={`mt-0.5 block text-[10px] ${
-                        destination === "vault" ? "text-gold/60" : "text-slate-600"
+                      <span className={`mt-0.5 block font-mono text-[9px] uppercase tracking-widest ${
+                        destination === "vault" ? "text-[#c6a86b]/60" : "text-slate-600"
                       }`}>
                         Insured LBMA Storage
                       </span>
@@ -443,27 +449,27 @@ export function BuyPanel({
                     id="dest-ship-retail"
                     type="button"
                     onClick={() => setDestination("ship")}
-                    className={`group flex flex-col items-center gap-3 rounded-md border p-5 transition-all duration-200 ${
+                    className={`group flex flex-col items-center gap-3 rounded-sm border p-5 transition-all duration-200 ${
                       destination === "ship"
-                        ? "border-gold/40 bg-gold/5 shadow-lg shadow-gold/5"
-                        : "border-slate-800 bg-white/[0.02] hover:border-slate-700"
+                        ? "border-[#c6a86b] bg-slate-900 shadow-[inset_0_0_20px_rgba(198,168,107,0.06)]"
+                        : "border-slate-800 bg-slate-900 hover:border-slate-700"
                     }`}
                   >
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-md ${
-                      destination === "ship" ? "bg-gold/10 border border-gold/20" : "bg-slate-800"
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-sm ${
+                      destination === "ship" ? "bg-[#c6a86b]/10 border border-[#c6a86b]/25" : "bg-slate-800 border border-slate-700"
                     }`}>
                       <Truck className={`h-6 w-6 ${
-                        destination === "ship" ? "text-gold" : "text-slate-500"
+                        destination === "ship" ? "text-[#c6a86b]" : "text-slate-500"
                       }`} />
                     </div>
                     <div className="text-center">
                       <span className={`block text-sm font-semibold ${
-                        destination === "ship" ? "text-gold" : "text-slate-300"
+                        destination === "ship" ? "text-[#c6a86b]" : "text-slate-300"
                       }`}>
                         Ship to Me
                       </span>
-                      <span className={`mt-0.5 block text-[10px] ${
-                        destination === "ship" ? "text-gold/60" : "text-slate-600"
+                      <span className={`mt-0.5 block font-mono text-[9px] uppercase tracking-widest ${
+                        destination === "ship" ? "text-[#c6a86b]/60" : "text-slate-600"
                       }`}>
                         Armored Delivery
                       </span>
@@ -480,14 +486,14 @@ export function BuyPanel({
                     : "max-h-0 opacity-0"
                 }`}
               >
-                <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-                  <span className="block text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                <div className="space-y-3 border border-slate-800 bg-slate-900 p-4">
+                  <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                     Shipping Address
                   </span>
 
                   {/* Street */}
                   <div>
-                    <label htmlFor="retail-street" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                    <label htmlFor="retail-street" className="mb-1 block font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                       Street Address
                     </label>
                     <input
@@ -497,17 +503,17 @@ export function BuyPanel({
                       onChange={(e) => updateAddress("streetAddress", e.target.value)}
                       placeholder="123 Gold Avenue, Suite 400"
                       autoComplete="street-address"
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none transition-colors focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                      className="w-full rounded-sm border border-slate-800 bg-slate-950 px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-700 outline-none transition-colors focus:border-[#c6a86b] focus:ring-1 focus:ring-[#c6a86b]"
                     />
                     {addressErrors.streetAddress && (
-                      <p className="mt-1 text-[10px] text-red-400">{addressErrors.streetAddress}</p>
+                      <p className="mt-1 font-mono text-[10px] text-red-400">{addressErrors.streetAddress}</p>
                     )}
                   </div>
 
                   {/* City / State / Zip */}
                   <div className="grid grid-cols-5 gap-2">
                     <div className="col-span-2">
-                      <label htmlFor="retail-city" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                      <label htmlFor="retail-city" className="mb-1 block font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                         City
                       </label>
                       <input
@@ -517,14 +523,14 @@ export function BuyPanel({
                         onChange={(e) => updateAddress("city", e.target.value)}
                         placeholder="New York"
                         autoComplete="address-level2"
-                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none transition-colors focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                        className="w-full rounded-sm border border-slate-800 bg-slate-950 px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-700 outline-none transition-colors focus:border-[#c6a86b] focus:ring-1 focus:ring-[#c6a86b]"
                       />
                       {addressErrors.city && (
-                        <p className="mt-1 text-[10px] text-red-400">{addressErrors.city}</p>
+                        <p className="mt-1 font-mono text-[10px] text-red-400">{addressErrors.city}</p>
                       )}
                     </div>
                     <div>
-                      <label htmlFor="retail-state" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                      <label htmlFor="retail-state" className="mb-1 block font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                         State
                       </label>
                       <select
@@ -532,19 +538,19 @@ export function BuyPanel({
                         value={address.state}
                         onChange={(e) => updateAddress("state", e.target.value)}
                         autoComplete="address-level1"
-                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-2.5 text-sm text-slate-200 outline-none transition-colors appearance-none focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                        className="w-full rounded-sm border border-slate-800 bg-slate-950 px-2 py-2.5 font-mono text-sm text-white outline-none transition-colors appearance-none focus:border-[#c6a86b] focus:ring-1 focus:ring-[#c6a86b]"
                       >
-                        <option value="" className="bg-slate-900">—</option>
+                        <option value="" className="bg-slate-950">—</option>
                         {US_STATES.map((s) => (
-                          <option key={s} value={s} className="bg-slate-900">{s}</option>
+                          <option key={s} value={s} className="bg-slate-950">{s}</option>
                         ))}
                       </select>
                       {addressErrors.state && (
-                        <p className="mt-1 text-[10px] text-red-400">{addressErrors.state}</p>
+                        <p className="mt-1 font-mono text-[10px] text-red-400">{addressErrors.state}</p>
                       )}
                     </div>
                     <div className="col-span-2">
-                      <label htmlFor="retail-zip" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                      <label htmlFor="retail-zip" className="mb-1 block font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                         Zip Code
                       </label>
                       <input
@@ -556,19 +562,19 @@ export function BuyPanel({
                         onChange={(e) => updateAddress("zipCode", e.target.value)}
                         placeholder="10005"
                         autoComplete="postal-code"
-                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm font-mono font-semibold tabular-nums text-slate-200 placeholder:text-slate-600 outline-none transition-colors focus:border-slate-600 focus:ring-1 focus:ring-slate-600/50"
+                        className="w-full rounded-sm border border-slate-800 bg-slate-950 px-3 py-2.5 font-mono text-sm font-semibold tabular-nums text-white placeholder:text-slate-700 outline-none transition-colors focus:border-[#c6a86b] focus:ring-1 focus:ring-[#c6a86b]"
                       />
                       {addressErrors.zipCode && (
-                        <p className="mt-1 text-[10px] text-red-400">{addressErrors.zipCode}</p>
+                        <p className="mt-1 font-mono text-[10px] text-red-400">{addressErrors.zipCode}</p>
                       )}
                     </div>
                   </div>
 
                   {/* ── Freight Error Banner ── */}
                   {freightError && (
-                    <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-3">
+                    <div className="flex items-start gap-2.5 border border-red-500/30 bg-red-950/30 px-4 py-3">
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-                      <p className="text-xs leading-relaxed text-red-300">{freightError}</p>
+                      <p className="font-mono text-xs leading-relaxed text-red-300">{freightError}</p>
                     </div>
                   )}
                 </div>
@@ -581,64 +587,71 @@ export function BuyPanel({
              ══════════════════════════════════════════════════════ */}
           {step === 3 && !wireDetails && (
             <div className="space-y-6">
-              {/* Order Summary */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 space-y-4">
-                <span className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+              {/* Order Summary — Financial Ledger */}
+              <div className="border border-slate-800 bg-slate-900 p-5 space-y-4">
+                <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                   Order Summary
                 </span>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Product</span>
-                    <span className="font-medium text-slate-200">{quantity}× {product.shortName}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500">Product</span>
+                    <span className="font-mono text-sm font-medium text-white">{quantity}× {product.shortName}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Unit Price</span>
-                    <span className="font-mono tabular-nums text-slate-300">${formatUSD(product.priceUsd)}</span>
+                  <div className="border-t border-slate-800" />
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500">Unit Price</span>
+                    <span className="font-mono text-sm tabular-nums text-slate-300">${formatUSD(product.priceUsd)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Subtotal</span>
-                    <span className="font-mono tabular-nums text-slate-300">${formatUSD(subtotal)}</span>
+                  <div className="border-t border-slate-800" />
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500">Subtotal</span>
+                    <span className="font-mono text-sm tabular-nums text-slate-300">${formatUSD(subtotal)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Destination</span>
-                    <span className="text-slate-300">
+                  <div className="border-t border-slate-800" />
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500">Destination</span>
+                    <span className="font-mono text-sm text-slate-300">
                       {destination === "vault" ? "🔒 Vault Storage" : "📦 Ship to Me"}
                     </span>
                   </div>
                   {destination === "ship" && (
-                    <div className="flex items-start justify-between text-sm">
-                      <span className="text-slate-400">Ship To</span>
-                      <span className="text-right text-xs text-slate-400">
-                        {address.streetAddress}<br />
-                        {address.city}, {address.state} {address.zipCode}
-                      </span>
-                    </div>
+                    <>
+                      <div className="border-t border-slate-800" />
+                      <div className="flex items-start justify-between">
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500">Ship To</span>
+                        <span className="text-right font-mono text-xs text-slate-500">
+                          {address.streetAddress}<br />
+                          {address.city}, {address.state} {address.zipCode}
+                        </span>
+                      </div>
+                    </>
                   )}
                 </div>
 
                 {/* ── Freight Cost Breakdown (Ship to Me only) ── */}
                 {destination === "ship" && freightQuote && (
                   <div className="space-y-2 border-t border-slate-800 pt-3">
-                    <span className="block text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                      Armored Freight & Insurance
+                    <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      Armored Freight &amp; Insurance
                     </span>
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-500">Base Dispatch</span>
-                        <span className="font-mono tabular-nums text-slate-400">${formatUSD(freightQuote.baseDispatch)}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-slate-600">Base Dispatch</span>
+                        <span className="font-mono text-xs tabular-nums text-slate-400">${formatUSD(freightQuote.baseDispatch)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-500">Mileage Surcharge ({freightQuote.distanceMiles} mi)</span>
-                        <span className="font-mono tabular-nums text-slate-400">${formatUSD(freightQuote.mileageSurcharge)}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-slate-600">Mileage Surcharge ({freightQuote.distanceMiles} mi)</span>
+                        <span className="font-mono text-xs tabular-nums text-slate-400">${formatUSD(freightQuote.mileageSurcharge)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-500">Lloyd&apos;s Insurance (15bps)</span>
-                        <span className="font-mono tabular-nums text-slate-400">${formatUSD(freightQuote.insurancePremium)}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-slate-600">Lloyd&apos;s Insurance (15bps)</span>
+                        <span className="font-mono text-xs tabular-nums text-slate-400">${formatUSD(freightQuote.insurancePremium)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm border-t border-slate-800/60 pt-1.5">
-                        <span className="font-semibold text-gold/80">Total Logistics Fee</span>
-                        <span className="font-mono font-semibold tabular-nums text-gold">${formatUSD(freightQuote.totalLogisticsFee)}</span>
+                      <div className="border-t border-slate-800" />
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#c6a86b]/80">Total Logistics Fee</span>
+                        <span className="font-mono text-sm font-semibold tabular-nums text-[#c6a86b]">${formatUSD(freightQuote.totalLogisticsFee)}</span>
                       </div>
                     </div>
                   </div>
@@ -647,10 +660,10 @@ export function BuyPanel({
                 {/* ── Grand Total ── */}
                 <div className="border-t border-slate-800 pt-3">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-sm font-semibold text-slate-300">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
                       {destination === "ship" ? "Wire Total (incl. Freight)" : "Total"}
                     </span>
-                    <span className="font-mono text-3xl font-bold tabular-nums text-white">
+                    <span className="font-mono text-3xl font-bold tabular-nums text-[#c6a86b]">
                       ${formatUSD(grandTotal)}
                     </span>
                   </div>
@@ -663,7 +676,7 @@ export function BuyPanel({
                 type="button"
                 onClick={handleGenerateWire}
                 disabled={isPending}
-                className="group flex w-full items-center justify-center gap-3 rounded-md bg-gold px-6 py-5 text-base font-bold text-slate-950 shadow-lg shadow-gold/10 transition-all hover:bg-gold-hover active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
+                className="group flex w-full items-center justify-center gap-3 rounded-sm bg-[#c6a86b] px-6 py-5 text-base font-bold text-slate-950 shadow-lg shadow-[#c6a86b]/10 transition-all hover:bg-[#d4b97a] active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
               >
                 {isPending ? (
                   <>
@@ -685,34 +698,35 @@ export function BuyPanel({
              ══════════════════════════════════════════════════════ */}
           {step === 3 && wireDetails && (
             <div className="space-y-6">
-              {/* ── Back Button (visible even on wire details view) ── */}
+              {/* ── Back Button ── */}
               <button
                 type="button"
                 onClick={goBack}
-                className="flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-slate-200"
+                className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-slate-500 transition-colors hover:text-white"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Back to Order Summary
               </button>
 
-              <div className="rounded-md border border-gold/20 bg-gold/5 px-5 py-3.5">
-                <p className="text-sm leading-relaxed text-gold/80">
+              <div className="border border-[#c6a86b]/20 bg-[#c6a86b]/5 px-5 py-3.5">
+                <p className="font-mono text-sm leading-relaxed text-[#c6a86b]/80">
                   Wire the exact amount below from your bank account.
                   Your gold will be allocated upon receipt.
                 </p>
               </div>
 
-              <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-900/50 p-5">
+              {/* ── Wire Details — Secure bank document style ── */}
+              <div className="space-y-4 border-l-4 border-[#c6a86b] bg-slate-900 p-6">
                 {/* Amount Due — INCLUDES FREIGHT */}
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                     Amount Due
                   </span>
-                  <div className="mt-1 font-mono text-3xl font-bold tabular-nums text-white">
+                  <div className="mt-1 font-mono text-3xl font-bold tabular-nums text-[#c6a86b]">
                     ${formatUSD(grandTotal)}
                   </div>
                   {destination === "ship" && freightQuote && (
-                    <p className="mt-0.5 text-[10px] text-slate-500">
+                    <p className="mt-0.5 font-mono text-[10px] text-slate-600">
                       Includes ${formatUSD(freightQuote.totalLogisticsFee)} armored freight &amp; insurance
                     </p>
                   )}
@@ -722,10 +736,10 @@ export function BuyPanel({
 
                 {/* Bank Name */}
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                     Bank Name
                   </span>
-                  <div className="mt-1 text-lg font-medium text-slate-200">
+                  <div className="mt-1 text-lg font-medium text-white">
                     {wireDetails.bankName}
                   </div>
                 </div>
@@ -735,10 +749,10 @@ export function BuyPanel({
                 {/* Routing Number */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                       Routing Number
                     </span>
-                    <div className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-wider text-slate-100">
+                    <div className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-wider text-white">
                       {wireDetails.routingNumber}
                     </div>
                   </div>
@@ -750,10 +764,10 @@ export function BuyPanel({
                 {/* Account Number */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                       Account Number
                     </span>
-                    <div className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-wider text-slate-100">
+                    <div className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-wider text-white">
                       {wireDetails.accountNumber}
                     </div>
                   </div>
@@ -764,10 +778,10 @@ export function BuyPanel({
 
                 {/* Beneficiary */}
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
                     Beneficiary
                   </span>
-                  <div className="mt-1 text-lg font-medium text-slate-200">
+                  <div className="mt-1 text-lg font-medium text-white">
                     AurumShield FBO [Your Account]
                   </div>
                 </div>
@@ -775,9 +789,9 @@ export function BuyPanel({
 
               {/* ── Order Error Banner ── */}
               {orderError && (
-                <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-3">
+                <div className="flex items-start gap-2.5 border border-red-500/30 bg-red-950/30 px-4 py-3">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-                  <p className="text-xs leading-relaxed text-red-300">{orderError}</p>
+                  <p className="font-mono text-xs leading-relaxed text-red-300">{orderError}</p>
                 </div>
               )}
 
@@ -787,7 +801,7 @@ export function BuyPanel({
                 type="button"
                 onClick={handleWireInitiated}
                 disabled={isCreatingOrder}
-                className="group flex w-full items-center justify-center gap-3 rounded-md border border-gold/30 bg-gold/10 px-6 py-4 text-sm font-semibold text-gold transition-all hover:border-gold/50 hover:bg-gold/20 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
+                className="group flex w-full items-center justify-center gap-3 rounded-sm border border-[#c6a86b]/30 bg-[#c6a86b]/10 px-6 py-4 font-mono text-sm font-bold text-[#c6a86b] transition-all hover:border-[#c6a86b]/50 hover:bg-[#c6a86b]/20 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
               >
                 {isCreatingOrder ? (
                   <>
@@ -807,7 +821,7 @@ export function BuyPanel({
                 type="button"
                 onClick={handleWireInitiated}
                 disabled={isCreatingOrder}
-                className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-amber-700/40 bg-amber-950/20 px-6 py-4 text-sm font-semibold text-amber-400 transition-all hover:border-amber-600/60 hover:bg-amber-950/40 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
+                className="group flex w-full items-center justify-center gap-3 rounded-sm border border-slate-700 bg-slate-900 px-6 py-4 font-mono text-sm font-semibold text-slate-400 transition-all hover:border-slate-600 hover:bg-slate-800 hover:text-white active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
               >
                 {isCreatingOrder ? (
                   <>
@@ -828,13 +842,13 @@ export function BuyPanel({
 
         {/* ── Footer CTA (Steps 1 & 2 only) ── */}
         {step < 3 && (
-          <div className="border-t border-slate-800 px-6 py-4 space-y-2">
+          <div className="border-t border-slate-800 bg-slate-950 px-6 py-4 space-y-2">
             {/* Back Button (Step 2 only) */}
             {step === 2 && (
               <button
                 type="button"
                 onClick={goBack}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-6 py-3 text-sm font-medium text-slate-400 transition-all hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200 active:scale-[0.98]"
+                className="flex w-full items-center justify-center gap-2 rounded-sm border border-slate-700 bg-slate-900 px-6 py-3 font-mono text-xs font-bold uppercase tracking-widest text-slate-400 transition-all hover:border-slate-600 hover:bg-slate-800 hover:text-white active:scale-[0.98]"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Quantity
@@ -845,7 +859,7 @@ export function BuyPanel({
               type="button"
               onClick={step === 1 ? advanceToStep2 : advanceToStep3}
               disabled={freightLoading}
-              className="group flex w-full items-center justify-center gap-3 rounded-md bg-gold px-6 py-4 text-base font-bold text-slate-950 shadow-lg shadow-gold/10 transition-all hover:bg-gold-hover active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
+              className="group flex w-full items-center justify-center gap-3 rounded-sm bg-[#c6a86b] px-6 py-4 text-base font-bold text-slate-950 shadow-lg shadow-[#c6a86b]/10 transition-all hover:bg-[#d4b97a] active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
             >
               {freightLoading ? (
                 <>
