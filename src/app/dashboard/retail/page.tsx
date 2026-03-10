@@ -2,14 +2,29 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Shield, TrendingUp, ArrowRight } from "lucide-react";
+import { Shield, TrendingUp, ArrowRight, Award } from "lucide-react";
 import { BuyPanel, type RetailProduct } from "@/components/retail/buy-panel";
 
 /* ================================================================
-   MOCK SPOT PRICE & PRODUCT CATALOG
+   MOCK SPOT PRICE & PREMIUM CALCULATIONS
    ================================================================ */
 
-const MOCK_SPOT_PRICE = 2650.0;
+const MOCK_SPOT_PRICE = 5171.92;
+
+const UNSPLASH_GOLD_BAR =
+  "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=800";
+
+/**
+ * Product 1: 1 oz Minted Gold Bar — Spot + 2.00% premium
+ * Product 2: 10 oz Cast Gold Bar  — (Spot × 10) + 1.00% premium
+ * Product 3: 1 Kilogram Gold Bar  — (Spot × 32.15) + 0.50% premium
+ * Product 4: 400 oz Good Delivery — (Spot × 400) + 0.10% premium
+ */
+
+function calcPrice(spotPrice: number, weightOz: number, premiumPct: number): number {
+  const basePrice = spotPrice * weightOz;
+  return Math.round((basePrice * (1 + premiumPct / 100)) * 100) / 100;
+}
 
 const PRODUCTS: RetailProduct[] = [
   {
@@ -18,9 +33,9 @@ const PRODUCTS: RetailProduct[] = [
     shortName: "1 oz Bar",
     weightOz: 1,
     purity: "99.99% Pure Gold",
-    subtext: "The standard starting point.",
-    priceUsd: 2650,
-    image: "/assets/gold-1oz.png",
+    subtext: "The standard retail starting point.",
+    priceUsd: calcPrice(MOCK_SPOT_PRICE, 1, 2.0),
+    image: UNSPLASH_GOLD_BAR,
   },
   {
     id: "10oz-bar",
@@ -29,18 +44,18 @@ const PRODUCTS: RetailProduct[] = [
     weightOz: 10,
     purity: "99.99% Pure Gold",
     subtext: "Lower premium over spot.",
-    priceUsd: 26280,
-    image: "/assets/gold-10oz.png",
+    priceUsd: calcPrice(MOCK_SPOT_PRICE, 10, 1.0),
+    image: UNSPLASH_GOLD_BAR,
   },
   {
     id: "1kg-bar",
-    name: "1 Kilo Gold Bar",
+    name: "1 Kilogram Gold Bar",
     shortName: "1 Kilo Bar",
-    weightOz: 32.1507,
+    weightOz: 32.15,
     purity: "99.99% Pure Gold",
     subtext: "The wealth builder's choice.",
-    priceUsd: 84950,
-    image: "/assets/gold-1kg.png",
+    priceUsd: calcPrice(MOCK_SPOT_PRICE, 32.15, 0.5),
+    image: UNSPLASH_GOLD_BAR,
   },
   {
     id: "400oz-bar",
@@ -48,9 +63,9 @@ const PRODUCTS: RetailProduct[] = [
     shortName: "400 oz Bar",
     weightOz: 400,
     purity: "99.5%+ LBMA Certified",
-    subtext: "The institutional standard.",
-    priceUsd: Math.round(MOCK_SPOT_PRICE * 400),
-    image: "/assets/gold-400oz.png",
+    subtext: "THE INSTITUTIONAL STANDARD. Highest capital efficiency.",
+    priceUsd: calcPrice(MOCK_SPOT_PRICE, 400, 0.1),
+    image: UNSPLASH_GOLD_BAR,
     featured: true,
   },
 ];
@@ -66,8 +81,35 @@ function formatUSD(amount: number): string {
   });
 }
 
+function formatPremium(premiumPct: number): string {
+  return `+${premiumPct.toFixed(2)}%`;
+}
+
 /* ================================================================
-   PRODUCT CARD — Premium glassmorphism with photorealistic image
+   PREMIUM METADATA PER PRODUCT (for display)
+   ================================================================ */
+
+const PREMIUM_MAP: Record<string, { premiumPct: number; specs: string }> = {
+  "1oz-bar": {
+    premiumPct: 2.0,
+    specs: "1 troy oz | 99.99% Pure Gold",
+  },
+  "10oz-bar": {
+    premiumPct: 1.0,
+    specs: "10 troy oz | 99.99% Pure Gold",
+  },
+  "1kg-bar": {
+    premiumPct: 0.5,
+    specs: "32.15 troy oz | 99.99% Pure Gold",
+  },
+  "400oz-bar": {
+    premiumPct: 0.1,
+    specs: "400 troy oz | LBMA Accredited | Zero Counterparty Risk",
+  },
+};
+
+/* ================================================================
+   PRODUCT CARD — Dark glassmorphism with gold hover border
    ================================================================ */
 
 function ProductCard({
@@ -77,33 +119,44 @@ function ProductCard({
   product: RetailProduct;
   onBuy: (product: RetailProduct) => void;
 }) {
-  const isFeatured = "featured" in product && product.featured;
+  const isFeatured = product.featured === true;
+  const meta = PREMIUM_MAP[product.id];
 
   return (
     <div
-      className={`group relative flex flex-col overflow-hidden rounded-md border transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-gold/5 ${
+      className={`group relative flex flex-col overflow-hidden rounded-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#c6a86b]/8 ${
         isFeatured
-          ? "border-gold/30 bg-white/[0.03] shadow-lg shadow-gold/5 lg:col-span-2 lg:flex-row"
-          : "border-slate-800 bg-white/[0.02]"
+          ? "border-2 border-[#c6a86b]/60 bg-slate-900/50 shadow-lg shadow-[#c6a86b]/10 backdrop-blur-sm"
+          : "border border-white/10 bg-slate-900/50 backdrop-blur-sm hover:border-[#c6a86b]"
       }`}
       data-interactive
     >
-      {/* Image */}
-      <div className={`relative overflow-hidden ${isFeatured ? "lg:w-1/2" : ""}`}>
+      {/* ── Apex Asset Badge (400oz only) ── */}
+      {isFeatured && (
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 rounded-full border border-[#c6a86b]/40 bg-[#c6a86b]/15 px-3 py-1 backdrop-blur-sm">
+          <Award className="h-3 w-3 text-[#c6a86b]" />
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#c6a86b]">
+            Apex Asset
+          </span>
+        </div>
+      )}
+
+      {/* ── Image with dark overlay ── */}
+      <div className="relative overflow-hidden">
         <div className="relative aspect-[4/3] w-full">
           <Image
-            src={product.image!}
+            src={UNSPLASH_GOLD_BAR}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes={isFeatured ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 640px) 50vw, 100vw"}
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
+            sizes="(min-width: 1536px) 25vw, (min-width: 640px) 50vw, 100vw"
           />
-          {/* Dark overlay for text contrast */}
-          <div className="absolute inset-0 bg-linear-to-t from-[#0A1128] via-[#0A1128]/30 to-transparent" />
+          {/* Dark overlay — bg-black/40 per mandate */}
+          <div className="absolute inset-0 bg-black/40" />
 
           {/* Weight stamp on image */}
-          <div className="absolute bottom-4 left-4">
-            <span className="font-mono text-2xl font-black tabular-nums text-white/90 drop-shadow-lg">
+          <div className="absolute bottom-4 left-4 z-10">
+            <span className="font-mono text-2xl font-black tabular-nums text-white drop-shadow-lg">
               {product.weightOz >= 32
                 ? product.weightOz >= 400
                   ? "400 OZ"
@@ -111,63 +164,62 @@ function ProductCard({
                 : `${product.weightOz} OZ`}
             </span>
           </div>
+
+          {/* Premium % badge on image */}
+          {meta && (
+            <div className="absolute top-4 left-4 z-10 rounded-md border border-white/20 bg-black/50 px-2.5 py-1 backdrop-blur-sm">
+              <span className="font-mono text-[11px] font-bold tabular-nums text-emerald-400">
+                {formatPremium(meta.premiumPct)} over spot
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Content */}
-      <div className={`flex flex-1 flex-col p-6 ${isFeatured ? "lg:p-8 lg:justify-center" : ""}`}>
-        {/* Featured badge */}
-        {isFeatured && (
-          <div className="mb-4 inline-flex items-center gap-1.5 self-start rounded-full border border-gold/30 bg-gold/10 px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse" />
-            <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-gold">
-              Institutional Standard
+      {/* ── Content ── */}
+      <div className="flex flex-1 flex-col p-6">
+        <h3 className="text-lg font-bold text-white">{product.name}</h3>
+        <p className="mt-1 text-sm text-gray-400">{product.subtext}</p>
+
+        {/* Specs badge */}
+        {meta && (
+          <div className="mt-3 inline-flex items-center gap-1.5 self-start rounded-full border border-[#c6a86b]/20 bg-[#c6a86b]/5 px-3 py-1">
+            <Shield className="h-3 w-3 text-[#c6a86b]" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#c6a86b]/80">
+              {meta.specs}
             </span>
           </div>
         )}
 
-        <h3 className={`font-heading font-bold text-white ${isFeatured ? "text-2xl" : "text-lg"}`}>
-          {product.name}
-        </h3>
-        <p className="mt-1 text-sm text-gray-400">{product.subtext}</p>
-
-        {/* Purity badge */}
-        <div className="mt-3 inline-flex items-center gap-1.5 self-start rounded-full border border-gold/20 bg-gold/5 px-3 py-1">
-          <Shield className="h-3 w-3 text-gold" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gold/80">
-            {product.purity}
-          </span>
-        </div>
-
         {/* Price — Live ticker style */}
         <div className="mt-auto pt-5">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="mb-1 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-emerald-400/70">
               Live Price
             </span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className={`font-mono font-bold tabular-nums text-white ${isFeatured ? "text-4xl" : "text-3xl"}`}>
+            <span className="font-mono text-3xl font-bold tabular-nums text-white">
               ${formatUSD(product.priceUsd)}
             </span>
             <span className="text-xs text-gray-500">/bar</span>
           </div>
         </div>
 
-        {/* Buy Button — Premium gold accent */}
+        {/* ── Acquire This Asset — Premium gold button ── */}
         <button
           id={`buy-${product.id}`}
           type="button"
           onClick={() => onBuy(product)}
-          className={`mt-5 flex w-full items-center justify-center gap-2.5 rounded-md px-6 py-4 text-sm font-bold transition-all active:scale-[0.97] ${
+          className={`mt-5 flex w-full items-center justify-center gap-2.5 rounded-lg px-6 py-4 text-sm font-bold transition-all duration-200 active:scale-[0.97] ${
             isFeatured
-              ? "bg-gold text-slate-950 shadow-lg shadow-gold/10 hover:bg-gold-hover"
-              : "border border-gold/30 bg-gold/10 text-gold hover:bg-gold/20 hover:border-gold/50"
+              ? "bg-[#c6a86b] text-slate-950 shadow-lg shadow-[#c6a86b]/15 hover:bg-[#d4b97a]"
+              : "border border-[#c6a86b]/30 bg-[#c6a86b]/10 text-[#c6a86b] hover:bg-[#c6a86b]/20 hover:border-[#c6a86b]/50"
           }`}
         >
-          Acquire This Bar
-          <ArrowRight className="h-4 w-4" />
+          Acquire This Asset
+          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
         </button>
       </div>
     </div>
@@ -195,17 +247,17 @@ export default function RetailDashboardPage() {
 
         {/* ── Spot Price Ticker ── */}
         <div className="mb-8 flex items-center justify-center gap-3">
-          <div className="inline-flex items-center gap-3 rounded-md border border-slate-800 bg-white/[0.02] px-5 py-2.5 backdrop-blur-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
-            <TrendingUp className="h-4 w-4 text-gold" />
+          <div className="inline-flex items-center gap-3 rounded-lg border border-white/10 bg-slate-900/50 px-5 py-2.5 backdrop-blur-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
+            <TrendingUp className="h-4 w-4 text-[#c6a86b]" />
             <span className="text-xs font-semibold tracking-wide text-gray-400">
               XAU/USD
             </span>
-            <div className="h-4 w-px bg-slate-800" />
+            <div className="h-4 w-px bg-white/10" />
             <span className="font-mono text-lg font-bold tabular-nums text-white">
               ${formatUSD(MOCK_SPOT_PRICE)}
             </span>
             <span className="font-mono text-[10px] text-gray-500">/oz</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="font-mono text-[10px] font-bold text-emerald-400">LIVE</span>
             </span>
@@ -214,23 +266,23 @@ export default function RetailDashboardPage() {
 
         {/* ── Hero Header ── */}
         <div className="mb-12 text-center">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <div className="h-px w-8 bg-gold/50" />
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
+          <div className="mb-4 flex items-center justify-center gap-4">
+            <div className="h-px w-8 bg-[#c6a86b]/50" />
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#c6a86b]">
               Sovereign Asset Catalog
             </p>
-            <div className="h-px w-8 bg-gold/50" />
+            <div className="h-px w-8 bg-[#c6a86b]/50" />
           </div>
           <h1 className="font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl">
             Your Gold
           </h1>
-          <p className="mt-3 text-base text-gray-400 max-w-md mx-auto">
+          <p className="mx-auto mt-3 max-w-md text-base text-gray-400">
             Select from LBMA-accredited bullion. Vault securely or schedule armored delivery.
           </p>
         </div>
 
-        {/* ── Product Grid — 2-col with featured spanning full width ── */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2">
+        {/* ── Product Grid — 2×2 (4-col on massive screens) ── */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 2xl:grid-cols-4">
           {PRODUCTS.map((product) => (
             <ProductCard
               key={product.id}
@@ -243,9 +295,9 @@ export default function RetailDashboardPage() {
         {/* ── Trust Footer ── */}
         <div className="mt-16 flex flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-4">
-            <div className="h-px w-12 bg-slate-800" />
-            <Shield className="h-5 w-5 text-gold/40" />
-            <div className="h-px w-12 bg-slate-800" />
+            <div className="h-px w-12 bg-white/10" />
+            <Shield className="h-5 w-5 text-[#c6a86b]/40" />
+            <div className="h-px w-12 bg-white/10" />
           </div>
           <p className="max-w-lg text-xs leading-relaxed text-gray-500">
             All gold is allocated, insured, and stored in LBMA-certified Malca-Amit vaults.

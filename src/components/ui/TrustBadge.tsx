@@ -1,11 +1,10 @@
 "use client";
 
 /* ================================================================
-   TRUST BADGE — Reusable Trust Signal Pill
+   TRUST BADGE — Institutional Trust Signal Pill
    ================================================================
-   Small inline badge showing a verification/trust signal.
-   Used on AssetCard to communicate assay status, LBMA conformance,
-   insurance coverage, and seller verification.
+   Stark, dark-slate badge with gold or neutral accent.
+   All cheap CSS variables eradicated — hardcoded premium values.
    ================================================================ */
 
 import type { LucideIcon } from "lucide-react";
@@ -21,11 +20,11 @@ export interface TrustBadgeProps {
   variant?: TrustBadgeVariant;
 }
 
-/* ── Variant Styles ── */
+/* ── Variant Styles — Hardcoded institutional values ── */
 
 const VARIANT_STYLES: Record<TrustBadgeVariant, string> = {
-  gold: "border-color-2/30 bg-color-2/5 text-color-2",
-  neutral: "border-color-5/20 bg-color-5/5 text-color-3/60",
+  gold: "border-[#c6a86b]/30 bg-[#c6a86b]/5 text-[#c6a86b]",
+  neutral: "border-slate-700 bg-slate-800/50 text-slate-400",
 };
 
 /* ================================================================ */
