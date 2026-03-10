@@ -1,235 +1,201 @@
 "use client";
 
 /* ================================================================
-   SOVEREIGN ASSET CATALOG — Phase 3: Post-Verification Marketplace
+   MARKETPLACE — Gold Product Selection
    ================================================================
-   Terminal-grade asset allocation interface for verified institutional
-   buyers. Three asset types: Refined Bullion, Doré Bars, Raw Nuggets.
-   No backend logic — structural UI only.
+   Clean product cards with real-time spot pricing. Three products:
+   Bullion, Nuggets, Doré. On select → navigate to /checkout.
    ================================================================ */
 
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
-import { Radio, Shield, Lock, ArrowRight } from "lucide-react";
+import { ArrowRight, TrendingUp } from "lucide-react";
+import { useGoldPrice } from "@/hooks/use-gold-price";
 
-/* ── Constants ── */
-const BRAND_GOLD = "#c6a86b";
-const MOCK_SPOT = "2,650.00";
-
-/* ── Asset Data ── */
-interface Asset {
-  id: string;
-  title: string;
-  specs: { label: string; value: string }[];
-  tier: string;
+/* ── Format USD ── */
+function fmtUSD(n: number): string {
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
-const ASSETS: Asset[] = [
+/* ── Product Data ── */
+interface Product {
+  id: string;
+  type: "bullion" | "nuggets" | "dore";
+  title: string;
+  description: string;
+  features: string[];
+  premiumPct: number;
+  weightOz: number;
+  weightLabel: string;
+}
+
+const PRODUCTS: Product[] = [
   {
     id: "refined-bullion",
-    title: "REFINED BULLION",
-    tier: "TIER 1 — INSTITUTIONAL GRADE",
-    specs: [
-      { label: "Format", value: "400-oz LBMA Good Delivery / 1-Kilo" },
-      { label: "Purity", value: "99.99% Fine Gold" },
-      { label: "Settlement", value: "T+0 Vaulted / Armored Transit" },
+    type: "bullion",
+    title: "Refined Bullion",
+    description:
+      "400-oz LBMA Good Delivery bars. 99.99% fine gold. Vaulted or delivered via Brink's armored transit.",
+    features: [
+      "99.99% purity",
+      "LBMA Good Delivery certified",
+      "T+0 vaulted settlement",
+      "Brink's armored delivery available",
     ],
+    premiumPct: 2.5,
+    weightOz: 400,
+    weightLabel: "400 troy oz",
+  },
+  {
+    id: "gold-nuggets",
+    type: "nuggets",
+    title: "Gold Nuggets",
+    description:
+      "Natural placer gold from vetted mine originators. Variable purity requires assay on receipt.",
+    features: [
+      "Natural alluvial gold",
+      "Provenance-verified sourcing",
+      "Independent assay included",
+      "Wholesale pricing",
+    ],
+    premiumPct: 5.0,
+    weightOz: 100,
+    weightLabel: "100 troy oz",
   },
   {
     id: "dore-bars",
-    title: "DORÉ BARS",
-    tier: "TIER 2 — REFINERY PIPELINE",
-    specs: [
-      { label: "Format", value: "Semi-purified alloy" },
-      { label: "Purity", value: "Variable (Typically 80–90%)" },
-      { label: "Settlement", value: "Requires Final Refinery Assay" },
+    type: "dore",
+    title: "Gold Doré",
+    description:
+      "Semi-purified alloy bars direct from refinery pipeline. Highest margin potential for institutional buyers.",
+    features: [
+      "80-90% typical purity",
+      "Refinery pipeline direct",
+      "Lowest cost basis",
+      "Requires final refinery assay",
     ],
-  },
-  {
-    id: "raw-nuggets",
-    title: "RAW NUGGETS",
-    tier: "TIER 3 — GEOLOGICAL YIELD",
-    specs: [
-      { label: "Format", value: "Natural geological yield" },
-      { label: "Purity", value: "Unrefined / Origin Dependent" },
-      { label: "Settlement", value: "Specialized Transit Required" },
-    ],
+    premiumPct: 1.5,
+    weightOz: 200,
+    weightLabel: "200 troy oz",
   },
 ];
 
-/* ── Asset Card Component ── */
-function AssetTerminalCard({
-  asset,
-  onAllocate,
-}: {
-  asset: Asset;
-  onAllocate: (id: string) => void;
-}) {
-  return (
-    <div className="group flex flex-col border border-slate-800 bg-slate-900 transition-colors duration-200 hover:border-[#c6a86b]">
-      {/* Card header bar */}
-      <div className="flex items-center gap-2 border-b border-slate-800 px-5 py-3">
-        <span className="h-2 w-2 rounded-full bg-red-500/40" />
-        <span className="h-2 w-2 rounded-full bg-amber-500/40" />
-        <span className="h-2 w-2 rounded-full bg-emerald-500/40" />
-        <span className="ml-2 font-mono text-[9px] tracking-wider text-slate-700">
-          asset://{asset.id}
-        </span>
-      </div>
-
-      {/* Card body */}
-      <div className="flex flex-1 flex-col p-6">
-        {/* Tier label */}
-        <p className="mb-4 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-slate-600">
-          {asset.tier}
-        </p>
-
-        {/* Title */}
-        <h3
-          className="mb-6 font-mono text-xl font-bold tracking-tight"
-          style={{ color: BRAND_GOLD }}
-        >
-          {asset.title}
-        </h3>
-
-        {/* Specs */}
-        <div className="mb-8 flex-1 space-y-3">
-          {asset.specs.map((spec) => (
-            <div key={spec.label} className="flex flex-col gap-0.5">
-              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">
-                {spec.label}
-              </span>
-              <span className="font-mono text-xs text-slate-400">
-                {spec.value}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Separator */}
-        <div className="mb-5 border-t border-slate-800" />
-
-        {/* Allocate button */}
-        <button
-          type="button"
-          onClick={() => onAllocate(asset.id)}
-          className="flex w-full items-center justify-center gap-2 px-4 py-3.5 font-mono text-sm font-bold uppercase tracking-wider transition-all duration-150 active:scale-[0.98]"
-          style={{
-            backgroundColor: BRAND_GOLD,
-            color: "#0f172a",
-          }}
-        >
-          [ INITIALIZE ALLOCATION ]
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ── Page ── */
 export default function MarketplacePage() {
   const router = useRouter();
+  const { data: priceData, isLoading } = useGoldPrice();
 
-  const handleAllocate = useCallback(
-    (assetId: string) => {
-      router.push(`/checkout?asset=${assetId}`);
+  const spotPrice = priceData?.spotPriceUsd ?? 2650.0;
+
+  const handleSelect = useCallback(
+    (product: Product) => {
+      // Store selection in sessionStorage for checkout
+      sessionStorage.setItem(
+        "aurumshield:selectedProduct",
+        JSON.stringify({
+          type: product.type,
+          weightOz: product.weightOz,
+          premiumPct: product.premiumPct,
+          title: product.title,
+        }),
+      );
+      router.push("/checkout");
     },
     [router],
   );
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* ── Terminal Header ── */}
-      <div className="border-b border-slate-800 px-6 py-10 sm:px-10 sm:py-14">
-        <div className="mx-auto max-w-6xl">
-          {/* Eyebrow */}
-          <div className="mb-4 flex items-center gap-3">
-            <Shield className="h-4 w-4" style={{ color: BRAND_GOLD }} />
-            <p
-              className="font-mono text-xs font-bold uppercase tracking-[0.2em]"
-              style={{ color: BRAND_GOLD }}
-            >
-              Secure Enclave // Post-Verification
-            </p>
-          </div>
-
-          {/* Headline */}
-          <h1 className="mb-6 text-4xl font-bold tracking-tight text-white sm:text-5xl">
-            Sovereign Asset Catalog
+    <div className="mx-auto max-w-5xl py-8">
+      {/* Header */}
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            Marketplace
           </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Select a product. All prices include the real-time spot rate.
+          </p>
+        </div>
 
-          {/* Live Ticker */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border border-slate-800 bg-slate-900/50 px-5 py-3">
-            <div className="flex items-center gap-2">
-              <Radio
-                className="h-3 w-3 animate-pulse"
-                style={{ color: BRAND_GOLD }}
-              />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                XAU/USD Spot
-              </span>
-              <span className="font-mono text-sm font-bold tabular-nums text-white">
-                ${MOCK_SPOT}
-              </span>
-            </div>
-
-            <span className="hidden text-slate-800 sm:inline">|</span>
-
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                Status
-              </span>
-              <span className="font-mono text-xs font-bold text-emerald-400">
-                LIQUID
-              </span>
-            </div>
-
-            <span className="hidden text-slate-800 sm:inline">|</span>
-
-            <div className="flex items-center gap-2">
-              <Lock className="h-3 w-3 text-slate-600" />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                Clearing
-              </span>
-              <span className="font-mono text-xs font-bold text-slate-300">
-                FEDWIRE
-              </span>
-            </div>
-          </div>
+        {/* Live Spot Price */}
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-1 px-4 py-2.5">
+          <TrendingUp className="h-4 w-4 text-gold" />
+          <span className="text-xs text-slate-400">Spot:</span>
+          <span className="font-mono text-sm font-bold tabular-nums text-white">
+            {isLoading ? "---" : `$${fmtUSD(spotPrice)}`}
+          </span>
+          <span className="text-xs text-slate-500">/oz</span>
         </div>
       </div>
 
-      {/* ── Asset Terminal Grid ── */}
-      <div className="px-6 py-10 sm:px-10 sm:py-14">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {ASSETS.map((asset) => (
-              <AssetTerminalCard
-                key={asset.id}
-                asset={asset}
-                onAllocate={handleAllocate}
-              />
-            ))}
-          </div>
+      {/* Product Grid */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {PRODUCTS.map((product) => {
+          const pricePerOz = spotPrice * (1 + product.premiumPct / 100);
+          const totalPrice = pricePerOz * product.weightOz;
 
-          {/* ── Footer ── */}
-          <div className="mt-12 border-t border-slate-800 pt-6">
-            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-              <p className="font-mono text-[10px] leading-relaxed text-slate-600">
-                All allocations are settlement-gated. Pricing is determined at
-                order execution against live spot + published premium schedule.
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="font-mono text-[9px] uppercase tracking-wider text-slate-600">
-                  Encrypted Session Active
-                </span>
+          return (
+            <div
+              key={product.id}
+              className="flex flex-col rounded-xl border border-border bg-surface-1 transition-all hover:border-gold/30"
+            >
+              {/* Card Header */}
+              <div className="border-b border-border p-5">
+                <h2 className="text-lg font-bold text-white">
+                  {product.title}
+                </h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  {product.description}
+                </p>
+              </div>
+
+              {/* Pricing */}
+              <div className="border-b border-border p-5">
+                <div className="mb-1 flex items-baseline gap-1.5">
+                  <span className="font-mono text-2xl font-bold tabular-nums text-white">
+                    ${fmtUSD(pricePerOz)}
+                  </span>
+                  <span className="text-xs text-slate-500">/oz</span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Spot + {product.premiumPct}% premium · {product.weightLabel}
+                </p>
+                <div className="mt-3 flex items-center justify-between rounded-lg bg-surface-2/50 px-3 py-2">
+                  <span className="text-xs text-slate-400">Total</span>
+                  <span className="font-mono text-sm font-bold tabular-nums text-gold">
+                    ${fmtUSD(totalPrice)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Features */}
+              <div className="flex-1 p-5">
+                <ul className="space-y-2">
+                  {product.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                      <span className="text-xs text-slate-300">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* CTA */}
+              <div className="p-5 pt-0">
+                <button
+                  type="button"
+                  onClick={() => handleSelect(product)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover active:scale-[0.98]"
+                >
+                  Select
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );

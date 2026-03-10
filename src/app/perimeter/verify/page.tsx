@@ -1,36 +1,49 @@
 "use client";
 
 /* ================================================================
-   VERIFICATION PORTAL — Compliance Perimeter Phase 1
+   IDENTITY VERIFICATION — Veriff Integration (Mock)
    ================================================================
-   Veriff integration mock: Identity upload, KYB fields, AML screen.
-   Three glassmorphism compliance cards. No backend logic yet.
+   3-step sequential verification:
+     Step 1 → ID Document Upload (Veriff mock)
+     Step 2 → Corporate Identity (KYB form)
+     Step 3 → AML/OFAC Screening (simulated)
+   On completion → navigates to /marketplace
    ================================================================ */
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Upload,
   Building2,
-  ShieldAlert,
-  Lock,
+  ShieldCheck,
   FileText,
   Globe,
   Hash,
+  CheckCircle2,
+  ArrowRight,
+  Loader2,
 } from "lucide-react";
 
-/* ── Constants ── */
-const BRAND_GOLD = "#c6a86b";
+type Step = 1 | 2 | 3;
 
-export default function VerifyPortalPage() {
-  /* ── KYB Form State ── */
-  const [entityName, setEntityName] = useState("");
-  const [jurisdiction, setJurisdiction] = useState("");
-  const [lei, setLei] = useState("");
+export default function VerifyPage() {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>(1);
+  const [processing, setProcessing] = useState(false);
 
-  /* ── Upload State ── */
-  const [isDragOver, setIsDragOver] = useState(false);
+  /* ── Step 1: Document Upload ── */
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
+  /* ── Step 2: Corporate Identity ── */
+  const [entityName, setEntityName] = useState("");
+  const [regNumber, setRegNumber] = useState("");
+  const [jurisdiction, setJurisdiction] = useState("");
+
+  /* ── Step 3: AML ── */
+  const [amlComplete, setAmlComplete] = useState(false);
+
+  /* ── Handlers ── */
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
@@ -43,303 +56,292 @@ export default function VerifyPortalPage() {
     setIsDragOver(true);
   }, []);
 
-  const handleDragLeave = useCallback(() => {
-    setIsDragOver(false);
-  }, []);
+  const handleDragLeave = useCallback(() => setIsDragOver(false), []);
 
   const handleFileSelect = useCallback(() => {
-    // Simulate file selection
+    // TODO: Replace with real Veriff SDK
     setUploadedFile("passport_scan.pdf");
   }, []);
 
+  const handleStep1Submit = useCallback(() => {
+    if (!uploadedFile) return;
+    setStep(2);
+  }, [uploadedFile]);
+
+  const handleStep2Submit = useCallback(() => {
+    if (!entityName.trim() || !regNumber.trim() || !jurisdiction.trim()) return;
+    setStep(3);
+    // Simulate AML screening
+    setProcessing(true);
+    setTimeout(() => {
+      setProcessing(false);
+      setAmlComplete(true);
+    }, 2500);
+  }, [entityName, regNumber, jurisdiction]);
+
+  const handleComplete = useCallback(() => {
+    router.push("/marketplace");
+  }, [router]);
+
+  /* ── Step Progress ── */
+  const steps = [
+    { num: 1, label: "Identity Document" },
+    { num: 2, label: "Corporate Identity" },
+    { num: 3, label: "AML / OFAC Screening" },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-950 p-4 sm:p-8">
-      <div className="mx-auto max-w-5xl">
-        {/* ── Header ── */}
-        <div className="mb-10 flex flex-col items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700/60 bg-slate-800/40">
-            <ShieldAlert className="h-7 w-7" style={{ color: BRAND_GOLD }} />
-          </div>
-          <div className="text-center">
-            <p
-              className="font-mono text-xs font-bold uppercase tracking-[0.2em]"
-              style={{ color: BRAND_GOLD }}
+    <div className="mx-auto max-w-2xl py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
+          Verify Your Identity
+        </h1>
+        <p className="mt-2 text-sm text-slate-400">
+          Complete all three steps to unlock the marketplace. Your data is
+          encrypted end-to-end.
+        </p>
+      </div>
+
+      {/* Step Indicators */}
+      <div className="mb-8 flex items-center gap-2">
+        {steps.map((s, i) => (
+          <div key={s.num} className="flex items-center gap-2">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                step > s.num
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : step === s.num
+                    ? "bg-gold/20 text-gold border border-gold/30"
+                    : "bg-surface-2 text-slate-600 border border-border"
+              }`}
             >
-              Institutional Onboarding // AML & KYC
-            </p>
-            <p className="mt-2 max-w-md font-mono text-[11px] leading-relaxed text-slate-500">
-              Complete all three verification modules to gain marketplace
-              access. Data is encrypted at rest and in transit.
-            </p>
-          </div>
-
-          {/* Progress indicator */}
-          <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/50 px-4 py-1.5">
-            <Lock className="h-3 w-3 text-slate-600" />
-            <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-slate-500">
-              0 / 3 Modules Complete
-            </span>
-          </div>
-        </div>
-
-        {/* ── Compliance Cards Grid ── */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* ════════════════════════════════════════════
-               CARD 1 — Identity Document Upload
-             ════════════════════════════════════════════ */}
-          <div className="flex flex-col rounded-xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm">
-            {/* Card header */}
-            <div className="flex items-center gap-3 border-b border-slate-800/60 px-5 py-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800/80">
-                <FileText className="h-4 w-4 text-slate-300" />
-              </div>
-              <div>
-                <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-slate-600">
-                  Module 01
-                </p>
-                <h3 className="text-sm font-semibold tracking-tight text-white">
-                  Identity Document
-                </h3>
-              </div>
+              {step > s.num ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                s.num
+              )}
             </div>
-
-            {/* Card body */}
-            <div className="flex flex-1 flex-col p-5">
-              <p className="mb-4 font-mono text-[10px] leading-relaxed text-slate-500">
-                Upload a government-issued photo ID. Accepted: Passport,
-                National ID, or Driver&apos;s License.
-              </p>
-
-              {/* Dropzone */}
+            {i < steps.length - 1 && (
               <div
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onClick={handleFileSelect}
-                className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-10 transition-all ${
-                  uploadedFile
-                    ? "border-emerald-500/30 bg-emerald-500/5"
-                    : isDragOver
-                      ? "border-[#c6a86b]/50 bg-[#c6a86b]/5"
-                      : "border-slate-700 bg-slate-950/50 hover:border-slate-600 hover:bg-slate-950/80"
+                className={`h-px w-8 sm:w-12 transition-colors ${
+                  step > s.num ? "bg-emerald-500/30" : "bg-border"
                 }`}
-                role="button"
-                tabIndex={0}
-                aria-label="Upload identity document"
-              >
-                {uploadedFile ? (
-                  <>
-                    <FileText className="mb-2 h-6 w-6 text-emerald-400" />
-                    <p className="font-mono text-xs font-semibold text-emerald-400">
-                      {uploadedFile}
-                    </p>
-                    <p className="mt-1 font-mono text-[9px] text-emerald-500/60">
-                      UPLOADED — PENDING REVIEW
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mb-2 h-6 w-6 text-slate-600" />
-                    <p className="font-mono text-[11px] font-semibold text-slate-400">
-                      Drop file or click to select
-                    </p>
-                    <p className="mt-1 font-mono text-[9px] text-slate-600">
-                      PDF, JPG, PNG · Max 10 MB
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ═══ Step 1: ID Upload ═══ */}
+      {step === 1 && (
+        <div className="rounded-xl border border-border bg-surface-1 p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <FileText className="h-5 w-5 text-gold" />
+            <h2 className="text-base font-bold text-white">
+              Upload Identity Document
+            </h2>
+          </div>
+          <p className="mb-5 text-sm text-slate-400">
+            Upload a government-issued photo ID. Accepted formats: Passport,
+            National ID, or Driver&apos;s License.
+          </p>
+
+          {/* Dropzone */}
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onClick={handleFileSelect}
+            className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-12 transition-all ${
+              uploadedFile
+                ? "border-emerald-500/30 bg-emerald-500/5"
+                : isDragOver
+                  ? "border-gold/50 bg-gold/5"
+                  : "border-border bg-surface-2/50 hover:border-slate-600"
+            }`}
+            role="button"
+            tabIndex={0}
+            aria-label="Upload identity document"
+          >
+            {uploadedFile ? (
+              <>
+                <CheckCircle2 className="mb-2 h-8 w-8 text-emerald-400" />
+                <p className="text-sm font-semibold text-emerald-400">
+                  {uploadedFile}
+                </p>
+                <p className="mt-1 text-xs text-emerald-500/60">
+                  Uploaded — Click to replace
+                </p>
+              </>
+            ) : (
+              <>
+                <Upload className="mb-2 h-8 w-8 text-slate-500" />
+                <p className="text-sm font-semibold text-slate-300">
+                  Drop file here or click to browse
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  PDF, JPG, PNG · Max 10 MB
+                </p>
+              </>
+            )}
           </div>
 
-          {/* ════════════════════════════════════════════
-               CARD 2 — Corporate Identity (KYB)
-             ════════════════════════════════════════════ */}
-          <div className="flex flex-col rounded-xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm">
-            {/* Card header */}
-            <div className="flex items-center gap-3 border-b border-slate-800/60 px-5 py-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800/80">
-                <Building2 className="h-4 w-4 text-slate-300" />
-              </div>
-              <div>
-                <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-slate-600">
-                  Module 02
-                </p>
-                <h3 className="text-sm font-semibold tracking-tight text-white">
-                  Corporate Identity (KYB)
-                </h3>
-              </div>
-            </div>
-
-            {/* Card body */}
-            <div className="flex flex-1 flex-col gap-4 p-5">
-              <p className="font-mono text-[10px] leading-relaxed text-slate-500">
-                Provide your corporate registration details. LEI must be a valid
-                20-character GLEIF identifier.
-              </p>
-
-              {/* Entity Name */}
-              <div>
-                <label
-                  htmlFor="entity-name"
-                  className="mb-1.5 flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500"
-                >
-                  <Building2 className="h-3 w-3" />
-                  Entity Name
-                </label>
-                <input
-                  id="entity-name"
-                  type="text"
-                  value={entityName}
-                  onChange={(e) => setEntityName(e.target.value)}
-                  placeholder="Meridian Sovereign Capital Ltd."
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3.5 py-2.5 font-mono text-xs text-slate-200 placeholder:text-slate-700 transition-all focus:border-[#c6a86b]/40 focus:outline-none focus:ring-1 focus:ring-[#c6a86b]/20"
-                />
-              </div>
-
-              {/* Jurisdiction */}
-              <div>
-                <label
-                  htmlFor="jurisdiction"
-                  className="mb-1.5 flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500"
-                >
-                  <Globe className="h-3 w-3" />
-                  Jurisdiction
-                </label>
-                <input
-                  id="jurisdiction"
-                  type="text"
-                  value={jurisdiction}
-                  onChange={(e) => setJurisdiction(e.target.value)}
-                  placeholder="England & Wales"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3.5 py-2.5 font-mono text-xs text-slate-200 placeholder:text-slate-700 transition-all focus:border-[#c6a86b]/40 focus:outline-none focus:ring-1 focus:ring-[#c6a86b]/20"
-                />
-              </div>
-
-              {/* LEI */}
-              <div>
-                <label
-                  htmlFor="lei"
-                  className="mb-1.5 flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500"
-                >
-                  <Hash className="h-3 w-3" />
-                  Legal Entity Identifier (LEI)
-                </label>
-                <input
-                  id="lei"
-                  type="text"
-                  value={lei}
-                  onChange={(e) => setLei(e.target.value)}
-                  placeholder="549300MZUFH0KT7JLU16"
-                  maxLength={20}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3.5 py-2.5 font-mono text-xs tracking-wider text-slate-200 placeholder:text-slate-700 transition-all focus:border-[#c6a86b]/40 focus:outline-none focus:ring-1 focus:ring-[#c6a86b]/20"
-                />
-                <p className="mt-1 font-mono text-[9px] text-slate-600">
-                  20-character GLEIF-issued identifier
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* ════════════════════════════════════════════
-               CARD 3 — AML/OFAC Screening
-             ════════════════════════════════════════════ */}
-          <div className="flex flex-col rounded-xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm">
-            {/* Card header */}
-            <div className="flex items-center gap-3 border-b border-slate-800/60 px-5 py-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800/80">
-                <ShieldAlert className="h-4 w-4 text-slate-300" />
-              </div>
-              <div>
-                <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-slate-600">
-                  Module 03
-                </p>
-                <h3 className="text-sm font-semibold tracking-tight text-white">
-                  AML / OFAC Screening
-                </h3>
-              </div>
-            </div>
-
-            {/* Card body — Terminal Output */}
-            <div className="flex flex-1 flex-col p-5">
-              <p className="mb-4 font-mono text-[10px] leading-relaxed text-slate-500">
-                Automated sanctions screening against OFAC SDN, EU Consolidated
-                List, and UN Security Council registries.
-              </p>
-
-              {/* Terminal window */}
-              <div className="flex-1 rounded-lg border border-slate-800/60 bg-slate-950/80 p-4">
-                {/* Terminal dots */}
-                <div className="mb-3 flex items-center gap-1.5 border-b border-slate-800/40 pb-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500/40" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500/40" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/40" />
-                  <span className="ml-2 font-mono text-[7px] uppercase tracking-wider text-slate-700">
-                    aml-gateway
-                  </span>
-                </div>
-
-                {/* Terminal output lines */}
-                <div className="space-y-2.5 font-mono text-[11px]">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <span className="text-slate-700">$</span>
-                    <span>Connecting to sanctions registry...</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <span className="text-slate-700">$</span>
-                    <span>OFAC SDN List — standby</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <span className="text-slate-700">$</span>
-                    <span>EU Consolidated List — standby</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <span className="text-slate-700">$</span>
-                    <span>UN Security Council — standby</span>
-                  </div>
-
-                  {/* Pulsing status */}
-                  <div className="mt-4 flex items-center gap-2">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-slate-400 opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-slate-500" />
-                    </span>
-                    <span className="animate-pulse text-slate-500">
-                      AWAITING CLEARANCE...
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Locked Proceed Button ── */}
-        <div className="mt-8 flex justify-center">
           <button
             type="button"
-            disabled
-            className="flex w-full max-w-xl cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 px-8 py-4 font-mono text-xs font-bold uppercase tracking-wider text-slate-600 transition-all"
+            onClick={handleStep1Submit}
+            disabled={!uploadedFile}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Lock className="h-4 w-4 text-slate-700" />
-            [ PROCEED TO MARKETPLACE (AWAITING CLEARANCE) ]
+            Continue
+            <ArrowRight className="h-4 w-4" />
           </button>
         </div>
+      )}
 
-        {/* ── Footer ── */}
-        <div className="mt-6 flex items-center justify-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-mono text-[9px] uppercase tracking-wider text-slate-600">
-              End-to-End Encrypted
-            </span>
+      {/* ═══ Step 2: Corporate Identity (KYB) ═══ */}
+      {step === 2 && (
+        <div className="rounded-xl border border-border bg-surface-1 p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <Building2 className="h-5 w-5 text-gold" />
+            <h2 className="text-base font-bold text-white">
+              Corporate Identity
+            </h2>
           </div>
-          <span className="font-mono text-[9px] text-slate-800">|</span>
-          <span className="font-mono text-[9px] text-slate-700">
-            Perimeter v1.0.0
-          </span>
+          <p className="mb-5 text-sm text-slate-400">
+            Provide your corporate registration details for KYB verification.
+          </p>
+
+          <div className="space-y-4">
+            {/* Entity Name */}
+            <div>
+              <label
+                htmlFor="entity-name"
+                className="mb-1.5 block text-xs font-semibold text-slate-400"
+              >
+                Entity Name
+              </label>
+              <input
+                id="entity-name"
+                type="text"
+                value={entityName}
+                onChange={(e) => setEntityName(e.target.value)}
+                placeholder="Meridian Sovereign Capital Ltd."
+                className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 transition-all focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+              />
+            </div>
+
+            {/* Registration Number */}
+            <div>
+              <label
+                htmlFor="reg-number"
+                className="mb-1.5 block text-xs font-semibold text-slate-400"
+              >
+                Registration Number
+              </label>
+              <input
+                id="reg-number"
+                type="text"
+                value={regNumber}
+                onChange={(e) => setRegNumber(e.target.value)}
+                placeholder="12345678"
+                className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 transition-all focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+              />
+            </div>
+
+            {/* Jurisdiction */}
+            <div>
+              <label
+                htmlFor="jurisdiction"
+                className="mb-1.5 block text-xs font-semibold text-slate-400"
+              >
+                Jurisdiction
+              </label>
+              <input
+                id="jurisdiction"
+                type="text"
+                value={jurisdiction}
+                onChange={(e) => setJurisdiction(e.target.value)}
+                placeholder="United States"
+                className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 transition-all focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleStep2Submit}
+            disabled={
+              !entityName.trim() || !regNumber.trim() || !jurisdiction.trim()
+            }
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Continue
+            <ArrowRight className="h-4 w-4" />
+          </button>
         </div>
-      </div>
+      )}
+
+      {/* ═══ Step 3: AML/OFAC Screening ═══ */}
+      {step === 3 && (
+        <div className="rounded-xl border border-border bg-surface-1 p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <ShieldCheck className="h-5 w-5 text-gold" />
+            <h2 className="text-base font-bold text-white">
+              AML / OFAC Screening
+            </h2>
+          </div>
+          <p className="mb-6 text-sm text-slate-400">
+            Automated screening against OFAC SDN, EU Consolidated List, and UN
+            Security Council registries.
+          </p>
+
+          {/* Screening Status */}
+          <div className="space-y-3 rounded-lg border border-border bg-surface-2/50 p-5">
+            {[
+              { label: "OFAC SDN List", done: amlComplete },
+              { label: "EU Consolidated List", done: amlComplete },
+              { label: "UN Security Council", done: amlComplete },
+              { label: "PEP Database", done: amlComplete },
+            ].map((check) => (
+              <div
+                key={check.label}
+                className="flex items-center justify-between"
+              >
+                <span className="text-sm text-slate-300">{check.label}</span>
+                {check.done ? (
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Clear
+                  </span>
+                ) : processing ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                ) : (
+                  <span className="text-xs text-slate-600">Pending</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {amlComplete && (
+            <button
+              type="button"
+              onClick={handleComplete}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover"
+            >
+              Go to Marketplace
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
+
+          {processing && (
+            <div className="mt-6 flex items-center justify-center gap-2 py-3 text-sm text-slate-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Running compliance checks…
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

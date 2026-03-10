@@ -29,8 +29,6 @@ const PUBLIC_ROUTES = [
   "/investor",
   "/simple-home",
   "/institutional-portal",
-  "/buy",
-  "/goldwire",
 ];
 
 interface AppShellProps {
