@@ -15,11 +15,10 @@ import {
   Lock,
   Download,
   Fingerprint,
-  Truck,
+  ShieldCheck,
+  Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/ui/page-header";
-import { DashboardPanel } from "@/components/ui/dashboard-panel";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { useAuth } from "@/providers/auth-provider";
@@ -35,6 +34,9 @@ import {
 import { ROLE_LABELS } from "@/lib/settlement-engine";
 import type { Listing, Reservation, OrderStatus, LedgerEntry, UserRole } from "@/lib/mock-data";
 
+/* ── Constants ── */
+const BRAND_GOLD = "#c6a86b";
+
 export default function OrderDetailPage() {
   return (
     <RequireAuth>
@@ -45,45 +47,44 @@ export default function OrderDetailPage() {
 
 /* ---------- Status Chip ---------- */
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string }> = {
-  draft: { label: "Draft", color: "bg-surface-3 text-text-faint border-border" },
-  pending_verification: { label: "Pending Verification", color: "bg-warning/10 text-warning border-warning/20" },
-  reserved: { label: "Reserved", color: "bg-info/10 text-info border-info/20" },
-  settlement_pending: { label: "Settlement Pending", color: "bg-gold/10 text-gold border-gold/20" },
-  completed: { label: "Completed", color: "bg-success/10 text-success border-success/20" },
-  cancelled: { label: "Cancelled", color: "bg-danger/10 text-danger border-danger/20" },
+  draft: { label: "Draft", color: "border-slate-700 bg-slate-800/50 text-slate-400" },
+  pending_verification: { label: "Pending Verification", color: "border-amber-500/30 bg-amber-500/10 text-amber-400" },
+  reserved: { label: "Reserved", color: "border-sky-500/30 bg-sky-500/10 text-sky-400" },
+  settlement_pending: { label: "Settlement Pending", color: "border-[#c6a86b]/30 bg-[#c6a86b]/10 text-[#c6a86b]" },
+  completed: { label: "Completed", color: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" },
+  cancelled: { label: "Cancelled", color: "border-red-500/30 bg-red-500/10 text-red-400" },
 };
 
 function pct(n: number) { return `${(n * 100).toFixed(1)}%`; }
 
 const BAND = {
-  green: { bg: "bg-success/10", text: "text-success", border: "border-success" },
-  amber: { bg: "bg-warning/10", text: "text-warning", border: "border-warning" },
-  red: { bg: "bg-danger/10", text: "text-danger", border: "border-danger" },
+  green: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
+  amber: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/30" },
+  red: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/30" },
 };
-const TIER_CLR: Record<string, string> = { auto: "text-success", "desk-head": "text-warning", "credit-committee": "text-warning", board: "text-danger" };
+const TIER_CLR: Record<string, string> = { auto: "text-emerald-400", "desk-head": "text-amber-400", "credit-committee": "text-amber-400", board: "text-red-400" };
 const TIER_LABEL: Record<string, string> = { auto: "Auto-Approved", "desk-head": "Desk Head", "credit-committee": "Credit Committee", board: "Board Approval" };
-const SEV_CLR: Record<string, string> = { BLOCK: "text-danger bg-danger/10", WARN: "text-warning bg-warning/10", INFO: "text-info bg-info/10" };
+const SEV_CLR: Record<string, string> = { BLOCK: "text-red-400 bg-red-500/10", WARN: "text-amber-400 bg-amber-500/10", INFO: "text-sky-400 bg-sky-500/10" };
 
 /* ---------- Lifecycle Step Definition ---------- */
 interface LifecycleStep {
   id: string;
   label: string;
-  /** Derive from reservation state, settlement status, or ledger entry type */
+  institutionalLabel: string;
   derivedFrom: "order" | "reservation" | "settlement_status" | "ledger";
-  /** The ledger entry type to look for, if ledger-derived */
   ledgerType?: string;
 }
 
 const LIFECYCLE_STEPS: LifecycleStep[] = [
-  { id: "ORDER_CREATED", label: "Order Created", derivedFrom: "order" },
-  { id: "RESERVATION_CONVERTED", label: "Reservation Converted", derivedFrom: "reservation" },
-  { id: "SETTLEMENT_OPENED", label: "Settlement Opened", derivedFrom: "ledger", ledgerType: "ESCROW_OPENED" },
-  { id: "FUNDS_CONFIRMED_FINAL", label: "Funds Confirmed Final", derivedFrom: "ledger", ledgerType: "FUNDS_DEPOSITED" },
-  { id: "GOLD_ALLOCATED", label: "Gold Allocated", derivedFrom: "ledger", ledgerType: "GOLD_ALLOCATED" },
-  { id: "VERIFICATION_CLEARED", label: "Verification Cleared", derivedFrom: "ledger", ledgerType: "VERIFICATION_PASSED" },
-  { id: "AUTHORIZED", label: "Authorized", derivedFrom: "ledger", ledgerType: "AUTHORIZATION" },
-  { id: "DVP_EXECUTED", label: "DvP Executed", derivedFrom: "ledger", ledgerType: "DVP_EXECUTED" },
-  { id: "SETTLED", label: "Settled", derivedFrom: "ledger", ledgerType: "ESCROW_CLOSED" },
+  { id: "ORDER_CREATED", label: "Order Created", institutionalLabel: "Contract Originated", derivedFrom: "order" },
+  { id: "RESERVATION_CONVERTED", label: "Reservation Converted", institutionalLabel: "Allocation Locked", derivedFrom: "reservation" },
+  { id: "SETTLEMENT_OPENED", label: "Settlement Opened", institutionalLabel: "Escrow Initiated", derivedFrom: "ledger", ledgerType: "ESCROW_OPENED" },
+  { id: "FUNDS_CONFIRMED_FINAL", label: "Funds Confirmed Final", institutionalLabel: "Funds Clearing via Fedwire", derivedFrom: "ledger", ledgerType: "FUNDS_DEPOSITED" },
+  { id: "GOLD_ALLOCATED", label: "Gold Allocated", institutionalLabel: "Bullion Segregated (LBMA)", derivedFrom: "ledger", ledgerType: "GOLD_ALLOCATED" },
+  { id: "VERIFICATION_CLEARED", label: "Verification Cleared", institutionalLabel: "Compliance Perimeter Cleared", derivedFrom: "ledger", ledgerType: "VERIFICATION_PASSED" },
+  { id: "AUTHORIZED", label: "Authorized", institutionalLabel: "Armored Tarmac Extraction", derivedFrom: "ledger", ledgerType: "AUTHORIZATION" },
+  { id: "DVP_EXECUTED", label: "DvP Executed", institutionalLabel: "DvP Atomic Settlement", derivedFrom: "ledger", ledgerType: "DVP_EXECUTED" },
+  { id: "SETTLED", label: "Settled", institutionalLabel: "Vaulted under Bailment (Zurich)", derivedFrom: "ledger", ledgerType: "ESCROW_CLOSED" },
 ];
 
 interface ResolvedStep {
@@ -109,15 +110,12 @@ function resolveLifecycle(
     let actorUserId: string | null = null;
 
     if (step.derivedFrom === "order") {
-      // ORDER_CREATED is always reached if the order exists
       timestamp = order.createdAt;
     } else if (step.derivedFrom === "reservation") {
       if (reservation && reservation.state === "CONVERTED") {
-        // Use reservation createdAt as the conversion timestamp
         timestamp = reservation.createdAt;
       }
     } else if (step.derivedFrom === "ledger" && step.ledgerType) {
-      // Find the first matching ledger entry
       const entry = settlementLedger.find((e) => e.type === step.ledgerType);
       if (entry) {
         timestamp = entry.timestamp;
@@ -139,7 +137,6 @@ function resolveLifecycle(
     });
   }
 
-  // Mark the last reached step as CURRENT if it's not the final step
   if (lastReachedIdx >= 0 && lastReachedIdx < LIFECYCLE_STEPS.length - 1) {
     resolved[lastReachedIdx].status = "CURRENT";
   }
@@ -193,37 +190,37 @@ function CryptographicTitleCertificate({ order, settlementUpdatedAt }: Certifica
     : new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   return (
-    <div className="mt-8 rounded-lg border border-yellow-500/30 bg-slate-900 p-8 shadow-[0_0_30px_rgba(234,179,8,0.05)]">
-      {/* ── Decorative Top Border ── */}
+    <div className="mt-8 border border-[#c6a86b]/30 bg-slate-900 p-8">
+      {/* Decorative Top Border */}
       <div className="mb-6 flex flex-col items-center gap-3">
         <div className="flex items-center gap-4 w-full">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
-          <Shield className="h-5 w-5 text-yellow-500/60" />
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c6a86b]/40 to-transparent" />
+          <Shield className="h-5 w-5" style={{ color: BRAND_GOLD }} />
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c6a86b]/40 to-transparent" />
         </div>
-        <h2 className="font-mono text-xs font-bold uppercase tracking-[0.35em] text-yellow-500">
+        <h2 className="font-mono text-xs font-bold uppercase tracking-[0.35em]" style={{ color: BRAND_GOLD }}>
           Digital Warrant of Title
         </h2>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
           Cryptographic Title &amp; Allocation Certificate
         </p>
         <div className="flex items-center gap-4 w-full">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c6a86b]/20 to-transparent" />
           <span className="font-mono text-[9px] text-slate-600">REF: {order.id}</span>
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c6a86b]/20 to-transparent" />
         </div>
       </div>
 
-      {/* ── Asset Details Grid ── */}
+      {/* Asset Details Grid */}
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded border border-slate-700/50 bg-slate-800/50 p-4">
+        <div className="border border-slate-700/50 bg-slate-800/50 p-4">
           <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-slate-500">Refiner</dt>
           <dd className="font-mono text-sm font-semibold text-slate-200">
             PAMP Suisse / Valcambi
-            <span className="ml-2 text-[10px] font-normal text-yellow-500/70">(99.99% Au)</span>
+            <span className="ml-2 text-[10px] font-normal" style={{ color: `${BRAND_GOLD}b3` }}>(99.99% Au)</span>
           </dd>
         </div>
-        <div className="rounded border border-slate-700/50 bg-slate-800/50 p-4">
+        <div className="border border-slate-700/50 bg-slate-800/50 p-4">
           <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-slate-500">Total Allocated Weight</dt>
           <dd className="font-mono text-sm font-semibold tabular-nums text-slate-200">
             {order.weightOz.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} oz
@@ -232,28 +229,28 @@ function CryptographicTitleCertificate({ order, settlementUpdatedAt }: Certifica
             </span>
           </dd>
         </div>
-        <div className="rounded border border-slate-700/50 bg-slate-800/50 p-4">
+        <div className="border border-slate-700/50 bg-slate-800/50 p-4">
           <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-slate-500">Vault Location</dt>
           <dd className="font-mono text-sm font-semibold text-slate-200">
             Loomis International
             <span className="ml-2 text-[10px] font-normal text-slate-400">(Zurich, CHE)</span>
           </dd>
         </div>
-        <div className="rounded border border-slate-700/50 bg-slate-800/50 p-4">
+        <div className="border border-slate-700/50 bg-slate-800/50 p-4">
           <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-slate-500">Allocation Date</dt>
           <dd className="font-mono text-sm font-semibold tabular-nums text-slate-200">{allocationDate}</dd>
         </div>
       </div>
 
-      {/* ── Serial Registry ── */}
+      {/* Serial Registry */}
       <div className="mb-6">
         <div className="mb-2 flex items-center gap-2">
-          <Fingerprint className="h-3.5 w-3.5 text-yellow-500/50" />
+          <Fingerprint className="h-3.5 w-3.5" style={{ color: `${BRAND_GOLD}80` }} />
           <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
             Serial Registry — Allocated Bars
           </h3>
         </div>
-        <div className="rounded border border-slate-700/50 bg-slate-950/80 p-4">
+        <div className="border border-slate-700/50 bg-slate-950/80 p-4">
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
             {serials.map((serial, idx) => (
               <div key={serial} className="flex items-center gap-2 font-mono text-[11px]">
@@ -265,16 +262,16 @@ function CryptographicTitleCertificate({ order, settlementUpdatedAt }: Certifica
         </div>
       </div>
 
-      {/* ── Cryptographic Proof ── */}
+      {/* Cryptographic Proof */}
       <div className="mb-6">
         <div className="mb-2 flex items-center gap-2">
-          <Lock className="h-3.5 w-3.5 text-yellow-500/50" />
+          <Lock className="h-3.5 w-3.5" style={{ color: `${BRAND_GOLD}80` }} />
           <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
             KMS Signature Hash
           </h3>
         </div>
-        <div className="rounded border border-slate-700/50 bg-slate-950/80 p-4">
-          <p className="break-all font-mono text-[10px] leading-relaxed tabular-nums text-yellow-500/70">
+        <div className="border border-slate-700/50 bg-slate-950/80 p-4">
+          <p className="break-all font-mono text-[10px] leading-relaxed tabular-nums" style={{ color: `${BRAND_GOLD}b3` }}>
             {kmsHash}
           </p>
         </div>
@@ -284,21 +281,39 @@ function CryptographicTitleCertificate({ order, settlementUpdatedAt }: Certifica
         </p>
       </div>
 
-      {/* ── Decorative Bottom Border ── */}
+      {/* Decorative Bottom Border */}
       <div className="mb-6 flex items-center gap-4">
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c6a86b]/20 to-transparent" />
       </div>
 
-      {/* ── Download Cryptographic Title ── */}
+      {/* Download */}
       <a
         id="download-title-json-btn"
         href={`/api/certificates/${order.id}/download`}
         download={`Warrant_of_Title_${order.id}.json`}
-        className="flex w-full items-center justify-center gap-2.5 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-yellow-500 transition-all hover:border-yellow-500/50 hover:bg-yellow-500/15 hover:shadow-[0_0_20px_rgba(234,179,8,0.1)] active:scale-[0.99] no-underline"
+        className="flex w-full items-center justify-center gap-2.5 border border-[#c6a86b]/30 bg-[#c6a86b]/10 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-wider transition-all hover:border-[#c6a86b]/50 hover:bg-[#c6a86b]/15 active:scale-[0.99] no-underline"
+        style={{ color: BRAND_GOLD }}
       >
         <Download className="h-4 w-4" />
         Download Cryptographic Title (.json)
       </a>
+    </div>
+  );
+}
+
+/* ── Panel wrapper (replaces DashboardPanel with terminal-style card) ── */
+function LedgerPanel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="border border-slate-800 bg-slate-900">
+      <div className="flex items-center gap-2 border-b border-slate-800 px-5 py-3">
+        <span className="h-2 w-2 rounded-full bg-red-500/40" />
+        <span className="h-2 w-2 rounded-full bg-amber-500/40" />
+        <span className="h-2 w-2 rounded-full bg-emerald-500/40" />
+        <span className="ml-2 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">
+          {title}
+        </span>
+      </div>
+      <div className="p-5">{children}</div>
     </div>
   );
 }
@@ -341,8 +356,10 @@ function OrderDetailContent() {
   const canInitiateSettlement = isAdmin && !hasSettlement && (order.status === "reserved" || order.status === "pending_verification");
   const isSettled = settlement?.status === "SETTLED";
 
-  // Resolve lifecycle from ledger
   const lifecycleSteps = resolveLifecycle(order, reservation, settlementLedger);
+
+  // Generate mock SHA-256 clearing hash from order ID
+  const clearingHash = generateKmsSignatureHash(order.id).slice(0, 66);
 
   async function handleInitiateSettlement() {
     setSettleError(null);
@@ -355,448 +372,513 @@ function OrderDetailContent() {
   }
 
   return (
-    <>
-      <div className="flex items-center gap-3 mb-2">
-        <Link href="/orders" className="flex items-center gap-1 text-sm text-text-muted hover:text-text transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Orders
-        </Link>
+    <div className="min-h-screen bg-slate-950">
+      {/* ── Terminal Header ── */}
+      <div className="border-b border-slate-800 px-6 py-8 sm:px-10">
+        <div className="mx-auto max-w-6xl">
+          {/* Back link */}
+          <Link href="/orders" className="mb-4 inline-flex items-center gap-1.5 font-mono text-xs text-slate-500 transition-colors hover:text-slate-300">
+            <ArrowLeft className="h-3.5 w-3.5" /> Orders
+          </Link>
+
+          {/* Eyebrow */}
+          <div className="mb-3 flex items-center gap-3">
+            <Shield className="h-4 w-4" style={{ color: BRAND_GOLD }} />
+            <p className="font-mono text-xs font-bold uppercase tracking-[0.2em]" style={{ color: BRAND_GOLD }}>
+              Settlement Ledger
+            </p>
+          </div>
+
+          {/* Order ID headline */}
+          <h1 className="mb-3 font-mono text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            {order.id}
+          </h1>
+
+          {/* Status + Asset */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className={cn("inline-flex items-center gap-1.5 border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider", statusCfg.color)}>
+              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+              {statusCfg.label}
+            </span>
+            {listing && (
+              <span className="font-mono text-xs text-slate-500">
+                {listing.title}
+              </span>
+            )}
+          </div>
+
+          {/* SHA-256 Clearing Hash */}
+          <div className="mt-4 border border-slate-800 bg-slate-900/50 px-4 py-2">
+            <p className="font-mono text-[10px] text-slate-500">
+              <span className="text-slate-600">SHA-256 CLEARING HASH:</span>{" "}
+              <span className="tabular-nums text-slate-400 truncate">{clearingHash}</span>
+            </p>
+          </div>
+        </div>
       </div>
 
-      <PageHeader title={`Order ${order.id}`} description={listing?.title ?? "—"} />
+      {/* ── Main Content ── */}
+      <div className="px-6 py-8 sm:px-10">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
-        {/* ── Left Panel: Order Summary ── */}
-        <DashboardPanel title="Order Summary" tooltip="Immutable order record with frozen policy snapshot" asOf={order.createdAt}>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between"><dt className="text-text-faint">Order ID</dt><dd className="font-mono text-text">{order.id}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Status</dt>
-              <dd>
-                <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium", statusCfg.color)}>
-                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                  {statusCfg.label}
-                </span>
-              </dd>
-            </div>
-            <div className="flex justify-between"><dt className="text-text-faint">Listing</dt><dd className="font-mono text-xs text-text">{order.listingId}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Weight</dt><dd className="tabular-nums text-text">{order.weightOz} oz</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Price / oz</dt><dd className="tabular-nums text-text">${order.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 })}</dd></div>
-            <div className="flex justify-between border-t border-border pt-2"><dt className="text-text-faint">Notional</dt><dd className="tabular-nums font-semibold text-text">${order.notional.toLocaleString("en-US", { minimumFractionDigits: 2 })}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Seller</dt><dd className="font-mono text-xs text-text">{order.sellerOrgId}</dd></div>
-            <div className="flex justify-between"><dt className="text-text-faint">Created</dt>
-              <dd className="text-xs tabular-nums text-text">
-                {new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                {" "}
-                {new Date(order.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-              </dd>
-            </div>
-          </dl>
-        </DashboardPanel>
-
-        {/* ── Center Panel: Tracker + Lifecycle + Settlement Linkage + Receipt ── */}
-        <div className="space-y-4">
-
-          {/* ── Armored Shipment Tracker (STP) — TOP POSITION for buyer visibility ── */}
-          {isSettled && (() => {
-            let hash = 0;
-            for (let i = 0; i < order.id.length; i++) {
-              hash = ((hash << 5) - hash) + order.id.charCodeAt(i);
-              hash = hash & hash;
-            }
-            const rand4 = String(1000 + Math.abs(hash) % 9000);
-            const trackingNum = `BRK-US-10005-${rand4}`;
-            const waybillId = `WB-${Math.abs(hash).toString(36).toUpperCase().slice(0, 6)}-${rand4}`;
-
-            return (
-              <DashboardPanel title="Armored Shipment Tracker" tooltip="STP-dispatched armored carrier — tracking auto-generated on fund clearing" asOf={settlement?.updatedAt ?? order.createdAt}>
-                <div className="space-y-3">
-                  {/* Status Badge */}
-                  <div className="flex items-center gap-2 rounded-md border border-emerald-500/20 bg-emerald-950/20 px-3 py-2">
-                    <Truck className="h-4 w-4 text-emerald-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-400">
-                      Straight-Through Dispatch
-                    </span>
-                    <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      IN TRANSIT
-                    </span>
-                  </div>
-
-                  {/* Carrier & Tracking */}
-                  <dl className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <dt className="text-text-faint">Carrier</dt>
-                      <dd className="font-semibold text-text">Brink&apos;s Global Services</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-text-faint">Tracking #</dt>
-                      <dd
-                        className="font-mono font-bold tabular-nums text-emerald-400"
-                        style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                      >
-                        {trackingNum}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-text-faint">Waybill</dt>
-                      <dd
-                        className="font-mono text-[10px] text-text-muted"
-                        style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                      >
-                        {waybillId}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-text-faint">Est. Transit</dt>
-                      <dd className="tabular-nums text-text">3 business days</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-text-faint">Origin Vault</dt>
-                      <dd className="text-text">New York, NY 10005</dd>
-                    </div>
-                  </dl>
-
-                  {/* Audit Log */}
-                  <div className="rounded border border-border bg-surface-2 px-3 py-2 space-y-1">
-                    <div className="flex items-center gap-1.5 text-[10px]">
-                      <CheckCircle2 className="h-3 w-3 text-success" />
-                      <span className="text-text-muted">Brink&apos;s API Pinged</span>
-                      <span className="ml-auto tabular-nums text-text-faint">
-                        {settlement?.updatedAt
-                          ? new Date(settlement.updatedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-                          : "—"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px]">
-                      <CheckCircle2 className="h-3 w-3 text-success" />
-                      <span className="text-text-muted">Waybill Auto-Generated</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px]">
-                      <CheckCircle2 className="h-3 w-3 text-success" />
-                      <span className="text-text-muted">Carrier Dispatched</span>
-                    </div>
-                  </div>
+            {/* ═══ LEFT — Cryptographic Receipt Card ═══ */}
+            <LedgerPanel title="Cryptographic Receipt">
+              {/* Notional summary grid */}
+              <div className="mb-5 grid grid-cols-2 gap-3">
+                <div className="border border-slate-800 bg-slate-950/60 p-3">
+                  <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">Weight</dt>
+                  <dd className="mt-1 font-mono text-lg font-bold tabular-nums text-white">{order.weightOz} oz</dd>
                 </div>
-              </DashboardPanel>
-            );
-          })()}
-
-          {/* Post-Trade Lifecycle Timeline */}
-          <DashboardPanel title="Post-Trade Lifecycle" tooltip="Deterministic lifecycle derived from reservation state, settlement status, and ledger entries" asOf={settlement?.updatedAt ?? order.createdAt}>
-            <div className="relative pl-5">
-              <div className="absolute left-[7px] top-0 bottom-0 w-px bg-border" />
-              <div className="space-y-3">
-                {lifecycleSteps.map((resolved, i) => {
-                  const isCompleted = resolved.status === "COMPLETED" || resolved.status === "CURRENT";
-                  const isCurrent = resolved.status === "CURRENT";
-                  const isPending = resolved.status === "PENDING";
-
-                  return (
-                    <div key={resolved.step.id} className="relative flex gap-3">
-                      <div className={cn(
-                        "absolute -left-5 top-0.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border",
-                        isCompleted ? "bg-success border-success/30" : isCurrent ? "bg-gold border-gold/30" : "bg-surface-3 border-border",
-                      )}>
-                        {isCompleted ? (
-                          <CheckCircle2 className="h-3 w-3 text-bg" />
-                        ) : (
-                          <span className="text-[8px] font-bold text-text-faint">{i + 1}</span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "text-[10px] font-bold uppercase tracking-wider",
-                            isCompleted ? "text-text" : "text-text-faint",
-                          )}>
-                            {resolved.step.label}
-                          </span>
-                          {isPending && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 px-1.5 py-0.5 text-[9px] font-medium text-text-faint">
-                              <Clock className="h-2.5 w-2.5" /> PENDING
-                            </span>
-                          )}
-                        </div>
-                        {resolved.timestamp && (
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] tabular-nums text-text-faint">
-                              {new Date(resolved.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                            {resolved.actorRole && (
-                              <span className="text-[10px] text-text-faint">
-                                · {ROLE_LABELS[resolved.actorRole as UserRole] ?? resolved.actorRole} ({resolved.actorUserId})
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                <div className="border border-slate-800 bg-slate-950/60 p-3">
+                  <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">Purity</dt>
+                  <dd className="mt-1 font-mono text-lg font-bold tabular-nums text-white">.{listing?.purity ?? "9999"}</dd>
+                </div>
+                <div className="border border-slate-800 bg-slate-950/60 p-3">
+                  <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">Price / oz</dt>
+                  <dd className="mt-1 font-mono text-sm font-bold tabular-nums text-slate-300">${order.pricePerOz.toLocaleString("en-US", { minimumFractionDigits: 2 })}</dd>
+                </div>
+                <div className="border border-slate-800 bg-slate-950/60 p-3">
+                  <dt className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">Notional</dt>
+                  <dd className="mt-1 font-mono text-sm font-bold tabular-nums" style={{ color: BRAND_GOLD }}>${order.notional.toLocaleString("en-US", { minimumFractionDigits: 2 })}</dd>
+                </div>
               </div>
-            </div>
-          </DashboardPanel>
 
-          {/* Settlement Linkage */}
-          {hasSettlement && settlement && (
-            <DashboardPanel title="Settlement Linkage" tooltip="Settlement case linked to this order" asOf={settlement.updatedAt}>
-              <dl className="space-y-2.5 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-text-faint">Settlement ID</dt>
-                  <dd className="font-mono text-xs text-text">{settlement.id}</dd>
+              {/* Detail rows */}
+              <dl className="space-y-2.5">
+                <div className="flex justify-between border-b border-slate-800/60 pb-2">
+                  <dt className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Order ID</dt>
+                  <dd className="font-mono text-xs tabular-nums text-slate-300">{order.id}</dd>
+                </div>
+                <div className="flex justify-between border-b border-slate-800/60 pb-2">
+                  <dt className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Listing</dt>
+                  <dd className="font-mono text-xs text-slate-300">{order.listingId}</dd>
+                </div>
+                <div className="flex justify-between border-b border-slate-800/60 pb-2">
+                  <dt className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Seller</dt>
+                  <dd className="font-mono text-xs text-slate-300">{order.sellerOrgId}</dd>
+                </div>
+                <div className="flex justify-between border-b border-slate-800/60 pb-2">
+                  <dt className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Vault</dt>
+                  <dd className="font-mono text-xs text-slate-300">{listing?.vaultName ?? "—"}</dd>
+                </div>
+                <div className="flex justify-between border-b border-slate-800/60 pb-2">
+                  <dt className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Jurisdiction</dt>
+                  <dd className="font-mono text-xs text-slate-300">{listing?.jurisdiction ?? "—"}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-text-faint">Status</dt>
-                  <dd>
-                    <span className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium",
-                      settlement.status === "SETTLED" ? "bg-success/10 text-success border-success/20" :
-                      settlement.status === "AUTHORIZED" ? "bg-info/10 text-info border-info/20" :
-                      settlement.status === "FAILED" ? "bg-danger/10 text-danger border-danger/20" :
-                      "bg-gold/10 text-gold border-gold/20"
-                    )}>
-                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                      {settlement.status}
-                    </span>
+                  <dt className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Created</dt>
+                  <dd className="font-mono text-xs tabular-nums text-slate-300">
+                    {new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    {" "}
+                    {new Date(order.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                   </dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-text-faint">Last Updated</dt>
-                  <dd className="text-xs tabular-nums text-text">
-                    {new Date(settlement.updatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                  </dd>
-                </div>
-                <div className="pt-1">
-                  <Link
-                    href={`/settlements/${settlement.id}`}
-                    className="flex items-center gap-2 text-xs text-gold hover:underline font-mono"
-                  >
-                    <Landmark className="h-3.5 w-3.5" />
-                    View Settlement →
-                  </Link>
-                </div>
               </dl>
-            </DashboardPanel>
-          )}
+            </LedgerPanel>
 
-          {/* Receipt Card */}
-          <DashboardPanel title="Clearing Receipt" tooltip="Institutional receipt generated from append-only ledger" asOf={settlement?.updatedAt ?? order.createdAt}>
-            {isSettled ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs text-success">
-                  <FileText className="h-4 w-4" />
-                  <span className="font-medium">Clearing Receipt Available</span>
-                </div>
-                <p className="text-[10px] text-text-faint">
-                  The settlement for this order has reached SETTLED status. A full clearing receipt is available with frozen authorization and execution snapshots.
-                </p>
-                <Link
-                  href={`/orders/${order.id}/receipt`}
-                  id="receipt-cta-btn"
-                  className="flex items-center justify-center gap-2 w-full rounded-md border border-success/30 bg-success/10 text-success px-3 py-2.5 text-xs font-medium transition-all hover:bg-success/20"
-                >
-                  <FileText className="h-4 w-4" />
-                  View Clearing Receipt
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs text-text-faint">
-                  <Lock className="h-4 w-4" />
-                  <span className="font-medium">Receipt Not Available</span>
-                </div>
-                <p className="text-[10px] text-text-faint">
-                  Clearing receipt will be available once the settlement reaches SETTLED status.
-                  {settlement ? ` Current status: ${settlement.status}.` : " No settlement has been initiated yet."}
-                </p>
-              </div>
-            )}
-          </DashboardPanel>
+            {/* ═══ CENTER — Timeline + Settlement + Receipt ═══ */}
+            <div className="space-y-5">
 
+              {/* Armored Shipment Tracker (STP) */}
+              {isSettled && (() => {
+                let hash = 0;
+                for (let i = 0; i < order.id.length; i++) {
+                  hash = ((hash << 5) - hash) + order.id.charCodeAt(i);
+                  hash = hash & hash;
+                }
+                const rand4 = String(1000 + Math.abs(hash) % 9000);
+                const trackingNum = `BRK-US-10005-${rand4}`;
+                const waybillId = `WB-${Math.abs(hash).toString(36).toUpperCase().slice(0, 6)}-${rand4}`;
 
-          {/* Initiate Settlement — admin only */}
-          {canInitiateSettlement && (
-            <DashboardPanel title="Settlement" tooltip="Initiate the DvP settlement process for this order" asOf={order.createdAt}>
-              <div className="space-y-3">
-                <p className="text-xs text-text-muted">
-                  This order is eligible for settlement. Initiating will open an escrow case and freeze the capital snapshot.
-                </p>
-                <button
-                  id="initiate-settlement-btn"
-                  onClick={handleInitiateSettlement}
-                  disabled={openSettlement.isPending}
-                  className="flex items-center justify-center gap-2 w-full rounded-md border border-gold/30 bg-gold/10 text-gold px-3 py-2.5 text-xs font-medium transition-all hover:bg-gold/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Landmark className="h-4 w-4" />
-                  {openSettlement.isPending ? "Opening Escrow…" : "Initiate Settlement"}
-                </button>
-                {settleError && (
-                  <div className="rounded-md border border-danger/20 bg-danger/5 p-2.5 text-xs text-danger">
-                    {settleError}
-                  </div>
-                )}
-              </div>
-            </DashboardPanel>
-          )}
-
-          {/* Listing Details */}
-          <DashboardPanel title="Listing Details" tooltip="Gold listing specifications" asOf={listing?.createdAt ?? ""}>
-            {listing ? (
-              <dl className="space-y-3 text-sm">
-                <div className="flex justify-between"><dt className="text-text-faint">Form</dt><dd className="text-text capitalize">{listing.form}</dd></div>
-                <div className="flex justify-between"><dt className="text-text-faint">Purity</dt><dd className="tabular-nums text-text">.{listing.purity}</dd></div>
-                <div className="flex justify-between"><dt className="text-text-faint">Vault</dt><dd className="text-text">{listing.vaultName}</dd></div>
-                <div className="flex justify-between"><dt className="text-text-faint">Jurisdiction</dt><dd className="text-text">{listing.jurisdiction}</dd></div>
-              </dl>
-            ) : (
-              <p className="text-sm text-text-faint">Listing data not available.</p>
-            )}
-          </DashboardPanel>
-        </div>
-
-        {/* ── Right Panel: Risk / Policy + Identity Perimeter ── */}
-        <aside className="rounded-lg border border-border bg-surface-1 divide-y divide-border h-fit">
-          {snap ? (
-            <>
-              {/* TRI Score */}
-              <div className="p-4">
-                <p className="typo-label mb-2">TRI Score (Snapshot)</p>
-                <div className="flex items-center gap-3">
-                  <div className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1", BAND[snap.triBand].bg, BAND[snap.triBand].text, BAND[snap.triBand].border)}>
-                    <span className="text-lg font-bold tabular-nums">{snap.triScore}</span>
-                    <span className="text-[10px] font-semibold uppercase">{snap.triBand}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Approval Tier */}
-              <div className="p-4">
-                <p className="typo-label mb-2">Approval Tier</p>
-                <span className={cn("text-sm font-semibold", TIER_CLR[snap.approvalTier])}>{TIER_LABEL[snap.approvalTier] ?? snap.approvalTier}</span>
-              </div>
-
-              {/* Capital Impact */}
-              <div className="p-4">
-                <p className="typo-label mb-2">Capital Impact (At Conversion)</p>
-                <dl className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <dt className="text-text-faint">ECR</dt>
-                    <dd className="tabular-nums text-text">
-                      {snap.ecrBefore.toFixed(2)}x → <span className={snap.ecrAfter > 7 ? "text-danger font-semibold" : "font-semibold"}>{snap.ecrAfter.toFixed(2)}x</span>
-                    </dd>
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <dt className="text-text-faint">Hardstop</dt>
-                      <dd className="tabular-nums text-text">
-                        {pct(snap.hardstopBefore)} → <span className={snap.hardstopAfter > 0.9 ? "text-danger font-semibold" : "font-semibold"}>{pct(snap.hardstopAfter)}</span>
-                      </dd>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-surface-3 overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full rounded-full",
-                          snap.hardstopAfter > 0.9 ? "bg-danger" : snap.hardstopAfter > 0.75 ? "bg-warning" : "bg-success"
-                        )}
-                        style={{ width: `${Math.min(100, snap.hardstopAfter * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </dl>
-              </div>
-
-              {/* Blockers */}
-              <div className="p-4">
-                <p className="typo-label mb-2">Blockers (At Conversion)</p>
-                {snap.blockers.length === 0 ? (
-                  <div className="flex items-center gap-1.5 text-xs text-success">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    No blockers detected — conversion passed all checks
-                  </div>
-                ) : (
-                  <ul className="space-y-1.5">
-                    {snap.blockers.map((bl) => (
-                      <li key={bl.id} className="flex items-start gap-2 text-xs">
-                        <span className={cn("shrink-0 rounded px-1 py-0.5 text-[10px] font-bold", SEV_CLR[bl.severity])}>{bl.severity}</span>
-                        <div>
-                          <span className="text-text font-medium">{bl.title}</span>
-                          <p className="text-text-faint">{bl.detail}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {/* Identity Perimeter Status */}
-              <div className="p-4">
-                <p className="typo-label mb-2">Identity Perimeter</p>
-                <div className="space-y-2 text-xs">
-                  {verificationCase ? (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-text-faint">Identity Perimeter</span>
-                        <div className="flex items-center gap-1">
-                          {verificationCase.status === "VERIFIED"
-                            ? <><CheckCircle2 className="h-3 w-3 text-success" /><span className="text-success font-medium">PASS</span></>
-                            : <><XCircle className="h-3 w-3 text-danger" /><span className="text-danger font-medium">FAIL</span></>
-                          }
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-text-faint">Sanctions Screening</span>
-                        <div className="flex items-center gap-1">
-                          {verificationCase.riskTier === "HIGH"
-                            ? <><XCircle className="h-3 w-3 text-danger" /><span className="text-danger font-medium">FAIL</span></>
-                            : verificationCase.riskTier === "ELEVATED"
-                            ? <><AlertTriangle className="h-3 w-3 text-warning" /><span className="text-warning font-medium">REVIEW</span></>
-                            : <><CheckCircle2 className="h-3 w-3 text-success" /><span className="text-success font-medium">PASS</span></>
-                          }
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-text-faint">Last Screened</span>
-                        <span className="tabular-nums text-text font-mono">
-                          {verificationCase.lastScreenedAt
-                            ? new Date(verificationCase.lastScreenedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
-                            : "—"}
+                return (
+                  <LedgerPanel title="Armored Transit — Brink's Global">
+                    <div className="space-y-3">
+                      {/* Status */}
+                      <div className="flex items-center gap-2 border border-emerald-500/20 bg-emerald-950/20 px-3 py-2">
+                        <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-400">
+                          Straight-Through Dispatch
+                        </span>
+                        <span className="ml-auto inline-flex items-center gap-1 border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          IN TRANSIT
                         </span>
                       </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-3.5 w-3.5 text-text-faint" />
-                      <span className="text-text-faint">No verification case — identity perimeter not initiated</span>
+
+                      <dl className="space-y-2 font-mono text-xs">
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500">Carrier</dt>
+                          <dd className="font-semibold text-slate-300">Brink&apos;s Global Services</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500">Tracking #</dt>
+                          <dd className="font-bold tabular-nums text-emerald-400">{trackingNum}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500">Waybill</dt>
+                          <dd className="text-[10px] tabular-nums text-slate-400">{waybillId}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500">Est. Transit</dt>
+                          <dd className="tabular-nums text-slate-300">3 business days</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500">Origin Vault</dt>
+                          <dd className="text-slate-300">New York, NY 10005</dd>
+                        </div>
+                      </dl>
+
+                      {/* Audit trail */}
+                      <div className="border border-slate-800 bg-slate-950/60 px-3 py-2 space-y-1">
+                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                          <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                          <span className="text-slate-400">Brink&apos;s API Pinged</span>
+                          <span className="ml-auto tabular-nums text-slate-600">
+                            {settlement?.updatedAt
+                              ? new Date(settlement.updatedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+                              : "—"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                          <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                          <span className="text-slate-400">Waybill Auto-Generated</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                          <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                          <span className="text-slate-400">Carrier Dispatched</span>
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  </LedgerPanel>
+                );
+              })()}
+
+              {/* Post-Trade Lifecycle Timeline */}
+              <LedgerPanel title="Post-Trade Lifecycle">
+                <div className="relative pl-5">
+                  <div className="absolute left-[7px] top-0 bottom-0 w-px bg-slate-800" />
+                  <div className="space-y-3">
+                    {lifecycleSteps.map((resolved, i) => {
+                      const isCompleted = resolved.status === "COMPLETED" || resolved.status === "CURRENT";
+                      const isCurrent = resolved.status === "CURRENT";
+                      const isPending = resolved.status === "PENDING";
+
+                      return (
+                        <div key={resolved.step.id} className="relative flex gap-3">
+                          <div className={cn(
+                            "absolute -left-5 top-0.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border",
+                            isCompleted ? "border-[#c6a86b]/40 bg-[#c6a86b]/20" : "bg-slate-800 border-slate-700",
+                          )}>
+                            {isCompleted ? (
+                              <CheckCircle2 className="h-3 w-3" style={{ color: BRAND_GOLD }} />
+                            ) : (
+                              <span className="font-mono text-[8px] font-bold text-slate-600">{i + 1}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={cn(
+                                "font-mono text-[10px] font-bold uppercase tracking-wider",
+                                isCompleted ? "text-slate-200" : "text-slate-600",
+                              )}>
+                                {resolved.step.institutionalLabel}
+                              </span>
+                              {isCurrent && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 font-mono text-[9px] font-bold" style={{ color: BRAND_GOLD, backgroundColor: `${BRAND_GOLD}15`, border: `1px solid ${BRAND_GOLD}30` }}>
+                                  ACTIVE
+                                </span>
+                              )}
+                              {isPending && (
+                                <span className="inline-flex items-center gap-1 bg-slate-800 px-1.5 py-0.5 font-mono text-[9px] font-medium text-slate-600">
+                                  <Clock className="h-2.5 w-2.5" /> PENDING
+                                </span>
+                              )}
+                            </div>
+                            {resolved.timestamp && (
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="font-mono text-[10px] tabular-nums text-slate-500">
+                                  {new Date(resolved.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                                {resolved.actorRole && (
+                                  <span className="font-mono text-[10px] text-slate-600">
+                                    · {ROLE_LABELS[resolved.actorRole as UserRole] ?? resolved.actorRole} ({resolved.actorUserId})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              </LedgerPanel>
 
-              {/* Snapshot Timestamp */}
-              <div className="p-4">
-                <p className="typo-label mb-1">Snapshot Frozen</p>
-                <p className="text-xs tabular-nums text-text-faint">
-                  {new Date(snap.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  {" "}
-                  {new Date(snap.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="p-4">
-              <p className="typo-label mb-2">Policy Snapshot</p>
-              <p className="text-xs text-text-faint">No policy snapshot available for this order. This order may have been created before policy integration.</p>
+              {/* Settlement Linkage */}
+              {hasSettlement && settlement && (
+                <LedgerPanel title="Settlement Linkage">
+                  <dl className="space-y-2.5">
+                    <div className="flex justify-between font-mono text-xs">
+                      <dt className="text-slate-500">Settlement ID</dt>
+                      <dd className="tabular-nums text-slate-300">{settlement.id}</dd>
+                    </div>
+                    <div className="flex justify-between font-mono text-xs">
+                      <dt className="text-slate-500">Status</dt>
+                      <dd>
+                        <span className={cn(
+                          "inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider",
+                          settlement.status === "SETTLED" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
+                          settlement.status === "AUTHORIZED" ? "border-sky-500/30 bg-sky-500/10 text-sky-400" :
+                          settlement.status === "FAILED" ? "border-red-500/30 bg-red-500/10 text-red-400" :
+                          "border-[#c6a86b]/30 bg-[#c6a86b]/10 text-[#c6a86b]"
+                        )}>
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                          {settlement.status}
+                        </span>
+                      </dd>
+                    </div>
+                    <div className="flex justify-between font-mono text-xs">
+                      <dt className="text-slate-500">Last Updated</dt>
+                      <dd className="tabular-nums text-slate-300">
+                        {new Date(settlement.updatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </dd>
+                    </div>
+                    <div className="pt-1">
+                      <Link
+                        href={`/settlements/${settlement.id}`}
+                        className="flex items-center gap-2 font-mono text-xs transition-colors hover:underline"
+                        style={{ color: BRAND_GOLD }}
+                      >
+                        <Landmark className="h-3.5 w-3.5" />
+                        View Settlement →
+                      </Link>
+                    </div>
+                  </dl>
+                </LedgerPanel>
+              )}
+
+              {/* Clearing Receipt */}
+              <LedgerPanel title="Clearing Receipt">
+                {isSettled ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 font-mono text-xs text-emerald-400">
+                      <FileText className="h-4 w-4" />
+                      <span className="font-medium">Clearing Receipt Available</span>
+                    </div>
+                    <p className="font-mono text-[10px] text-slate-500">
+                      The settlement for this order has reached SETTLED status. A full clearing receipt is available with frozen authorization and execution snapshots.
+                    </p>
+                    <Link
+                      href={`/orders/${order.id}/receipt`}
+                      id="receipt-cta-btn"
+                      className="flex items-center justify-center gap-2 w-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 px-3 py-2.5 font-mono text-xs font-medium transition-all hover:bg-emerald-500/20"
+                    >
+                      <FileText className="h-4 w-4" />
+                      View Clearing Receipt
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 font-mono text-xs text-slate-500">
+                      <Lock className="h-4 w-4" />
+                      <span className="font-medium">Receipt Not Available</span>
+                    </div>
+                    <p className="font-mono text-[10px] text-slate-600">
+                      Clearing receipt will be available once the settlement reaches SETTLED status.
+                      {settlement ? ` Current status: ${settlement.status}.` : " No settlement has been initiated yet."}
+                    </p>
+                  </div>
+                )}
+              </LedgerPanel>
+
+              {/* Initiate Settlement — admin only */}
+              {canInitiateSettlement && (
+                <LedgerPanel title="Settlement">
+                  <div className="space-y-3">
+                    <p className="font-mono text-[10px] text-slate-500">
+                      This order is eligible for settlement. Initiating will open an escrow case and freeze the capital snapshot.
+                    </p>
+                    <button
+                      id="initiate-settlement-btn"
+                      onClick={handleInitiateSettlement}
+                      disabled={openSettlement.isPending}
+                      className="flex items-center justify-center gap-2 w-full border px-3 py-2.5 font-mono text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        borderColor: `${BRAND_GOLD}4d`,
+                        backgroundColor: `${BRAND_GOLD}1a`,
+                        color: BRAND_GOLD,
+                      }}
+                    >
+                      <Landmark className="h-4 w-4" />
+                      {openSettlement.isPending ? "Opening Escrow…" : "Initiate Settlement"}
+                    </button>
+                    {settleError && (
+                      <div className="border border-red-500/20 bg-red-500/5 p-2.5 font-mono text-xs text-red-400">
+                        {settleError}
+                      </div>
+                    )}
+                  </div>
+                </LedgerPanel>
+              )}
             </div>
-          )}
-        </aside>
-      </div>
 
-      {/* ── Cryptographic Title & Allocation Certificate ── */}
-      {(order.status === "completed" || isSettled) && (
-        <CryptographicTitleCertificate
-          order={order}
-          settlementUpdatedAt={settlement?.updatedAt}
-        />
-      )}
-    </>
+            {/* ═══ RIGHT — Risk / Policy + Identity Perimeter ═══ */}
+            <aside className="border border-slate-800 bg-slate-900 divide-y divide-slate-800 h-fit">
+              {snap ? (
+                <>
+                  {/* TRI Score */}
+                  <div className="p-4">
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mb-2">TRI Score (Snapshot)</p>
+                    <div className="flex items-center gap-3">
+                      <div className={cn("inline-flex items-center gap-1.5 border px-2.5 py-1", BAND[snap.triBand].bg, BAND[snap.triBand].text, BAND[snap.triBand].border)}>
+                        <span className="font-mono text-lg font-bold tabular-nums">{snap.triScore}</span>
+                        <span className="font-mono text-[10px] font-semibold uppercase">{snap.triBand}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Approval Tier */}
+                  <div className="p-4">
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mb-2">Approval Tier</p>
+                    <span className={cn("font-mono text-sm font-semibold", TIER_CLR[snap.approvalTier])}>{TIER_LABEL[snap.approvalTier] ?? snap.approvalTier}</span>
+                  </div>
+
+                  {/* Capital Impact */}
+                  <div className="p-4">
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mb-2">Capital Impact (At Conversion)</p>
+                    <dl className="space-y-2 font-mono text-xs">
+                      <div className="flex justify-between">
+                        <dt className="text-slate-500">ECR</dt>
+                        <dd className="tabular-nums text-slate-300">
+                          {snap.ecrBefore.toFixed(2)}x → <span className={snap.ecrAfter > 7 ? "text-red-400 font-semibold" : "font-semibold"}>{snap.ecrAfter.toFixed(2)}x</span>
+                        </dd>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <dt className="text-slate-500">Hardstop</dt>
+                          <dd className="tabular-nums text-slate-300">
+                            {pct(snap.hardstopBefore)} → <span className={snap.hardstopAfter > 0.9 ? "text-red-400 font-semibold" : "font-semibold"}>{pct(snap.hardstopAfter)}</span>
+                          </dd>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-800 overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full",
+                              snap.hardstopAfter > 0.9 ? "bg-red-500" : snap.hardstopAfter > 0.75 ? "bg-amber-500" : "bg-emerald-500"
+                            )}
+                            style={{ width: `${Math.min(100, snap.hardstopAfter * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </dl>
+                  </div>
+
+                  {/* Blockers */}
+                  <div className="p-4">
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mb-2">Blockers (At Conversion)</p>
+                    {snap.blockers.length === 0 ? (
+                      <div className="flex items-center gap-1.5 font-mono text-xs text-emerald-400">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        No blockers detected — conversion passed all checks
+                      </div>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {snap.blockers.map((bl) => (
+                          <li key={bl.id} className="flex items-start gap-2 font-mono text-xs">
+                            <span className={cn("shrink-0 px-1 py-0.5 text-[10px] font-bold", SEV_CLR[bl.severity])}>{bl.severity}</span>
+                            <div>
+                              <span className="font-medium text-slate-300">{bl.title}</span>
+                              <p className="text-slate-500">{bl.detail}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Identity Perimeter Status */}
+                  <div className="p-4">
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mb-2">Identity Perimeter</p>
+                    <div className="space-y-2 font-mono text-xs">
+                      {verificationCase ? (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500">Identity Perimeter</span>
+                            <div className="flex items-center gap-1">
+                              {verificationCase.status === "VERIFIED"
+                                ? <><CheckCircle2 className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400 font-medium">PASS</span></>
+                                : <><XCircle className="h-3 w-3 text-red-400" /><span className="text-red-400 font-medium">FAIL</span></>
+                              }
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500">Sanctions Screening</span>
+                            <div className="flex items-center gap-1">
+                              {verificationCase.riskTier === "HIGH"
+                                ? <><XCircle className="h-3 w-3 text-red-400" /><span className="text-red-400 font-medium">FAIL</span></>
+                                : verificationCase.riskTier === "ELEVATED"
+                                ? <><AlertTriangle className="h-3 w-3 text-amber-400" /><span className="text-amber-400 font-medium">REVIEW</span></>
+                                : <><CheckCircle2 className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400 font-medium">PASS</span></>
+                              }
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500">Last Screened</span>
+                            <span className="tabular-nums text-slate-300">
+                              {verificationCase.lastScreenedAt
+                                ? new Date(verificationCase.lastScreenedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                                : "—"}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-3.5 w-3.5 text-slate-600" />
+                          <span className="text-slate-600">No verification case — identity perimeter not initiated</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Snapshot Timestamp */}
+                  <div className="p-4">
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mb-1">Snapshot Frozen</p>
+                    <p className="font-mono text-xs tabular-nums text-slate-400">
+                      {new Date(snap.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {" "}
+                      {new Date(snap.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="p-4">
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mb-2">Policy Snapshot</p>
+                  <p className="font-mono text-[10px] text-slate-500">No policy snapshot available for this order. This order may have been created before policy integration.</p>
+                </div>
+              )}
+            </aside>
+          </div>
+
+          {/* ── Cryptographic Title & Allocation Certificate ── */}
+          {(order.status === "completed" || isSettled) && (
+            <CryptographicTitleCertificate
+              order={order}
+              settlementUpdatedAt={settlement?.updatedAt}
+            />
+          )}
+
+          {/* ── Footer ── */}
+          <div className="mt-8 border-t border-slate-800 pt-6">
+            <div className="flex items-center justify-center gap-2">
+              <Radio className="h-3 w-3 animate-pulse text-emerald-500" />
+              <span className="font-mono text-[9px] uppercase tracking-wider text-slate-600">
+                Immutable Ledger Active
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
