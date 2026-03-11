@@ -126,7 +126,7 @@ export default function SettlementLedgerPage() {
               ────────────────────────────────────────────────────── */}
           <div className="lg:col-span-4">
             <div className="bg-black border border-slate-800 p-6 h-full">
-              <span className="font-mono text-[#c6a86b] text-xs tracking-[0.2em] uppercase block mb-5">
+              <span className="font-mono text-gold-primary text-xs tracking-[0.2em] uppercase block mb-5">
                 Reserved Allocation
               </span>
 
@@ -293,8 +293,8 @@ function TimelineNode({ step }: { step: TimelineStep }) {
         )}
         {step.status === "active" && (
           <span className="relative flex h-[11px] w-[11px]">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c6a86b] opacity-75" />
-            <Radio className="relative inline-flex h-[11px] w-[11px] text-[#c6a86b]" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold-primary opacity-75" />
+            <Radio className="relative inline-flex h-[11px] w-[11px] text-gold-primary" />
           </span>
         )}
         {step.status === "locked" && (

@@ -52,8 +52,8 @@ export default function CryptographicTitlePage() {
         {/* ── Header ── */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
-            <Fingerprint className="h-4 w-4 text-[#c6a86b]" />
-            <span className="font-mono text-[#c6a86b] text-xs tracking-[0.3em] uppercase">
+            <Fingerprint className="h-4 w-4 text-gold-primary" />
+            <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
               Digital Warrant of Title
             </span>
           </div>

@@ -41,8 +41,8 @@ export default function AllocationRegistryPage() {
         {/* ── Header ── */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
-            <Landmark className="h-4 w-4 text-[#c6a86b]" />
-            <span className="font-mono text-[#c6a86b] text-xs tracking-[0.3em] uppercase">
+            <Landmark className="h-4 w-4 text-gold-primary" />
+            <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
               Vault Allocation Manifest
             </span>
           </div>
@@ -88,8 +88,7 @@ export default function AllocationRegistryPage() {
             <div className="bg-emerald-500/10 border border-emerald-500/40 px-4 py-3 inline-flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
               <span className="font-mono text-emerald-400 text-xs tracking-wider">
-                ALLOCATED TO: {ALLOCATION.offtakerOrgId} //{" "}
-                TIMESTAMP: {ALLOCATION.allocationTimestamp}
+                {`ALLOCATED TO: ${ALLOCATION.offtakerOrgId} // TIMESTAMP: ${ALLOCATION.allocationTimestamp}`}
               </span>
             </div>
           </div>
