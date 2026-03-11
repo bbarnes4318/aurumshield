@@ -83,6 +83,10 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Admin",
   compliance: "Compliance",
   vault_ops: "Vault Ops",
+  offtaker: "Offtaker",
+  producer: "Producer",
+  REFINERY: "LBMA Refiner",
+  MINE: "Mining Operator",
   // Legacy aliases
   buyer: "Institution Trader",
   seller: "Institution Trader",

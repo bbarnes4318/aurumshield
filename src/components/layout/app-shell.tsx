@@ -12,6 +12,7 @@ import { TourHighlighter } from "@/demo/tour-engine/TourHighlighter";
 import { TourDebugPanel } from "@/demo/tour-engine/TourDebugPanel";
 import { useDemo } from "@/providers/demo-provider";
 import { useTour } from "@/demo/tour-engine/TourProvider";
+import { RoleRouter } from "@/components/auth/RoleRouter";
 
 /** Routes that render WITHOUT the app shell (sidebar/topbar) */
 const PUBLIC_ROUTES = [
@@ -93,6 +94,7 @@ export function AppShell({ children }: AppShellProps) {
           id="main-content"
           className="flex-1 overflow-y-auto px-5 pt-5 pb-5 lg:px-8"
         >
+          <RoleRouter />
           {children}
         </main>
       </div>

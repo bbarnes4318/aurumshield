@@ -19,6 +19,10 @@ export const ROLE_DISPLAY: Record<UserRole, string> = {
   compliance: "Risk / Supervisory",
   vault_ops: "Ops / Clearing Ops",
   admin: "Admin",
+  offtaker: "Offtaker",
+  producer: "Producer",
+  REFINERY: "LBMA Refiner",
+  MINE: "Mining Operator",
 };
 
 /* ---------- Step Completion Types ---------- */

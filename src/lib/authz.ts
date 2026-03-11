@@ -34,6 +34,12 @@ export type UserRole =
   | "BROKER_DEALER_API"
   | "compliance"
   | "vault_ops"
+  // Offtaker portal roles
+  | "offtaker"
+  // Producer portal roles
+  | "producer"
+  | "REFINERY"
+  | "MINE"
   // Legacy aliases — retained for backward compatibility during UI migration
   | "buyer"
   | "seller"

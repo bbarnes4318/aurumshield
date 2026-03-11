@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Building2,
@@ -33,6 +33,9 @@ import {
   CalendarClock,
   Package,
   Truck,
+  Fingerprint,
+  Upload,
+  Banknote,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -63,13 +66,18 @@ const OPERATOR_ROLES: UserRole[] = [
   "vault_ops",
 ];
 
-/* ── Roles considered "external clients" — restricted to buyer-visible links ── */
-const CLIENT_ROLES: UserRole[] = [
-  "buyer",
-  "seller",
+/* ── Offtaker roles — restricted to /offtaker portal ── */
+const OFFTAKER_ROLES: UserRole[] = [
+  "offtaker",
   "INSTITUTION_TRADER",
   "INSTITUTION_TREASURY",
-  "BROKER_DEALER_API",
+];
+
+/* ── Producer roles — restricted to /producer portal ── */
+const PRODUCER_ROLES: UserRole[] = [
+  "producer",
+  "REFINERY",
+  "MINE",
 ];
 
 /* ── localStorage key for Pro Toggle persistence ── */
@@ -113,19 +121,22 @@ const OPERATOR_ADMIN: NavItem[] = [
   { label: "Labs",                href: "/labs",                   icon: FlaskConical,    allowedRoles: OPERATOR_ROLES },
 ];
 
-const OPERATOR_NAV: NavItem[] = [...OPERATOR_OPS, ...OPERATOR_RISK, ...OPERATOR_MARKET, ...OPERATOR_ADMIN];
-
-/* ── Client-visible nav items (buyer / seller / institution) ── */
-const BUYER_NAV: NavItem[] = [
-  { label: "Register",             href: "/perimeter/register",     icon: Package,         allowedRoles: CLIENT_ROLES },
-  { label: "Verify Identity",      href: "/perimeter/verify",       icon: ShieldCheck,     allowedRoles: CLIENT_ROLES },
-  { label: "Marketplace",          href: "/marketplace",            icon: Package,         allowedRoles: CLIENT_ROLES },
-  { label: "Checkout",             href: "/checkout",               icon: ClipboardList,   allowedRoles: CLIENT_ROLES },
-  { label: "Orders & Tracking",    href: "/orders",                 icon: Truck,           allowedRoles: CLIENT_ROLES },
+/* ── Offtaker-visible nav items (institutional buyers) ── */
+const OFFTAKER_NAV: NavItem[] = [
+  { label: "Select Org",          href: "/offtaker/org/select",             icon: Building2,      allowedRoles: OFFTAKER_ROLES },
+  { label: "Onboarding",          href: "/offtaker/onboarding/intake",      icon: ClipboardList,  allowedRoles: OFFTAKER_ROLES },
+  { label: "KYB Console",         href: "/offtaker/onboarding/kyb",         icon: ShieldCheck,    allowedRoles: OFFTAKER_ROLES },
+  { label: "Marketplace",         href: "/offtaker/marketplace",            icon: Package,        allowedRoles: OFFTAKER_ROLES },
+  { label: "Orders",              href: "/offtaker/orders",                 icon: Truck,          allowedRoles: OFFTAKER_ROLES },
 ];
 
-/* Combined for legacy filtering */
-const NAV_ITEMS: NavItem[] = [...OPERATOR_NAV, ...BUYER_NAV];
+/* ── Producer-visible nav items (refineries / mines) ── */
+const PRODUCER_NAV: NavItem[] = [
+  { label: "Accreditation",       href: "/producer/accreditation",          icon: Shield,         allowedRoles: PRODUCER_ROLES },
+  { label: "Asset Ingestion",     href: "/producer/inventory/new",          icon: Upload,         allowedRoles: PRODUCER_ROLES },
+  { label: "Allocation Queue",    href: "/producer/orders",                 icon: Fingerprint,    allowedRoles: PRODUCER_ROLES },
+  { label: "Escrow Releases",     href: "/producer/settlements",            icon: Banknote,       allowedRoles: PRODUCER_ROLES },
+];
 
 /* ================================================================
    Shared nav renderer — used by both Sidebar and MobileDrawer
@@ -187,6 +198,9 @@ function SectionHeader({ label, collapsed }: { label: string; collapsed: boolean
   );
 }
 
+/* ── Impersonation mode type ── */
+type ImpersonationMode = "none" | "offtaker" | "producer";
+
 function SidebarNav({
   collapsed,
   onLinkClick,
@@ -196,23 +210,20 @@ function SidebarNav({
 }) {
   const pathname = usePathname();
   const { user } = useAuth();
-  const role: UserRole = user?.role ?? "buyer";
+  const role: UserRole = user?.role ?? "offtaker";
   const isOperator = OPERATOR_ROLES.includes(role);
-  const isClient = CLIENT_ROLES.includes(role);
+  const isOfftaker = OFFTAKER_ROLES.includes(role);
+  const isProducer = PRODUCER_ROLES.includes(role);
 
-  /* ── Pro Toggle State (client roles only) ── */
-  const [proMode, setProMode] = useState(false);
-
-  // Hydrate from localStorage on mount
-  useEffect(() => {
-    if (!isClient) return;
+  /* ── Pro Toggle State (offtaker roles only) ── */
+  const [proMode, setProMode] = useState(() => {
+    if (!isOfftaker) return false;
     try {
-      const stored = localStorage.getItem(PRO_TOGGLE_KEY);
-      if (stored === "true") setProMode(true);
+      return localStorage.getItem(PRO_TOGGLE_KEY) === "true";
     } catch {
-      // SSR or localStorage unavailable — default OFF
+      return false; // SSR or localStorage unavailable
     }
-  }, [isClient]);
+  });
 
   const handleTogglePro = useCallback(() => {
     setProMode((prev) => {
@@ -226,59 +237,66 @@ function SidebarNav({
     });
   }, []);
 
-  /** Resolve the actual href for an item, factoring in proToggleKey */
-  const resolveHref = useCallback(
-    (item: NavItem): string => {
-      if (item.proToggleKey === "dashboard" && isClient) {
-        return proMode ? "/transactions" : "/perimeter/register";
-      }
-      return item.href;
-    },
-    [proMode, isClient],
+  /* ── Admin Portal Impersonation Toggle ── */
+  const [impersonationMode, setImpersonationMode] = useState<ImpersonationMode>("none");
+
+  /* ── Helper: render a portal nav list with optional section header ── */
+  const renderPortalNav = (items: NavItem[], sectionLabel: string) => (
+    <>
+      {!collapsed && (
+        <div className="mb-2 flex items-center gap-2 px-2.5">
+          <Users className="h-3 w-3 text-gold" />
+          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-gold/60">
+            {sectionLabel}
+          </p>
+        </div>
+      )}
+      <ul className="space-y-0.5 flex-1">
+        {items.map((item) => (
+          <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+        ))}
+      </ul>
+    </>
   );
 
-  /* ── Admin Buyer Impersonation Toggle ── */
-  const [buyerView, setBuyerView] = useState(false);
+  /* ── Return-to-Admin banner ── */
+  const renderReturnBanner = () => (
+    <>
+      {!collapsed ? (
+        <button
+          type="button"
+          onClick={() => setImpersonationMode("none")}
+          className="mb-3 flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-950/20 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-blue-300 hover:bg-blue-950/40 transition-all"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Return to Admin Command
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setImpersonationMode("none")}
+          className="mb-3 flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-950/20 p-2 text-blue-300 hover:bg-blue-950/40 transition-all"
+          title="Return to Admin Command"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+    </>
+  );
 
   return (
     <nav className="flex-1 overflow-y-auto py-4 px-2 flex flex-col" aria-label="Main navigation">
-      {isOperator && buyerView ? (
-        /* ══════ BUYER IMPERSONATION MODE ══════ */
+      {isOperator && impersonationMode === "offtaker" ? (
+        /* ══════ ADMIN → OFFTAKER IMPERSONATION ══════ */
         <>
-          {/* Return to Admin banner */}
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={() => setBuyerView(false)}
-              className="mb-3 flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-950/20 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-blue-300 hover:bg-blue-950/40 transition-all"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              Return to Admin
-            </button>
-          )}
-          {collapsed && (
-            <button
-              type="button"
-              onClick={() => setBuyerView(false)}
-              className="mb-3 flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-950/20 p-2 text-blue-300 hover:bg-blue-950/40 transition-all"
-              title="Return to Admin"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          )}
-          {!collapsed && (
-            <div className="mb-2 flex items-center gap-2 px-2.5">
-              <Users className="h-3 w-3 text-gold" />
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-gold/60">
-                Buyer Experience
-              </p>
-            </div>
-          )}
-          <ul className="space-y-0.5 flex-1">
-            {BUYER_NAV.map((item) => (
-              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
-            ))}
-          </ul>
+          {renderReturnBanner()}
+          {renderPortalNav(OFFTAKER_NAV, "Offtaker Portal")}
+        </>
+      ) : isOperator && impersonationMode === "producer" ? (
+        /* ══════ ADMIN → PRODUCER IMPERSONATION ══════ */
+        <>
+          {renderReturnBanner()}
+          {renderPortalNav(PRODUCER_NAV, "Producer Portal")}
         </>
       ) : isOperator ? (
         /* ══════ ADMIN MODE ══════ */
@@ -305,41 +323,71 @@ function SidebarNav({
             ))}
           </ul>
 
-          {/* View as Buyer toggle */}
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={() => setBuyerView(true)}
-              className="mt-4 w-full flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gold hover:bg-gold/10 transition-all"
-            >
-              <Eye className="h-4 w-4 text-gold shrink-0" />
-              <span>View Buyer Experience</span>
-            </button>
-          )}
-          {collapsed && (
-            <button
-              type="button"
-              onClick={() => setBuyerView(true)}
-              className="mt-4 flex items-center justify-center rounded-lg border border-gold/30 bg-gold/5 p-2 text-gold hover:bg-gold/10 transition-all"
-              title="View Buyer Experience"
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-          )}
+          {/* ── Portal Impersonation Toggles ── */}
+          <div className="mt-4 space-y-2">
+            {!collapsed ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setImpersonationMode("offtaker")}
+                  className="w-full flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gold hover:bg-gold/10 transition-all"
+                >
+                  <Eye className="h-4 w-4 text-gold shrink-0" />
+                  <span>View Offtaker Portal</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImpersonationMode("producer")}
+                  className="w-full flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                >
+                  <Eye className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span>View Producer Portal</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setImpersonationMode("offtaker")}
+                  className="flex items-center justify-center rounded-lg border border-gold/30 bg-gold/5 p-2 text-gold hover:bg-gold/10 transition-all"
+                  title="View Offtaker Portal"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImpersonationMode("producer")}
+                  className="flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2 text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                  title="View Producer Portal"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
         </>
-      ) : (
-        /* ══════ CLIENT MODE ══════ */
+      ) : isProducer ? (
+        /* ══════ PRODUCER CLIENT MODE ══════ */
         <>
           <ul className="space-y-0.5 flex-1">
-            {BUYER_NAV.map((item) => (
-              <NavLink key={item.label} item={item} href={resolveHref(item)} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            {PRODUCER_NAV.map((item) => (
+              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            ))}
+          </ul>
+        </>
+      ) : (
+        /* ══════ OFFTAKER CLIENT MODE (default) ══════ */
+        <>
+          <ul className="space-y-0.5 flex-1">
+            {OFFTAKER_NAV.map((item) => (
+              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
             ))}
           </ul>
         </>
       )}
 
-      {/* ══════ Pro Execution Desk Toggle (Client roles only) ══════ */}
-      {isClient && !collapsed && (
+      {/* ══════ Pro Execution Desk Toggle (Offtaker roles only) ══════ */}
+      {isOfftaker && !collapsed && (
         <div className="mt-6 mx-1">
           <button
             id="pro-execution-desk-toggle"
@@ -396,7 +444,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="border-t border-border p-2">
         <button
           onClick={onToggle}
-          className="flex w-full items-center justify-center rounded-[var(--radius-sm)] py-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+          className="flex w-full items-center justify-center rounded-(--radius-sm) py-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -467,7 +515,7 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
           <AppLogo className="h-10 w-auto" variant="dark" />
           <button
             onClick={onClose}
-            className="rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+            className="rounded-(--radius-sm) p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
             aria-label="Close navigation menu"
           >
             <X className="h-5 w-5" />
