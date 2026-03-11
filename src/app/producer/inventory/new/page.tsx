@@ -9,7 +9,7 @@
    cryptographic title (Digital Twin) for the physical asset.
    ================================================================ */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Upload,
   Shield,
@@ -17,8 +17,9 @@ import {
   FileText,
   Fingerprint,
   MapPin,
+  ScanLine,
 } from "lucide-react";
-import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import ProducerTelemetryFooter from "@/components/producer/ProducerTelemetryFooter";
 
 /* ----------------------------------------------------------------
    VAULT JURISDICTIONS
@@ -32,12 +33,31 @@ const VAULT_JURISDICTIONS = [
   { value: "new-york-hsbc", label: "New York (HSBC Vault)" },
 ];
 
+/* ── Cryptographic Hash Badge ── */
+function HashBadge({ value }: { value: string }) {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+  };
+  return (
+    <span className="bg-black border border-slate-800 px-2 py-1 text-gold-primary font-mono text-sm flex items-center gap-2 w-fit">
+      {value}
+      <button
+        onClick={handleCopy}
+        className="text-slate-600 text-[9px] hover:text-slate-400 transition-colors cursor-pointer"
+      >
+        [ COPY ]
+      </button>
+    </span>
+  );
+}
+
 /* ================================================================
    PAGE COMPONENT
    ================================================================ */
 export default function AssetIngestionPage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
   const [isMinting, setIsMinting] = useState(false);
 
   /* ── Asset Metadata State ── */
@@ -45,6 +65,14 @@ export default function AssetIngestionPage() {
   const [grossWeight, setGrossWeight] = useState("");
   const [castingYear, setCastingYear] = useState("");
   const [vaultJurisdiction, setVaultJurisdiction] = useState("");
+
+  /* ── VLM Scanning Simulation ── */
+  useEffect(() => {
+    if (isScanning) {
+      const timer = setTimeout(() => setIsScanning(false), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [isScanning]);
 
   /* ── Drag & Drop Handlers ── */
   const handleDragOver = useCallback(
@@ -64,9 +92,12 @@ export default function AssetIngestionPage() {
     setIsDragOver(false);
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      setUploadedFile(files[0].name);
+      setIsScanning(true);
       // TODO: Upload to API / parse via VLM engine
       console.log("[Ingestion] File dropped:", files[0].name);
+      setTimeout(() => {
+        setUploadedFile(files[0].name);
+      }, 3500);
     }
   }, []);
 
@@ -126,14 +157,36 @@ export default function AssetIngestionPage() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               className={`bg-slate-900 border-2 border-dashed shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] h-64 flex flex-col items-center justify-center transition-all cursor-pointer ${
-                isDragOver
-                  ? "border-gold-primary bg-gold-primary/5"
-                  : uploadedFile
-                    ? "border-emerald-500/40 bg-emerald-500/5"
-                    : "border-slate-700 hover:border-gold-primary"
+                isScanning
+                  ? "border-emerald-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.02)_10px,rgba(255,255,255,0.02)_20px)]"
+                  : isDragOver
+                    ? "border-gold-primary bg-gold-primary/5"
+                    : uploadedFile
+                      ? "border-emerald-500/40 bg-emerald-500/5"
+                      : "border-slate-700 hover:border-gold-primary"
               }`}
             >
-              {uploadedFile ? (
+              {isScanning ? (
+                /* ── Forensic VLM Scanning State ── */
+                <>
+                  <div className="h-12 w-12 rounded-sm bg-emerald-500/10 flex items-center justify-center mb-4">
+                    <ScanLine className="h-6 w-6 text-emerald-400 animate-pulse" />
+                  </div>
+                  <div className="space-y-1.5 text-center px-6">
+                    <p className="font-mono text-emerald-400 text-xs">
+                      {"> "}EXTRACTING METALLURGICAL DATA...{" "}
+                      <span className="text-white">[ 99.99% CONFIDENCE ]</span>
+                    </p>
+                    <p className="font-mono text-emerald-400/60 text-[10px]">
+                      {"> "}TRACE_ELEMENTS: Au 999.9 | Ag 0.002 | Cu 0.001
+                    </p>
+                    <p className="font-mono text-emerald-400/40 text-[10px] flex items-center justify-center gap-1">
+                      {"> "}TENSORLAKE_OCR: PROCESSING
+                      <span className="inline-block w-1.5 h-3 bg-emerald-400 animate-pulse" />
+                    </p>
+                  </div>
+                </>
+              ) : uploadedFile ? (
                 /* ── File Uploaded State ── */
                 <>
                   <div className="h-12 w-12 rounded-sm bg-emerald-500/10 flex items-center justify-center mb-4">
@@ -143,7 +196,7 @@ export default function AssetIngestionPage() {
                     {uploadedFile}
                   </span>
                   <span className="font-mono text-[10px] text-slate-500 tracking-wider uppercase">
-                    Ready for VLM Parsing
+                    VLM Parse Complete — Ready for Minting
                   </span>
                 </>
               ) : (
@@ -178,8 +231,10 @@ export default function AssetIngestionPage() {
                 </p>
                 <p className="text-slate-700 flex items-center gap-1">
                   STATUS:{" "}
-                  {uploadedFile ? (
-                    <span className="text-emerald-400">FILE STAGED</span>
+                  {isScanning ? (
+                    <span className="text-emerald-400">SCANNING...</span>
+                  ) : uploadedFile ? (
+                    <span className="text-emerald-400">PARSE COMPLETE</span>
                   ) : (
                     <span className="text-slate-600">AWAITING UPLOAD</span>
                   )}
@@ -224,6 +279,12 @@ export default function AssetIngestionPage() {
                     className="w-full bg-slate-950 border border-slate-700 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm pl-8 pr-4 py-3 font-mono text-sm text-white uppercase placeholder:text-slate-600 focus:border-gold-primary focus:ring-1 focus:ring-gold-primary/30 focus:outline-none transition-colors"
                   />
                 </div>
+                {/* Live Serial Badge Preview */}
+                {serialNumber.trim() && (
+                  <div className="mt-2">
+                    <HashBadge value={serialNumber} />
+                  </div>
+                )}
               </div>
 
               {/* Input 2: Gross Weight */}
@@ -342,7 +403,7 @@ export default function AssetIngestionPage() {
         </p>
       </div>
 
-      <TelemetryFooter />
+      <ProducerTelemetryFooter />
     </div>
   );
 }

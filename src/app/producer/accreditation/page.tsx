@@ -12,7 +12,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shield, ChevronRight, Landmark, Terminal } from "lucide-react";
-import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import ProducerTelemetryFooter from "@/components/producer/ProducerTelemetryFooter";
 
 /* ================================================================
    PAGE COMPONENT
@@ -189,7 +189,7 @@ export default function ProducerAccreditationPage() {
               )}
             </button>
             <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wide mt-2 text-center block">
-              EXECUTION IS CRYPTOGRAPHICALLY BINDING. IP ADDRESS LOGGED UNDER BSA/AML PROTOCOLS.
+              SUBMISSION CONSTITUTES A LEGAL DECLARATION OF LBMA GOOD DELIVERY STATUS.
             </span>
           </div>
         </form>
@@ -201,7 +201,7 @@ export default function ProducerAccreditationPage() {
         </p>
       </div>
 
-      <TelemetryFooter />
+      <ProducerTelemetryFooter />
     </div>
   );
 }
