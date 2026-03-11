@@ -9,6 +9,7 @@
    ================================================================ */
 
 import { Shield, Landmark } from "lucide-react";
+import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 
 /* ----------------------------------------------------------------
    MOCK ALLOCATION DATA
@@ -29,6 +30,24 @@ const ALLOCATION = {
   },
 };
 
+/* ── Cryptographic Hash Badge ── */
+function HashBadge({ value }: { value: string }) {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+  };
+  return (
+    <span className="bg-black border border-slate-800 px-2 py-1 text-gold-primary font-mono text-sm flex items-center gap-2 w-fit">
+      {value}
+      <button
+        onClick={handleCopy}
+        className="text-slate-600 text-[9px] hover:text-slate-400 transition-colors cursor-pointer"
+      >
+        [ COPY ]
+      </button>
+    </span>
+  );
+}
+
 /* ================================================================
    PAGE COMPONENT
    ================================================================ */
@@ -36,7 +55,7 @@ export default function AllocationRegistryPage() {
   const { bar } = ALLOCATION;
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950 pb-14">
       <div className="max-w-5xl mx-auto p-8 pt-12">
         {/* ── Header ── */}
         <div className="mb-8">
@@ -49,13 +68,17 @@ export default function AllocationRegistryPage() {
           <h1 className="text-3xl text-white font-bold tracking-tight">
             Allocated Physical Assets
           </h1>
-          <p className="font-mono text-slate-600 text-xs mt-2 tracking-wider">
-            {ALLOCATION.orderId} · {ALLOCATION.offtakerEntity}
-          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <HashBadge value={ALLOCATION.orderId} />
+            <span className="font-mono text-slate-600 text-xs">·</span>
+            <span className="font-mono text-slate-600 text-xs tracking-wider">
+              {ALLOCATION.offtakerEntity}
+            </span>
+          </div>
         </div>
 
         {/* ── Asset Card ── */}
-        <div className="bg-slate-900 border border-slate-800 p-6">
+        <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6">
           {/* Card Header */}
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-800">
             <Shield className="h-3.5 w-3.5 text-slate-500" />
@@ -66,7 +89,13 @@ export default function AllocationRegistryPage() {
 
           {/* Specifics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-5">
-            <RegistryField label="Serial Number" value={bar.serialNumber} />
+            {/* Serial Number — Hash Badge */}
+            <div>
+              <span className="font-mono text-[9px] text-slate-600 tracking-[0.15em] uppercase block mb-1">
+                Serial Number
+              </span>
+              <HashBadge value={bar.serialNumber} />
+            </div>
             <RegistryField
               label="Refiner Hallmark"
               value={`${bar.refinerHallmark} (${bar.lbmaStatus})`}
@@ -100,6 +129,8 @@ export default function AllocationRegistryPage() {
           Segregated Allocated Storage
         </p>
       </div>
+
+      <TelemetryFooter />
     </div>
   );
 }

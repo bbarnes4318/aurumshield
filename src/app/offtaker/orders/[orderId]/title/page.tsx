@@ -11,6 +11,7 @@
 
 import { useState } from "react";
 import { FileDown, Fingerprint, ShieldCheck } from "lucide-react";
+import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 
 /* ----------------------------------------------------------------
    MOCK TITLE RECORD
@@ -33,6 +34,24 @@ const TITLE_RECORD = {
   barFineness: "999.9",
 };
 
+/* ── Cryptographic Hash Badge ── */
+function HashBadge({ value }: { value: string }) {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+  };
+  return (
+    <span className="bg-black border border-slate-800 px-2 py-1 text-gold-primary font-mono text-sm flex items-center gap-2 w-fit">
+      {value}
+      <button
+        onClick={handleCopy}
+        className="text-slate-600 text-[9px] hover:text-slate-400 transition-colors cursor-pointer"
+      >
+        [ COPY ]
+      </button>
+    </span>
+  );
+}
+
 /* ================================================================
    PAGE COMPONENT
    ================================================================ */
@@ -47,7 +66,7 @@ export default function CryptographicTitlePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950 pb-14">
       <div className="max-w-5xl mx-auto p-8 pt-12">
         {/* ── Header ── */}
         <div className="mb-8">
@@ -60,9 +79,13 @@ export default function CryptographicTitlePage() {
           <h1 className="text-3xl text-white font-bold tracking-tight">
             Cryptographic Ownership Record
           </h1>
-          <p className="font-mono text-slate-600 text-xs mt-2 tracking-wider">
-            {TITLE_RECORD.orderId} · {TITLE_RECORD.offtakerEntity}
-          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <HashBadge value={TITLE_RECORD.orderId} />
+            <span className="font-mono text-slate-600 text-xs">·</span>
+            <span className="font-mono text-slate-600 text-xs tracking-wider">
+              {TITLE_RECORD.offtakerEntity}
+            </span>
+          </div>
         </div>
 
         {/* ── Legal Text ── */}
@@ -75,7 +98,7 @@ export default function CryptographicTitlePage() {
         </div>
 
         {/* ── Attestation Summary ── */}
-        <div className="bg-slate-900 border border-slate-800 p-6 mb-6">
+        <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 mb-6">
           <div className="flex items-center gap-2 mb-5 pb-4 border-b border-slate-800">
             <ShieldCheck className="h-3.5 w-3.5 text-slate-500" />
             <span className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
@@ -91,13 +114,19 @@ export default function CryptographicTitlePage() {
               label="Title Holder"
               value={TITLE_RECORD.offtakerEntity}
             />
-            <TitleField label="Org ID" value={TITLE_RECORD.offtakerOrgId} />
+            {/* Org ID — Hash Badge */}
+            <div>
+              <span className="font-mono text-[9px] text-slate-600 tracking-[0.15em] uppercase block mb-1">
+                Org ID
+              </span>
+              <HashBadge value={TITLE_RECORD.offtakerOrgId} />
+            </div>
             <TitleField label="Issued" value={TITLE_RECORD.issuedAt} />
           </div>
         </div>
 
         {/* ── Hash Payload Terminal ── */}
-        <div className="bg-black border border-slate-800 p-6 relative">
+        <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 relative">
           {/* Terminal header bar */}
           <div className="flex items-center gap-1.5 mb-5 pb-3 border-b border-slate-800">
             <div className="h-2 w-2 rounded-full bg-red-500/60" />
@@ -154,7 +183,7 @@ export default function CryptographicTitlePage() {
         </div>
 
         {/* ── Download Action ── */}
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex flex-col items-end">
           <button
             onClick={handleDownload}
             disabled={isDownloading}
@@ -176,6 +205,9 @@ export default function CryptographicTitlePage() {
               </>
             )}
           </button>
+          <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wide mt-2 text-center block">
+            EXECUTION IS CRYPTOGRAPHICALLY BINDING. IP ADDRESS LOGGED UNDER BSA/AML PROTOCOLS.
+          </span>
         </div>
 
         {/* ── Footer ── */}
@@ -184,6 +216,8 @@ export default function CryptographicTitlePage() {
           Cryptographic Proof of Title
         </p>
       </div>
+
+      <TelemetryFooter />
     </div>
   );
 }

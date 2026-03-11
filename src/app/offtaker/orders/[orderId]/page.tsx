@@ -11,6 +11,7 @@
    ================================================================ */
 
 import { CheckCircle2, Lock, Radio } from "lucide-react";
+import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 
 /* ----------------------------------------------------------------
    MOCK ORDER DATA (mirrors checkout)
@@ -92,24 +93,40 @@ function fmt(value: number, decimals = 2): string {
   });
 }
 
+/* ── Cryptographic Hash Badge ── */
+function HashBadge({ value }: { value: string }) {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+  };
+  return (
+    <span className="bg-black border border-slate-800 px-2 py-1 text-gold-primary font-mono flex items-center gap-2 w-fit">
+      {value}
+      <button
+        onClick={handleCopy}
+        className="text-slate-600 text-[9px] hover:text-slate-400 transition-colors cursor-pointer"
+      >
+        [ COPY ]
+      </button>
+    </span>
+  );
+}
+
 /* ================================================================
    PAGE COMPONENT
    ================================================================ */
 export default function SettlementLedgerPage() {
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950 pb-14">
       <div className="max-w-7xl mx-auto p-8 pt-12">
         {/* ════════════════════════════════════════════════════════
             HEADER RIBBON
             ════════════════════════════════════════════════════════ */}
-        <div className="bg-slate-900 border-b border-slate-800 pb-6 mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div className="bg-slate-900 border-b border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] pb-6 mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
             <span className="font-mono text-slate-500 uppercase text-xs tracking-[0.3em] block mb-2">
               Settlement Ledger
             </span>
-            <h1 className="text-3xl text-white font-mono tracking-tight">
-              {ORDER.orderId}
-            </h1>
+            <HashBadge value={ORDER.orderId} />
           </div>
 
           <div className="bg-yellow-500/10 border border-yellow-500/50 text-yellow-500 font-mono px-3 py-1 text-sm whitespace-nowrap">
@@ -125,7 +142,7 @@ export default function SettlementLedgerPage() {
               COLUMN 1 — Asset & Custody Registry
               ────────────────────────────────────────────────────── */}
           <div className="lg:col-span-4">
-            <div className="bg-black border border-slate-800 p-6 h-full">
+            <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 h-full">
               <span className="font-mono text-gold-primary text-xs tracking-[0.2em] uppercase block mb-5">
                 Reserved Allocation
               </span>
@@ -160,7 +177,7 @@ export default function SettlementLedgerPage() {
               COLUMN 2 — Wire Instructions (Mission Control)
               ────────────────────────────────────────────────────── */}
           <div className="lg:col-span-4">
-            <div className="bg-slate-900 border border-slate-800 p-6 h-full flex flex-col">
+            <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 h-full flex flex-col">
               <span className="font-mono text-slate-400 text-xs tracking-[0.2em] uppercase block mb-5">
                 Pending Inbound Transfer
               </span>
@@ -211,7 +228,7 @@ export default function SettlementLedgerPage() {
               COLUMN 3 — Settlement State Timeline
               ────────────────────────────────────────────────────── */}
           <div className="lg:col-span-4">
-            <div className="bg-slate-900 border border-slate-800 p-6 h-full">
+            <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 h-full">
               <span className="font-mono text-slate-400 text-xs tracking-[0.2em] uppercase block mb-6">
                 Settlement State Machine
               </span>
@@ -236,6 +253,8 @@ export default function SettlementLedgerPage() {
           Immutable Settlement Ledger
         </p>
       </div>
+
+      <TelemetryFooter />
     </div>
   );
 }
@@ -284,8 +303,16 @@ function WireField({ label, value }: { label: string; value: string }) {
 
 /* ── Timeline Node ── */
 function TimelineNode({ step }: { step: TimelineStep }) {
+  const isLocked = step.status === "locked";
+
   return (
-    <div className="relative pl-6">
+    <div
+      className={`relative pl-6 ${
+        isLocked
+          ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.02)_10px,rgba(255,255,255,0.02)_20px)]"
+          : ""
+      }`}
+    >
       {/* Dot / Icon */}
       <div className="absolute left-0 top-[3px] flex items-center justify-center">
         {step.status === "completed" && (
