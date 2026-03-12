@@ -8,7 +8,7 @@
    ================================================================ */
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Lock,
@@ -17,6 +17,7 @@ import {
   Info,
 } from "lucide-react";
 import { useGoldPrice } from "@/hooks/use-gold-price";
+import { DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
 
 /* ── Format USD ── */
 function fmtUSD(n: number): string {
@@ -76,6 +77,8 @@ interface SelectedProduct {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemoActive = searchParams.get("demo") === "active";
   const { data: priceData } = useGoldPrice();
   const spotPrice = priceData?.spotPriceUsd ?? 2650.0;
 
@@ -84,16 +87,15 @@ export default function CheckoutPage() {
   const [confirmed, setConfirmed] = useState(false);
 
   /* ── Load selected product from sessionStorage ── */
-  const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(null);
-
-  useEffect(() => {
+  const [selectedProduct] = useState<SelectedProduct | null>(() => {
+    if (typeof window === "undefined") return null;
     try {
       const stored = sessionStorage.getItem("aurumshield:selectedProduct");
-      if (stored) setSelectedProduct(JSON.parse(stored));
+      return stored ? JSON.parse(stored) : null;
     } catch {
-      // sessionStorage unavailable
+      return null;
     }
-  }, []);
+  });
 
   const weightOz = selectedProduct?.weightOz ?? 400;
   const premiumPct = selectedProduct?.premiumPct ?? 2.5;
@@ -135,10 +137,11 @@ export default function CheckoutPage() {
   const handleConfirm = useCallback(() => {
     setConfirmed(true);
     // TODO: Submit order to backend API
+    const demoParam = isDemoActive ? "?demo=active" : "";
     setTimeout(() => {
-      router.push("/settlement");
+      router.push(`/settlements${demoParam}`);
     }, 800);
-  }, [router]);
+  }, [router, isDemoActive]);
 
   return (
     <div className="mx-auto max-w-xl py-8">
@@ -255,7 +258,7 @@ export default function CheckoutPage() {
             <button
               type="button"
               onClick={handlePriceLock}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-4 text-sm font-bold text-bg transition-all hover:bg-gold-hover active:scale-[0.98]"
+              className={`flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-4 text-sm font-bold text-bg transition-all hover:bg-gold-hover active:scale-[0.98] ${isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}
             >
               <Lock className="h-4 w-4" />
               Lock This Price
@@ -277,7 +280,7 @@ export default function CheckoutPage() {
             <button
               type="button"
               onClick={handleConfirm}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-4 text-sm font-bold text-bg transition-all hover:bg-gold-hover active:scale-[0.98]"
+              className={`flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-4 text-sm font-bold text-bg transition-all hover:bg-gold-hover active:scale-[0.98] ${isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}
             >
               Confirm Order
               <ArrowRight className="h-4 w-4" />

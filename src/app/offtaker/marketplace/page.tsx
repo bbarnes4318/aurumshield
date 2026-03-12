@@ -10,7 +10,7 @@
    ================================================================ */
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Radio,
   ChevronRight,
@@ -22,6 +22,7 @@ import {
   Clock,
 } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import { DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
 
 /* ----------------------------------------------------------------
    ASSET CATALOG — 4-Tier Sovereign Liquidity Pool
@@ -117,7 +118,9 @@ function fmt(value: number, decimals = 2): string {
    ================================================================ */
 export default function OfftakerMarketplacePage() {
   const router = useRouter();
-  const [selectedAsset, setSelectedAsset] = useState<AssetTier | null>(null);
+  const searchParams = useSearchParams();
+  const isDemoActive = searchParams.get("demo") === "active";
+  const [selectedAsset, setSelectedAsset] = useState<AssetTier | null>(isDemoActive ? ASSET_CATALOG[0] : null);
   const [quantity, setQuantity] = useState(1);
 
   const handleSelectAsset = useCallback((asset: AssetTier) => {
@@ -402,14 +405,14 @@ export default function OfftakerMarketplacePage() {
               disabled={!hasSelection}
               onClick={() => {
                 if (!selectedAsset) return;
-                const quoteId = `QT-${Math.floor(1000 + Math.random() * 9000)}`;
-                router.push(`/offtaker/checkout/${quoteId}`);
+                const demoParam = isDemoActive ? "?demo=active" : "";
+                router.push(`/checkout${demoParam}`);
               }}
               className={`w-full font-bold text-sm tracking-wide py-3.5 flex items-center justify-center gap-2 font-mono transition-colors ${
                 hasSelection
                   ? "bg-gold-primary text-slate-950 hover:bg-gold-hover cursor-pointer"
                   : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
-              }`}
+              } ${isDemoActive && hasSelection ? DEMO_SPOTLIGHT_CLASSES : ""}`}
             >
               <Lock className="h-4 w-4" />
               Request Quote &amp; Lock Price

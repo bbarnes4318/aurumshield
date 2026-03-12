@@ -11,34 +11,35 @@
    ================================================================ */
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Upload,
   Building2,
   ShieldCheck,
   FileText,
-  Globe,
-  Hash,
   CheckCircle2,
   ArrowRight,
   Loader2,
 } from "lucide-react";
+import { DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
 
 type Step = 1 | 2 | 3;
 
 export default function VerifyPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemoActive = searchParams.get("demo") === "active";
   const [step, setStep] = useState<Step>(1);
   const [processing, setProcessing] = useState(false);
 
   /* ── Step 1: Document Upload ── */
-  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<string | null>(isDemoActive ? "passport_scan_demo.pdf" : null);
   const [isDragOver, setIsDragOver] = useState(false);
 
   /* ── Step 2: Corporate Identity ── */
-  const [entityName, setEntityName] = useState("");
-  const [regNumber, setRegNumber] = useState("");
-  const [jurisdiction, setJurisdiction] = useState("");
+  const [entityName, setEntityName] = useState(isDemoActive ? "Meridian Sovereign Capital Ltd." : "");
+  const [regNumber, setRegNumber] = useState(isDemoActive ? "12345678" : "");
+  const [jurisdiction, setJurisdiction] = useState(isDemoActive ? "United States" : "");
 
   /* ── Step 3: AML ── */
   const [amlComplete, setAmlComplete] = useState(false);
@@ -80,8 +81,9 @@ export default function VerifyPage() {
   }, [entityName, regNumber, jurisdiction]);
 
   const handleComplete = useCallback(() => {
-    router.push("/marketplace");
-  }, [router]);
+    const demoParam = isDemoActive ? "?demo=active" : "";
+    router.push(`/offtaker/marketplace${demoParam}`);
+  }, [router, isDemoActive]);
 
   /* ── Step Progress ── */
   const steps = [
@@ -191,7 +193,7 @@ export default function VerifyPage() {
             type="button"
             onClick={handleStep1Submit}
             disabled={!uploadedFile}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-40"
+            className={`mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-40 ${isDemoActive && uploadedFile ? DEMO_SPOTLIGHT_CLASSES : ""}`}
           >
             Continue
             <ArrowRight className="h-4 w-4" />
@@ -274,7 +276,7 @@ export default function VerifyPage() {
             disabled={
               !entityName.trim() || !regNumber.trim() || !jurisdiction.trim()
             }
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-40"
+            className={`mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-40 ${isDemoActive && entityName.trim() && regNumber.trim() && jurisdiction.trim() ? DEMO_SPOTLIGHT_CLASSES : ""}`}
           >
             Continue
             <ArrowRight className="h-4 w-4" />
@@ -327,7 +329,7 @@ export default function VerifyPage() {
             <button
               type="button"
               onClick={handleComplete}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover"
+              className={`mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-sm font-bold text-bg transition-all hover:bg-gold-hover ${isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}
             >
               Go to Marketplace
               <ArrowRight className="h-4 w-4" />

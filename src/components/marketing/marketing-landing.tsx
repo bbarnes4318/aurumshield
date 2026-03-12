@@ -123,7 +123,7 @@ export function Navigation() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
           {/* LEFT: Logo */}
           <div className="flex items-center gap-8 lg:gap-12">
-            <Link href="/" className="flex items-center flex-shrink-0">
+            <Link href="/" className="flex items-center shrink-0">
               <Image
                 src="/arum-logo-gold.svg"
                 alt="AurumShield"
@@ -150,7 +150,7 @@ export function Navigation() {
           </div>
 
           {/* RIGHT: CTA + Mobile hamburger */}
-          <div className="flex items-center gap-6 sm:gap-8 flex-shrink-0">
+          <div className="flex items-center gap-6 sm:gap-8 shrink-0">
             <a
               href={APP_URL}
               className="hidden lg:inline-flex text-[13px] font-medium text-slate-400 transition-colors duration-200 hover:text-white tracking-wide"
@@ -162,6 +162,12 @@ export function Navigation() {
               className="hidden sm:inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-bold text-[#0A1128] transition-colors bg-gold hover:bg-gold-hover"
             >
               Get Started
+            </a>
+            <a
+              href="/perimeter/verify?demo=active"
+              className="hidden lg:inline-flex items-center gap-2 rounded-md border border-gold/30 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-gold transition-all hover:border-gold/60 hover:bg-gold/10"
+            >
+              Initiate Institutional Demo
             </a>
 
             {/* Mobile hamburger — visible below lg */}
@@ -179,7 +185,7 @@ export function Navigation() {
 
       {/* ── Mobile Menu Overlay ── */}
       <div
-        className={`fixed inset-0 z-[60] bg-black/80 transition-opacity duration-200 lg:hidden ${
+        className={`fixed inset-0 z-60 bg-black/80 transition-opacity duration-200 lg:hidden ${
           mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={closeMobile}
@@ -189,7 +195,7 @@ export function Navigation() {
       {/* ── Mobile Menu Panel ── */}
       <div
         ref={menuRef}
-        className={`fixed inset-y-0 right-0 z-[60] w-72 max-w-[85vw] bg-[#0A1128] border-l border-slate-800 shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
+        className={`fixed inset-y-0 right-0 z-60 w-72 max-w-[85vw] bg-[#0A1128] border-l border-slate-800 shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
           mobileOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -307,7 +313,7 @@ function SettlementLifecycleSection() {
         {/* Horizontal Pipeline */}
         <div className="mt-16 relative">
           {/* Connector line */}
-          <div className="absolute top-6 left-6 right-6 h-px bg-white/[0.08] hidden lg:block" />
+          <div className="absolute top-6 left-6 right-6 h-px bg-white/8 hidden lg:block" />
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
             {LIFECYCLE_STEPS.map((s) => (
@@ -344,7 +350,7 @@ function ExposureSection() {
           {/* Left: Dashboard Mockup */}
           <div className={`${GLASS_CARD} overflow-hidden`}>
             {/* Title Bar */}
-            <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
+            <div className="flex items-center justify-between border-b border-white/6 px-5 py-3">
               <div className="flex items-center gap-2">
                 <Monitor className="h-4 w-4 text-gray-400" />
                 <span className="text-xs font-medium text-gray-400">
@@ -376,7 +382,7 @@ function ExposureSection() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
-                  <tr className="bg-white/[0.01]">
+                  <tr className="bg-white/1">
                     <td className="px-4 py-4 text-slate-400">
                       01. Quote &amp; Lock
                     </td>
@@ -390,7 +396,7 @@ function ExposureSection() {
                     <td className="px-4 py-4 text-slate-300">$4.2M Exposed</td>
                     <td className="px-4 py-4 text-gold">Capital Sequestered</td>
                   </tr>
-                  <tr className="bg-white/[0.01]">
+                  <tr className="bg-white/1">
                     <td className="px-4 py-4 text-slate-400">
                       03. Physical Release
                     </td>
@@ -471,10 +477,10 @@ function GoldwireArchitectureSection() {
   return (
     <section id="pipeline" className="pb-24 lg:pb-32 pt-4 lg:pt-8">
       <div className="mx-auto max-w-7xl px-6 mb-16 lg:mb-20">
-        <div className="h-px w-full bg-gradient-to-r from-slate-800 via-slate-800/50 to-transparent" />
+        <div className="h-px w-full bg-linear-to-r from-slate-800 via-slate-800/50 to-transparent" />
       </div>
       <div className="mx-auto max-w-7xl px-6">
-        <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 lg:p-10 backdrop-blur-sm mb-12 text-center max-w-4xl mx-auto flex flex-col items-center">
+        <div className="bg-white/2 border border-white/10 rounded-2xl p-8 lg:p-10 backdrop-blur-sm mb-12 text-center max-w-4xl mx-auto flex flex-col items-center">
           <div className="flex items-center gap-4 mb-4">
             <div className="h-px w-8 bg-gold/50" />
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
@@ -494,7 +500,7 @@ function GoldwireArchitectureSection() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
+          <div className="bg-white/2 border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
             <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
               <span className="font-mono font-bold text-gold">01</span>
             </div>
@@ -508,7 +514,7 @@ function GoldwireArchitectureSection() {
               Malca-Amit.
             </p>
           </div>
-          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
+          <div className="bg-white/2 border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
             <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
               <span className="font-mono font-bold text-gold">02</span>
             </div>
@@ -522,7 +528,7 @@ function GoldwireArchitectureSection() {
               required.
             </p>
           </div>
-          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
+          <div className="bg-white/2 border border-white/10 rounded-2xl p-8 backdrop-blur-sm hover:border-gold/30 transition-colors">
             <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center mb-6">
               <span className="font-mono font-bold text-gold">03</span>
             </div>
@@ -585,7 +591,7 @@ function ArchitectureSection() {
               </Link>
               <Link
                 href="/technical-overview"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] px-6 py-3 text-sm font-medium text-white transition-all hover:border-gold/40"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/12 px-6 py-3 text-sm font-medium text-white transition-all hover:border-gold/40"
               >
                 <FileText className="h-4 w-4" />
                 Technical Overview
@@ -596,7 +602,7 @@ function ArchitectureSection() {
           {/* Right: Stacked Feature Cards */}
           <div className="relative">
             {/* Vertical connector line */}
-            <div className="absolute top-8 bottom-8 left-8 w-px bg-white/[0.08] hidden lg:block" />
+            <div className="absolute top-8 bottom-8 left-8 w-px bg-white/8 hidden lg:block" />
 
             <div className="space-y-5">
               {/* Maker-Checker Card */}
@@ -778,7 +784,7 @@ function ComplianceSection() {
                 i < COMPLIANCE_DATA.length - 1
                   ? "border-b border-gray-800/70"
                   : ""
-              } ${i % 2 === 0 ? "bg-white/[0.01]" : "bg-transparent"} hover:bg-gold/2 transition-colors duration-150`}
+              } ${i % 2 === 0 ? "bg-white/1" : "bg-transparent"} hover:bg-gold/2 transition-colors duration-150`}
             >
               <div className="px-5 py-4 border-r border-gray-800/50 flex items-start">
                 <span className="font-mono text-sm font-bold text-gold tracking-wide">
@@ -814,7 +820,7 @@ function ComplianceSection() {
             {COMPLIANCE_DATA.map((row, i) => (
               <div
                 key={row.framework}
-                className={`px-5 py-5 ${i % 2 === 0 ? "bg-white/[0.01]" : ""}`}
+                className={`px-5 py-5 ${i % 2 === 0 ? "bg-white/1" : ""}`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-mono text-sm font-bold text-gold tracking-wide">
@@ -911,7 +917,7 @@ function SovereignAssetsSection() {
             </p>
 
             {/* Divider */}
-            <div className="my-10 h-px w-full bg-gradient-to-r from-gold/20 via-gold/10 to-transparent" />
+            <div className="my-10 h-px w-full bg-linear-to-r from-gold/20 via-gold/10 to-transparent" />
 
             {/* Feature bullets */}
             <div className="grid gap-4 sm:grid-cols-2 mb-10">
@@ -947,7 +953,7 @@ function SovereignAssetsSection() {
           </div>
 
           {/* Classification footer */}
-          <div className="border-t border-gold/10 bg-gold/[0.02] px-8 sm:px-14 lg:px-20 py-4">
+          <div className="border-t border-gold/10 bg-gold/2 px-8 sm:px-14 lg:px-20 py-4">
             <p className="font-mono text-[10px] text-gold/40 tracking-wider uppercase">
               This offering is restricted to qualified institutional investors
               and sovereign wealth entities.
@@ -1015,7 +1021,7 @@ function GoldwireCardSection() {
             {/* Right Column: The Floating Card Image */}
             <div className="relative flex justify-center items-center h-full min-h-[400px]">
               {/* Inner glow directly behind the card */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent blur-3xl opacity-50 rounded-full" />
+              <div className="absolute inset-0 bg-linear-to-tr from-gold/20 to-transparent blur-3xl opacity-50 rounded-full" />
 
               {/* The Image with a continuous floating animation */}
               <div
@@ -1069,10 +1075,17 @@ function FinalCTA() {
                 Get Started
                 <ArrowRight className="h-5 w-5" />
               </a>
+              <a
+                href="/perimeter/verify?demo=active"
+                className="inline-flex items-center justify-center gap-2 border-2 border-gold/40 text-gold font-bold px-10 py-4 rounded-md transition-all duration-200 hover:border-gold/70 hover:bg-gold/10"
+              >
+                Initiate Demo
+                <ArrowRight className="h-5 w-5" />
+              </a>
             </div>
           </div>
 
-          <div className="border-t border-slate-800 bg-white/[0.02] px-6 py-5 text-center">
+          <div className="border-t border-slate-800 bg-white/2 px-6 py-5 text-center">
             <p className="font-mono text-[10px] sm:text-xs text-gold tracking-[0.15em] uppercase font-semibold">
               [ VERIFIED ]: All architectural state transitions are bound by
               comprehensive underwritten indemnification.
