@@ -57,8 +57,8 @@ const GLASS_CARD =
    NAVIGATION — Glassmorphism sticky nav with institutional links
    ================================================================ */
 const NAV_LINKS = [
-  { label: "Platform Dossier", href: "/platform-dossier" },
-  { label: "System Architecture", href: "/system-architecture" },
+  { label: "Platform Dossier", href: "/platform-overview" },
+  { label: "System Architecture", href: "/technical-overview" },
 ] as const;
 
 export function Navigation() {
