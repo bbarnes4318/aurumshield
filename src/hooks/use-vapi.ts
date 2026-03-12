@@ -47,6 +47,7 @@ export function useVapi(): UseVapiReturn {
   const vapiRef = useRef<Vapi | null>(null);
   const volumeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+  const pendingLanguageRef = useRef<string>("English");
 
   const [callStatus, setCallStatus] = useState<VapiCallStatus>("inactive");
   const [volumeLevel, setVolumeLevel] = useState(0);
@@ -68,6 +69,24 @@ export function useVapi(): UseVapiReturn {
 
     const onCallStart = () => {
       setCallStatus("active");
+
+      // Now that the call is ACTUALLY joined, inject the language mandate
+      const lang = pendingLanguageRef.current;
+      if (lang && lang !== "English") {
+        client.send({
+          type: "add-message",
+          message: {
+            role: "system",
+            content:
+              "[CRITICAL SYSTEM MANDATE: The user has selected " +
+              lang +
+              " as their preferred language. You MUST conduct this entire demonstration, " +
+              "read all teleprompter cues, and answer all questions EXCLUSIVELY in " +
+              lang +
+              ". Do not speak English unless explicitly requested.]",
+          },
+        });
+      }
     };
 
     const onCallEnd = () => {
@@ -155,26 +174,14 @@ export function useVapi(): UseVapiReturn {
         return;
       }
 
-      // Persist the selected language for the duration of this call
+      // Store language in ref so the onCallStart handler can read it
+      pendingLanguageRef.current = language;
       setActiveLanguage(language);
       setCallStatus("loading");
       setTranscript([]);
       vapiRef.current.start(assistantId);
-
-      // Injection Mandate: Force the assistant into the selected language
-      // immediately after the call starts
-      setTimeout(() => {
-        injectContext(
-          "[CRITICAL SYSTEM MANDATE: The user has selected " +
-            language +
-            " as their preferred language. You MUST conduct this entire demonstration, " +
-            "read all teleprompter cues, and answer all questions EXCLUSIVELY in " +
-            language +
-            ". Do not speak English unless explicitly requested.]"
-        );
-      }, 500);
     },
-    [injectContext]
+    []
   );
 
   const stopCall = useCallback(() => {
