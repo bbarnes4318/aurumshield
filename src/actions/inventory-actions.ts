@@ -5,7 +5,7 @@
    ================================================================
    Processes Producer asset submissions:
      1. Zod-validated form input parsing
-     2. Forensic OCR of Fire Assay PDF (Textract / mock adapter)
+     2. Forensic OCR of Fire Assay PDF (AWS Textract)
      3. LBMA Good Delivery fineness assertion (>= 995.0)
      4. Cryptographic title signing via AWS KMS
      5. Atomic inventory_allocation ledger insertion
@@ -18,6 +18,7 @@ import { createHash } from "crypto";
 import { getPoolClient } from "@/lib/db";
 import { signCertificate } from "@/lib/certificates/kms-signer";
 import { canonicalDigest } from "@/lib/certificates/canonicalize";
+import { analyzeAssayReport } from "@/lib/services/textract-service";
 
 /* ================================================================
    TYPES
@@ -29,8 +30,6 @@ export interface IngestAssetState {
   titleHash?: string;
   error?: string;
 }
-
-
 
 /* ================================================================
    ZOD SCHEMA — Form Validation
@@ -67,64 +66,25 @@ const IngestAssetSchema = z.object({
 });
 
 /* ================================================================
-   LBMA FINENESS THRESHOLDS
+   LBMA FINENESS THRESHOLDS & PURITY MAPPING
    ================================================================ */
 
 const LBMA_GOOD_DELIVERY_MINIMUM_FINENESS = 995.0;
 
-// TODO: When switching to real Textract, use this to map purity codes:
-// function purityCodeToFineness(code: string): number {
-//   switch (code) {
-//     case "9999": return 999.9;
-//     case "999":  return 999.0;
-//     case "995":  return 995.0;
-//     default: { const n = parseFloat(code); return !isNaN(n) ? n : 0; }
-//   }
-// }
-
-/* ================================================================
-   TEXTRACT MOCK ADAPTER
-   ================================================================
-   When the real Textract service is not available (no AWS credentials
-   in local dev), this adapter simulates a 2-second PDF OCR pipeline
-   and returns a deterministic fineness of 999.9.
-
-   TODO: Switch to real analyzeAssayReport() when Textract IAM
-   permissions are verified in production.
-   ================================================================ */
-
-interface MockTextractResult {
-  fineness: number;
-  rawPurityText: string;
-  extractedWeightOz: number | null;
-  processingTimeMs: number;
-}
-
-async function forensicTextractAnalysis(
-  _fileBuffer: Buffer,
-  fileName: string,
-): Promise<MockTextractResult> {
-  const startTime = Date.now();
-
-  // Simulate Textract processing latency
-  await new Promise((resolve) => setTimeout(resolve, 2_000));
-
-  console.log(
-    `[INGESTION-ENGINE] Textract OCR complete for: ${fileName} ` +
-      `(${Date.now() - startTime}ms)`,
-  );
-
-  // TODO: Replace with real Textract integration:
-  //   import { analyzeAssayReport } from "@/lib/services/textract-service";
-  //   const result = await analyzeAssayReport(fileBuffer);
-  //   const fineness = purityCodeToFineness(result.extractedPurity ?? "0");
-
-  return {
-    fineness: 999.9,
-    rawPurityText: "999.9‰ (Mock — Four Nines Fine Gold)",
-    extractedWeightOz: null, // Would come from the real PDF parse
-    processingTimeMs: Date.now() - startTime,
-  };
+/**
+ * Map Textract-extracted AurumShield Purity code to numeric fineness.
+ * Purity codes: "995" → 995.0, "999" → 999.0, "9999" → 999.9
+ */
+function purityCodeToFineness(code: string): number {
+  switch (code) {
+    case "9999": return 999.9;
+    case "999":  return 999.0;
+    case "995":  return 995.0;
+    default: {
+      const n = parseFloat(code);
+      return !isNaN(n) ? n : 0;
+    }
+  }
 }
 
 /* ================================================================
@@ -191,7 +151,7 @@ export async function ingestAsset(
     };
   }
 
-  /* ── 2. Forensic Textract Analysis ── */
+  /* ── 2. Forensic Textract Analysis (AWS) ── */
 
   let fileBuffer: Buffer;
   try {
@@ -204,15 +164,32 @@ export async function ingestAsset(
     };
   }
 
-  const textractResult = await forensicTextractAnalysis(
-    fileBuffer,
-    assayFile.name,
+  const textractResult = await analyzeAssayReport(fileBuffer);
+
+  if (!textractResult.success || !textractResult.extractedPurity) {
+    console.error(
+      `[INGESTION-ENGINE] Textract extraction FAILED for: ${assayFile.name}`,
+      textractResult.error ?? "No purity detected in document.",
+    );
+    return {
+      success: false,
+      error: textractResult.error
+        ?? "Textract could not extract purity from the assay report. Ensure the document is a valid Fire Assay PDF.",
+    };
+  }
+
+  const fineness = purityCodeToFineness(textractResult.extractedPurity);
+
+  console.log(
+    `[INGESTION-ENGINE] Textract OCR complete for: ${assayFile.name} ` +
+      `purity_code=${textractResult.extractedPurity} fineness=${fineness} ` +
+      `raw="${textractResult.rawPurityText}" weight=${textractResult.extractedWeightOz ?? "N/A"}`,
   );
 
   /* ── LBMA Good Delivery Assertion ── */
-  if (textractResult.fineness < LBMA_GOOD_DELIVERY_MINIMUM_FINENESS) {
+  if (fineness < LBMA_GOOD_DELIVERY_MINIMUM_FINENESS) {
     console.error(
-      `[INGESTION-ENGINE] LBMA REJECTION: fineness=${textractResult.fineness} ` +
+      `[INGESTION-ENGINE] LBMA REJECTION: fineness=${fineness} ` +
         `threshold=${LBMA_GOOD_DELIVERY_MINIMUM_FINENESS} serial=${serialNumber}`,
     );
     return {
@@ -223,7 +200,7 @@ export async function ingestAsset(
   }
 
   console.log(
-    `[INGESTION-ENGINE] LBMA assertion PASSED: fineness=${textractResult.fineness} ` +
+    `[INGESTION-ENGINE] LBMA assertion PASSED: fineness=${fineness} ` +
       `(>= ${LBMA_GOOD_DELIVERY_MINIMUM_FINENESS}) serial=${serialNumber}`,
   );
 
@@ -234,7 +211,7 @@ export async function ingestAsset(
   const canonicalPayload = buildCanonicalPayload({
     serialNumber,
     grossWeight: parseFloat(grossWeight),
-    fineness: textractResult.fineness,
+    fineness: fineness,
     jurisdiction,
     timestamp,
   });
@@ -280,7 +257,7 @@ export async function ingestAsset(
       [
         serialNumber,
         parseFloat(grossWeight),
-        textractResult.fineness,
+        fineness,
         parseInt(castingYear, 10),
         jurisdiction,
         titleHash,
@@ -297,7 +274,7 @@ export async function ingestAsset(
 
     console.info(
       `[INGESTION-ENGINE] ✓ ASSET INGESTED: allocation_id=${allocationId} ` +
-        `serial=${serialNumber} fineness=${textractResult.fineness} ` +
+        `serial=${serialNumber} fineness=${fineness} ` +
         `title_hash=${titleHash.slice(0, 16)}...`,
     );
 
