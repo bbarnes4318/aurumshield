@@ -210,7 +210,7 @@ export async function generateFiatDepositInstructions(
    Each settlement gets a dedicated sub-organization and HD wallet,
    providing cryptographic isolation at the MPC shard level.
 
-   Falls back to a deterministic mock address when TURNKEY_API_KEY
+   Falls back to a deterministic mock address when TURNKEY_API_PUBLIC_KEY
    is not configured, allowing demo mode to function without live keys.
    ================================================================ */
 
@@ -238,7 +238,7 @@ export interface DigitalDepositInstructions {
  * Generate digital asset deposit instructions for a stablecoin settlement.
  *
  * Instantiates the TurnkeyService and calls createDepositWallet() to
- * provision an MPC-isolated Ethereum address. If TURNKEY_API_KEY is not
+ * provision an MPC-isolated Ethereum address. If TURNKEY_API_PUBLIC_KEY is not
  * configured, returns a deterministic mock address so the UI always renders.
  *
  * @param amount        — Settlement amount in USD (used for logging / metadata)
