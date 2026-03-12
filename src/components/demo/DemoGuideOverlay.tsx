@@ -24,30 +24,7 @@ import { Mic, MicOff, Radio, X, ChevronDown, ChevronUp, Globe } from "lucide-rea
 import { useVapi } from "@/hooks/use-vapi";
 
 /* ---------- Cartesia Supported Languages ---------- */
-const SUPPORTED_LANGUAGES = [
-  "English (American)",
-  "English (British)",
-  "Spanish",
-  "Portuguese (Brazilian)",
-  "French",
-  "German",
-  "Italian",
-  "Dutch",
-  "Polish",
-  "Swedish",
-  "Japanese",
-  "Korean",
-  "Chinese",
-  "Hindi",
-  "Turkish",
-  "Georgian",
-  "Croatian",
-  "Slovak",
-  "Kannada",
-  "Marathi",
-  "Punjabi",
-  "Malayalam",
-];
+const SUPPORTED_LANGUAGES = ["English", "Spanish", "French", "German", "Italian", "Portuguese", "Dutch", "Polish", "Russian", "Chinese", "Japanese", "Korean", "Hindi", "Turkish", "Swedish"];
 
 export function DemoGuideOverlay() {
   const {
@@ -63,7 +40,7 @@ export function DemoGuideOverlay() {
   const pathname = usePathname();
 
   const [isMinimized, setIsMinimized] = useState(false);
-  const [selectedLang, setSelectedLang] = useState("English (American)");
+  const [selectedLang, setSelectedLang] = useState("English");
   const transcriptEndRef = useRef<HTMLDivElement>(null);
 
   /* ── Routing Engine — Dynamic Context Injection (Language-Enforced) ── */

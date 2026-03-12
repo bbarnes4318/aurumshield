@@ -51,7 +51,7 @@ export function useVapi(): UseVapiReturn {
   const [callStatus, setCallStatus] = useState<VapiCallStatus>("inactive");
   const [volumeLevel, setVolumeLevel] = useState(0);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-  const [activeLanguage, setActiveLanguage] = useState("English (American)");
+  const [activeLanguage, setActiveLanguage] = useState("English");
 
   /* ---- Instantiate Vapi (once) ---- */
   useEffect(() => {
@@ -144,7 +144,7 @@ export function useVapi(): UseVapiReturn {
 
   /* ---- Actions ---- */
   const startCall = useCallback(
-    (language: string = "English (American)") => {
+    (language: string = "English") => {
       const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
       if (!vapiRef.current) {
         console.error("[useVapi] Vapi client not initialized.");
