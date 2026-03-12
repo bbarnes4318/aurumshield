@@ -27,7 +27,7 @@ export default function RegisterPage() {
       {/* Clerk SignUp Component */}
       <SignUp
         routing="hash"
-        afterSignUpUrl="/perimeter/verify"
+        fallbackRedirectUrl="/perimeter/verify"
         appearance={{
           elements: {
             rootBox: "w-full",

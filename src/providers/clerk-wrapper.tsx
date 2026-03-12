@@ -41,8 +41,8 @@ export function ClerkWrapper({ children }: { children: React.ReactNode }) {
       publishableKey={CLERK_PUBLISHABLE_KEY!}
       signInUrl="/login"
       signUpUrl="/signup"
-      afterSignInUrl="/platform"
-      afterSignUpUrl="/platform"
+      signInFallbackRedirectUrl="/platform"
+      signUpFallbackRedirectUrl="/platform"
       signInForceRedirectUrl="/platform"
       signUpForceRedirectUrl="/platform"
     >

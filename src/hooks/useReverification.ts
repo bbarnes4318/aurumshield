@@ -125,7 +125,7 @@ export function useReverification() {
               // Attempt to open Clerk's sign-in modal for re-auth
               if (clerkInstance?.openSignIn) {
                 clerkInstance.openSignIn({
-                  afterSignInUrl: window.location.href,
+                  fallbackRedirectUrl: window.location.href,
                 });
               }
 
