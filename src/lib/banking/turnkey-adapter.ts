@@ -1,14 +1,17 @@
 /* ================================================================
    TURNKEY MPC ADAPTER — Enterprise Wallet Infrastructure
    ================================================================
-   Typed service adapter for the Turnkey API. Provides programmatic
-   access to:
+   Typed service adapter for the Turnkey API using the official
+   @turnkey/sdk-server SDK with X-Stamp cryptographic request signing.
+
+   Provides programmatic access to:
      1. Sub-organization creation (per-settlement isolation)
      2. HD wallet generation within the sub-org
      3. Ethereum address derivation for ERC-20 deposit collection
 
    Environment:
-     TURNKEY_API_KEY           — Turnkey API bearer token
+     TURNKEY_API_PUBLIC_KEY    — Turnkey API public key (X-Stamp signing)
+     TURNKEY_API_PRIVATE_KEY   — Turnkey API private key (X-Stamp signing)
      TURNKEY_ORGANIZATION_ID   — Root organization ID
      TURNKEY_API_URL           — Base URL (default: https://api.turnkey.com)
 
@@ -16,6 +19,11 @@
    ================================================================ */
 
 import { createHash } from "crypto";
+import {
+  Turnkey,
+  type TurnkeyApiClient,
+  DEFAULT_ETHEREUM_ACCOUNTS,
+} from "@turnkey/sdk-server";
 
 /* ---------- Interfaces ---------- */
 
@@ -33,13 +41,6 @@ export interface TurnkeyDepositWallet {
   createdAt: string;
   /** Whether this wallet was provisioned via live Turnkey API */
   isLive: boolean;
-}
-
-/** Turnkey API error response shape. */
-interface TurnkeyErrorBody {
-  code?: string;
-  message?: string;
-  details?: unknown[];
 }
 
 /* ---------- Error Class ---------- */
@@ -72,7 +73,8 @@ export class TurnkeyApiError extends Error {
 
 /* ---------- Environment Key Names ---------- */
 
-const ENV_API_KEY = "TURNKEY_API_KEY";
+const ENV_PUBLIC_KEY = "TURNKEY_API_PUBLIC_KEY";
+const ENV_PRIVATE_KEY = "TURNKEY_API_PRIVATE_KEY";
 const ENV_ORG_ID = "TURNKEY_ORGANIZATION_ID";
 const ENV_API_URL = "TURNKEY_API_URL";
 const DEFAULT_API_URL = "https://api.turnkey.com";
@@ -84,12 +86,17 @@ const DEFAULT_API_URL = "https://api.turnkey.com";
 export class TurnkeyService {
   readonly name = "Turnkey (Enterprise MPC Wallet Infrastructure)";
 
-  private readonly apiKey: string;
+  private readonly publicKey: string;
+  private readonly privateKey: string;
   private readonly organizationId: string;
   private readonly baseUrl: string;
 
+  /** Lazily initialized SDK client — created on first use. */
+  private _apiClient: TurnkeyApiClient | null = null;
+
   constructor() {
-    this.apiKey = process.env[ENV_API_KEY] ?? "";
+    this.publicKey = process.env[ENV_PUBLIC_KEY] ?? "";
+    this.privateKey = process.env[ENV_PRIVATE_KEY] ?? "";
     this.organizationId = process.env[ENV_ORG_ID] ?? "";
     this.baseUrl = (process.env[ENV_API_URL] ?? DEFAULT_API_URL).replace(
       /\/$/,
@@ -101,80 +108,35 @@ export class TurnkeyService {
 
   /**
    * Check if Turnkey API credentials are present in the environment.
-   * Must be true before any API calls are attempted.
+   * Requires both the public/private key pair AND the organization ID.
    */
   isConfigured(): boolean {
-    return this.apiKey.length > 0 && this.organizationId.length > 0;
+    return (
+      this.publicKey.length > 0 &&
+      this.privateKey.length > 0 &&
+      this.organizationId.length > 0
+    );
   }
 
-  /* ---------- Internal HTTP Helper ---------- */
+  /* ---------- SDK Client Initialization ---------- */
 
   /**
-   * Execute an authenticated request against the Turnkey API.
-   * All Turnkey endpoints use Bearer token auth and JSON request/response.
-   *
-   * @throws TurnkeyApiError on non-2xx responses
+   * Initialize and return the Turnkey API client with X-Stamp signing.
+   * The SDK handles cryptographic request stamping internally —
+   * no Bearer tokens, no manual header construction.
    */
-  private async request<T>(
-    method: "GET" | "POST",
-    path: string,
-    body?: Record<string, unknown>,
-  ): Promise<T> {
-    if (!this.isConfigured()) {
-      throw new TurnkeyApiError({
-        message: `${ENV_API_KEY} or ${ENV_ORG_ID} is not configured. Cannot call Turnkey API.`,
-        httpStatus: 0,
-        turnkeyErrorCode: "CONFIGURATION_MISSING",
-        responseBody: "",
-      });
-    }
+  private getApiClient(): TurnkeyApiClient {
+    if (this._apiClient) return this._apiClient;
 
-    const url = `${this.baseUrl}${path}`;
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.apiKey}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "X-Organization-Id": this.organizationId,
-    };
-
-    console.log(
-      `[TURNKEY] ${method} ${path}${body ? ` | payload_keys=${Object.keys(body).join(",")}` : ""}`,
-    );
-
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
+    const turnkeyClient = new Turnkey({
+      apiBaseUrl: this.baseUrl,
+      apiPublicKey: this.publicKey,
+      apiPrivateKey: this.privateKey,
+      defaultOrganizationId: this.organizationId,
     });
 
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      let errorCode = "UNKNOWN";
-      let errorMessage = responseText;
-      try {
-        const parsed = JSON.parse(responseText) as TurnkeyErrorBody;
-        errorCode = parsed.code ?? "UNKNOWN";
-        errorMessage = parsed.message ?? responseText;
-      } catch {
-        // Response body is not JSON — use raw text
-      }
-
-      console.error(
-        `[TURNKEY] API error: ${method} ${path} → ${response.status} ${errorCode}: ${errorMessage}`,
-      );
-
-      throw new TurnkeyApiError({
-        message: errorMessage,
-        httpStatus: response.status,
-        turnkeyErrorCode: errorCode,
-        responseBody: responseText,
-      });
-    }
-
-    const data = JSON.parse(responseText) as T;
-    console.log(`[TURNKEY] ${method} ${path} → ${response.status} OK`);
-    return data;
+    this._apiClient = turnkeyClient.apiClient();
+    return this._apiClient;
   }
 
   /* ================================================================
@@ -182,24 +144,25 @@ export class TurnkeyService {
      ================================================================
      Flow:
        1. Create a sub-organization scoped to the settlement
-       2. Create an HD wallet within the sub-org
-       3. Derive an Ethereum address from the wallet
+       2. An HD wallet with an Ethereum account is created inline
+       3. Extract the Ethereum address from the wallet accounts
        4. Return the address for ERC-20 (USDC/USDT) deposit collection
 
      The sub-organization provides cryptographic isolation: each
      settlement's private key material is segregated at the MPC level.
 
-     When TURNKEY_API_KEY is absent, returns a deterministic mock
-     address derived from SHA-256(settlementId) so the UI always renders.
+     When TURNKEY_API_PUBLIC_KEY / TURNKEY_API_PRIVATE_KEY are absent,
+     returns a deterministic mock address derived from SHA-256(settlementId)
+     so the UI always renders.
      ================================================================ */
 
   async createDepositWallet(
     settlementId: string,
   ): Promise<TurnkeyDepositWallet> {
-    /* ── Mock mode: TURNKEY_API_KEY not configured ── */
+    /* ── Mock mode: API keys not configured ── */
     if (!this.isConfigured()) {
       console.warn(
-        `[TURNKEY] API key not configured — returning mock deposit wallet for settlement=${settlementId}`,
+        `[TURNKEY] API keys not configured — returning mock deposit wallet for settlement=${settlementId}`,
       );
 
       // Derive a deterministic mock address from the settlement ID
@@ -218,76 +181,114 @@ export class TurnkeyService {
       };
     }
 
-    /* ── Live mode: Provision via Turnkey API ── */
+    /* ── Live mode: Provision via Turnkey SDK ── */
+    const api = this.getApiClient();
+
     console.log(
       `[TURNKEY] Provisioning MPC deposit wallet for settlement: ${settlementId}`,
     );
 
-    /* Step 1: Create a sub-organization scoped to this settlement */
-    const subOrg = await this.request<{
-      subOrganizationId: string;
-    }>("POST", "/public/v1/submit/create_sub_organization", {
-      type: "ACTIVITY_TYPE_CREATE_SUB_ORGANIZATION_V4",
-      organizationId: this.organizationId,
-      timestampMs: Date.now().toString(),
-      parameters: {
+    try {
+      /* Step 1: Create a sub-organization with an inline wallet */
+      const subOrgResponse = await api.createSubOrganization({
         subOrganizationName: `AurumShield Settlement ${settlementId}`,
         rootQuorumThreshold: 1,
-        rootUsers: [],
+        rootUsers: [
+          {
+            userName: `settlement-${settlementId}`,
+            apiKeys: [],
+            authenticators: [],
+            oauthProviders: [],
+          },
+        ],
         wallet: {
           walletName: `settlement-${settlementId}`,
-          accounts: [
-            {
-              curve: "CURVE_SECP256K1",
-              pathFormat: "PATH_FORMAT_BIP32",
-              path: "m/44'/60'/0'/0/0",
-              addressFormat: "ADDRESS_FORMAT_ETHEREUM",
-            },
-          ],
+          accounts: DEFAULT_ETHEREUM_ACCOUNTS,
         },
-      },
-    });
+      });
 
-    console.log(
-      `[TURNKEY] Sub-organization created: ${subOrg.subOrganizationId}`,
-    );
+      const subOrganizationId = subOrgResponse.subOrganizationId;
 
-    /* Step 2: Extract the wallet and address from the creation response */
-    // Turnkey returns wallet details inline with sub-org creation when
-    // the `wallet` parameter is provided in the create call.
-    const walletDetails = await this.request<{
-      wallet: {
-        walletId: string;
-        addresses: string[];
+      console.log(
+        `[TURNKEY] Sub-organization created: ${subOrganizationId}`,
+      );
+
+      /* Step 2: Extract wallet ID and Ethereum address */
+      // The createSubOrganization response includes wallet details
+      // when a wallet parameter is provided
+      const walletId = subOrgResponse.wallet?.walletId;
+
+      if (!walletId) {
+        throw new TurnkeyApiError({
+          message:
+            "createSubOrganization did not return a wallet ID. " +
+            "The wallet parameter may not have been processed correctly.",
+          httpStatus: 0,
+          turnkeyErrorCode: "MISSING_WALLET_ID",
+          responseBody: JSON.stringify(subOrgResponse),
+        });
+      }
+
+      // Extract the Ethereum address from wallet accounts
+      const walletAddresses = subOrgResponse.wallet?.addresses ?? [];
+      let ethereumAddress = walletAddresses[0] ?? "";
+
+      // If addresses aren't in the creation response, query them explicitly
+      if (!ethereumAddress) {
+        console.log(
+          `[TURNKEY] Wallet addresses not in creation response — querying wallet accounts...`,
+        );
+
+        const walletAccountsResponse = await api.getWalletAccounts({
+          organizationId: subOrganizationId,
+          walletId,
+        });
+
+        const ethAccount = walletAccountsResponse.accounts?.find(
+          (a) => a.address?.startsWith("0x"),
+        );
+
+        ethereumAddress = ethAccount?.address ?? "";
+      }
+
+      if (!ethereumAddress || !ethereumAddress.startsWith("0x")) {
+        throw new TurnkeyApiError({
+          message: `Turnkey returned invalid Ethereum address: ${ethereumAddress}`,
+          httpStatus: 0,
+          turnkeyErrorCode: "INVALID_ADDRESS",
+          responseBody: JSON.stringify(subOrgResponse),
+        });
+      }
+
+      console.log(
+        `[TURNKEY] MPC wallet provisioned: walletId=${walletId} address=${ethereumAddress}`,
+      );
+
+      return {
+        subOrganizationId,
+        walletId,
+        ethereumAddress,
+        settlementId,
+        createdAt: new Date().toISOString(),
+        isLive: true,
       };
-    }>("POST", "/public/v1/query/list_wallets", {
-      organizationId: subOrg.subOrganizationId,
-    });
+    } catch (err) {
+      // Re-throw our structured errors
+      if (err instanceof TurnkeyApiError) throw err;
 
-    const walletId = walletDetails.wallet.walletId;
-    const ethereumAddress = walletDetails.wallet.addresses[0];
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[TURNKEY] Wallet provisioning FAILED for settlement=${settlementId}:`,
+        message,
+      );
 
-    if (!ethereumAddress || !ethereumAddress.startsWith("0x")) {
       throw new TurnkeyApiError({
-        message: `Turnkey returned invalid Ethereum address: ${ethereumAddress}`,
+        message,
         httpStatus: 0,
-        turnkeyErrorCode: "INVALID_ADDRESS",
-        responseBody: JSON.stringify(walletDetails),
+        turnkeyErrorCode: "SDK_ERROR",
+        responseBody: err instanceof Error ? err.stack ?? "" : String(err),
       });
     }
-
-    console.log(
-      `[TURNKEY] MPC wallet provisioned: walletId=${walletId} address=${ethereumAddress}`,
-    );
-
-    return {
-      subOrganizationId: subOrg.subOrganizationId,
-      walletId,
-      ethereumAddress,
-      settlementId,
-      createdAt: new Date().toISOString(),
-      isLive: true,
-    };
   }
 }
 
