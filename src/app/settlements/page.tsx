@@ -8,8 +8,12 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { LoadingState } from "@/components/ui/state-views";
 import { RequireAuth } from "@/components/auth/require-auth";
-import { useSettlements } from "@/hooks/use-mock-queries";
-import type { SettlementCase, SettlementStatus, SettlementRail } from "@/lib/mock-data";
+import { useLiveSettlements } from "@/hooks/use-live-settlements";
+import type {
+  LiveSettlementRow,
+  SettlementStatus,
+  SettlementRail,
+} from "@/actions/settlement-queries";
 
 /* ---------- Status Chip ---------- */
 const STATUS_CONFIG: Record<SettlementStatus, { label: string; color: string }> = {
@@ -26,6 +30,12 @@ const STATUS_CONFIG: Record<SettlementStatus, { label: string; color: string }> 
   FAILED: { label: "Failed", color: "bg-danger/10 text-danger border-danger/20" },
   CANCELLED: { label: "Cancelled", color: "bg-surface-3 text-text-faint border-border" },
   AMBIGUOUS_STATE: { label: "Ambiguous State", color: "bg-danger/10 text-danger border-danger/20 animate-pulse" },
+  FUNDS_HELD: { label: "Funds Held", color: "bg-success/10 text-success border-success/20" },
+  ASSET_ALLOCATED: { label: "Asset Allocated", color: "bg-info/10 text-info border-info/20" },
+  DVP_READY: { label: "DvP Ready", color: "bg-gold/10 text-gold border-gold/20" },
+  DVP_EXECUTED: { label: "DvP Executed", color: "bg-success/10 text-success border-success/20" },
+  FUNDS_CLEARED_READY_FOR_RELEASE: { label: "Funds Cleared", color: "bg-success/10 text-success border-success/20" },
+  TITLE_TRANSFERRED_AND_COMPLETED: { label: "Title Transferred", color: "bg-success/10 text-success border-success/20" },
 };
 
 const RAIL_LABEL: Record<SettlementRail, string> = {
@@ -44,7 +54,7 @@ export default function SettlementsPage() {
 function SettlementsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: settlements, isLoading } = useSettlements();
+  const { data: settlements, isLoading } = useLiveSettlements();
 
   const statusFilter = searchParams.get("status") as SettlementStatus | null;
   const railFilter = searchParams.get("rail") as SettlementRail | null;
@@ -191,7 +201,7 @@ function Th({ children, align = "left" }: { children: React.ReactNode; align?: "
 }
 
 /* ---------- Table row ---------- */
-function SettlementRow({ settlement: s }: { settlement: SettlementCase }) {
+function SettlementRow({ settlement: s }: { settlement: LiveSettlementRow }) {
   const cfg = STATUS_CONFIG[s.status] ?? STATUS_CONFIG.DRAFT;
   const isDemoBuyer = s.buyerUserId === "demo-buyer";
 
