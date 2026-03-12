@@ -1,41 +1,38 @@
 /* ================================================================
-   VERIFF IDENTITY WEBHOOK RECEIVER
+   VERIFF KYB DECISION WEBHOOK — Compliance State Machine
    POST /api/webhooks/veriff
-
-   Compliance Case integration:
-     - Creates or updates a ComplianceCase on each event
-     - Appends an idempotent ComplianceEvent to the audit trail
-     - Publishes the event to SSE subscribers for real-time UI updates
-
-   Receives asynchronous session decision callbacks from Veriff after
-   a user completes (or fails) the hosted KYC/KYB verification.
-
-   Supported events:
-     - session.completed  → kyc_status = APPROVED
-     - session.failed     → kyc_status = REJECTED
+   ================================================================
+   Receives Veriff decision webhooks, verifies HMAC-SHA256 origin,
+   and deterministically mutates the Offtaker's KYB state to gate
+   or unlock marketplace access.
 
    Security:
-     - Veriff signs webhooks with HMAC-SHA256. The header is:
-         X-HMAC-Signature: <hex-digest>
-       where the signed payload is the raw request body.
-     - VERIFF_WEBHOOK_SECRET must be set in production.
-     - Graceful skip in development when not configured.
+     - HMAC-SHA256 signature verification via X-HMAC-SIGNATURE
+     - Timing-safe comparison (constant-time) prevents timing attacks
+     - Fail-closed: missing secret → 500, bad sig → 401
+     - Zero data leaked on rejection
 
-   Database:
-     - Updates `users.kyc_status` via the shared `getDbClient()`.
-     - Idempotent: skips update if kyc_status is already APPROVED.
+   Idempotency:
+     - veriff_webhook_log table keyed on verification_id
+     - Duplicate verification IDs are acknowledged (200) but skipped
 
-   Zod:
-     - Strictly typed payload schema prevents malformed data from
-       reaching the database layer.
+   State Machine:
+     - approved               → KYB_APPROVED, marketplace_access = true
+     - declined               → KYB_DECLINED, marketplace_access = false
+     - resubmission_requested → KYB_RESUBMISSION_REQUIRED
 
-   MUST NOT be imported in client components — server-side only.
+   Response Protocol:
+     - 200 on commit (fast — Veriff won't retry)
+     - 401 on signature failure
+     - 500 on DB failure (Veriff retries)
+
+   Uses pooled pg via getPoolClient(). Server-side only.
    ================================================================ */
 
 import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { createHmac, timingSafeEqual } from "crypto";
-import { getDbClient } from "@/lib/db";
+import { getPoolClient } from "@/lib/db";
 import {
   getComplianceCaseByUserId,
   createComplianceCase,
@@ -44,17 +41,11 @@ import {
 } from "@/lib/compliance/models";
 import { appendComplianceEvent, publishCaseEvent } from "@/lib/compliance/events";
 
-/* ---------- HMAC Signature Verification ---------- */
+/* ================================================================
+   HMAC-SHA256 SIGNATURE VERIFICATION
+   ================================================================ */
 
-/**
- * Verify a Veriff webhook signature.
- *
- * Veriff sends the header:
- *   X-HMAC-Signature: <hex-hmac>
- *
- * The signed content is the raw request body.
- */
-function verifyVeriffSignature(
+function verifyHmacSignature(
   rawBody: string,
   signatureHeader: string,
   secret: string,
@@ -62,107 +53,158 @@ function verifyVeriffSignature(
   if (!rawBody || !signatureHeader || !secret) return false;
 
   try {
-    const expected = createHmac("sha256", secret)
+    const computed = createHmac("sha256", secret)
       .update(rawBody)
       .digest("hex");
 
     const sigBuffer = Buffer.from(signatureHeader, "utf-8");
-    const expectedBuffer = Buffer.from(expected, "utf-8");
+    const computedBuffer = Buffer.from(computed, "utf-8");
 
-    if (sigBuffer.length !== expectedBuffer.length) return false;
-    return timingSafeEqual(sigBuffer, expectedBuffer);
+    if (sigBuffer.length !== computedBuffer.length) return false;
+    return timingSafeEqual(sigBuffer, computedBuffer);
   } catch {
     return false;
   }
 }
 
-/* ---------- Zod Schema: Veriff Webhook Payload ---------- */
+/* ================================================================
+   ZOD SCHEMA — Veriff Decision Payload
+   ================================================================ */
 
-/**
- * Veriff webhook decision payloads follow a flat JSON structure:
- *
- * {
- *   "status": "success" | "fail" | "resubmission_requested" | "review" | "expired" | "abandoned",
- *   "verification": {
- *     "id": "<session-uuid>",
- *     "code": 9001,
- *     "person": { ... },
- *     "reason": "...",
- *     "reasonCode": 101,
- *     "status": "approved" | "resubmission_requested" | "declined" | "review" | "expired" | "abandoned",
- *     "vendorData": "<our-reference-id>",
- *   }
- * }
- *
- * We use vendorData as the referenceId (AurumShield userId).
- */
 const VeriffVerificationSchema = z.object({
-  id: z.string().min(1, "session ID is required"),
-  status: z.enum(["approved", "resubmission_requested", "declined", "review", "expired", "abandoned"]),
-  vendorData: z.string().min(1, "vendorData (user ID) is required"),
+  id: z.string().min(1, "verification ID is required"),
+  status: z.enum([
+    "approved",
+    "resubmission_requested",
+    "declined",
+    "review",
+    "expired",
+    "abandoned",
+  ]),
+  vendorData: z.string().min(1, "vendorData (userId) is required"),
   reason: z.string().optional(),
   reasonCode: z.number().optional(),
 });
 
 const VeriffWebhookSchema = z.object({
-  status: z.enum(["success", "fail", "resubmission_requested", "review", "expired", "abandoned"]),
+  status: z.enum([
+    "success",
+    "fail",
+    "resubmission_requested",
+    "review",
+    "expired",
+    "abandoned",
+  ]),
   verification: VeriffVerificationSchema,
 });
 
 type VeriffWebhookPayload = z.infer<typeof VeriffWebhookSchema>;
 
-/* ---------- Event → KYC Status Mapping ---------- */
+/* ================================================================
+   DETERMINISTIC STATE MAP
+   ================================================================ */
 
-const STATUS_TO_KYC: Record<string, string> = {
-  success: "APPROVED",
-  fail: "REJECTED",
-  resubmission_requested: "PENDING",
-  review: "PENDING",
-  expired: "REJECTED",
-  abandoned: "REJECTED",
+interface KybStateTransition {
+  kybStatus: string;
+  marketplaceAccess: boolean;
+  kycStatus: string;          // users.kyc_status enum value
+  complianceTier: "BROWSE" | "EXECUTE";
+  complianceStatus: "APPROVED" | "REJECTED" | "PENDING_USER";
+}
+
+const STATE_MAP: Record<string, KybStateTransition> = {
+  approved: {
+    kybStatus: "KYB_APPROVED",
+    marketplaceAccess: true,
+    kycStatus: "APPROVED",
+    complianceTier: "EXECUTE",
+    complianceStatus: "APPROVED",
+  },
+  declined: {
+    kybStatus: "KYB_DECLINED",
+    marketplaceAccess: false,
+    kycStatus: "REJECTED",
+    complianceTier: "BROWSE",
+    complianceStatus: "REJECTED",
+  },
+  resubmission_requested: {
+    kybStatus: "KYB_RESUBMISSION_REQUIRED",
+    marketplaceAccess: false,
+    kycStatus: "PENDING",
+    complianceTier: "BROWSE",
+    complianceStatus: "PENDING_USER",
+  },
+  review: {
+    kybStatus: "KYB_UNDER_REVIEW",
+    marketplaceAccess: false,
+    kycStatus: "PENDING",
+    complianceTier: "BROWSE",
+    complianceStatus: "PENDING_USER",
+  },
+  expired: {
+    kybStatus: "KYB_DECLINED",
+    marketplaceAccess: false,
+    kycStatus: "REJECTED",
+    complianceTier: "BROWSE",
+    complianceStatus: "REJECTED",
+  },
+  abandoned: {
+    kybStatus: "KYB_DECLINED",
+    marketplaceAccess: false,
+    kycStatus: "REJECTED",
+    complianceTier: "BROWSE",
+    complianceStatus: "REJECTED",
+  },
 };
 
-/* ---------- Route Handler ---------- */
+/* ================================================================
+   POST HANDLER
+   ================================================================ */
 
 export async function POST(request: Request): Promise<NextResponse> {
-  /* ── Step 1: Read raw body + signature header ── */
+  /* ── 1. Extract HMAC Signature ── */
+  const signatureHeader =
+    request.headers.get("X-HMAC-SIGNATURE") ??
+    request.headers.get("x-hmac-signature") ??
+    "";
+
   const rawBody = await request.text();
-  const signatureHeader = request.headers.get("X-HMAC-Signature") ?? "";
 
-  /* ── Step 2: Signature verification ── */
-  const webhookSecret = process.env.VERIFF_WEBHOOK_SECRET;
+  /* ── 2. Cryptographic Verification (fail-closed) ── */
+  const sharedSecret = process.env.VERIFF_API_SECRET;
 
-  if (webhookSecret) {
-    if (!verifyVeriffSignature(rawBody, signatureHeader, webhookSecret)) {
-      console.warn("[VERIFF-WEBHOOK] Signature verification failed");
-      return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 401 },
-      );
-    }
-  } else {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        "[VERIFF-WEBHOOK] VERIFF_WEBHOOK_SECRET not set — signature verification skipped (development mode)",
-      );
-    } else {
-      console.error(
-        "[VERIFF-WEBHOOK] VERIFF_WEBHOOK_SECRET not configured in non-development environment",
-      );
-      return NextResponse.json(
-        { error: "Webhook endpoint is not configured" },
-        { status: 500 },
-      );
-    }
+  if (!sharedSecret) {
+    console.error(
+      "[VERIFF-WEBHOOK] CRITICAL: VERIFF_API_SECRET is not configured. " +
+        "Cannot verify webhook origin. Rejecting all payloads.",
+    );
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 
-  /* ── Step 3: Parse + validate payload ── */
+  if (!verifyHmacSignature(rawBody, signatureHeader, sharedSecret)) {
+    console.warn(
+      "[VERIFF-WEBHOOK] ⚠ SECURITY INTRUSION ALERT — " +
+        "HMAC signature verification FAILED. " +
+        `IP: ${request.headers.get("x-forwarded-for") ?? "unknown"}, ` +
+        `UA: ${request.headers.get("user-agent") ?? "unknown"}`,
+    );
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
+  /* ── 3. Parse & Validate Payload ── */
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawBody);
   } catch {
+    console.warn("[VERIFF-WEBHOOK] Malformed JSON body — rejected.");
     return NextResponse.json(
-      { error: "Malformed JSON body" },
+      { error: "Bad Request" },
       { status: 400 },
     );
   }
@@ -170,90 +212,130 @@ export async function POST(request: Request): Promise<NextResponse> {
   const validation = VeriffWebhookSchema.safeParse(parsed);
   if (!validation.success) {
     console.warn(
-      "[VERIFF-WEBHOOK] Payload validation failed:",
+      "[VERIFF-WEBHOOK] Payload schema validation failed:",
       validation.error.issues,
     );
     return NextResponse.json(
-      {
-        error: "Invalid webhook payload",
-        details: validation.error.issues.map((i) => i.message),
-      },
+      { error: "Bad Request" },
       { status: 400 },
     );
   }
 
   const payload: VeriffWebhookPayload = validation.data;
-  const eventStatus = payload.status;
   const verification = payload.verification;
+  const verificationId = verification.id;
+  const veriffStatus = verification.status;
   const userId = verification.vendorData;
-  const sessionId = verification.id;
 
-  const newKycStatus = STATUS_TO_KYC[eventStatus] ?? "PENDING";
+  /* ── 4. Resolve State Transition ── */
+  const transition = STATE_MAP[veriffStatus];
+  if (!transition) {
+    // Unknown status — acknowledge to prevent retries, skip processing
+    console.info(
+      `[VERIFF-WEBHOOK] Unknown verification status "${veriffStatus}" — acknowledged, no action.`,
+    );
+    return NextResponse.json({ success: true, skipped: veriffStatus });
+  }
 
   console.log(
-    `[VERIFF-WEBHOOK] Processing ${eventStatus} for user ${userId} (session ${sessionId}) → kyc_status=${newKycStatus}`,
+    `[VERIFF-WEBHOOK] Processing: verification=${verificationId} ` +
+      `user=${userId} veriff_status=${veriffStatus} → kyb_status=${transition.kybStatus}`,
   );
 
-  /* ── Step 4: Database mutation ── */
-  let client;
-  try {
-    client = await getDbClient();
+  /* ── 5. Database Transaction (idempotent) ── */
+  const client = await getPoolClient();
 
-    // Idempotency check: skip if user already has the target status
-    const { rows: existing } = await client.query<{ kyc_status: string }>(
-      "SELECT kyc_status FROM users WHERE id = $1",
-      [userId],
+  try {
+    await client.query("BEGIN");
+
+    /* ── 5a. Idempotency Guard ── */
+    const { rows: existing } = await client.query<{ id: string }>(
+      "SELECT id FROM veriff_webhook_log WHERE verification_id = $1",
+      [verificationId],
     );
 
-    if (existing.length === 0) {
-      console.warn(`[VERIFF-WEBHOOK] User ${userId} not found in database`);
-      return NextResponse.json(
-        { error: "User not found", userId },
-        { status: 404 },
-      );
-    }
-
-    if (existing[0].kyc_status === newKycStatus) {
-      console.log(
-        `[VERIFF-WEBHOOK] User ${userId} already has kyc_status=${newKycStatus} — idempotent skip`,
+    if (existing.length > 0) {
+      await client.query("COMMIT");
+      console.info(
+        `[VERIFF-WEBHOOK] Duplicate verification_id=${verificationId} — idempotent skip.`,
       );
       return NextResponse.json({
-        received: true,
+        success: true,
         action: "skipped",
-        reason: `kyc_status already ${newKycStatus}`,
+        reason: "already_processed",
+        verificationId,
+      });
+    }
+
+    /* ── 5b. Log the webhook (locks the verification_id) ── */
+    await client.query(
+      `INSERT INTO veriff_webhook_log
+         (verification_id, user_id, veriff_status, mapped_kyb_status, raw_payload)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        verificationId,
+        userId,
+        veriffStatus,
+        transition.kybStatus,
+        JSON.stringify(parsed),
+      ],
+    );
+
+    /* ── 5c. Update users table: kyb_status + marketplace_access + kyc_status ── */
+    const { rowCount } = await client.query(
+      `UPDATE users
+       SET kyb_status         = $1,
+           marketplace_access = $2,
+           kyc_status         = $3
+       WHERE id = $4`,
+      [
+        transition.kybStatus,
+        transition.marketplaceAccess,
+        transition.kycStatus,
+        userId,
+      ],
+    );
+
+    if (rowCount === 0) {
+      // User not found — roll back the log entry, return 200 to prevent
+      // infinite retries (user may have been deleted).
+      await client.query("ROLLBACK");
+      console.warn(
+        `[VERIFF-WEBHOOK] User ${userId} not found — rolled back. ` +
+          "Acknowledging to prevent Veriff retry loop.",
+      );
+      return NextResponse.json({
+        success: true,
+        action: "skipped",
+        reason: "user_not_found",
         userId,
       });
     }
 
-    // Apply the KYC status update
-    await client.query(
-      "UPDATE users SET kyc_status = $1 WHERE id = $2",
-      [newKycStatus, userId],
-    );
+    await client.query("COMMIT");
 
-    console.log(
-      `[VERIFF-WEBHOOK] Updated user ${userId} kyc_status → ${newKycStatus}`,
+    console.info(
+      `[VERIFF-WEBHOOK] COMMITTED: user=${userId} → ` +
+        `kyb_status=${transition.kybStatus} marketplace_access=${transition.marketplaceAccess}`,
     );
   } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
     const message = err instanceof Error ? err.message : String(err);
     console.error(
-      `[VERIFF-WEBHOOK] Database error for user ${userId}:`,
+      `[VERIFF-WEBHOOK] Database transaction FAILED for user=${userId}:`,
       message,
     );
     return NextResponse.json(
-      { error: "Database operation failed" },
-      { status: 502 },
+      { error: "Internal Server Error" },
+      { status: 500 },
     );
   } finally {
-    if (client) {
-      await client.end().catch(() => {});
-    }
+    client.release();
   }
 
-  /* ── Step 5: Compliance Case integration ── */
+  /* ── 6. Compliance Case Integration (non-fatal) ── */
   let complianceCaseId: string | undefined;
   try {
-    // Find or create a ComplianceCase for this user
     let cc = await getComplianceCaseByUserId(userId);
     if (!cc) {
       cc = await createComplianceCase({
@@ -261,65 +343,68 @@ export async function POST(request: Request): Promise<NextResponse> {
         status: "PENDING_PROVIDER",
         tier: "BROWSE",
       });
-      console.log(
+      console.info(
         `[VERIFF-WEBHOOK] Created ComplianceCase ${cc.id} for user ${userId}`,
       );
     }
     complianceCaseId = cc.id;
 
-    // Store the Veriff session reference on the case
-    if (sessionId) {
-      await updateComplianceCaseInquiryId(cc.id, sessionId);
+    // Store Veriff session reference
+    if (verificationId) {
+      await updateComplianceCaseInquiryId(cc.id, verificationId);
     }
 
-    // Update case status based on the event
-    const caseStatus = newKycStatus === "APPROVED" ? "APPROVED" as const : "REJECTED" as const;
-    const caseTier = newKycStatus === "APPROVED" ? "EXECUTE" as const : "BROWSE" as const;
-    await updateComplianceCaseStatus(cc.id, caseStatus, cc.status, caseTier);
+    // Update case status & tier
+    await updateComplianceCaseStatus(
+      cc.id,
+      transition.complianceStatus,
+      cc.status,
+      transition.complianceTier,
+    );
 
-    // Append audit event (idempotent via event_id)
-    const eventIdKey = `veriff-${eventStatus}-${userId}-${Date.now()}`;
+    // Append audit event (idempotent via event_id unique constraint)
+    const eventIdKey = `veriff-${verificationId}-${veriffStatus}`;
     const event = await appendComplianceEvent(
       cc.id,
       eventIdKey,
       "PROVIDER",
-      eventStatus === "success" ? "INQUIRY_COMPLETED" : "INQUIRY_FAILED",
+      veriffStatus === "approved" ? "INQUIRY_COMPLETED" : "INQUIRY_FAILED",
       {
         provider: "Veriff",
-        eventStatus,
-        kycStatus: newKycStatus,
-        sessionId,
-        verificationStatus: verification.status,
+        verificationId,
+        veriffStatus,
+        kybStatus: transition.kybStatus,
+        marketplaceAccess: transition.marketplaceAccess,
         reason: verification.reason,
         reasonCode: verification.reasonCode,
       },
     );
 
-    // Publish to SSE subscribers for real-time UI updates
+    // Publish to SSE for real-time UI updates
     if (event) {
       await publishCaseEvent(userId, cc.id, event);
     }
 
-    console.log(
-      `[VERIFF-WEBHOOK] ComplianceCase ${cc.id} → status=${caseStatus}, tier=${caseTier}`,
+    console.info(
+      `[VERIFF-WEBHOOK] ComplianceCase ${cc.id} → ` +
+        `status=${transition.complianceStatus} tier=${transition.complianceTier}`,
     );
   } catch (ccErr) {
-    // Non-fatal: the KYC status was already updated successfully.
-    // Log the compliance case error but don't fail the webhook.
+    // Non-fatal: the KYB state was already committed.
     console.error(
-      `[VERIFF-WEBHOOK] ComplianceCase update failed for user ${userId}:`,
+      `[VERIFF-WEBHOOK] ComplianceCase update failed (non-fatal) for user=${userId}:`,
       ccErr instanceof Error ? ccErr.message : String(ccErr),
     );
   }
 
-  /* ── Step 6: Respond ── */
+  /* ── 7. Respond 200 ── */
   return NextResponse.json({
-    received: true,
-    action: "updated",
+    success: true,
+    action: "committed",
     userId,
-    newKycStatus,
-    sessionId,
-    event: eventStatus,
+    kybStatus: transition.kybStatus,
+    marketplaceAccess: transition.marketplaceAccess,
+    verificationId,
     complianceCaseId,
   });
 }

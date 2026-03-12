@@ -10,6 +10,7 @@
    ================================================================ */
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Radio,
   ChevronRight,
@@ -115,6 +116,7 @@ function fmt(value: number, decimals = 2): string {
    PAGE COMPONENT
    ================================================================ */
 export default function OfftakerMarketplacePage() {
+  const router = useRouter();
   const [selectedAsset, setSelectedAsset] = useState<AssetTier | null>(null);
   const [quantity, setQuantity] = useState(1);
 
@@ -398,6 +400,11 @@ export default function OfftakerMarketplacePage() {
             {/* CTA Button */}
             <button
               disabled={!hasSelection}
+              onClick={() => {
+                if (!selectedAsset) return;
+                const quoteId = `QT-${Math.floor(1000 + Math.random() * 9000)}`;
+                router.push(`/offtaker/checkout/${quoteId}`);
+              }}
               className={`w-full font-bold text-sm tracking-wide py-3.5 flex items-center justify-center gap-2 font-mono transition-colors ${
                 hasSelection
                   ? "bg-gold-primary text-slate-950 hover:bg-gold-hover cursor-pointer"

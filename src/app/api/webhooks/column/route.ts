@@ -1,57 +1,73 @@
 /* ================================================================
-   COLUMN BANK WEBHOOK INGESTION ROUTE
+   COLUMN BANK FEDWIRE SETTLEMENT LISTENER
    POST /api/webhooks/column
+   ================================================================
+   Receives inbound wire transfer completion events from Column,
+   verifies HMAC-SHA256 signature, matches funds to a pending
+   escrow order, and atomically transitions the settlement state.
 
-   Receives webhook events from Column Bank, verifies the HMAC
-   signature, extracts the amount and virtual_account_id, and
-   acknowledges with 200 OK.
+   Security:
+     - HMAC-SHA256 via Column-Signature header
+     - Timing-safe comparison (constant-time)
+     - Fail-closed: missing secret → 500, bad sig → 401
 
-   Architectural rules:
-   1. Never mutate state directly — database is source of truth
-   2. Actor attribution: actorRole "system", actorUserId "column-webhook"
-   3. Reject any request that fails signature validation with 401
-   4. All database writes reference 005_dvp_escrow.sql schema
+   Atomic Transaction:
+     - BEGIN → idempotency guard → escrow match → amount validation
+       → state transition → DVP event → settlement finality → COMMIT
+     - Full ROLLBACK on any failure
 
-   Database integration points (005_dvp_escrow.sql):
-   ┌─────────────────────────┬──────────────────────────────────────────┐
-   │ Table                   │ Purpose                                  │
-   ├─────────────────────────┼──────────────────────────────────────────┤
-   │ escrow_holds            │ Match virtual_account_id → settlement,   │
-   │                         │ verify hold_amount_cents, flip           │
-   │                         │ is_released on DVP execution             │
-   │ dvp_events              │ Append FUNDS_HELD / DVP_EXECUTED event   │
-   │ settlement_finality     │ Record external transfer reconciliation  │
-   │ payouts                 │ Idempotency dedup via idempotency_key    │
-   └─────────────────────────┴──────────────────────────────────────────┘
+   Idempotency:
+     - settlement_finality.idempotency_key UNIQUE on transfer_id
+     - Duplicate transfer_ids acknowledged (200) but skipped
+
+   Financial Validation:
+     - Exact match → FUNDS_HELD (ready for release)
+     - Discrepancy → FUNDS_RECEIVED_DISCREPANCY_HOLD (treasury review)
+
+   Response:
+     - 200 on commit
+     - 401 on signature failure
+     - 500 on DB failure (Column retries)
    ================================================================ */
 
 import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { createHmac, timingSafeEqual } from "crypto";
+import { getPoolClient } from "@/lib/db";
 
-/* ---------- Environment ---------- */
+/* ================================================================
+   HMAC-SHA256 SIGNATURE VERIFICATION
+   ================================================================ */
 
-const ENV_WEBHOOK_SECRET = "COLUMN_WEBHOOK_SECRET";
+function verifyColumnSignature(
+  rawBody: string,
+  signature: string,
+  secret: string,
+): boolean {
+  if (!rawBody || !signature || !secret) return false;
 
-/* ---------- Webhook Actor Identity ---------- */
+  try {
+    const computed = createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
 
-const WEBHOOK_ACTOR = {
-  actorRole: "system",
-  actorUserId: "column-webhook",
-} as const;
+    const sigBuffer = Buffer.from(signature, "utf-8");
+    const computedBuffer = Buffer.from(computed, "utf-8");
 
-/* ---------- Zod Schema: Column Webhook Payload ---------- */
+    if (sigBuffer.length !== computedBuffer.length) return false;
+    return timingSafeEqual(sigBuffer, computedBuffer);
+  } catch {
+    return false;
+  }
+}
 
-/**
- * Column sends a flat event payload. We validate:
- * - id: unique event ID (used for idempotency)
- * - type: event discriminator
- * - data: contains virtual_account_id, amount, currency, transfer_id, status
- * - created_at: ISO 8601 timestamp
- */
+/* ================================================================
+   ZOD SCHEMA — Column Webhook Payload
+   ================================================================ */
+
 const ColumnWebhookDataSchema = z.object({
   virtual_account_id: z.string().min(1, "virtual_account_id is required"),
-  amount: z.number().int().min(0, "amount must be a non-negative integer (cents)"),
+  amount: z.number().int().min(0, "amount must be non-negative (cents)"),
   currency: z.literal("USD"),
   transfer_id: z.string().min(1, "transfer_id is required"),
   status: z.enum(["completed", "failed", "reversed"]),
@@ -72,85 +88,66 @@ const ColumnWebhookPayloadSchema = z.object({
 
 type ColumnWebhookPayload = z.infer<typeof ColumnWebhookPayloadSchema>;
 
-/* ---------- Relevant Event Types ---------- */
+/* ================================================================
+   SETTLEMENT STATE CONSTANTS
+   ================================================================ */
 
-/**
- * Events that indicate funds have arrived or a payout has completed.
- * Only these events trigger downstream settlement state mutations.
- */
-const ACTIONABLE_EVENTS: ReadonlySet<string> = new Set([
+const INBOUND_FUNDS_EVENTS: ReadonlySet<string> = new Set([
   "transfer.incoming.completed",
-  "transfer.outgoing.completed",
   "virtual_account.credited",
 ]);
 
-/* ---------- Signature Verification ---------- */
+const WEBHOOK_ACTOR = {
+  actorRole: "system",
+  actorUserId: "column-webhook",
+} as const;
 
-/**
- * Verify a Column Bank webhook signature using HMAC-SHA256.
- *
- * Column signs the raw request body with HMAC-SHA256 using the
- * webhook secret and sends the hex-encoded digest in the
- * `Column-Signature` header.
- *
- * Uses timing-safe comparison to prevent timing attacks.
- * Mirrors the pattern in @/lib/webhook-verify.ts (Modern Treasury).
- */
-function verifyColumnSignature(
-  rawBody: string,
-  signature: string,
-  secret: string,
-): boolean {
-  if (!rawBody || !signature || !secret) return false;
-
-  try {
-    const expected = createHmac("sha256", secret)
-      .update(rawBody)
-      .digest("hex");
-
-    const sigBuffer = Buffer.from(signature, "utf-8");
-    const expectedBuffer = Buffer.from(expected, "utf-8");
-
-    if (sigBuffer.length !== expectedBuffer.length) return false;
-
-    return timingSafeEqual(sigBuffer, expectedBuffer);
-  } catch {
-    return false;
-  }
-}
-
-/* ---------- Route Handler ---------- */
+/* ================================================================
+   POST HANDLER
+   ================================================================ */
 
 export async function POST(request: Request): Promise<NextResponse> {
-  /* ── Step 1: Read raw body + signature header ── */
+  /* ── 1. Read Raw Body & Signature ── */
   const rawBody = await request.text();
-  const signature = request.headers.get("Column-Signature") ?? "";
+  const signature =
+    request.headers.get("Column-Signature") ??
+    request.headers.get("column-signature") ??
+    "";
 
-  /* ── Step 2: Signature verification ── */
-  const webhookSecret = process.env[ENV_WEBHOOK_SECRET];
+  /* ── 2. Cryptographic Verification (fail-closed) ── */
+  const webhookSecret = process.env.COLUMN_WEBHOOK_SECRET;
+
   if (!webhookSecret) {
-    console.error("[COLUMN-WEBHOOK] COLUMN_WEBHOOK_SECRET is not configured");
+    console.error(
+      "[COLUMN-WEBHOOK] CRITICAL: COLUMN_WEBHOOK_SECRET is not configured. " +
+        "Cannot verify webhook origin. Rejecting all payloads.",
+    );
     return NextResponse.json(
-      { error: "Webhook endpoint is not configured" },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }
 
   if (!verifyColumnSignature(rawBody, signature, webhookSecret)) {
-    console.warn("[COLUMN-WEBHOOK] Signature verification failed");
+    console.warn(
+      "[COLUMN-WEBHOOK] ⚠ SECURITY ALERT — HMAC signature verification FAILED. " +
+        `IP: ${request.headers.get("x-forwarded-for") ?? "unknown"}, ` +
+        `UA: ${request.headers.get("user-agent") ?? "unknown"}`,
+    );
     return NextResponse.json(
-      { error: "Invalid signature" },
+      { error: "Unauthorized" },
       { status: 401 },
     );
   }
 
-  /* ── Step 3: Parse + validate payload ── */
+  /* ── 3. Parse & Validate Payload ── */
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawBody);
   } catch {
+    console.warn("[COLUMN-WEBHOOK] Malformed JSON body — rejected.");
     return NextResponse.json(
-      { error: "Malformed JSON body" },
+      { error: "Bad Request" },
       { status: 400 },
     );
   }
@@ -158,123 +155,242 @@ export async function POST(request: Request): Promise<NextResponse> {
   const validation = ColumnWebhookPayloadSchema.safeParse(parsed);
   if (!validation.success) {
     console.warn(
-      "[COLUMN-WEBHOOK] Payload validation failed:",
+      "[COLUMN-WEBHOOK] Payload schema validation failed:",
       validation.error.issues,
     );
     return NextResponse.json(
-      {
-        error: "Invalid webhook payload",
-        details: validation.error.issues.map((i) => i.message),
-      },
+      { error: "Bad Request" },
       { status: 400 },
     );
   }
 
   const payload: ColumnWebhookPayload = validation.data;
   const { id: eventId, type: eventType, data } = payload;
-  const { virtual_account_id, amount, transfer_id, status } = data;
+  const { virtual_account_id, amount: amountCents, transfer_id, status } = data;
 
   console.log(
-    `[COLUMN-WEBHOOK] Received event: ${eventType} | ` +
-      `event_id=${eventId} virtual_account=${virtual_account_id} ` +
-      `amount=${amount} transfer=${transfer_id} status=${status}`,
+    `[COLUMN-WEBHOOK] Received: type=${eventType} event_id=${eventId} ` +
+      `transfer=${transfer_id} account=${virtual_account_id} ` +
+      `amount_cents=${amountCents} status=${status}`,
   );
 
-  /* ── Step 4: Filter — only act on actionable events ── */
-  if (!ACTIONABLE_EVENTS.has(eventType)) {
-    console.log(
-      `[COLUMN-WEBHOOK] Ignoring non-actionable event: ${eventType} (event_id=${eventId})`,
+  /* ── 4. Filter Non-Actionable Events ── */
+  if (!INBOUND_FUNDS_EVENTS.has(eventType)) {
+    console.info(
+      `[COLUMN-WEBHOOK] Non-settlement event type: ${eventType} — acknowledged, no action.`,
     );
     return NextResponse.json({
-      received: true,
+      success: true,
       action: "ignored",
-      reason: "non-actionable event type",
+      reason: "non-settlement event type",
       eventId,
     });
   }
 
-  /* ── Step 5: Extract settlement context ── */
-  //
-  // The virtual_account_id maps to a specific settlement via
-  // `escrow_holds.external_hold_id` (see 005_dvp_escrow.sql, line 74).
-  //
-  // In production, this step will:
-  //   SELECT settlement_id, hold_amount_cents, is_released
-  //   FROM escrow_holds
-  //   WHERE external_hold_id = $1
-  //   FOR UPDATE
-  //
-  // This SELECT FOR UPDATE locks the escrow_holds row to prevent
-  // concurrent webhook deliveries from double-processing.
-  //
-  const settlementId = data.metadata?.settlementId ?? null;
+  if (status !== "completed") {
+    console.info(
+      `[COLUMN-WEBHOOK] Transfer status="${status}" (not completed) — acknowledged, no action.`,
+    );
+    return NextResponse.json({
+      success: true,
+      action: "ignored",
+      reason: `transfer status: ${status}`,
+      eventId,
+    });
+  }
 
-  console.log(
-    `[COLUMN-WEBHOOK] Processing ${eventType} for ` +
-      `virtual_account=${virtual_account_id} ` +
-      `settlement=${settlementId ?? "UNKNOWN"} ` +
-      `amount_cents=${amount} ` +
-      `actor=${WEBHOOK_ACTOR.actorUserId}`,
-  );
+  /* ── 5. Atomic Database Transaction ── */
+  const client = await getPoolClient();
 
-  /* ── Step 6: Settlement state mutation (database integration points) ── */
-  //
-  // === 005_dvp_escrow.sql Integration Map ===
-  //
-  // 6a. ESCROW_HOLDS (lines 67-81):
-  //   For "transfer.incoming.completed" / "virtual_account.credited":
-  //     UPDATE escrow_holds
-  //     SET is_released = FALSE, hold_amount_cents = $amount
-  //     WHERE external_hold_id = $virtual_account_id
-  //   This confirms the buyer's inbound Fedwire has landed in our FBO.
-  //   State machine: AWAITING_FUNDS → FUNDS_HELD
-  //
-  // 6b. DVP_EVENTS (lines 92-103):
-  //   INSERT INTO dvp_events (settlement_id, event_type, previous_state,
-  //     actor_user_id, actor_role, detail, metadata)
-  //   VALUES ($settlementId, 'FUNDS_HELD', 'RESERVED',
-  //     'column-webhook', 'system',
-  //     'Column inbound wire confirmed', $webhookPayload)
-  //   This creates the append-only audit record for the state transition.
-  //
-  // 6c. SETTLEMENT_FINALITY (lines 116-132):
-  //   INSERT INTO settlement_finality
-  //     (settlement_id, rail, external_transfer_id, idempotency_key,
-  //      finality_status, amount_cents, leg, is_fallback)
-  //   VALUES ($settlementId, 'column', $transfer_id, $eventId,
-  //     CASE WHEN $status = 'completed' THEN 'COMPLETED'
-  //          WHEN $status = 'failed' THEN 'FAILED'
-  //          ELSE 'REQUIRES_REVIEW' END,
-  //     $amount, 'seller_payout', FALSE)
-  //   This records the external transfer reconciliation for audit.
-  //
-  // 6d. PAYOUTS (lines 146-162):
-  //   The event ID ($eventId) serves as the idempotency_key for dedup:
-  //   SELECT 1 FROM payouts WHERE idempotency_key = $eventId
-  //   If a prior row exists, we skip processing (idempotent replay).
-  //
-  // TODO: Wire these database queries when PostgreSQL pool is connected
-  //       to this route. Each query runs inside a single BEGIN/COMMIT
-  //       transaction to guarantee atomicity.
-  //
+  try {
+    await client.query("BEGIN");
 
-  /* ── Step 7: Acknowledge receipt ── */
-  //
-  // Column expects a 200 OK to confirm delivery. Non-200 responses
-  // trigger automatic retries with exponential backoff.
-  //
-  console.log(
-    `[COLUMN-WEBHOOK] Event ${eventId} acknowledged ` +
-      `(type=${eventType}, status=${status}, amount=${amount})`,
-  );
+    /* ── 5a. Idempotency Guard ──
+       settlement_finality.idempotency_key is UNIQUE.
+       If transfer_id already exists, this is a duplicate delivery. */
+    const { rows: dupeCheck } = await client.query<{ id: string }>(
+      `SELECT id FROM settlement_finality
+       WHERE idempotency_key = $1`,
+      [transfer_id],
+    );
 
-  return NextResponse.json({
-    received: true,
-    action: status === "completed" ? "processed" : "flagged",
-    eventId,
-    virtualAccountId: virtual_account_id,
-    transferId: transfer_id,
-    amountCents: amount,
-    settlementId: settlementId ?? "pending_lookup",
-  });
+    if (dupeCheck.length > 0) {
+      await client.query("COMMIT");
+      console.info(
+        `[COLUMN-WEBHOOK] Duplicate transfer_id=${transfer_id} — idempotent skip.`,
+      );
+      return NextResponse.json({
+        success: true,
+        action: "skipped",
+        reason: "already_processed",
+        transferId: transfer_id,
+      });
+    }
+
+    /* ── 5b. Order Matching ──
+       Find the escrow hold where the external_hold_id (Column virtual
+       account) matches AND the parent settlement is AWAITING_FUNDS.
+       Lock the row with FOR UPDATE to prevent concurrent processing. */
+    const { rows: escrowRows } = await client.query<{
+      id: string;
+      settlement_id: string;
+      hold_amount_cents: string; // BIGINT returns as string in pg
+      buyer_id: string;
+    }>(
+      `SELECT eh.id, eh.settlement_id, eh.hold_amount_cents, eh.buyer_id
+       FROM escrow_holds eh
+       JOIN settlement_cases sc ON sc.id = eh.settlement_id
+       WHERE eh.external_hold_id = $1
+         AND sc.status = 'AWAITING_FUNDS'
+         AND eh.is_released = FALSE
+       FOR UPDATE OF eh, sc`,
+      [virtual_account_id],
+    );
+
+    if (escrowRows.length === 0) {
+      /* No matching pending order — record the finality anyway for
+         treasury reconciliation, then commit and return 200 so
+         Column doesn't retry infinitely. */
+      await client.query(
+        `INSERT INTO settlement_finality
+           (settlement_id, rail, external_transfer_id, idempotency_key,
+            finality_status, amount_cents, leg, is_fallback, error_message)
+         VALUES ('UNMATCHED', 'column', $1, $2, 'REQUIRES_REVIEW', $3,
+                 'inbound_wire', FALSE, 'No matching AWAITING_FUNDS escrow found')`,
+        [transfer_id, transfer_id, amountCents],
+      );
+      await client.query("COMMIT");
+
+      console.warn(
+        `[COLUMN-WEBHOOK] No matching escrow for virtual_account=${virtual_account_id} — ` +
+          "logged for treasury review.",
+      );
+      return NextResponse.json({
+        success: true,
+        action: "unmatched",
+        reason: "no_pending_escrow",
+        virtualAccountId: virtual_account_id,
+        transferId: transfer_id,
+      });
+    }
+
+    const escrow = escrowRows[0];
+    const expectedAmountCents = BigInt(escrow.hold_amount_cents);
+    const receivedAmountCents = BigInt(amountCents);
+
+    /* ── 5c. Financial Validation ── */
+    let newSettlementStatus: string;
+    let dvpEventType: string;
+    let finalityStatus: string;
+    let dvpDetail: string;
+
+    if (receivedAmountCents === expectedAmountCents) {
+      // Exact match — clear for release
+      newSettlementStatus = "FUNDS_HELD";
+      dvpEventType = "FUNDS_HELD";
+      finalityStatus = "COMPLETED";
+      dvpDetail = `Fedwire received: $${(Number(receivedAmountCents) / 100).toFixed(2)} — exact match. Ready for DvP.`;
+    } else {
+      // Discrepancy — hold for treasury review
+      newSettlementStatus = "AWAITING_FUNDS"; // Keep in AWAITING state
+      dvpEventType = "FAILED";
+      finalityStatus = "REQUIRES_REVIEW";
+      dvpDetail =
+        `FUNDS_RECEIVED_DISCREPANCY_HOLD: Expected $${(Number(expectedAmountCents) / 100).toFixed(2)}, ` +
+        `received $${(Number(receivedAmountCents) / 100).toFixed(2)}. ` +
+        `Delta: $${(Number(receivedAmountCents - expectedAmountCents) / 100).toFixed(2)}. Flagged for manual treasury review.`;
+
+      console.warn(
+        `[COLUMN-WEBHOOK] ⚠ AMOUNT DISCREPANCY on settlement=${escrow.settlement_id}: ` +
+          `expected=${expectedAmountCents} received=${receivedAmountCents}`,
+      );
+    }
+
+    /* ── 5d. State Transition — settlement_cases ── */
+    await client.query(
+      `UPDATE settlement_cases SET status = $1 WHERE id = $2`,
+      [newSettlementStatus, escrow.settlement_id],
+    );
+
+    /* ── 5e. Escrow Hold Update (mark amount confirmed) ── */
+    if (receivedAmountCents === expectedAmountCents) {
+      await client.query(
+        `UPDATE escrow_holds
+         SET hold_amount_cents = $1, updated_at = NOW()
+         WHERE id = $2`,
+        [amountCents, escrow.id],
+      );
+    }
+
+    /* ── 5f. DVP Event (append-only audit) ── */
+    await client.query(
+      `INSERT INTO dvp_events
+         (settlement_id, event_type, previous_state,
+          actor_user_id, actor_role, detail, metadata)
+       VALUES ($1, $2, 'RESERVED', $3, $4, $5, $6)`,
+      [
+        escrow.settlement_id,
+        dvpEventType,
+        WEBHOOK_ACTOR.actorUserId,
+        WEBHOOK_ACTOR.actorRole,
+        dvpDetail,
+        JSON.stringify({
+          column_event_id: eventId,
+          transfer_id,
+          virtual_account_id,
+          amount_cents: amountCents,
+          expected_amount_cents: Number(expectedAmountCents),
+          match: receivedAmountCents === expectedAmountCents,
+        }),
+      ],
+    );
+
+    /* ── 5g. Settlement Finality Record ── */
+    await client.query(
+      `INSERT INTO settlement_finality
+         (settlement_id, rail, external_transfer_id, idempotency_key,
+          finality_status, amount_cents, leg, is_fallback, finalized_at)
+       VALUES ($1, 'column', $2, $3, $4, $5, 'inbound_wire', FALSE, NOW())`,
+      [
+        escrow.settlement_id,
+        transfer_id,
+        transfer_id, // idempotency_key = transfer_id
+        finalityStatus,
+        amountCents,
+      ],
+    );
+
+    /* ── 5h. COMMIT ── */
+    await client.query("COMMIT");
+
+    console.info(
+      `[COLUMN-WEBHOOK] COMMITTED: settlement=${escrow.settlement_id} ` +
+        `status→${newSettlementStatus} finality=${finalityStatus} ` +
+        `amount_cents=${amountCents} transfer=${transfer_id}`,
+    );
+
+    return NextResponse.json({
+      success: true,
+      action: receivedAmountCents === expectedAmountCents ? "funds_cleared" : "discrepancy_hold",
+      settlementId: escrow.settlement_id,
+      transferId: transfer_id,
+      amountCents,
+      expectedAmountCents: Number(expectedAmountCents),
+      newStatus: newSettlementStatus,
+      finalityStatus,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[COLUMN-WEBHOOK] Transaction FAILED for transfer=${transfer_id}:`,
+      message,
+    );
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
+  } finally {
+    client.release();
+  }
 }
