@@ -182,36 +182,36 @@ export default function KYBConsolePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4 md:p-8 pb-14">
+    <div className="h-full bg-slate-950 p-4 md:p-5 flex flex-col overflow-auto">
       {/* ── Header ── */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-5">
+      <div className="mb-4 shrink-0">
+        <div className="flex items-center gap-3 mb-3">
           <Shield className="h-4 w-4 text-gold-primary" />
           <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
             Step 2 of 3: Identity &amp; AML Perimeter
           </span>
         </div>
 
-        <h1 className="text-3xl font-bold tracking-tight text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
           Offtaker Verification Console
         </h1>
       </div>
 
       {/* ── 3-Column Grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
         {/* ─────────────────────────────────────────────────────────
            COLUMN 1 — Case File Summary (col-span-3)
            ───────────────────────────────────────────────────────── */}
         <div className="lg:col-span-3">
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-5">
-            <div className="flex items-center gap-2 mb-5">
+          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
               <FileText className="h-3.5 w-3.5 text-slate-500" />
               <h2 className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
                 Case File Summary
               </h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Case ID — Hash Badge */}
               <div>
                 <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
@@ -271,8 +271,8 @@ export default function KYBConsolePage() {
            COLUMN 2 — Verification Ladder (col-span-6)
            ───────────────────────────────────────────────────────── */}
         <div className="lg:col-span-6">
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-3.5 w-3.5 text-gold-primary" />
                 <h2 className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
@@ -373,10 +373,10 @@ export default function KYBConsolePage() {
         {/* ─────────────────────────────────────────────────────────
            COLUMN 3 — Decision & Evidence Panel (col-span-3)
            ───────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-4">
           {/* ── Document Upload Zone ── */}
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
               <Upload className="h-3.5 w-3.5 text-slate-500" />
               <h2 className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
                 Evidence Upload
@@ -417,8 +417,8 @@ export default function KYBConsolePage() {
           </div>
 
           {/* ── Status Readout (Terminal) ── */}
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
               <Terminal className="h-3.5 w-3.5 text-slate-500" />
               <h2 className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
                 System Readout
@@ -453,8 +453,8 @@ export default function KYBConsolePage() {
       </div>
 
       {/* ── Marketplace Gate (Bottom Footer) ── */}
-      <div className="mt-10">
-        <div className="text-center mb-4">
+      <div className="mt-4 shrink-0">
+        <div className="text-center mb-2">
           <span className="font-mono text-xs text-red-400/70 tracking-[0.15em] uppercase flex items-center justify-center gap-2">
             <AlertTriangle className="h-3.5 w-3.5" />
             Marketplace Access Restricted Until Identity Perimeter Is Cleared
@@ -471,7 +471,7 @@ export default function KYBConsolePage() {
       </div>
 
       {/* ── Footer trust line ── */}
-      <p className="mt-8 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+      <p className="mt-3 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
         AurumShield Clearing · Identity Perimeter Enforcement · Veriff ·
         GLEIF · OFAC / EU Sanctions
       </p>

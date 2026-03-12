@@ -33,10 +33,10 @@ export default function OrgSelectPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12 pb-14">
+    <div className="h-full bg-slate-950 flex items-center justify-center px-4 py-6">
       <div className="w-full max-w-4xl">
         {/* ── Eyebrow ── */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <Shield className="h-4 w-4 text-gold-primary" />
           <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
             Establish Institutional Perimeter
@@ -49,7 +49,7 @@ export default function OrgSelectPage() {
         </h1>
 
         {/* ── Subtext ── */}
-        <p className="text-slate-400 text-sm md:text-base max-w-2xl mb-12 leading-relaxed">
+        <p className="text-slate-400 text-sm md:text-base max-w-2xl mb-6 leading-relaxed">
           You must bind your active session to a verified corporate organization
           before accessing the AurumShield settlement engine.
         </p>
@@ -166,7 +166,7 @@ export default function OrgSelectPage() {
         </div>
 
         {/* ── Footer trust line ── */}
-        <p className="mt-10 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-6 text-center font-mono text-[10px] text-slate-700 tracking-wider">
           AurumShield Clearing · Sovereign Financial Infrastructure ·
           Multi-Tenant Isolation · End-to-End Encryption
         </p>

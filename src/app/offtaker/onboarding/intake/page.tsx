@@ -50,18 +50,18 @@ export default function IntakeDossierPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-12 md:py-16 pb-14">
+    <div className="h-full bg-slate-950 px-4 py-4 md:py-6 overflow-auto">
       <div className="max-w-4xl mx-auto">
         {/* ── Header ── */}
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-5">
+        <div className="mb-5">
+          <div className="flex items-center gap-3 mb-3">
             <FileText className="h-4 w-4 text-gold-primary" />
             <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
               Step 1 of 3: Dossier Assembly
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-2">
             Offtaker Entity Onboarding
           </h1>
 
@@ -74,7 +74,7 @@ export default function IntakeDossierPage() {
         {/* ── Form ── */}
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* ── 2-Column Grid ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
             {/* Field 1: Legal Entity Name */}
             <div>
               <label
@@ -165,7 +165,7 @@ export default function IntakeDossierPage() {
           </div>
 
           {/* ── Full-Width Sections ── */}
-          <div className="space-y-6 mb-10">
+          <div className="space-y-4 mb-5">
             {/* Field 5: Ultimate Beneficial Owners */}
             <div>
               <label
@@ -181,7 +181,7 @@ export default function IntakeDossierPage() {
               <textarea
                 id="ultimateBeneficialOwners"
                 {...register("ultimateBeneficialOwners")}
-                rows={4}
+                rows={2}
                 placeholder="e.g. John A. Smith — British National — 40% voting rights&#10;     Jane B. Doe — US National — 35% voting rights"
                 className="w-full bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm px-4 py-3 font-mono text-sm text-white placeholder:text-slate-600 focus:border-gold-primary focus:ring-1 focus:ring-gold-primary/30 focus:outline-none transition-colors resize-y"
               />
@@ -205,7 +205,7 @@ export default function IntakeDossierPage() {
               <textarea
                 id="sourceOfFundsDeclaration"
                 {...register("sourceOfFundsDeclaration")}
-                rows={4}
+                rows={2}
                 placeholder="e.g. Funds originate from the operating revenue of Aureus Capital Partners Ltd., a UK-registered precious metals trading firm. Capital is held in segregated accounts at..."
                 className="w-full bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm px-4 py-3 font-mono text-sm text-white placeholder:text-slate-600 focus:border-gold-primary focus:ring-1 focus:ring-gold-primary/30 focus:outline-none transition-colors resize-y"
               />
@@ -218,7 +218,7 @@ export default function IntakeDossierPage() {
           </div>
 
           {/* ── Footer CTA ── */}
-          <div className="border-t border-slate-800 pt-6 flex items-center justify-between">
+          <div className="border-t border-slate-800 pt-4 flex items-center justify-between">
             <div className="flex items-center gap-2 text-slate-600">
               <Building2 className="h-4 w-4" />
               <span className="font-mono text-[10px] tracking-widest uppercase">
@@ -241,7 +241,7 @@ export default function IntakeDossierPage() {
         </form>
 
         {/* ── Footer trust line ── */}
-        <p className="mt-10 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-4 text-center font-mono text-[10px] text-slate-700 tracking-wider">
           AurumShield Clearing · All submissions encrypted in transit & at rest ·
           GLEIF · Veriff KYB
         </p>

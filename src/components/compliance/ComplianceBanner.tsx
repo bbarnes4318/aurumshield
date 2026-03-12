@@ -23,12 +23,10 @@
 import Link from "next/link";
 import {
   Shield,
-  ShieldCheck,
   Clock,
   AlertTriangle,
   XCircle,
   ChevronRight,
-  HelpCircle,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -68,10 +66,9 @@ const BANNER_CONFIG: Record<ComplianceStatus, BannerConfig | null> = {
     border: "border-info/15",
     iconColor: "text-info",
     textColor: "text-info",
-    message:
-      "Verification in progress — you can browse the marketplace while we process",
-    ctaLabel: "View Status",
-    ctaHref: "/onboarding/compliance",
+    message: "KYB verification in progress",
+    ctaLabel: "",
+    ctaHref: "",
   },
   MANUAL_REVIEW: {
     icon: AlertTriangle,
@@ -140,7 +137,7 @@ export function ComplianceBanner() {
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center gap-3 border-b px-4 py-2.5",
+        "flex shrink-0 items-center gap-2 border-b px-4 py-1.5",
         config.bg,
         config.border,
       )}
@@ -149,43 +146,32 @@ export function ComplianceBanner() {
       aria-label="Compliance status"
     >
       {/* Status Icon */}
-      <Icon className={cn("h-4 w-4 shrink-0", config.iconColor)} />
+      <Icon className={cn("h-3.5 w-3.5 shrink-0", config.iconColor)} />
 
       {/* Message */}
-      <p className={cn("flex-1 text-xs font-medium", config.textColor)}>
+      <p className={cn("flex-1 text-[11px] font-medium", config.textColor)}>
         {config.message}
       </p>
 
-      {/* Help Link */}
-      <Link
-        href="/compliance/case"
-        className="inline-flex items-center gap-1 text-[10px] text-text-faint hover:text-text-muted transition-colors"
-        title="Help / Contact Compliance"
-      >
-        <HelpCircle className="h-3 w-3" />
-        <span className="hidden sm:inline">Help</span>
-      </Link>
-
-      {/* Primary CTA */}
-      <Link
-        href={config.ctaHref}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-[var(--radius-input)]",
-          "px-3 py-1 text-xs font-semibold",
-          "transition-all hover:opacity-90 active:scale-[0.98]",
-          isParallelEngagement
-            ? "bg-info/15 border border-info/25 text-info"
-            : status === "REJECTED" || status === "MANUAL_REVIEW"
-              ? "bg-surface-1 border border-border text-text"
-              : "bg-gold text-bg hover:bg-gold-hover",
-        )}
-      >
-        {status === "APPROVED" ? (
-          <ShieldCheck className="h-3 w-3" />
-        ) : null}
-        {config.ctaLabel}
-        <ChevronRight className="h-3 w-3" />
-      </Link>
+      {/* CTA — only render if label is non-empty */}
+      {config.ctaLabel && (
+        <Link
+          href={config.ctaHref}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-[var(--radius-input)]",
+            "px-2.5 py-0.5 text-[11px] font-semibold",
+            "transition-all hover:opacity-90 active:scale-[0.98]",
+            isParallelEngagement
+              ? "bg-info/15 border border-info/25 text-info"
+              : status === "REJECTED" || status === "MANUAL_REVIEW"
+                ? "bg-surface-1 border border-border text-text"
+                : "bg-gold text-bg hover:bg-gold-hover",
+          )}
+        >
+          {config.ctaLabel}
+          <ChevronRight className="h-3 w-3" />
+        </Link>
+      )}
     </div>
   );
 }

@@ -43,6 +43,8 @@ jobs:
           NEXT_PUBLIC_PERSONA_TEMPLATE_ID=itmpl_Pfrnmyw2tVKVktTxHazqZ5sMQGeE
           NEXT_PUBLIC_ROOT_URL=https://aurumshield.vip
           NEXT_PUBLIC_APP_URL=https://app.aurumshield.vip
+          NEXT_PUBLIC_VAPI_PUBLIC_KEY=bafbcec8-96b4-48d0-8ea0-6c8ce48d3ac4
+          NEXT_PUBLIC_VAPI_ASSISTANT_ID=0056b7ad-31f1-45dd-b88b-1d29bc97efc6
           EOF
           sed -i 's/^          //' .env.production
 
