@@ -18,6 +18,7 @@ import type {
   SettlementPayoutRequest,
   SettlementPayoutResult,
 } from "./settlement-rail";
+import { isMockMode } from "@/lib/mock-mode";
 
 /* ---------- Legacy Result Type (preserved for backward compat) ---------- */
 
@@ -53,6 +54,7 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
    * Check if Modern Treasury credentials are present in the environment.
    */
   isConfigured(): boolean {
+    if (isMockMode()) return false;
     const apiKey = process.env[ENV_API_KEY];
     const orgId = process.env[ENV_ORG_ID];
     return !!(

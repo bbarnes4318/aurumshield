@@ -24,6 +24,7 @@ import {
   type TurnkeyApiClient,
   DEFAULT_ETHEREUM_ACCOUNTS,
 } from "@turnkey/sdk-server";
+import { isMockMode } from "@/lib/mock-mode";
 
 /* ---------- Interfaces ---------- */
 
@@ -111,6 +112,7 @@ export class TurnkeyService {
    * Requires both the public/private key pair AND the organization ID.
    */
   isConfigured(): boolean {
+    if (isMockMode()) return false;
     return (
       this.publicKey.length > 0 &&
       this.privateKey.length > 0 &&

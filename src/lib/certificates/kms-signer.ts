@@ -15,6 +15,7 @@
    ================================================================ */
 
 import { toHex } from "./canonicalize";
+import { isMockMode } from "@/lib/mock-mode";
 
 /* ---------- Result type ---------- */
 
@@ -46,8 +47,8 @@ export async function signCertificate(
 ): Promise<KmsSignResult> {
   const signedAt = new Date().toISOString();
 
-  // ── Mock mode: no KMS key configured ──
-  if (!KMS_KEY_ID) {
+  // ── Mock mode: no KMS key configured or global mock override ──
+  if (!KMS_KEY_ID || isMockMode()) {
     const mockSig = `MOCK_KMS_SIG:${toHex(digest)}`;
     return {
       signature: Buffer.from(mockSig).toString("base64"),
@@ -106,7 +107,7 @@ export async function verifyCertificateSignature(
   const verifiedAt = new Date().toISOString();
 
   // ── Mock mode ──
-  if (!KMS_KEY_ID) {
+  if (!KMS_KEY_ID || isMockMode()) {
     const expectedMockSig = `MOCK_KMS_SIG:${toHex(digest)}`;
     const expectedB64 = Buffer.from(expectedMockSig).toString("base64");
     return {

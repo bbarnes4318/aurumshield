@@ -14,6 +14,8 @@
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
 
+import { isMockMode } from "@/lib/mock-mode";
+
 /* ---------- Interfaces ---------- */
 
 /** Entity details for counterparty registration. */
@@ -218,6 +220,7 @@ export class ColumnBankService {
    * Must be true before any API calls are attempted.
    */
   isConfigured(): boolean {
+    if (isMockMode()) return false;
     return this.apiKey.length > 0;
   }
 
