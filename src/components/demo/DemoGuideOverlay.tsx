@@ -102,7 +102,7 @@ export function DemoGuideOverlay() {
             <select
               value={selectedLang}
               onChange={(e) => setSelectedLang(e.target.value)}
-              className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2 font-mono text-xs text-slate-300 outline-none transition-colors focus:border-[#c6a86b]"
+              className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2 font-mono text-xs text-slate-300 outline-none transition-colors focus:border-gold-primary"
             >
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <option key={lang} value={lang}>
