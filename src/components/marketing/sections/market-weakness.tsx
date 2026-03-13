@@ -68,10 +68,11 @@ export function MarketWeaknessSection() {
             The Anatomy of a Fraud-Proof Trade
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-            Legacy physical trading relies on asynchronous delivery and payment
-            rails. This creates severe Herstatt Risk (Settlement Risk) and
-            temporal exposure, leaving capital vulnerable to both counterparty
-            fraud and sudden insolvency during transit.
+            As gold breaches the $5,100 per troy ounce threshold amidst
+            persistent macroeconomic volatility, securing physical, allocated
+            assets is a mandate. Legacy clearing relies on asynchronous
+            delivery, creating severe Herstatt (Settlement) Risk. We eliminate
+            this.
           </p>
         </motion.div>
 

@@ -59,8 +59,10 @@ export function RiskModelSection() {
             Engineered for Absolute Integrity.
           </h2>
           <p className="text-base leading-relaxed text-gray-200">
-            Legacy clearing relies on intermediaries and synthetic IOUs.
-            AurumShield&apos;s architecture enforces physical reality through code.
+            Governed by English Law / UCC Article 7 Bailment Jurisprudence.
+            All assets are bankruptcy-remote, fully segregated, and invisible
+            to counterparty balance sheets. AurumShield&apos;s architecture
+            enforces physical reality through code — not trust.
           </p>
         </motion.div>
 

@@ -37,7 +37,7 @@ const HALLMARKS = [
   {
     label: "PURITY",
     value: "999.9",
-    detail: "Minimum 995.0 per LBMA standard. Verified via non-destructive ultrasonic thickness gauging and four-point conductivity scanning.",
+    detail: "Minimum 995.0 per LBMA standard. Verified via non-destructive Ultrasonic Thickness Gauging and Four-Point Conductivity Scanning. Zero tolerance for deviation.",
     position: { bottom: "22%", left: "8%" },
     lineAngle: "to-tr",
   },
@@ -120,10 +120,11 @@ export function InstitutionalBarShowcase() {
             className="mt-6 text-lg max-w-2xl"
             style={{ lineHeight: 1.75, color: "#cbd5e1" }}
           >
-            Every bar settled through the Goldwire network is a cast
-            400-troy-ounce LBMA Good Delivery bar bearing four mandatory
-            hallmarks. Institutional chain-of-custody verification is
-            structurally enforced — not optional.
+            This system categorically rejects ETFs, paper derivatives, and
+            synthetic exposure. Every bar settled through the Goldwire network
+            is a cast 400-troy-ounce LBMA Good Delivery bar — verified via
+            Ultrasonic Thickness Gauging and Four-Point Conductivity Scanning
+            — for absolute allocated sovereignty.
           </p>
         </motion.div>
 

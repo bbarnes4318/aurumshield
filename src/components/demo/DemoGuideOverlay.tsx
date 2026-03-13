@@ -81,6 +81,17 @@ export function DemoGuideOverlay() {
   const transcriptEndRef = useRef<HTMLDivElement>(null);
 
   const currentStepIdx = getCurrentStepIndex(pathname);
+  const redirected = useRef(false);
+
+  /* ── Auto-Redirect: If ?demo=active but NOT on a demo step, redirect ── */
+  useEffect(() => {
+    if (!isDemoActive) return;
+    if (redirected.current) return;
+    if (currentStepIdx >= 0) return; // Already on a demo step
+
+    redirected.current = true;
+    router.replace(`${DEMO_STEPS[0].path}?demo=active`);
+  }, [isDemoActive, currentStepIdx, router]);
 
   /* ── Auto-Start: Begin Vapi call when ?demo=active lands ── */
   useEffect(() => {
@@ -122,8 +133,14 @@ export function DemoGuideOverlay() {
         "[SYSTEM EVENT: User is viewing their Order Allocation Ledger. Explain the Malca-Amit transit logistics, the cryptographic title transfer, and atomic DvP swap finality. Congratulate them on completing the full demo walkthrough of the AurumShield settlement engine." +
           langSuffix
       );
+    } else if (currentStepIdx < 0) {
+      // User is on a non-demo page — voice acknowledges the redirect
+      injectContext(
+        "[SYSTEM EVENT: User just arrived. Briefly welcome them and let them know you are redirecting them to the institutional demo starting with entity onboarding." +
+          langSuffix
+      );
     }
-  }, [pathname, callStatus, activeLanguage, injectContext]);
+  }, [pathname, callStatus, activeLanguage, injectContext, currentStepIdx]);
 
   /* Auto-scroll transcript feed */
   useEffect(() => {
