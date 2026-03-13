@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { LogOut, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -74,19 +73,8 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
           </svg>
         </button>
 
-        {/* Logo */}
-        <Image
-          src="/arum-logo-gold.svg"
-          alt="AurumShield"
-          width={110}
-          height={24}
-          className="hidden sm:block opacity-80"
-          priority
-        />
-
-        {/* Separator + Breadcrumbs */}
+        {/* Breadcrumbs */}
         <div className="hidden md:flex items-center gap-4">
-          <div className="h-5 w-px bg-slate-800" />
           <Breadcrumbs />
         </div>
       </div>

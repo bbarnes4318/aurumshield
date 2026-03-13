@@ -423,12 +423,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "hidden md:flex h-screen shrink-0 flex-col border-r border-border bg-surface-1 transition-all duration-200",
+        "hidden md:flex h-screen shrink-0 flex-col border-r border-border bg-slate-950 transition-all duration-200",
         collapsed ? "w-[52px]" : "w-56"
       )}
     >
       {/* Brand — rigid h-20 to match topbar */}
-      <div className="flex h-20 shrink-0 items-center justify-center border-b border-border px-4">
+      <div className="flex h-20 shrink-0 items-center justify-center border-b border-slate-800 px-4 bg-slate-950">
         {collapsed ? (
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gold-muted text-bg text-sm font-bold">
             Au
@@ -503,7 +503,7 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       {/* Drawer panel */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-surface-1 shadow-xl transition-transform duration-200 ease-in-out md:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-950 shadow-xl transition-transform duration-200 ease-in-out md:hidden",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
         role="dialog"
@@ -511,7 +511,7 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         aria-label="Mobile navigation"
       >
         {/* Brand + close — rigid h-20 to match topbar */}
-        <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-4">
+        <div className="flex h-20 shrink-0 items-center justify-between border-b border-slate-800 px-4 bg-slate-950">
           <AppLogo className="h-10 w-auto" variant="dark" />
           <button
             onClick={onClose}
