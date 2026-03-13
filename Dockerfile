@@ -11,6 +11,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# Purge any leaked .next cache from Docker layer cache
+RUN rm -rf .next/cache
 # NEXT_PUBLIC_* vars are read from .env.production at build time (allowed through .dockerignore)
 RUN npm run build
 
@@ -29,9 +31,11 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Do NOT copy .next/cache — force fresh route cache on each deploy
 
 USER nextjs
 
 EXPOSE 3000
 
 CMD ["node", "server.js"]
+
