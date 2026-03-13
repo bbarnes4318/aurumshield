@@ -1,41 +1,19 @@
 "use client";
 
+/* ================================================================
+   TIER-1 INSTITUTIONAL TOPBAR
+   ================================================================
+   Ultra-minimal, mathematical, expensive.
+   Left: AurumShield logo. Right: System status + user dropdown.
+   ================================================================ */
+
 import { cn } from "@/lib/utils";
-import {
-  Search,
-  Bell,
-  Sun,
-  Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
-  LogOut,
-  UserCircle,
-  Fingerprint,
-  ChevronDown,
-  Menu,
-} from "lucide-react";
-import { useTheme } from "next-themes";
-import { useEffect, useState, useRef } from "react";
+import { LogOut, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { useAuth } from "@/providers/auth-provider";
-// TODO: Uncomment when @clerk/nextjs is installed
-// import { UserButton } from "@clerk/nextjs";
-
-/** Check if Clerk is configured with real (non-placeholder) keys */
-const CLERK_ENABLED =
-  typeof process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === "string" &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "YOUR_PUBLISHABLE_KEY" &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
-
-/* ---------- Status badge colors ---------- */
-const VS_COLORS: Record<string, string> = {
-  VERIFIED: "bg-success/10 text-success border-success/30",
-  IN_PROGRESS: "bg-info/10 text-info border-info/30",
-  NEEDS_REVIEW: "bg-warning/10 text-warning border-warning/30",
-  NOT_STARTED: "bg-surface-3 text-text-faint border-border",
-  REJECTED: "bg-danger/10 text-danger border-danger/30",
-};
 
 interface TopbarProps {
   collapsed: boolean;
@@ -44,17 +22,10 @@ interface TopbarProps {
 }
 
 export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarProps) {
-  const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // TODO: Restore when @clerk/nextjs is installed
-  const isClerkUser = false; // CLERK_ENABLED && user?.id?.startsWith("user_");
-
-  useEffect(() => { setMounted(true); }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -74,143 +45,108 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
   };
 
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-surface-1 px-4">
-      <div className="flex items-center gap-3">
-        {/* Mobile hamburger — visible below md */}
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-md px-6 sticky top-0 z-40">
+      {/* ── LEFT: Logo + Breadcrumbs ── */}
+      <div className="flex items-center gap-5">
+        {/* Mobile hamburger */}
         <button
           onClick={onOpenMobileMenu}
-          className="block md:hidden touch-target rounded-[var(--radius-sm)] p-2.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text active:scale-95"
+          className="block md:hidden p-2 text-slate-500 hover:text-white transition-colors"
           aria-label="Open navigation menu"
         >
-          <Menu className="h-5 w-5" />
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
         </button>
 
-        {/* Desktop sidebar collapse toggle — hidden below md */}
+        {/* Desktop sidebar toggle */}
         <button
           onClick={onToggleSidebar}
-          className="hidden md:block rounded-[var(--radius-sm)] p-1.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text"
+          className="hidden md:block p-1.5 text-slate-600 hover:text-slate-300 transition-colors"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            {collapsed ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+            )}
+          </svg>
         </button>
-        <Breadcrumbs />
 
-        {/* Compact verification status chip — replaces the old full-width ComplianceBanner */}
-        {user?.verificationStatus && user.verificationStatus !== "VERIFIED" && (
-          <span className={cn(
-            "hidden sm:inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ml-2",
-            VS_COLORS[user.verificationStatus] ?? VS_COLORS.NOT_STARTED
-          )}>
-            <span className="h-1 w-1 rounded-full bg-current animate-pulse" />
-            {user.verificationStatus === "IN_PROGRESS" ? "KYB IN PROGRESS" : user.verificationStatus?.replace(/_/g, " ")}
-          </span>
-        )}
+        {/* Logo */}
+        <Image
+          src="/arum-logo-gold.svg"
+          alt="AurumShield"
+          width={110}
+          height={24}
+          className="hidden sm:block opacity-80"
+          priority
+        />
+
+        {/* Separator + Breadcrumbs */}
+        <div className="hidden md:flex items-center gap-4">
+          <div className="h-5 w-px bg-slate-800" />
+          <Breadcrumbs />
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* Search */}
-        <button
-          className="touch-target rounded-[var(--radius-sm)] p-2.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text active:scale-95"
-          aria-label="Search"
-        >
-          <Search className="h-4 w-4" />
-        </button>
+      {/* ── RIGHT: System Status + Profile ── */}
+      <div className="flex items-center gap-5">
+        {/* System Status Indicator */}
+        <div className="hidden sm:flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          </span>
+          <span className="font-mono text-[10px] text-emerald-400 tracking-widest uppercase">
+            System: Secure
+          </span>
+        </div>
 
-        {/* Notifications */}
-        <button
-          className="relative touch-target rounded-[var(--radius-sm)] p-2.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text active:scale-95"
-          aria-label="Notifications"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-info" />
-        </button>
+        {/* Divider */}
+        <div className="hidden sm:block h-5 w-px bg-slate-800" />
 
-        {/* Theme toggle */}
-        {mounted && (
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="touch-target rounded-[var(--radius-sm)] p-2.5 text-text-faint transition-colors hover:bg-surface-2 hover:text-text active:scale-95"
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-          >
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-        )}
-
-        {/* Profile — custom dropdown (Clerk UserButton disabled until @clerk/nextjs is installed) */}
-        {/* TODO: Restore Clerk UserButton when installed
-        {isClerkUser ? (
-          <UserButton
-            afterSignOutUrl="/login"
-            appearance={{
-              elements: {
-                avatarBox: "h-7 w-7",
-                userButtonPopoverCard: "bg-surface-1 border border-border shadow-md",
-              },
-            }}
-          />
-        ) : ( */}
-        {(
+        {/* User Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((o) => !o)}
             className={cn(
-              "flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 transition-colors hover:bg-surface-2",
-              dropdownOpen && "bg-surface-2"
+              "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-slate-900",
+              dropdownOpen && "bg-slate-900"
             )}
             aria-expanded={dropdownOpen}
             aria-haspopup="menu"
             id="profile-trigger"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-3 text-text-muted text-xs font-semibold">
+            {/* Avatar */}
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold font-mono">
               {user?.name?.charAt(0)?.toUpperCase() ?? "?"}
             </div>
-            <div className="hidden sm:flex flex-col items-start">
-              <span className="text-xs font-medium text-text leading-none">{user?.name ?? "—"}</span>
-              <span className="text-[10px] text-text-faint leading-none mt-0.5 uppercase tracking-wide">{user?.role ?? "—"}</span>
+            <div className="hidden lg:flex flex-col items-start">
+              <span className="text-xs font-medium text-slate-200 leading-none">{user?.name ?? "—"}</span>
+              <span className="text-[10px] text-slate-500 leading-none mt-0.5 font-mono uppercase tracking-wider">{user?.role ?? "—"}</span>
             </div>
-            <ChevronDown className="h-3 w-3 text-text-faint" />
+            <ChevronDown className="h-3 w-3 text-slate-600" />
           </button>
 
           {dropdownOpen && (
             <div
-              className="absolute right-0 top-full mt-1 z-50 w-64 rounded-[var(--radius)] border border-border bg-surface-1 shadow-md py-1"
+              className="absolute right-0 top-full mt-2 z-50 w-56 rounded-lg border border-slate-800 bg-slate-950 shadow-2xl py-1"
               role="menu"
               aria-labelledby="profile-trigger"
             >
-              {/* User info header */}
-              <div className="px-3 py-2 border-b border-border">
-                <p className="text-sm font-medium text-text">{user?.name ?? "—"}</p>
-                <p className="text-xs text-text-faint font-mono mt-0.5">{user?.email ?? "—"}</p>
-                <span className={cn(
-                  "mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                  VS_COLORS[user?.verificationStatus ?? "NOT_STARTED"]
-                )}>
-                  <span className="h-1 w-1 rounded-full bg-current" />
-                  {user?.verificationStatus?.replace(/_/g, " ") ?? "—"}
-                </span>
+              {/* User info */}
+              <div className="px-3 py-2.5 border-b border-slate-800">
+                <p className="text-sm font-medium text-white">{user?.name ?? "—"}</p>
+                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{user?.email ?? "—"}</p>
               </div>
 
-              {/* Menu items */}
-              <button
-                onClick={() => { setDropdownOpen(false); router.push("/account"); }}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:bg-surface-2 hover:text-text transition-colors"
-                role="menuitem"
-              >
-                <UserCircle className="h-4 w-4" />
-                Account
-              </button>
-              <button
-                onClick={() => { setDropdownOpen(false); router.push("/verification"); }}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:bg-surface-2 hover:text-text transition-colors"
-                role="menuitem"
-              >
-                <Fingerprint className="h-4 w-4" />
-                Verification
-              </button>
-              <div className="border-t border-border mt-1 pt-1">
+              {/* Logout */}
+              <div className="pt-1">
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-danger hover:bg-danger/5 transition-colors"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:bg-red-500/5 transition-colors"
                   role="menuitem"
                 >
                   <LogOut className="h-4 w-4" />
@@ -220,7 +156,6 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
             </div>
           )}
         </div>
-        )}
       </div>
     </header>
   );

@@ -20,7 +20,7 @@ export function DemoDimmingOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-[1px] pointer-events-none"
+      className="fixed inset-0 z-90 bg-slate-950/40 backdrop-blur-[1px] pointer-events-none"
       aria-hidden="true"
     />
   );

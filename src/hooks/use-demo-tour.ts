@@ -17,7 +17,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 
 /** The spotlight CSS classes for the target button */
 export const DEMO_SPOTLIGHT_CLASSES =
-  "relative z-50 ring-4 ring-[#c6a86b] ring-offset-2 ring-offset-slate-950 shadow-[0_0_20px_rgba(198,168,107,0.5)]";
+  "relative z-[100] bg-slate-900 pointer-events-auto ring-2 ring-[#c6a86b] ring-offset-4 ring-offset-slate-950 shadow-[0_0_30px_rgba(198,168,107,0.15)]";
 
 /** Hook: returns demo state based on URL params */
 export function useDemoTour() {

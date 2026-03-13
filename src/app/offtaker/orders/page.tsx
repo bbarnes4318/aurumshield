@@ -9,6 +9,8 @@
 
 import { useRouter } from "next/navigation";
 import { Shield, ArrowRight } from "lucide-react";
+import { useDemoTour, DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
+import { DemoTooltip } from "@/components/demo/DemoTooltip";
 
 /* ----------------------------------------------------------------
    MOCK ORDER DATA
@@ -86,6 +88,7 @@ const COLUMNS = [
    ================================================================ */
 export default function OfftakerOrdersPage() {
   const router = useRouter();
+  const { isDemoActive } = useDemoTour();
 
   return (
     <div className="min-h-screen bg-slate-950 max-w-7xl mx-auto p-8 pt-12">
@@ -115,12 +118,16 @@ export default function OfftakerOrdersPage() {
         </div>
 
         {/* Data Rows */}
-        {MOCK_ORDERS.map((order) => (
-          <button
+        {MOCK_ORDERS.map((order, i) => (
+          <div
             key={order.orderRef}
-            onClick={() => router.push(`/offtaker/orders/${order.orderRef}`)}
-            className="grid grid-cols-[1fr_1.2fr_1fr_1.2fr_1.1fr_48px] w-full text-left border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors cursor-pointer group"
+            className={`relative ${i === 0 && isDemoActive ? "" : ""}`}
           >
+            {i === 0 && isDemoActive && <DemoTooltip text="Review Order and verify Cryptographic Title →" position="bottom" />}
+            <button
+              onClick={() => router.push(`/offtaker/orders/${order.orderRef}`)}
+              className={`grid grid-cols-[1fr_1.2fr_1fr_1.2fr_1.1fr_48px] w-full text-left border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors cursor-pointer group ${i === 0 && isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}
+            >
             {/* ORDER_REF */}
             <div className="px-4 py-3.5 font-mono text-xs text-white font-bold tabular-nums">
               {order.orderRef}
@@ -160,7 +167,8 @@ export default function OfftakerOrdersPage() {
             <div className="px-4 py-3.5 flex items-center justify-center">
               <ArrowRight className="h-3.5 w-3.5 text-slate-700 group-hover:text-gold-primary transition-colors" />
             </div>
-          </button>
+            </button>
+          </div>
         ))}
       </div>
 

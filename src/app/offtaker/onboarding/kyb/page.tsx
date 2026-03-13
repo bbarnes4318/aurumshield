@@ -10,6 +10,7 @@
    ================================================================ */
 
 import { useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Shield,
   CheckCircle2,
@@ -26,6 +27,8 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import { useDemoTour, DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
+import { DemoTooltip } from "@/components/demo/DemoTooltip";
 
 /* ----------------------------------------------------------------
    MOCK DATA — seeded from previous intake dossier step
@@ -155,6 +158,10 @@ function StatusBadge({ status }: { status: StepStatus | string }) {
 export default function KYBConsolePage() {
   const [steps] = useState<VerificationStep[]>(INITIAL_STEPS);
   const [isDragOver, setIsDragOver] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { isDemoActive } = useDemoTour();
+  const demoParam = isDemoActive ? "?demo=active" : "";
 
   const handleLaunchVeriff = useCallback(() => {
     // TODO: Integrate Veriff SDK session creation
@@ -454,20 +461,38 @@ export default function KYBConsolePage() {
 
       {/* ── Marketplace Gate (Bottom Footer) ── */}
       <div className="mt-4 shrink-0">
-        <div className="text-center mb-2">
-          <span className="font-mono text-xs text-red-400/70 tracking-[0.15em] uppercase flex items-center justify-center gap-2">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Marketplace Access Restricted Until Identity Perimeter Is Cleared
-          </span>
-        </div>
-        <button
-          disabled
-          className="w-full bg-slate-800 text-slate-500 font-bold text-sm tracking-wide py-4 rounded-sm cursor-not-allowed opacity-50 flex items-center justify-center gap-2 font-mono"
-        >
-          <Lock className="h-4 w-4" />
-          Enter AurumShield Marketplace
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        {isDemoActive ? (
+          /* Demo mode: enabled button to proceed */
+          <div className="relative">
+            <DemoTooltip text="Verify Corporate Identity to access the Marketplace →" position="top" />
+            <button
+              onClick={() => router.push(`/offtaker/marketplace${demoParam}`)}
+              className={`w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-4 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2 font-mono cursor-pointer ${DEMO_SPOTLIGHT_CLASSES}`}
+            >
+              <ChevronRight className="h-4 w-4" />
+              Proceed to Marketplace
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          /* Normal mode: marketplace gated */
+          <>
+            <div className="text-center mb-2">
+              <span className="font-mono text-xs text-red-400/70 tracking-[0.15em] uppercase flex items-center justify-center gap-2">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Marketplace Access Restricted Until Identity Perimeter Is Cleared
+              </span>
+            </div>
+            <button
+              disabled
+              className="w-full bg-slate-800 text-slate-500 font-bold text-sm tracking-wide py-4 rounded-sm cursor-not-allowed opacity-50 flex items-center justify-center gap-2 font-mono"
+            >
+              <Lock className="h-4 w-4" />
+              Enter AurumShield Marketplace
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* ── Footer trust line ── */}

@@ -10,7 +10,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   FileText,
   ArrowRight,
@@ -23,9 +23,14 @@ import {
 } from "@/lib/schemas/intake-schema";
 import { JURISDICTION_OPTIONS } from "@/lib/schemas/onboarding-schema";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import { useDemoTour, DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
+import { DemoTooltip } from "@/components/demo/DemoTooltip";
 
 export default function IntakeDossierPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { isDemoActive } = useDemoTour();
+  const demoParam = isDemoActive ? "?demo=active" : "";
 
   const {
     register,
@@ -46,7 +51,7 @@ export default function IntakeDossierPage() {
   const onSubmit = (data: IntakeDossierData) => {
     // TODO: Submit intake dossier to API / persist to session
     console.log("[IntakeDossier] Submitting:", data);
-    router.push("/offtaker/onboarding/kyb");
+    router.push(`/offtaker/onboarding/kyb${demoParam}`);
   };
 
   return (
@@ -226,14 +231,17 @@ export default function IntakeDossierPage() {
               </span>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-gold-primary text-slate-950 font-bold text-sm tracking-wide px-6 py-3 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {isSubmitting ? "Saving..." : "Save & Proceed to Identity Verification"}
-              <ArrowRight className="h-4 w-4" />
-            </button>
+            <div className="relative">
+              {isDemoActive && <DemoTooltip text="Complete the Initial Intake Form ↓" position="top" />}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`bg-gold-primary text-slate-950 font-bold text-sm tracking-wide px-6 py-3 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}
+              >
+                {isSubmitting ? "Saving..." : "Save & Proceed to Identity Verification"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
             <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wide mt-2 text-center block">
               EXECUTION IS CRYPTOGRAPHICALLY BINDING. IP ADDRESS LOGGED UNDER BSA/AML PROTOCOLS.
             </span>
