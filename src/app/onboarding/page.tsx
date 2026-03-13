@@ -23,12 +23,12 @@ export default function OnboardingPage() {
   return (
     <div className="w-full max-w-[640px]">
       {/* Frosted glass card */}
-      <div className="glass-panel px-8 py-8 shadow-xl">
+      <div className="glass-panel px-6 py-5 shadow-xl">
         <OnboardingWizard />
       </div>
 
       {/* Footer trust line */}
-      <p className="mt-6 text-center text-[10px] text-color-3/25 tracking-wide">
+      <p className="mt-3 text-center text-[10px] text-color-3/25 tracking-wide">
         AurumShield Clearing · Sovereign Financial Infrastructure · All data
         encrypted in transit and at rest · GLEIF · Veriff · DocuSign CLM
       </p>

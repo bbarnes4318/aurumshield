@@ -33,7 +33,7 @@ export default function OrgSelectPage() {
   };
 
   return (
-    <div className="h-full bg-slate-950 flex items-center justify-center px-4 py-6">
+    <div className="h-full bg-slate-950 flex items-center justify-center px-4 py-4">
       <div className="w-full max-w-4xl">
         {/* ── Eyebrow ── */}
         <div className="flex items-center gap-3 mb-4">
@@ -44,12 +44,12 @@ export default function OrgSelectPage() {
         </div>
 
         {/* ── Title ── */}
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
           Select or Form Legal Entity
         </h1>
 
         {/* ── Subtext ── */}
-        <p className="text-slate-400 text-sm md:text-base max-w-2xl mb-6 leading-relaxed">
+        <p className="text-slate-400 text-sm md:text-base max-w-2xl mb-5 leading-relaxed">
           You must bind your active session to a verified corporate organization
           before accessing the AurumShield settlement engine.
         </p>
@@ -57,7 +57,7 @@ export default function OrgSelectPage() {
         {/* ── Bento Cards ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* ─── Card A: Join Existing ─── */}
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-8 rounded-sm transition-colors duration-200 hover:border-gold-primary/50 flex flex-col">
+          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 rounded-sm transition-colors duration-200 hover:border-gold-primary/50 flex flex-col">
             <div className="flex items-center gap-3 mb-5">
               <div className="h-10 w-10 rounded-sm bg-slate-800 flex items-center justify-center">
                 <KeyRound className="h-5 w-5 text-gold-primary" />
@@ -113,7 +113,7 @@ export default function OrgSelectPage() {
           </div>
 
           {/* ─── Card B: Form New ─── */}
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-8 rounded-sm transition-colors duration-200 hover:border-gold-primary/50 flex flex-col">
+          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 rounded-sm transition-colors duration-200 hover:border-gold-primary/50 flex flex-col">
             <div className="flex items-center gap-3 mb-5">
               <div className="h-10 w-10 rounded-sm bg-slate-800 flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-gold-primary" />
@@ -166,7 +166,7 @@ export default function OrgSelectPage() {
         </div>
 
         {/* ── Footer trust line ── */}
-        <p className="mt-6 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-4 text-center font-mono text-[10px] text-slate-700 tracking-wider">
           AurumShield Clearing · Sovereign Financial Infrastructure ·
           Multi-Tenant Isolation · End-to-End Encryption
         </p>

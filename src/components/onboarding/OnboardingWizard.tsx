@@ -76,7 +76,7 @@ function ProgressBar({ currentStep }: { currentStep: number }) {
   const progress = ((currentStep - 1) / (ONBOARDING_STEPS.length - 1)) * 100;
 
   return (
-    <div className="mb-8">
+    <div className="mb-5">
       {/* Step circles + labels */}
       <div className="flex items-center justify-between mb-3">
         {ONBOARDING_STEPS.map((step) => {
@@ -332,7 +332,7 @@ export function OnboardingWizard() {
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-2.5 mb-6">
+        <div className="flex items-center gap-2.5 mb-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-color-2/10">
             <Shield className="h-5 w-5 text-color-2" />
           </div>
@@ -350,10 +350,10 @@ export function OnboardingWizard() {
         <ProgressBar currentStep={currentStep} />
 
         {/* Active step */}
-        <div className="min-h-[380px]">{renderStep()}</div>
+        <div className="min-h-[280px]">{renderStep()}</div>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-color-5/20">
+        <div className="flex items-center justify-between mt-5 pt-4 border-t border-color-5/20">
           <div className="flex items-center gap-3">
             {currentStep > 1 ? (
               <button

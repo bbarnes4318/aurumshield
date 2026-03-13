@@ -94,6 +94,17 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
           {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
         <Breadcrumbs />
+
+        {/* Compact verification status chip — replaces the old full-width ComplianceBanner */}
+        {user?.verificationStatus && user.verificationStatus !== "VERIFIED" && (
+          <span className={cn(
+            "hidden sm:inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ml-2",
+            VS_COLORS[user.verificationStatus] ?? VS_COLORS.NOT_STARTED
+          )}>
+            <span className="h-1 w-1 rounded-full bg-current animate-pulse" />
+            {user.verificationStatus === "IN_PROGRESS" ? "KYB IN PROGRESS" : user.verificationStatus?.replace(/_/g, " ")}
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
