@@ -10,9 +10,10 @@
    4. Voice guide auto-injects context on every route change
    5. NO "Next Step" buttons — tour advances via native page buttons
 
-   Demo Sequence (Offtaker Portal):
-   /offtaker/onboarding/intake → /offtaker/onboarding/kyb →
-   /offtaker/marketplace → /offtaker/orders
+   Demo Sequence (Offtaker Portal — 5 Steps):
+   /offtaker/org/select → /offtaker/onboarding/intake →
+   /offtaker/onboarding/kyb → /offtaker/marketplace →
+   /offtaker/orders
 
    Design: AurumShield institutional gold/slate palette.
    ================================================================ */
@@ -28,34 +29,11 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useVapi } from "@/hooks/use-vapi";
-
-/* ---------- Demo Railroad Sequence ---------- */
-const DEMO_STEPS = [
-  {
-    id: "intake",
-    label: "Entity Intake",
-    path: "/offtaker/onboarding/intake",
-  },
-  {
-    id: "kyb",
-    label: "KYB / AML",
-    path: "/offtaker/onboarding/kyb",
-  },
-  {
-    id: "marketplace",
-    label: "Marketplace",
-    path: "/offtaker/marketplace",
-  },
-  {
-    id: "orders",
-    label: "Orders",
-    path: "/offtaker/orders",
-  },
-] as const;
+import { DEMO_TOUR_STEPS, getDemoStepIndex } from "@/hooks/use-demo-tour";
 
 /* ---------- Helper: find current step index ---------- */
 function getCurrentStepIndex(pathname: string): number {
-  return DEMO_STEPS.findIndex((s) => pathname.includes(s.path));
+  return getDemoStepIndex(pathname);
 }
 
 export function DemoGuideOverlay() {
@@ -90,7 +68,7 @@ export function DemoGuideOverlay() {
     if (currentStepIdx >= 0) return; // Already on a demo step
 
     redirected.current = true;
-    router.replace(`${DEMO_STEPS[0].path}?demo=active`);
+    router.replace(`${DEMO_TOUR_STEPS[0].path}?demo=active`);
   }, [isDemoActive, currentStepIdx, router]);
 
   /* ── Auto-Start: Begin Vapi call when ?demo=active lands ── */
@@ -113,9 +91,14 @@ export function DemoGuideOverlay() {
     const langSuffix =
       " DELIVER THIS EXPLANATION EXCLUSIVELY IN " + activeLanguage + ".]";
 
-    if (pathname.includes("/offtaker/onboarding/intake")) {
+    if (pathname.includes("/offtaker/org/select")) {
       injectContext(
-        "[SYSTEM EVENT: User is on the Intake Screen. Welcome them to the AurumShield institutional demo. Explain that this is the compliance dossier where they register their legal entity, declare UBOs, and provide source-of-funds documentation. Tell them to complete the form and click 'Save & Proceed to Identity Verification'." +
+        "[SYSTEM EVENT: User is on the Organization Selection Screen. Welcome them to the AurumShield institutional demo. Explain that they must select or form a legal corporate entity to establish their institutional perimeter. The organization binding is cryptographic and all subsequent trades will be executed under this entity's compliance umbrella. Tell them to click 'Initialize Organization' to begin the onboarding process." +
+          langSuffix
+      );
+    } else if (pathname.includes("/offtaker/onboarding/intake")) {
+      injectContext(
+        "[SYSTEM EVENT: User is on the Intake Screen. Explain that this is the compliance dossier where they register their legal entity, declare UBOs, and provide source-of-funds documentation. Tell them to complete the form and click 'Save & Proceed to Identity Verification'." +
           langSuffix
       );
     } else if (pathname.includes("/offtaker/onboarding/kyb")) {
@@ -125,18 +108,17 @@ export function DemoGuideOverlay() {
       );
     } else if (pathname.includes("/offtaker/marketplace")) {
       injectContext(
-        "[SYSTEM EVENT: User is on the Marketplace. Explain the Bloomberg B-PIPE real-time pricing, the 400-oz Good Delivery bars sourced from LBMA-accredited refiners, and that all inventory is held at Malca-Amit sovereign vaults. Tell them to select the 400-oz bar and click 'Request Quote & Lock Price' to proceed." +
+        "[SYSTEM EVENT: User is on the Marketplace. Explain the Bloomberg B-PIPE real-time pricing, the 400-oz Good Delivery bars sourced from LBMA-accredited refiners, and that all inventory is held at Malca-Amit sovereign vaults. Tell them to select the 400-oz bar and click 'INITIATE EXECUTION QUOTE' to generate a cryptographic 30-second price lock." +
           langSuffix
       );
     } else if (pathname.includes("/offtaker/orders")) {
       injectContext(
-        "[SYSTEM EVENT: User is viewing their Order Allocation Ledger. Explain the Malca-Amit transit logistics, the cryptographic title transfer, and atomic DvP swap finality. Congratulate them on completing the full demo walkthrough of the AurumShield settlement engine." +
+        "[SYSTEM EVENT: User is on the Orders & Execution page. Explain that they are viewing their Offtaker Allocation Ledger showing all settlement positions. Walk them through the dual-authorization gate where both the Maker and Checker must approve, followed by the WebAuthn biometric signing ceremony. After execution, they will see the Fedwire clearing hash and ERC-3643 title transfer. Congratulate them on completing the full AurumShield institutional demo. Remind them to book a consultation at aurumshield.com to discuss their sovereign gold acquisition strategy." +
           langSuffix
       );
     } else if (currentStepIdx < 0) {
-      // User is on a non-demo page — voice acknowledges the redirect
       injectContext(
-        "[SYSTEM EVENT: User just arrived. Briefly welcome them and let them know you are redirecting them to the institutional demo starting with entity onboarding." +
+        "[SYSTEM EVENT: User just arrived. Briefly welcome them and let them know you are redirecting them to the institutional demo starting with organization selection." +
           langSuffix
       );
     }
@@ -155,9 +137,9 @@ export function DemoGuideOverlay() {
     <>
       {/* ── RAILROAD PROGRESS BAR (top of screen) ── */}
       <div className="fixed top-0 left-0 right-0 z-120 bg-slate-950/95 backdrop-blur-md border-b border-gold/20">
-        <div className="mx-auto max-w-4xl px-4 py-2.5 flex items-center justify-between">
+        <div className="mx-auto max-w-5xl px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-1">
-            {DEMO_STEPS.map((step, idx) => {
+            {DEMO_TOUR_STEPS.map((step, idx) => {
               const isActive = idx === currentStepIdx;
               const isComplete = idx < currentStepIdx;
               return (
@@ -176,7 +158,7 @@ export function DemoGuideOverlay() {
                     </span>
                     <span className="hidden sm:inline">{step.label}</span>
                   </div>
-                  {idx < DEMO_STEPS.length - 1 && (
+                  {idx < DEMO_TOUR_STEPS.length - 1 && (
                     <div
                       className={`w-4 h-px mx-0.5 ${
                         isComplete ? "bg-emerald-500/50" : "bg-slate-800"

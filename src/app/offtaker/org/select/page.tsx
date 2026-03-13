@@ -6,15 +6,22 @@
    First screen after basic auth. Establishes the multi-tenant
    perimeter — the Offtaker must either join an existing org via
    encrypted invitation code or instantiate a new corporate entity.
+
+   DEMO: Step 0 of the guided tour. Spotlights the "Initialize
+   Organization" card and navigates to intake with ?demo=active.
    ================================================================ */
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, KeyRound, Plus, ArrowRight, Shield } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import { DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
+import { DemoTooltip } from "@/components/demo/DemoTooltip";
 
 export default function OrgSelectPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemoActive = searchParams.get("demo") === "active";
   const [invitationCode, setInvitationCode] = useState("");
   const [joinError, setJoinError] = useState("");
 
@@ -25,11 +32,13 @@ export default function OrgSelectPage() {
     }
     // TODO: Validate invitation code against API
     setJoinError("");
-    router.push(`/offtaker/org/join?code=${encodeURIComponent(invitationCode.trim())}`);
+    const demoParam = isDemoActive ? "&demo=active" : "";
+    router.push(`/offtaker/org/join?code=${encodeURIComponent(invitationCode.trim())}${demoParam}`);
   };
 
   const handleInitializeOrg = () => {
-    router.push("/offtaker/onboarding/intake");
+    const demoParam = isDemoActive ? "?demo=active" : "";
+    router.push(`/offtaker/onboarding/intake${demoParam}`);
   };
 
   return (
@@ -104,7 +113,7 @@ export default function OrgSelectPage() {
               onClick={handleJoinOrg}
               className="w-full border border-slate-700 text-slate-300 font-mono text-sm tracking-wide py-3 rounded-sm hover:border-gold-primary/50 hover:text-white transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
-              Authenticate & Join
+              Authenticate &amp; Join
               <ArrowRight className="h-4 w-4" />
             </button>
             <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wide mt-2 text-center block">
@@ -112,8 +121,9 @@ export default function OrgSelectPage() {
             </span>
           </div>
 
-          {/* ─── Card B: Form New ─── */}
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 rounded-sm transition-colors duration-200 hover:border-gold-primary/50 flex flex-col">
+          {/* ─── Card B: Form New (DEMO SPOTLIGHT TARGET) ─── */}
+          <div className={`relative bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 rounded-sm transition-colors duration-200 hover:border-gold-primary/50 flex flex-col ${isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}>
+            {isDemoActive && <DemoTooltip text="Select your Corporate Entity to enter the secure perimeter ↓" position="top" />}
             <div className="flex items-center gap-3 mb-5">
               <div className="h-10 w-10 rounded-sm bg-slate-800 flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-gold-primary" />
@@ -176,5 +186,3 @@ export default function OrgSelectPage() {
     </div>
   );
 }
-
-

@@ -1,19 +1,20 @@
 "use client";
 
 /* ================================================================
-   STEP 2: DELIVERY ROUTING — Method Selection & Slide-to-Execute
+   STEP 2: JURISDICTIONAL STRUCTURING — Vault, Legal & Insurance
    ================================================================
-   Two selectable radio-cards for delivery method. If SECURE_DELIVERY
-   is selected, a Zod-validated address form expands smoothly below,
-   followed by a live Brink's rate quote card (D3 fix).
+   Forces the buyer to dictate the physical and legal parameters
+   of their gold acquisition:
 
-   Settlement is finalized via a custom "Slide-to-Execute" component
-   instead of a standard button.
+   1. Vault Routing — Select sovereign vault destination
+   2. Legal Structuring — Bind to English Law & UCC Art. 7
+   3. Indemnification — Lloyd's of London transit policy status
+   4. Delivery method selection (inherited from original)
+   5. STAGE EXECUTION button to advance
 
    D3 FIX: BrinksRateQuote now calls serverGetBrinksQuote action.
    D4 FIX: Financial summary shows notional + platform fee + delivery.
-   D5 FIX: Added onSignatureComplete prop — gates navigation on BoS
-           signature completion.
+   D5 FIX: Added onSignatureComplete prop.
    ================================================================ */
 
 import {
@@ -24,6 +25,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useFormContext } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
 import {
   Landmark,
   Truck,
@@ -37,6 +39,9 @@ import {
   Loader2,
   DollarSign,
   ShieldCheck,
+  Scale,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
@@ -53,6 +58,8 @@ import {
   type BrinksQuoteResult,
   type PlatformFeeEstimateResult,
 } from "@/lib/actions/checkout-actions";
+import { DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
+import { DemoTooltip } from "@/components/demo/DemoTooltip";
 
 /* ── Formatters ── */
 const fmtUsd = (n: number) =>
@@ -66,6 +73,14 @@ const DELIVERY_ICONS = {
   vault: Landmark,
   truck: Truck,
 } as const;
+
+/* ── Vault Destinations ── */
+const VAULT_DESTINATIONS = [
+  { value: "zurich-malcaamit-1", label: "Zurich — Malca-Amit Hub 1" },
+  { value: "london-brinks-sovereign", label: "London — Brink's Sovereign" },
+  { value: "singapore-malcaamit-asia", label: "Singapore — Malca-Amit Asia" },
+  { value: "newyork-brinks-conus", label: "New York — Brink's CONUS" },
+] as const;
 
 /* ================================================================
    SlideToExecute — Custom slider submission control
@@ -91,7 +106,6 @@ function SlideToExecute({
   const KEYBOARD_STEP = 0.05;
   const thumbWidth = 48;
 
-  /* Track width via ResizeObserver — avoids reading ref during render */
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -102,7 +116,6 @@ function SlideToExecute({
     return () => ro.disconnect();
   }, []);
 
-  /* ── Complete handler (shared by pointer & keyboard) ── */
   const completeSlide = useCallback(() => {
     setIsComplete(true);
     setProgress(1);
@@ -140,7 +153,6 @@ function SlideToExecute({
     }
   }, [dragging, progress, completeSlide]);
 
-  /* ── Keyboard support: Left/Right arrow keys ── */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (disabled || isComplete || isSubmitting) return;
@@ -149,7 +161,6 @@ function SlideToExecute({
         setProgress((prev) => {
           const next = Math.min(prev + KEYBOARD_STEP, 1);
           if (next >= THRESHOLD) {
-            // Schedule completion after state update
             requestAnimationFrame(() => completeSlide());
           }
           return next;
@@ -186,7 +197,6 @@ function SlideToExecute({
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
-      {/* Label */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         {isSubmitting ? (
           <div className="flex items-center gap-2 text-color-2">
@@ -199,7 +209,7 @@ function SlideToExecute({
           <div className="flex items-center gap-2 text-emerald-400">
             <CheckCircle2 className="h-4 w-4" />
             <span className="text-xs font-semibold tracking-wider uppercase">
-              Executed
+              Staged
             </span>
           </div>
         ) : (
@@ -209,12 +219,11 @@ function SlideToExecute({
               disabled ? "text-color-3/20" : "text-color-3/30"
             )}
           >
-            Slide to Execute Settlement
+            Slide to Stage Execution
           </span>
         )}
       </div>
 
-      {/* Draggable thumb */}
       {!isComplete && !isSubmitting && (
         <div
           onPointerDown={handlePointerDown}
@@ -237,7 +246,6 @@ function SlideToExecute({
               animation: dragging || progress > 0 ? "none" : undefined,
             }}
           />
-          {/* Keyframe for gentle horizontal float */}
           <style>{`
             @keyframes slide-hint {
               0%, 100% { transform: translateX(0); }
@@ -247,7 +255,6 @@ function SlideToExecute({
         </div>
       )}
 
-      {/* Progress fill */}
       {!isComplete && !isSubmitting && (
         <div
           className="absolute top-0 left-0 h-full bg-color-2/5 pointer-events-none transition-all"
@@ -262,7 +269,7 @@ function SlideToExecute({
 }
 
 /* ================================================================
-   Brink's Rate Quote Card — D3 FIX: Uses serverGetBrinksQuote
+   Brink's Rate Quote Card
    ================================================================ */
 
 function BrinksRateQuote({
@@ -275,27 +282,33 @@ function BrinksRateQuote({
   const [quote, setQuote] = useState<BrinksQuoteResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fetchIdRef = useRef(0);
 
   useEffect(() => {
     if (weightOz <= 0 || notionalUsd <= 0) return;
 
-    let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+    const fetchId = ++fetchIdRef.current;
+
+    // Schedule state updates in a microtask to avoid synchronous setState in effect
+    Promise.resolve().then(() => {
+      if (fetchId !== fetchIdRef.current) return;
+      setIsLoading(true);
+      setError(null);
+    });
 
     serverGetBrinksQuote({
       weightOz,
       notionalUsd,
-      countryCode: "US", // TODO: Derive from shipping address country
+      countryCode: "US",
     })
       .then((result) => {
-        if (!cancelled) {
+        if (fetchId === fetchIdRef.current) {
           setQuote(result);
           setIsLoading(false);
         }
       })
       .catch((err) => {
-        if (!cancelled) {
+        if (fetchId === fetchIdRef.current) {
           console.warn("[AurumShield] Brink's quote failed:", err);
           setError("Rate quote unavailable");
           setIsLoading(false);
@@ -303,7 +316,7 @@ function BrinksRateQuote({
       });
 
     return () => {
-      cancelled = true;
+      // Cleanup is handled by fetchIdRef increment on next render
     };
   }, [weightOz, notionalUsd]);
 
@@ -317,7 +330,6 @@ function BrinksRateQuote({
   }
 
   if (error || !quote) {
-    // Fallback to simulated rates if server action fails
     const baseFee = weightOz * 2.5;
     const armoredFee = 150;
     const insurance = weightOz * 1.25;
@@ -398,7 +410,7 @@ function BrinksRateQuote({
 }
 
 /* ================================================================
-   Financial Summary — D4 FIX: Shows notional + fees + delivery
+   Financial Summary
    ================================================================ */
 
 function FinancialSummary({
@@ -463,7 +475,7 @@ interface StepTwoRoutingProps {
   signingUrl?: string | null;
   /** Signature request ID for tracking */
   signatureRequestId?: string | null;
-  /** D5 FIX: Called when the buyer completes BoS signature */
+  /** Called when the buyer completes BoS signature */
   onSignatureComplete?: () => void;
 }
 
@@ -481,6 +493,9 @@ export function StepTwoRouting({
     formState: { errors },
   } = useFormContext<CheckoutFormData>();
 
+  const searchParams = useSearchParams();
+  const isDemoActive = searchParams.get("demo") === "active";
+
   const { execute, isReverifying } = useReverification();
 
   const deliveryMethod = watch("deliveryMethod");
@@ -489,11 +504,17 @@ export function StepTwoRouting({
   const quoteId = watch("quoteId");
   const notional = (weightOz || 0) * (lockedPrice || 0);
 
-  // Declared value = notional in cents (simplified — full version uses FeeQuote.declaredValueCents)
   const declaredValueCents = Math.round(notional * 100);
-  const USPS_MAX_CENTS = 5_000_000; // $50,000
+  const USPS_MAX_CENTS = 5_000_000;
   const exceedsDeclaredValueLimit =
     deliveryMethod === "SECURE_DELIVERY" && declaredValueCents > USPS_MAX_CENTS;
+
+  /* ── Jurisdictional Structuring State ── */
+  const [vaultDestination, setVaultDestination] = useState("");
+  const [legalStructuringAccepted, setLegalStructuringAccepted] = useState(false);
+
+  /** All structuring prerequisites met */
+  const structuringComplete = vaultDestination !== "" && legalStructuringAccepted;
 
   /* ── Quote Validation (on mount) ── */
   const [quoteValid, setQuoteValid] = useState<boolean | null>(() => quoteId ? null : true);
@@ -516,7 +537,6 @@ export function StepTwoRouting({
     return () => { cancelled = true; };
   }, [quoteId]);
 
-  /* ── Countdown for quote remaining time ── */
   useEffect(() => {
     if (quoteSecondsLeft <= 0) return;
     const id = setInterval(() => {
@@ -544,17 +564,11 @@ export function StepTwoRouting({
     | Record<string, { message?: string }>
     | undefined;
 
-  /**
-   * D5 FIX: Listen for postMessage from Dropbox Sign embedded iFrame.
-   * The HS embedded SDK sends a "signature_request_all_signed" event
-   * when all parties have signed. In embedded mode (iFrame), the
-   * signed message is sent via window.postMessage.
-   */
+  /* ── Dropbox Sign postMessage listener ── */
   useEffect(() => {
     if (!signingUrl || !onSignatureComplete) return;
 
     const handleMessage = (event: MessageEvent) => {
-      // Dropbox Sign embedded SDK sends events via postMessage
       if (
         typeof event.data === "string" &&
         (event.data.includes("signature_request_all_signed") ||
@@ -564,7 +578,6 @@ export function StepTwoRouting({
         onSignatureComplete();
       }
 
-      // Also handle JSON-formatted events
       if (typeof event.data === "object" && event.data !== null) {
         const data = event.data as Record<string, unknown>;
         if (
@@ -586,9 +599,9 @@ export function StepTwoRouting({
     <div className="space-y-5">
       {/* ── Header ── */}
       <div className="flex items-center gap-2">
-        <Truck className="h-4 w-4 text-color-2" />
+        <Globe className="h-4 w-4 text-color-2" />
         <h2 className="text-sm font-semibold text-color-3">
-          Delivery &amp; Settlement
+          Jurisdictional Structuring
         </h2>
       </div>
 
@@ -623,8 +636,96 @@ export function StepTwoRouting({
         </div>
       </div>
 
-      {/* ── D4 FIX: Financial Summary (platform fee) ── */}
+      {/* ── Fee Schedule ── */}
       {notional > 0 && <FinancialSummary notionalUsd={notional} />}
+
+      {/* ════════════════════════════════════════════════════════════
+         JURISDICTIONAL STRUCTURING PANELS
+         ════════════════════════════════════════════════════════════ */}
+
+      {/* ── Panel 1: Vault Routing Dropdown ── */}
+      <div className="rounded-sm border border-slate-800 bg-black/30 p-4 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)]">
+        <div className="flex items-center gap-2 mb-3">
+          <Landmark className="h-3.5 w-3.5 text-color-2" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-color-3/50">
+            Vault Routing — Sovereign Custody Destination
+          </span>
+        </div>
+        <select
+          value={vaultDestination}
+          onChange={(e) => setVaultDestination(e.target.value)}
+          className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white focus:border-gold-primary focus:ring-1 focus:ring-gold-primary/30 focus:outline-none transition-colors appearance-none cursor-pointer"
+        >
+          <option value="" disabled>
+            Select sovereign vault destination…
+          </option>
+          {VAULT_DESTINATIONS.map((dest) => (
+            <option key={dest.value} value={dest.value}>
+              {dest.label}
+            </option>
+          ))}
+        </select>
+        {!vaultDestination && (
+          <p className="mt-2 font-mono text-[10px] text-red-400/70">
+            Vault destination is required to proceed.
+          </p>
+        )}
+      </div>
+
+      {/* ── Panel 2: Legal Structuring Checkbox ── */}
+      <div className="rounded-sm border border-slate-800 bg-black/30 p-4 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)]">
+        <div className="flex items-center gap-2 mb-3">
+          <Scale className="h-3.5 w-3.5 text-color-2" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-color-3/50">
+            Legal Structuring — Governing Law
+          </span>
+        </div>
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={legalStructuringAccepted}
+            onChange={(e) => setLegalStructuringAccepted(e.target.checked)}
+            className="mt-0.5 h-5 w-5 rounded-sm border-2 border-slate-600 bg-slate-950 text-gold-primary focus:ring-gold-primary/30 focus:ring-offset-0 cursor-pointer accent-[#C6A86B]"
+          />
+          <span className="font-mono text-xs text-slate-300 leading-relaxed group-hover:text-white transition-colors">
+            Bind asset to <strong className="text-gold-primary">English Law &amp; UCC Article 7 Bailment</strong> (Bankruptcy-Remote).
+            Title is held as allocated bailment under the Warehouse Act. The asset is legally
+            segregated from the custodian&apos;s balance sheet and protected from third-party claims.
+          </span>
+        </label>
+        {!legalStructuringAccepted && (
+          <p className="mt-2 font-mono text-[10px] text-red-400/70">
+            Legal structuring must be accepted to proceed.
+          </p>
+        )}
+      </div>
+
+      {/* ── Panel 3: Indemnification Status ── */}
+      <div className="rounded-sm border border-emerald-500/20 bg-emerald-500/5 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="h-3.5 w-3.5 text-emerald-400" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/80">
+            Indemnification — Transit Insurance
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+            <span className="font-mono text-xs text-emerald-400 font-bold">ACTIVE</span>
+          </div>
+          <span className="font-mono text-xs text-slate-300">
+            Lloyd&apos;s of London Transit Specie Policy
+          </span>
+        </div>
+        <p className="font-mono text-[10px] text-slate-500 mt-2 leading-relaxed">
+          Full replacement value coverage during transit. Policy number on file with the clearing desk.
+          No deductible on LBMA Good Delivery bars.
+        </p>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════
+         DELIVERY METHOD SELECTION
+         ════════════════════════════════════════════════════════════ */}
 
       {/* ── Delivery Method Radio Cards ── */}
       <div>
@@ -672,7 +773,6 @@ export function StepTwoRouting({
                       {opt.label}
                     </p>
                   </div>
-                  {/* Radio indicator */}
                   <div
                     className={cn(
                       "ml-auto h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
@@ -766,7 +866,6 @@ export function StepTwoRouting({
             />
           </div>
 
-          {/* ── D3 FIX: Brink's Rate Quote via server action ── */}
           <BrinksRateQuote
             weightOz={weightOz || 0}
             notionalUsd={notional}
@@ -818,9 +917,18 @@ export function StepTwoRouting({
         </div>
       )}
 
-      {/* ── Slide-to-Execute ── */}
+      {/* ── STAGE EXECUTION — Gated on structuring completion ── */}
       {deliveryMethod && (
         <div className="pt-2">
+          {!structuringComplete && (
+            <div className="flex items-center gap-2 mb-3 text-amber-400/70">
+              <Lock className="h-3.5 w-3.5" />
+              <span className="text-[10px] font-mono uppercase tracking-wider">
+                Complete vault routing and legal structuring to unlock execution
+              </span>
+            </div>
+          )}
+
           {isReverifying && (
             <div className="flex items-center justify-center gap-2 mb-3 text-color-2">
               <ShieldCheck className="h-4 w-4 animate-pulse" />
@@ -829,33 +937,71 @@ export function StepTwoRouting({
               </span>
             </div>
           )}
-          <SlideToExecute
-            onComplete={async () => {
-              if (quoteId) {
-                // Wrap execution in reverification
-                const outcome = await execute(async () => {
-                  // Validate quote is still live before executing
-                  const validation = await serverValidateQuote(quoteId);
-                  if (!validation.data?.valid) {
-                    return { error: "Quote expired. Please return to Step 1." };
+
+          {/* Stage Execution button for demo clarity, SlideToExecute for real flow */}
+          {isDemoActive ? (
+            <div className="relative">
+              <DemoTooltip text="Stage the execution for dual-authorization signing →" position="top" />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (quoteId) {
+                    const outcome = await execute(async () => {
+                      const validation = await serverValidateQuote(quoteId);
+                      if (!validation.data?.valid) {
+                        return { error: "Quote expired. Please return to Step 1." };
+                      }
+                      return { data: true };
+                    });
+                    if (outcome.ok) {
+                      onSubmit();
+                    }
+                  } else {
+                    onSubmit();
                   }
-                  // Signal success — the actual settlement is handled by onSubmit
-                  return { data: true };
-                });
-                if (outcome.ok) {
+                }}
+                disabled={!structuringComplete || quoteValid === false || exceedsDeclaredValueLimit || isSubmitting}
+                className={`
+                  w-full py-3.5 font-bold text-sm tracking-[0.15em] uppercase
+                  rounded-sm cursor-pointer transition-all duration-200
+                  flex items-center justify-center gap-2
+                  ${structuringComplete
+                    ? "bg-gold-primary text-slate-950 hover:bg-gold-hover"
+                    : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  ${isDemoActive && structuringComplete ? DEMO_SPOTLIGHT_CLASSES : ""}
+                `}
+              >
+                <Lock className="h-4 w-4" />
+                STAGE EXECUTION
+              </button>
+            </div>
+          ) : (
+            <SlideToExecute
+              onComplete={async () => {
+                if (quoteId) {
+                  const outcome = await execute(async () => {
+                    const validation = await serverValidateQuote(quoteId);
+                    if (!validation.data?.valid) {
+                      return { error: "Quote expired. Please return to Step 1." };
+                    }
+                    return { data: true };
+                  });
+                  if (outcome.ok) {
+                    onSubmit();
+                  }
+                } else {
                   onSubmit();
                 }
-              } else {
-                // No quoteId (demo mode) — proceed directly
-                onSubmit();
-              }
-            }}
-            disabled={!deliveryMethod || quoteValid === false || exceedsDeclaredValueLimit}
-            isSubmitting={isSubmitting || isReverifying}
-          />
+              }}
+              disabled={!structuringComplete || !deliveryMethod || quoteValid === false || exceedsDeclaredValueLimit}
+              isSubmitting={isSubmitting || isReverifying}
+            />
+          )}
           <p className="text-center text-[10px] text-color-3/30 mt-2">
-            By executing, you agree to AurumShield&apos;s settlement terms and
-            delivery conditions.
+            By executing, you agree to AurumShield&apos;s settlement terms,
+            English Law bailment provisions, and delivery conditions.
           </p>
         </div>
       )}

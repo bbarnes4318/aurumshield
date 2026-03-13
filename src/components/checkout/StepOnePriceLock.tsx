@@ -1,28 +1,24 @@
 "use client";
 
 /* ================================================================
-   STEP 1: PRICE LOCK — Server-Backed Quote Model
+   STEP 1: CRYPTOGRAPHIC EXECUTION QUOTE — 30s Price Lock
    ================================================================
-   Captures the buyer's desired weight in Troy Ounces, creates a
-   server-backed quote via serverCreateQuote (with step-up auth),
-   and displays a countdown from the server's expiresAt.
-
-   The client ONLY controls the countdown display — the server
-   is authoritative on quote expiry and locked price.
+   Bloomberg B-PIPE spot price display with a glaring 30-second
+   countdown timer. The buyer must click PROCEED TO STRUCTURING
+   before the timer expires.
 
    Flow:
-     1. User enters weight
-     2. Clicks "Lock Price" → triggers useReverification()
-     3. Server creates quote row, returns quoteId + expiresAt
-     4. Client starts countdown from (expiresAt - now)
-     5. Advance to Step 2 with quoteId in form context
-
-   Live spot price from OANDA adapter is used for display only;
-   the actual locked price comes from the server quote.
+     1. Live Bloomberg B-PIPE spot price displayed
+     2. Locked execution premium shown (basis points)
+     3. User enters weight → clicks INITIATE EXECUTION QUOTE
+     4. Server creates quote, returns quoteId + expiresAt
+     5. 30-second red countdown begins
+     6. PROCEED TO STRUCTURING button must be clicked before expiry
    ================================================================ */
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useFormContext } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
 import {
   Lock,
   Clock,
@@ -31,6 +27,7 @@ import {
   HelpCircle,
   ShieldCheck,
   Loader2,
+  Zap,
 } from "lucide-react";
 import type { CheckoutFormData } from "@/lib/schemas/checkout-schema";
 import { trackEvent } from "@/lib/analytics";
@@ -40,6 +37,8 @@ import {
   type QuoteActionResult,
 } from "@/lib/actions/checkout-actions";
 import { registerQuoteInStore } from "@/lib/api";
+import { DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
+import { DemoTooltip } from "@/components/demo/DemoTooltip";
 
 /* ── Countdown Hook (from server expiresAt) ── */
 function useServerCountdown(expiresAt: string | null) {
@@ -72,7 +71,7 @@ function useServerCountdown(expiresAt: string | null) {
   const minutes = Math.floor(remaining / 60);
   const secs = remaining % 60;
   const display = `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  const progress = expiresAt ? remaining / 60 : 1; // 60s total window
+  const progress = expiresAt ? remaining / 30 : 1; // 30s total window
 
   return { remaining, isExpired, display, progress, hasStarted: expiresAt !== null };
 }
@@ -103,7 +102,7 @@ export function StepOnePriceLock({
   maxWeightOz,
   onAdvance,
   liveSpotPrice,
-  priceSource = "listing",
+  // priceSource kept in interface for callers; unused in component body
   listingId = "demo-listing",
 }: StepOnePriceLockProps) {
   const {
@@ -113,6 +112,9 @@ export function StepOnePriceLock({
     trigger,
     formState: { errors },
   } = useFormContext<CheckoutFormData>();
+
+  const searchParams = useSearchParams();
+  const isDemoActive = searchParams.get("demo") === "active";
 
   const { execute, isReverifying } = useReverification();
 
@@ -124,6 +126,9 @@ export function StepOnePriceLock({
 
   /** Per-oz price for display (always the raw spot/listing price pre-quote) */
   const displayPricePerOz = liveSpotPrice ?? pricePerOz;
+
+  /** Execution premium in basis points */
+  const premiumBps = 10; // +10 bps locked execution premium
 
   const weightOz = watch("weightOz");
   const notional = quoteResult
@@ -148,7 +153,6 @@ export function StepOnePriceLock({
         quoteId: quoteResult?.quoteId,
         pricePerOz: displayPricePerOz,
       });
-      // Clear quote via callback in next tick to avoid cascading render
       requestAnimationFrame(() => setQuoteResult(null));
     }
   }, [countdown.isExpired, displayPricePerOz, quoteResult?.quoteId]);
@@ -175,11 +179,9 @@ export function StepOnePriceLock({
       const data = outcome.data;
       setQuoteResult(data);
 
-      // Persist to form context
       setValue("lockedPrice", data.lockedPrice / weightOz);
       setValue("quoteId", data.quoteId);
 
-      // RSK-004: Mirror quote to localStorage store for client-side consumption
       registerQuoteInStore({
         id: data.quoteId,
         userId: "user-1", // TODO: pass real userId from auth context
@@ -203,7 +205,6 @@ export function StepOnePriceLock({
       });
     } else if (!outcome.ok) {
       if (outcome.error === "REVERIFICATION_REQUIRED") {
-        // The hook handles re-auth flow automatically
         return;
       }
       setLockError(outcome.error);
@@ -217,78 +218,99 @@ export function StepOnePriceLock({
     }
   }, [quoteResult, countdown.isExpired, onAdvance]);
 
-  /** Price source indicator */
-  const isLive = priceSource === "bloomberg_bpipe";
   const hasQuote = quoteResult !== null && !countdown.isExpired;
 
-  /* ── Countdown color palette (Phase 4: high-trust, no red) ── */
+  /* ── Countdown color palette — aggressive red for urgency ── */
   const timerBorder = countdown.isExpired
-    ? "border-color-5/30 bg-color-5/5"
+    ? "border-red-500/40 bg-red-500/8"
     : countdown.remaining <= 15
-      ? "border-amber-500/30 bg-amber-500/5"
-      : "border-blue-200/30 bg-blue-500/5";
+      ? "border-red-500/50 bg-red-500/10"
+      : "border-red-500/30 bg-red-500/5";
 
   const timerIconColor = countdown.isExpired
-    ? "text-color-3/40"
-    : countdown.remaining <= 15
-      ? "text-amber-400"
-      : "text-blue-400";
+    ? "text-red-400/40"
+    : "text-red-400";
 
   const timerTextColor = countdown.isExpired
-    ? "text-color-3/40"
-    : countdown.remaining <= 15
-      ? "text-amber-400"
-      : "text-blue-400";
+    ? "text-red-400/40"
+    : countdown.remaining <= 10
+      ? "text-red-400 animate-pulse"
+      : "text-red-400";
 
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
       <div className="flex items-center gap-2">
-        <Lock className="h-4 w-4 text-color-2" />
-        <h2 className="text-sm font-semibold text-color-3">Lock Your Price</h2>
+        <Zap className="h-4 w-4 text-color-2" />
+        <h2 className="text-sm font-semibold text-color-3">Execution Quote</h2>
       </div>
 
       <p className="text-xs text-color-3/50 leading-relaxed">
-        Enter the weight you wish to acquire. Your price will be locked for
-        60 seconds via a server-backed quote while you complete checkout.
+        Enter the weight you wish to acquire. A cryptographic quote will lock
+        your execution price for <strong className="text-red-400">30 seconds</strong> via
+        Bloomberg B-PIPE. The quoted price is final and non-negotiable.
       </p>
 
-      {/* ── Live Price Indicator ── */}
-      <div className="flex items-center gap-2">
-        <div
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest ${
-            hasQuote
-              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-              : isLive
+      {/* ── Bloomberg B-PIPE Price Indicator ── */}
+      <div className="rounded-sm border border-slate-800 bg-black p-3 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)]">
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest ${
+              hasQuote
                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                : "bg-color-5/10 text-color-3/40 border border-color-5/15"
-          }`}
-        >
-          {hasQuote ? (
-            <>
-              <ShieldCheck className="h-3 w-3" />
-              Server Locked
-            </>
-          ) : (
-            <>
-              <Radio
-                className={`h-3 w-3 ${isLive ? "animate-pulse" : ""}`}
-              />
-              {isLive ? "OANDA Live" : "Listing Price"}
-            </>
+                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+            }`}
+          >
+            {hasQuote ? (
+              <>
+                <ShieldCheck className="h-3 w-3" />
+                Locked
+              </>
+            ) : (
+              <>
+                <Radio
+                  className="h-3 w-3 animate-pulse"
+                />
+                Bloomberg B-PIPE
+              </>
+            )}
+          </div>
+          <div className="flex-1">
+            <span className="font-mono text-lg font-bold tabular-nums text-white">
+              ${fmtUsd(hasQuote ? quoteResult!.spotPrice : displayPricePerOz)}
+            </span>
+            <span className="font-mono text-xs text-color-3/40 ml-2">/oz XAU</span>
+          </div>
+          {hasQuote && quoteResult!.priceFeedSource && (
+            <span className="text-[9px] text-color-3/30 font-mono">
+              via {quoteResult!.priceFeedSource}
+            </span>
           )}
         </div>
-        <span className="font-mono text-xs tabular-nums text-color-3/50">
-          ${fmtUsd(hasQuote ? quoteResult!.spotPrice : displayPricePerOz)}/oz
-        </span>
-        {hasQuote && quoteResult!.priceFeedSource && (
-          <span className="text-[9px] text-color-3/30 font-mono">
-            via {quoteResult!.priceFeedSource}
-          </span>
-        )}
+
+        {/* Premium display */}
+        <div className="flex items-center gap-4 mt-2 pt-2 border-t border-slate-800">
+          <div>
+            <span className="font-mono text-[9px] text-slate-600 uppercase block">Execution Premium</span>
+            <span className="font-mono text-xs text-gold-primary font-bold">+{premiumBps} bps</span>
+          </div>
+          <div>
+            <span className="font-mono text-[9px] text-slate-600 uppercase block">All-In Price/oz</span>
+            <span className="font-mono text-xs text-white tabular-nums">
+              ${fmtUsd(hasQuote ? quoteResult!.lockedPrice / (weightOz || 1) : displayPricePerOz * (1 + premiumBps / 10000))}
+            </span>
+          </div>
+          <div className="ml-auto">
+            <span className="font-mono text-[9px] text-slate-600 uppercase block">Feed</span>
+            <span className="font-mono text-[10px] text-emerald-400 flex items-center gap-1">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              LIVE
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* ── Countdown Timer (only visible after quote created) ── */}
+      {/* ── 30-SECOND COUNTDOWN TIMER (glaring red) ── */}
       {countdown.hasStarted && (
         <div
           role="timer"
@@ -296,23 +318,23 @@ export function StepOnePriceLock({
           aria-label={
             countdown.isExpired
               ? "Price lock expired"
-              : `${countdown.remaining} seconds remaining to complete checkout`
+              : `${countdown.remaining} seconds remaining to proceed`
           }
-          className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${timerBorder}`}
+          className={`flex items-center gap-3 rounded-sm border px-4 py-3 ${timerBorder}`}
         >
-          <Clock className={`h-4 w-4 shrink-0 ${timerIconColor}`} />
+          <Clock className={`h-5 w-5 shrink-0 ${timerIconColor}`} />
           <div className="flex-1">
-            <p className="text-[10px] uppercase tracking-widest text-color-3/40">
-              Quote locked (60 sec)
+            <p className="text-[10px] uppercase tracking-widest text-red-400/60 font-bold">
+              {countdown.isExpired ? "QUOTE EXPIRED" : "QUOTE EXPIRES IN"}
             </p>
             <p
-              className={`font-mono text-xl font-bold tabular-nums ${timerTextColor}`}
+              className={`font-mono text-2xl font-bold tabular-nums ${timerTextColor}`}
             >
               {countdown.display}
             </p>
           </div>
 
-          {/* "?" tooltip explaining the price lock */}
+          {/* "?" tooltip */}
           <div className="relative group shrink-0">
             <button
               type="button"
@@ -334,9 +356,10 @@ export function StepOnePriceLock({
                 transition-all duration-150
               "
             >
-              This price is locked server-side to protect you from market
-              spikes. The lock expires after 60 seconds. The price feed
-              source and timestamp are recorded for regulatory audit.
+              This price is locked server-side via Bloomberg B-PIPE to protect
+              you from market spikes. The 30-second lock window is
+              non-extendable. Price feed source and timestamp are recorded for
+              regulatory audit.
             </div>
           </div>
 
@@ -350,7 +373,7 @@ export function StepOnePriceLock({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="text-color-5/10"
+                className="text-red-500/10"
               />
               <circle
                 cx="18"
@@ -435,7 +458,7 @@ export function StepOnePriceLock({
         </div>
       </div>
 
-      {/* ── Lock / Continue CTA ── */}
+      {/* ── INITIATE / PROCEED CTA ── */}
       {!hasQuote ? (
         <button
           type="button"
@@ -443,8 +466,8 @@ export function StepOnePriceLock({
           disabled={isLocking || isReverifying || !weightOz || weightOz <= 0}
           className="
             flex w-full items-center justify-center gap-2
-            rounded-lg px-4 py-3
-            bg-color-2 text-color-1 text-sm font-semibold
+            rounded-sm px-4 py-3.5
+            bg-color-2 text-color-1 text-sm font-bold tracking-wider uppercase
             transition-all duration-150
             hover:bg-[#dbb56a] active:bg-[#c49b4e]
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50 focus-visible:ring-offset-2 focus-visible:ring-offset-color-1
@@ -454,33 +477,37 @@ export function StepOnePriceLock({
           {isLocking || isReverifying ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              {isReverifying ? "Re-verifying Identity…" : "Locking Price…"}
+              {isReverifying ? "Re-verifying Identity…" : "Generating Quote…"}
             </>
           ) : (
             <>
-              <ShieldCheck className="h-4 w-4" />
-              Verify &amp; Lock Price
+              <Zap className="h-4 w-4" />
+              INITIATE EXECUTION QUOTE
             </>
           )}
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={handleAdvance}
-          disabled={countdown.isExpired}
-          className="
-            flex w-full items-center justify-center gap-2
-            rounded-lg px-4 py-3
-            bg-color-2 text-color-1 text-sm font-semibold
-            transition-all duration-150
-            hover:bg-[#dbb56a] active:bg-[#c49b4e]
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50 focus-visible:ring-offset-2 focus-visible:ring-offset-color-1
-            disabled:opacity-40 disabled:cursor-not-allowed
-          "
-        >
-          <Lock className="h-4 w-4" />
-          {countdown.isExpired ? "Price Lock Expired" : "Continue to Delivery"}
-        </button>
+        <div className="relative">
+          {isDemoActive && <DemoTooltip text="Proceed to Jurisdictional Structuring before the timer expires ↓" position="top" />}
+          <button
+            type="button"
+            onClick={handleAdvance}
+            disabled={countdown.isExpired}
+            className={`
+              flex w-full items-center justify-center gap-2
+              rounded-sm px-4 py-3.5
+              bg-color-2 text-color-1 text-sm font-bold tracking-wider uppercase
+              transition-all duration-150
+              hover:bg-[#dbb56a] active:bg-[#c49b4e]
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-color-2/50 focus-visible:ring-offset-2 focus-visible:ring-offset-color-1
+              disabled:opacity-40 disabled:cursor-not-allowed
+              ${isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}
+            `}
+          >
+            <Lock className="h-4 w-4" />
+            {countdown.isExpired ? "QUOTE EXPIRED — RE-INITIATE" : "PROCEED TO STRUCTURING"}
+          </button>
+        </div>
       )}
 
       {/* ── Lock Error ── */}
@@ -491,8 +518,8 @@ export function StepOnePriceLock({
       {/* ── Expired Message ── */}
       {countdown.isExpired && (
         <p className="text-center text-xs text-color-3/50">
-          The price lock quote has expired. Please re-enter your weight and
-          lock a new quote.
+          The execution quote has expired. Please re-enter your weight and
+          initiate a new quote.
         </p>
       )}
     </div>

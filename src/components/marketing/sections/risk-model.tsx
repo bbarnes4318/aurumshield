@@ -39,7 +39,7 @@ export function RiskModelSection() {
   return (
     <section
       id="risk-model"
-      className="border-t border-white/[0.04] py-24 lg:py-32"
+      className="border-t border-white/4 py-24 lg:py-32"
       style={{ backgroundColor: "#0A1128" }}
     >
       <div className="mx-auto max-w-7xl px-6">
@@ -99,7 +99,7 @@ export function RiskModelSection() {
               </p>
 
               {/* Divider */}
-              <div className="mb-4 h-px w-12 bg-white/[0.08] transition-all duration-300 group-hover:w-full group-hover:bg-gold/30" />
+              <div className="mb-4 h-px w-12 bg-white/8 transition-all duration-300 group-hover:w-full group-hover:bg-gold/30" />
 
               {/* Description */}
               <p className="text-sm leading-relaxed text-gray-300">

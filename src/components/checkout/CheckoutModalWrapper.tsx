@@ -39,8 +39,8 @@ import { StepTwoRouting } from "./StepTwoRouting";
 
 /* ── Step metadata ── */
 const STEPS = [
-  { label: "Price Lock", number: 1 },
-  { label: "Settlement", number: 2 },
+  { label: "Execution Quote", number: 1 },
+  { label: "Structuring", number: 2 },
 ];
 
 /* ================================================================ */

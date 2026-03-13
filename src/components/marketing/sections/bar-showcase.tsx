@@ -148,7 +148,7 @@ export function InstitutionalBarShowcase() {
           />
 
           {/* Annotation + Image Container */}
-          <div className="relative w-full aspect-[16/10] lg:aspect-[16/8] flex items-center justify-center">
+          <div className="relative w-full aspect-16/10 lg:aspect-16/8 flex items-center justify-center">
             {/* The Gold Bar Image */}
             <div className="relative z-10 w-[55%] sm:w-[50%] lg:w-[40%]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -189,7 +189,7 @@ export function InstitutionalBarShowcase() {
 
                 {/* Tooltip card */}
                 <div
-                  className="rounded-lg border border-white/[0.08] px-4 py-3 transition-all duration-300 hover:border-gold/30 hover:shadow-[0_0_30px_-5px_rgba(212,175,55,0.1)] cursor-default"
+                  className="rounded-lg border border-white/8 px-4 py-3 transition-all duration-300 hover:border-gold/30 hover:shadow-[0_0_30px_-5px_rgba(212,175,55,0.1)] cursor-default"
                   style={{
                     backgroundColor: "rgba(10,17,40,0.90)",
                     backdropFilter: "blur(12px)",
@@ -205,7 +205,7 @@ export function InstitutionalBarShowcase() {
 
                   {/* Expanded detail on hover */}
                   <div className="max-h-0 overflow-hidden opacity-0 group-hover:max-h-[100px] group-hover:opacity-100 transition-all duration-300 ease-out">
-                    <p className="text-[11px] leading-relaxed text-slate-400 pt-2 border-t border-white/[0.06]">
+                    <p className="text-[11px] leading-relaxed text-slate-400 pt-2 border-t border-white/6">
                       {hm.detail}
                     </p>
                   </div>
@@ -242,7 +242,7 @@ export function InstitutionalBarShowcase() {
           {HALLMARKS.map((hm) => (
             <div
               key={hm.label}
-              className="rounded-lg border border-white/[0.08] px-4 py-3"
+              className="rounded-lg border border-white/8 px-4 py-3"
               style={{
                 backgroundColor: "rgba(10,17,40,0.90)",
               }}
@@ -274,7 +274,7 @@ export function InstitutionalBarShowcase() {
               style={{ backgroundColor: "#0D1320" }}
             >
               {/* Hover glow */}
-              <div className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-b from-[rgba(212,175,55,0.03)] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="pointer-events-none absolute inset-0 rounded-lg bg-linear-to-b from-[rgba(212,175,55,0.03)] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
               <div className="relative z-10">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-3">

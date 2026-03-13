@@ -403,7 +403,7 @@ export default function OfftakerMarketplacePage() {
 
             {/* CTA Button */}
             <div className="relative">
-              {isDemoActive && hasSelection && <DemoTooltip text="Select the 400-oz LBMA Good Delivery Bar ↓" position="top" />}
+              {isDemoActive && hasSelection && <DemoTooltip text="Initiate a cryptographic 30-second execution quote ↓" position="top" />}
               <button
                 disabled={!hasSelection}
                 onClick={() => {
@@ -411,14 +411,14 @@ export default function OfftakerMarketplacePage() {
                   const demoParam = isDemoActive ? "?demo=active" : "";
                   router.push(`/offtaker/orders${demoParam}`);
                 }}
-                className={`w-full font-bold text-sm tracking-wide py-3.5 flex items-center justify-center gap-2 font-mono transition-colors ${
+                className={`w-full font-bold text-sm tracking-[0.15em] uppercase py-3.5 flex items-center justify-center gap-2 font-mono transition-colors ${
                   hasSelection
                     ? "bg-gold-primary text-slate-950 hover:bg-gold-hover cursor-pointer"
                     : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
                 } ${isDemoActive && hasSelection ? DEMO_SPOTLIGHT_CLASSES : ""}`}
               >
-                <Lock className="h-4 w-4" />
-                Request Quote &amp; Lock Price
+                <Zap className="h-4 w-4" />
+                INITIATE EXECUTION QUOTE
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>

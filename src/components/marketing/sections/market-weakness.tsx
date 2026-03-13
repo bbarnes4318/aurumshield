@@ -96,8 +96,8 @@ export function MarketWeaknessSection() {
                 }}
                 className={`relative rounded-md border p-8 transition-all duration-300 ${
                   pillar.highlight
-                    ? "border-gold/30 bg-gold/[0.04]"
-                    : "border-slate-800 bg-white/[0.02] hover:border-gold/30"
+                    ? "border-gold/30 bg-gold/4"
+                    : "border-slate-800 bg-white/2 hover:border-gold/30"
                 }`}
               >
                 {/* Icon */}
@@ -105,7 +105,7 @@ export function MarketWeaknessSection() {
                   className={`mb-5 flex h-12 w-12 items-center justify-center rounded-md border ${
                     pillar.highlight
                       ? "border-gold/30 bg-gold/10"
-                      : "border-slate-800 bg-white/[0.03]"
+                      : "border-slate-800 bg-white/3"
                   }`}
                 >
                   <Icon
@@ -142,7 +142,7 @@ export function MarketWeaknessSection() {
 
                 {/* Highlight accent bar */}
                 {pillar.highlight && (
-                  <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-md bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-md bg-linear-to-r from-transparent via-gold/50 to-transparent" />
                 )}
               </motion.div>
             );

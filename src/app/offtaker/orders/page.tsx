@@ -1,186 +1,254 @@
 "use client";
 
 /* ================================================================
-   OFFTAKER ALLOCATION LEDGER — Settlement & Custody
+   OFFTAKER ORDERS — Allocation Ledger + Execution Pipeline
    ================================================================
-   Bloomberg-style data grid for all offtaker orders.
-   Strict terminal aesthetic: font-mono, dark slate, gold accents.
+   Dual-purpose page:
+   1. Shows the Offtaker's Allocation Ledger (mock order grid)
+   2. When an order row is clicked, triggers the institutional
+      execution pipeline:
+        Phase 1: Dual-Auth Gate (Maker → Checker approval)
+        Phase 2: WebAuthn Biometric Signing Ceremony
+        Phase 3: Clearing Certificate (Fedwire + ERC-3643)
+
+   This page is Step 5 of the demo tour.
    ================================================================ */
 
-import { useRouter } from "next/navigation";
-import { Shield, ArrowRight } from "lucide-react";
-import { useDemoTour, DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
+import { useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Shield,
+  ChevronRight,
+  Activity,
+  Clock,
+  FileText,
+} from "lucide-react";
+import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import { DualAuthGate } from "@/components/checkout/DualAuthGate";
+import { WebAuthnModal } from "@/components/checkout/WebAuthnModal";
+import { ClearingCertificate } from "@/components/checkout/ClearingCertificate";
 import { DemoTooltip } from "@/components/demo/DemoTooltip";
+import { DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
 
-/* ----------------------------------------------------------------
-   MOCK ORDER DATA
-   ---------------------------------------------------------------- */
-interface OrderRow {
-  orderRef: string;
-  assetType: string;
-  notionalValue: number;
-  custodyState: string;
-  settlementStatus: "AWAITING_FEDWIRE" | "TITLE_SECURED";
-}
+/* ── Execution Phases (state machine) ── */
+type ExecutionPhase = "ledger" | "auth" | "webauthn" | "complete";
 
-const MOCK_ORDERS: OrderRow[] = [
+/* ── Mock Orders ── */
+const MOCK_ORDERS = [
   {
-    orderRef: "ORD-8842-XAU",
-    assetType: "400oz Good Delivery",
-    notionalValue: 10_610_600.0,
-    custodyState: "ALLOCATED_BAILMENT",
-    settlementStatus: "AWAITING_FEDWIRE",
+    id: "ORD-8842-XAU",
+    asset: "400oz LBMA Good Delivery",
+    qty: 100,
+    notional: 106_106_000.0,
+    status: "pending_execution",
+    statusLabel: "PENDING EXECUTION",
+    statusColor: "text-gold-primary",
+    date: "2026-03-13",
+    vault: "Zurich — Malca-Amit Hub 1",
   },
   {
-    orderRef: "ORD-7291-XAU",
-    assetType: "1kg Gold Bar",
-    notionalValue: 85_362.25,
-    custodyState: "ALLOCATED_BAILMENT",
-    settlementStatus: "TITLE_SECURED",
+    id: "ORD-7291-XAU",
+    asset: "1kg LBMA Bar",
+    qty: 250,
+    notional: 16_812_500.0,
+    status: "settled",
+    statusLabel: "SETTLED",
+    statusColor: "text-emerald-400",
+    date: "2026-03-10",
+    vault: "London — Brink's Sovereign",
   },
   {
-    orderRef: "ORD-6104-XAU",
-    assetType: "10oz Cast Bar",
-    notionalValue: 26_699.38,
-    custodyState: "IN_TRANSIT_BRINKS",
-    settlementStatus: "TITLE_SECURED",
-  },
-  {
-    orderRef: "ORD-5530-XAU",
-    assetType: "400oz Good Delivery",
-    notionalValue: 10_610_600.0,
-    custodyState: "ALLOCATED_BAILMENT",
-    settlementStatus: "AWAITING_FEDWIRE",
-  },
-  {
-    orderRef: "ORD-4017-XAU",
-    assetType: "1oz Minted Bar",
-    notionalValue: 2_689.75,
-    custodyState: "VAULT_SECURED",
-    settlementStatus: "TITLE_SECURED",
+    id: "ORD-6103-XAU",
+    asset: "400oz LBMA Good Delivery",
+    qty: 50,
+    notional: 53_053_000.0,
+    status: "settled",
+    statusLabel: "SETTLED",
+    statusColor: "text-emerald-400",
+    date: "2026-03-05",
+    vault: "Zurich — Malca-Amit Hub 1",
   },
 ];
 
-/* ----------------------------------------------------------------
-   CURRENCY FORMATTER
-   ---------------------------------------------------------------- */
-function fmt(value: number): string {
-  return value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-/* ================================================================
-   COLUMN HEADERS
-   ================================================================ */
-const COLUMNS = [
-  "ORDER_REF",
-  "ASSET_TYPE",
-  "NOTIONAL_VALUE",
-  "CUSTODY_STATE",
-  "SETTLEMENT_STATUS",
-  "",
-] as const;
-
-/* ================================================================
-   PAGE COMPONENT
-   ================================================================ */
 export default function OfftakerOrdersPage() {
   const router = useRouter();
-  const { isDemoActive } = useDemoTour();
+  const searchParams = useSearchParams();
+  const isDemoActive = searchParams.get("demo") === "active";
+
+  const [executionPhase, setExecutionPhase] = useState<ExecutionPhase>("ledger");
+  const [selectedOrder, setSelectedOrder] = useState<(typeof MOCK_ORDERS)[0] | null>(null);
+
+  const handleOrderClick = useCallback((order: (typeof MOCK_ORDERS)[0]) => {
+    if (order.status === "pending_execution") {
+      setSelectedOrder(order);
+      setExecutionPhase("auth");
+    } else {
+      // Navigate to order details
+      const demoParam = isDemoActive ? "?demo=active" : "";
+      router.push(`/offtaker/orders/${order.id}${demoParam}`);
+    }
+  }, [isDemoActive, router]);
+
+  const handleBothApproved = useCallback(() => {
+    setExecutionPhase("webauthn");
+  }, []);
+
+  const handleAuthenticated = useCallback(() => {
+    setExecutionPhase("complete");
+  }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 max-w-7xl mx-auto p-8 pt-12">
-      {/* ── Section Header ── */}
-      <div className="flex items-center gap-2 mb-1">
-        <Shield className="h-3.5 w-3.5 text-gold-primary" />
-        <span className="font-mono text-xs text-gold-primary tracking-[0.2em] uppercase">
-          Settlement &amp; Custody
-        </span>
-      </div>
-      <h1 className="font-mono text-2xl text-white font-bold tracking-tight mb-8">
-        Offtaker Allocation Ledger
-      </h1>
-
-      {/* ── Data Grid ── */}
-      <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] overflow-hidden">
-        {/* Column Headers */}
-        <div className="grid grid-cols-[1fr_1.2fr_1fr_1.2fr_1.1fr_48px] border-b border-slate-800 bg-slate-950/60">
-          {COLUMNS.map((col, i) => (
-            <div
-              key={i}
-              className="px-4 py-3 font-mono text-[10px] text-slate-500 tracking-[0.15em] uppercase select-none"
-            >
-              {col}
-            </div>
-          ))}
+    <div className="h-full bg-slate-950 overflow-y-auto">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* ── Header ── */}
+        <div className="flex items-center gap-3 mb-2">
+          <Shield className="h-4 w-4 text-gold-primary" />
+          <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
+            Settlement Positions
+          </span>
         </div>
 
-        {/* Data Rows */}
-        {MOCK_ORDERS.map((order, i) => (
-          <div
-            key={order.orderRef}
-            className={`relative ${i === 0 && isDemoActive ? "" : ""}`}
-          >
-            {i === 0 && isDemoActive && <DemoTooltip text="Review Order and verify Cryptographic Title →" position="bottom" />}
-            <button
-              onClick={() => router.push(`/offtaker/orders/${order.orderRef}`)}
-              className={`grid grid-cols-[1fr_1.2fr_1fr_1.2fr_1.1fr_48px] w-full text-left border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors cursor-pointer group ${i === 0 && isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}
-            >
-            {/* ORDER_REF */}
-            <div className="px-4 py-3.5 font-mono text-xs text-white font-bold tabular-nums">
-              {order.orderRef}
+        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+          Offtaker Allocation Ledger
+        </h1>
+
+        <p className="text-slate-400 text-sm max-w-2xl mb-6 leading-relaxed">
+          All settlement positions for your institutional entity. Click a pending
+          order to initiate the dual-authorization execution pipeline.
+        </p>
+
+        {/* ════════════════════════════════════════════════════════════
+           PHASE: LEDGER — Show the order grid
+           ════════════════════════════════════════════════════════════ */}
+        {executionPhase === "ledger" && (
+          <div className="bg-slate-900 border border-slate-800 rounded-sm shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800 bg-black/30">
+              <span className="col-span-2 font-mono text-[10px] text-slate-600 tracking-wider uppercase">
+                Order Ref
+              </span>
+              <span className="col-span-3 font-mono text-[10px] text-slate-600 tracking-wider uppercase">
+                Asset
+              </span>
+              <span className="col-span-1 font-mono text-[10px] text-slate-600 tracking-wider uppercase text-right">
+                Qty
+              </span>
+              <span className="col-span-2 font-mono text-[10px] text-slate-600 tracking-wider uppercase text-right">
+                Notional
+              </span>
+              <span className="col-span-2 font-mono text-[10px] text-slate-600 tracking-wider uppercase">
+                Status
+              </span>
+              <span className="col-span-2 font-mono text-[10px] text-slate-600 tracking-wider uppercase text-right">
+                Date
+              </span>
             </div>
 
-            {/* ASSET_TYPE */}
-            <div className="px-4 py-3.5 font-mono text-xs text-slate-300">
-              {order.assetType}
-            </div>
-
-            {/* NOTIONAL_VALUE */}
-            <div className="px-4 py-3.5 font-mono text-xs text-white tabular-nums">
-              ${fmt(order.notionalValue)}
-            </div>
-
-            {/* CUSTODY_STATE */}
-            <div className="px-4 py-3.5 font-mono text-xs text-slate-400 tracking-wide">
-              {order.custodyState}
-            </div>
-
-            {/* SETTLEMENT_STATUS */}
-            <div className="px-4 py-3.5">
-              {order.settlementStatus === "AWAITING_FEDWIRE" ? (
-                <span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
-                  <span className="h-1.5 w-1.5 rounded-full bg-gold-primary animate-pulse" />
-                  <span className="text-gold-primary">AWAITING_FEDWIRE</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-emerald-400">TITLE_SECURED</span>
-                </span>
-              )}
-            </div>
-
-            {/* Row Arrow */}
-            <div className="px-4 py-3.5 flex items-center justify-center">
-              <ArrowRight className="h-3.5 w-3.5 text-slate-700 group-hover:text-gold-primary transition-colors" />
-            </div>
-            </button>
+            {/* Rows */}
+            {MOCK_ORDERS.map((order, idx) => {
+              const isPending = order.status === "pending_execution";
+              return (
+                <div key={order.id} className="relative">
+                  {isDemoActive && idx === 0 && isPending && (
+                    <DemoTooltip text="Click to begin dual-authorization execution ↓" position="top" />
+                  )}
+                  <button
+                    onClick={() => handleOrderClick(order)}
+                    className={`
+                      w-full grid grid-cols-12 gap-2 px-4 py-3.5 text-left
+                      border-b border-slate-800/50 transition-all duration-150
+                      ${isPending
+                        ? "hover:bg-gold-primary/5 cursor-pointer"
+                        : "hover:bg-slate-800/30 cursor-pointer"
+                      }
+                      ${isDemoActive && idx === 0 && isPending ? DEMO_SPOTLIGHT_CLASSES : ""}
+                    `}
+                  >
+                    <span className="col-span-2 font-mono text-xs text-white font-bold">
+                      {order.id}
+                    </span>
+                    <span className="col-span-3 font-mono text-xs text-slate-300 truncate">
+                      {order.asset}
+                    </span>
+                    <span className="col-span-1 font-mono text-xs text-slate-300 text-right tabular-nums">
+                      {order.qty.toLocaleString()}
+                    </span>
+                    <span className="col-span-2 font-mono text-xs text-white font-bold text-right tabular-nums">
+                      ${order.notional.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className={`col-span-2 font-mono text-[10px] tracking-wider uppercase font-bold flex items-center gap-1.5 ${order.statusColor}`}>
+                      {isPending ? (
+                        <Clock className="h-3 w-3 animate-pulse" />
+                      ) : (
+                        <Activity className="h-3 w-3" />
+                      )}
+                      {order.statusLabel}
+                    </span>
+                    <span className="col-span-2 font-mono text-xs text-slate-500 text-right tabular-nums flex items-center justify-end gap-1">
+                      {order.date}
+                      <ChevronRight className="h-3 w-3 text-slate-600" />
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* ── Footer Tally ── */}
-      <div className="flex items-center justify-between mt-4 px-1">
-        <span className="font-mono text-[10px] text-slate-600 tracking-wider">
-          {MOCK_ORDERS.length} ALLOCATIONS · GOLDWIRE SETTLEMENT NETWORK
-        </span>
-        <span className="font-mono text-[10px] text-slate-600 tabular-nums">
-          AGGREGATE NOTIONAL: $
-          {fmt(MOCK_ORDERS.reduce((sum, o) => sum + o.notionalValue, 0))}
-        </span>
+        {/* ════════════════════════════════════════════════════════════
+           PHASE: AUTH — Dual-Authorization Gate
+           ════════════════════════════════════════════════════════════ */}
+        {executionPhase === "auth" && selectedOrder && (
+          <div className="space-y-4">
+            {/* Order context bar */}
+            <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-sm px-4 py-3">
+              <FileText className="h-4 w-4 text-gold-primary" />
+              <div>
+                <span className="font-mono text-xs text-white font-bold">{selectedOrder.id}</span>
+                <span className="font-mono text-xs text-slate-500 ml-3">
+                  {selectedOrder.asset} × {selectedOrder.qty}
+                </span>
+              </div>
+              <span className="ml-auto font-mono text-sm text-gold-primary font-bold tabular-nums">
+                ${selectedOrder.notional.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            <DualAuthGate
+              onBothApproved={handleBothApproved}
+              isDemoActive={isDemoActive}
+            />
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════
+           PHASE: WEBAUTHN — Biometric Signing Ceremony
+           ════════════════════════════════════════════════════════════ */}
+        {executionPhase === "webauthn" && (
+          <WebAuthnModal
+            onAuthenticated={handleAuthenticated}
+            isDemoActive={isDemoActive}
+          />
+        )}
+
+        {/* ════════════════════════════════════════════════════════════
+           PHASE: COMPLETE — Clearing Certificate
+           ════════════════════════════════════════════════════════════ */}
+        {executionPhase === "complete" && selectedOrder && (
+          <ClearingCertificate
+            orderRef={selectedOrder.id}
+            notionalValue={selectedOrder.notional}
+            assetType={`${selectedOrder.asset} × ${selectedOrder.qty}`}
+          />
+        )}
+
+        {/* ── Footer ── */}
+        <p className="mt-6 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+          AurumShield Clearing · Append-Only Settlement Ledger ·
+          End-to-End Encryption · Sovereign Custody
+        </p>
+
+        <TelemetryFooter />
       </div>
     </div>
   );
