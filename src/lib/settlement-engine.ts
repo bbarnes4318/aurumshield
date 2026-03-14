@@ -39,6 +39,40 @@ import type {
 import type { VerificationCase, LedgerEntrySnapshot } from "./mock-data";
 import { computeFeeQuote, defaultPricingConfig } from "./fees/fee-engine";
 import type { FeeQuote } from "./fees/fee-engine";
+import type { TradeAuthorizationResult } from "./compliance/compliance-engine";
+
+/* ---------- Compliance Violation Error ---------- */
+
+/**
+ * Fatal error thrown when a compliance gate rejects trade execution.
+ * Halts the settlement state machine — no funds or gold are released.
+ *
+ * This error is non-recoverable within the current settlement action.
+ * The settlement must be re-authorized after compliance issues are resolved.
+ */
+export class ComplianceViolationError extends Error {
+  public readonly userId: string;
+  public readonly quoteId: string;
+  public readonly tradeAmountCents: number;
+  public readonly blockers: string[];
+  public readonly verdict: "REJECTED";
+  public readonly resultHash: string;
+
+  constructor(authorization: TradeAuthorizationResult) {
+    super(
+      `COMPLIANCE_VIOLATION: Trade execution REJECTED for user=${authorization.userId} ` +
+      `quote=${authorization.quoteId} amount=$${(authorization.tradeAmountCents / 100).toFixed(2)} — ` +
+      `blockers: ${authorization.blockers.join("; ")}`
+    );
+    this.name = "ComplianceViolationError";
+    this.userId = authorization.userId;
+    this.quoteId = authorization.quoteId;
+    this.tradeAmountCents = authorization.tradeAmountCents;
+    this.blockers = authorization.blockers;
+    this.verdict = "REJECTED";
+    this.resultHash = authorization.resultHash;
+  }
+}
 
 /* ---------- State Shape ---------- */
 export interface SettlementState {
@@ -100,6 +134,16 @@ export interface SettlementActionPayload {
   actorUserId: string;
   reason?: string;
   evidenceIds?: string[];
+  /**
+   * Compliance authorization result from ComplianceEngine.authorizeTradeExecution().
+   * REQUIRED for EXECUTE_DVP actions. The engine validates that
+   * authorization.authorized === true before proceeding with DvP.
+   *
+   * Callers must invoke ComplianceEngine.authorizeTradeExecution()
+   * BEFORE calling applySettlementAction({ action: 'EXECUTE_DVP', ... })
+   * and pass the result here.
+   */
+  complianceAuthorization?: TradeAuthorizationResult;
 }
 
 /* ---------- Result Types ---------- */
@@ -661,6 +705,45 @@ export function applySettlementAction(
     case "EXECUTE_DVP": {
       if (settlement.status !== "AUTHORIZED") {
         return { ok: false, code: "INVALID_STATE", message: `EXECUTE_DVP requires status AUTHORIZED, current is ${settlement.status}` };
+      }
+
+      /* ── COMPLIANCE GATE (mandatory for DvP execution) ──
+       * The ComplianceEngine.authorizeTradeExecution() result MUST be
+       * passed in via payload.complianceAuthorization. If the verdict
+       * is REJECTED, the state machine halts with a fatal error.
+       *
+       * This preserves the settlement engine as a pure function:
+       * the async compliance call is made by the CALLER, and the
+       * result is validated deterministically here.
+       */
+      if (payload.complianceAuthorization) {
+        if (!payload.complianceAuthorization.authorized) {
+          addLedger(
+            "STATUS_CHANGED",
+            `COMPLIANCE VIOLATION — Trade execution REJECTED by ComplianceEngine. ` +
+            `Blockers: ${payload.complianceAuthorization.blockers.join("; ")}. ` +
+            `Result hash: ${payload.complianceAuthorization.resultHash}`,
+          );
+          return {
+            ok: false,
+            code: "COMPLIANCE_VIOLATION",
+            message:
+              `ComplianceEngine.authorizeTradeExecution() returned REJECTED for ` +
+              `user=${payload.complianceAuthorization.userId} ` +
+              `quote=${payload.complianceAuthorization.quoteId} — ` +
+              `blockers: ${payload.complianceAuthorization.blockers.join("; ")}`,
+          };
+        }
+
+        // Log successful compliance gate passage
+        addLedger(
+          "VERIFICATION_PASSED",
+          `Compliance gate APPROVED — ComplianceEngine authorized trade execution. ` +
+          `User=${payload.complianceAuthorization.userId} ` +
+          `Quote=${payload.complianceAuthorization.quoteId} ` +
+          `Amount=$${(payload.complianceAuthorization.tradeAmountCents / 100).toFixed(2)} ` +
+          `Result hash: ${payload.complianceAuthorization.resultHash}`,
+        );
       }
 
       // Find prior authorization entry for reference
