@@ -54,9 +54,10 @@ function makeState(availableOz: number): MarketplaceState {
         sellerUserId: "seller-001",
         sellerOrgId: "org-001",
         sellerName: "Test Seller",
-        status: "published",
+        evidenceIds: [],
+        status: "available",
+        publishedAt: "2026-01-01T00:00:00Z",
         createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z",
       },
     ],
     inventory: [
@@ -392,8 +393,8 @@ describe("compliance perimeter — server-side policy enforcement", () => {
 
     // Order must record the SERVER policy, not client-manipulated data
     expect(order.policySnapshot).toEqual(serverPolicy);
-    expect(order.policySnapshot.triScore).toBe(5);
-    expect(order.policySnapshot.approvalTier).toBe("desk-head");
+    expect(order.policySnapshot!.triScore).toBe(5);
+    expect(order.policySnapshot!.approvalTier).toBe("desk-head");
     expect(order.notional).toBe(serverNotional);
   });
 
@@ -522,7 +523,7 @@ describe("compliance perimeter — server-side policy enforcement", () => {
     expect(order.status).toBe("pending_verification");
     expect(reservation.state).toBe("CONVERTED");
     // WARN blockers are recorded for audit, not enforcement
-    expect(order.policySnapshot.blockers).toHaveLength(2);
+    expect(order.policySnapshot!.blockers).toHaveLength(2);
   });
 });
 
@@ -729,11 +730,11 @@ describe("Ledger Integrity & Replay Guard (RSK-003)", () => {
       await import("../settlement-rail");
 
     // Register a mock Moov rail
-    registerSettlementRail("moov", {
-      name: "moov",
+    registerSettlementRail("modern_treasury", {
+      name: "modern_treasury",
       executePayout: async () => ({
         success: true,
-        railUsed: "moov" as const,
+        railUsed: "modern_treasury" as const,
         externalIds: ["moov-txn-001"],
         sellerPayoutCents: 95000,
         platformFeeCents: 5000,

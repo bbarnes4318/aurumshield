@@ -1,18 +1,21 @@
 /* ================================================================
-   MODULAR COMPLIANCE FAÇADE — Unified Clearinghouse Gate
+   MODULAR COMPLIANCE FAÇADE — Multi-Vendor Routing Engine
    ================================================================
    Centralized entry point for all compliance checks. Wraps existing
-   enterprise adapters (Veriff, GLEIF, Column) into a single
-   orchestration layer.
+   enterprise adapters (Veriff, iDenfy, GLEIF, Column) into a single
+   dynamic orchestration layer.
+
+   MULTI-VENDOR ARCHITECTURE:
+     - Routes to VERIFF or IDENFY based on ACTIVE_COMPLIANCE_PROVIDER
+     - If a user is already cleared by EITHER provider, returns APPROVED
+     - Throws CompliancePendingError with the vendor redirect URL
+       when verification is required
 
    Two primary methods:
      1. evaluateCounterpartyReadiness(userId)
-        — KYC/KYB/AML/OFAC/UBO gate
+        — KYC/KYB/AML/OFAC/UBO gate with dynamic vendor routing
      2. authorizeTradeExecution(userId, tradeAmount, quoteId)
         — Full compliance + proof-of-funds gate for DvP
-
-   Does NOT install new third-party APIs. All calls route through
-   existing adapters in this codebase.
 
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
@@ -28,11 +31,15 @@ import {
   type ComplianceCaseStatus,
 } from "@/lib/compliance/models";
 import {
+  createKYBSession,
   getKYBSessionStatus,
   processKYBDecision,
   type VeriffKYBDecision,
   type VeriffCheckResult,
 } from "@/lib/compliance/veriff-kyb-adapter";
+import {
+  generateSession as generateIdenfySession,
+} from "@/lib/compliance/idenfy-adapter";
 import {
   validateLEI,
   type LEIValidationResult,
@@ -99,6 +106,48 @@ export interface JurisdictionalRiskResult {
 }
 
 /* ================================================================
+   CompliancePendingError — Thrown when user must complete verification
+   ================================================================ */
+
+/**
+ * Thrown when a user has not yet been cleared by any compliance
+ * provider. Contains the redirect URL so the frontend can send
+ * the user to the correct verification flow.
+ */
+export class CompliancePendingError extends Error {
+  public readonly provider: "VERIFF" | "IDENFY";
+  public readonly redirectUrl: string;
+  public readonly sessionId: string;
+
+  constructor(provider: "VERIFF" | "IDENFY", sessionId: string, redirectUrl: string) {
+    super(
+      `Compliance verification pending — user must complete ${provider} flow. ` +
+        `Session: ${sessionId}`,
+    );
+    this.name = "CompliancePendingError";
+    this.provider = provider;
+    this.sessionId = sessionId;
+    this.redirectUrl = redirectUrl;
+  }
+}
+
+/* ================================================================
+   Provider Routing
+   ================================================================ */
+
+type ActiveComplianceProvider = "VERIFF" | "IDENFY";
+
+/**
+ * Resolve the active compliance provider from environment.
+ * Defaults to VERIFF if not set or invalid.
+ */
+function getActiveProvider(): ActiveComplianceProvider {
+  const raw = process.env.ACTIVE_COMPLIANCE_PROVIDER?.toUpperCase();
+  if (raw === "IDENFY") return "IDENFY";
+  return "VERIFF";
+}
+
+/* ================================================================
    Constants
    ================================================================ */
 
@@ -157,16 +206,19 @@ function auditLog(
 /* ================================================================
    evaluateCounterpartyReadiness
    ================================================================
-   Orchestrates the full KYC/KYB/AML/OFAC gate for a given user.
-   Returns a deterministic readiness result with itemized checks
-   and blockers.
+   Multi-vendor compliance orchestrator. Gates a user through the
+   full KYC/KYB/AML/OFAC/UBO pipeline.
 
-   Internal flow:
-   1. Fetch ComplianceCase from DB (models.ts)
-   2. Verify case status is APPROVED
-   3. If KYB entity, validate Veriff KYB session is approved
-   4. Verify OFAC/sanctions clearance from Veriff AML sub-checks
-   5. If LEI is present, validate via GLEIF
+   ROUTING LOGIC:
+   0. Fetch ComplianceCase from DB
+   1. If user is already APPROVED (cleared by either provider),
+      return the full readiness result immediately.
+   2. If NOT cleared, check ACTIVE_COMPLIANCE_PROVIDER env var:
+      - 'IDENFY' → call IdenfyAdapter.generateSession()
+      - 'VERIFF' → call VeriffKybAdapter.createKYBSession()
+      Throw CompliancePendingError with the vendor's redirect URL.
+   3. For in-flight Veriff cases, continue the existing sub-check
+      pipeline (KYB session, AML, UBO, GLEIF).
    ================================================================ */
 
 export async function evaluateCounterpartyReadiness(
@@ -179,44 +231,87 @@ export async function evaluateCounterpartyReadiness(
   auditLog(
     "compliance.counterparty_readiness.started",
     "INFO",
-    { userId },
+    { userId, activeProvider: getActiveProvider() },
     userId,
   );
 
-  /* ── Step 1: Fetch ComplianceCase ── */
+  /* ── Step 0: Fetch ComplianceCase ── */
   let complianceCase: ComplianceCase | null = null;
   try {
     complianceCase = await getComplianceCaseByUserId(userId);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    // In mock/demo mode, the DB may not be available.
-    // Log the error but do NOT block — create a synthetic case check instead.
     console.warn(
-      `[COMPLIANCE_ENGINE] DB query failed for userId=${userId}: ${message}. Falling back to mock evaluation.`,
+      `[COMPLIANCE_ENGINE] DB query failed for userId=${userId}: ${message}. Falling back to provider routing.`,
     );
   }
 
-  /* ── Step 2: Compliance case status gate ── */
-  if (!complianceCase) {
-    checks.push({
-      check: "COMPLIANCE_CASE_EXISTS",
-      passed: false,
-      detail: "No compliance case found for this user. KYC/KYB onboarding has not been initiated.",
-    });
-    blockers.push("No compliance case found — user must complete KYC/KYB onboarding");
-  } else {
-    const caseApproved = complianceCase.status === "APPROVED";
+  /* ── Step 1: Already cleared by EITHER provider? Return APPROVED. ── */
+  if (complianceCase?.status === "APPROVED") {
+    const verifiedBy = complianceCase.verifiedBy ?? "UNKNOWN";
     checks.push({
       check: "COMPLIANCE_CASE_STATUS",
-      passed: caseApproved,
-      detail: caseApproved
-        ? `Compliance case ${complianceCase.id} is APPROVED`
-        : `Compliance case ${complianceCase.id} status is ${complianceCase.status} — must be APPROVED`,
+      passed: true,
+      detail: `Compliance case ${complianceCase.id} is APPROVED (verified by ${verifiedBy})`,
     });
-    if (!caseApproved) {
-      blockers.push(`Compliance case status is ${complianceCase.status} — APPROVED required`);
+
+    auditLog(
+      "compliance.counterparty_readiness.already_cleared",
+      "INFO",
+      { userId, verifiedBy, complianceCaseId: complianceCase.id },
+      userId,
+    );
+
+    const resultData: Omit<CounterpartyReadinessResult, "resultHash"> = {
+      userId,
+      ready: true,
+      complianceCaseId: complianceCase.id,
+      complianceCaseStatus: complianceCase.status,
+      checks,
+      blockers: [],
+      evaluatedAt,
+    };
+    return {
+      ...resultData,
+      resultHash: hashResult(resultData as unknown as Record<string, unknown>),
+    };
+  }
+
+  /* ── Step 2: Not cleared — route to active provider ── */
+  if (!complianceCase || complianceCase.status === "OPEN" || complianceCase.status === "REJECTED") {
+    const activeProvider = getActiveProvider();
+
+    auditLog(
+      "compliance.counterparty_readiness.routing_to_provider",
+      "INFO",
+      { userId, activeProvider },
+      userId,
+    );
+
+    if (activeProvider === "IDENFY") {
+      const session = await generateIdenfySession(userId, userId);
+      throw new CompliancePendingError("IDENFY", session.sessionId, session.url);
+    } else {
+      const session = await createKYBSession({
+        organizationId: userId,
+        entityName: userId,
+        leiCode: "",
+        jurisdiction: "US",
+        checkTypes: ["BUSINESS_REGISTRATION", "UBO_VERIFICATION", "AML_SCREENING"],
+      });
+      throw new CompliancePendingError("VERIFF", session.sessionId, session.sessionUrl);
     }
   }
+
+  /* ── Step 3: Case exists but not yet APPROVED — run sub-checks ── */
+  // Note: APPROVED cases already returned in Step 1, OPEN/REJECTED routed in Step 2.
+  // If we reach here, status is one of: PENDING_USER, PENDING_PROVIDER, UNDER_REVIEW, CLOSED.
+  checks.push({
+    check: "COMPLIANCE_CASE_STATUS",
+    passed: false,
+    detail: `Compliance case ${complianceCase.id} status is ${complianceCase.status} — verification in progress, not yet APPROVED`,
+  });
+  blockers.push(`Compliance case status is ${complianceCase.status} — APPROVED required`);
 
   /* ── Step 3: Veriff KYB session verification (if KYB entity) ── */
   if (complianceCase?.entityType === "company" && complianceCase.veriffSessionId) {

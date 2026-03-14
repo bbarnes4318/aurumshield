@@ -39,9 +39,12 @@ vi.mock("@/lib/db", () => ({
 
 const mockCp: Counterparty = {
   id: "cp-1", entity: "Acme Corp", status: "active",
-  riskLevel: "low", country: "US", type: "institution",
-  lastReview: "2026-01-01",
-} as Counterparty;
+  riskLevel: "low", jurisdiction: "US", type: "asset-manager",
+  lastReview: "2026-01-01", exposure: 10_000_000,
+  analyst: "J. Smith", legalEntityId: "LEI-TEST001",
+  incorporationDate: "2020-01-01", primaryContact: "Jane Doe",
+  email: "jane@acme.com",
+};
 
 const mockCorridor: Corridor = {
   id: "cor-1", name: "US → CH", sourceCountry: "US",

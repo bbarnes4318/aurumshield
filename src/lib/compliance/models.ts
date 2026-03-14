@@ -55,6 +55,8 @@ export interface ComplianceCase {
   entityType: "individual" | "company" | null;
   /** Veriff session identifier */
   veriffSessionId: string | null;
+  /** Compliance vendor that cleared this entity: 'VERIFF' | 'IDENFY' | null */
+  verifiedBy: string | null;
   /** Parallel engagement flag — UNDER_REVIEW users get mock checkout access */
   parallelEngagementEnabled: boolean;
   createdAt: string;
@@ -81,6 +83,7 @@ export const createCaseSchema = z.object({
   providerInquiryId: z.string().nullable().optional(),
   entityType: z.enum(["individual", "company"]).nullable().optional(),
   veriffSessionId: z.string().nullable().optional(),
+  verifiedBy: z.string().nullable().optional(),
   parallelEngagementEnabled: z.boolean().optional(),
   status: z.enum(COMPLIANCE_CASE_STATUSES).optional(),
   tier: z.enum(COMPLIANCE_TIERS).optional(),
@@ -101,6 +104,7 @@ interface ComplianceCaseRow {
   provider_inquiry_id: string | null;
   entity_type: "individual" | "company" | null;
   veriff_session_id: string | null;
+  verified_by: string | null;
   parallel_engagement_enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -128,6 +132,7 @@ function caseRowToDomain(row: ComplianceCaseRow): ComplianceCase {
     providerInquiryId: row.provider_inquiry_id,
     entityType: row.entity_type ?? null,
     veriffSessionId: row.veriff_session_id ?? null,
+    verifiedBy: row.verified_by ?? null,
     parallelEngagementEnabled: row.parallel_engagement_enabled ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -205,15 +210,16 @@ export async function createComplianceCase(
     const { rows } = await client.query<ComplianceCaseRow>(
       `INSERT INTO compliance_cases (
         user_id, org_id, status, tier, org_type, jurisdiction, provider_inquiry_id,
-        entity_type, veriff_session_id, parallel_engagement_enabled
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        entity_type, veriff_session_id, verified_by, parallel_engagement_enabled
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       ON CONFLICT (user_id) DO UPDATE SET
         org_id              = COALESCE(EXCLUDED.org_id, compliance_cases.org_id),
         org_type            = COALESCE(EXCLUDED.org_type, compliance_cases.org_type),
         jurisdiction        = COALESCE(EXCLUDED.jurisdiction, compliance_cases.jurisdiction),
         provider_inquiry_id = COALESCE(EXCLUDED.provider_inquiry_id, compliance_cases.provider_inquiry_id),
         entity_type         = COALESCE(EXCLUDED.entity_type, compliance_cases.entity_type),
-        veriff_session_id   = COALESCE(EXCLUDED.veriff_session_id, compliance_cases.veriff_session_id)
+        veriff_session_id   = COALESCE(EXCLUDED.veriff_session_id, compliance_cases.veriff_session_id),
+        verified_by         = COALESCE(EXCLUDED.verified_by, compliance_cases.verified_by)
       RETURNING *`,
       [
         input.userId,
@@ -225,6 +231,7 @@ export async function createComplianceCase(
         input.providerInquiryId ?? null,
         input.entityType ?? null,
         input.veriffSessionId ?? null,
+        input.verifiedBy ?? null,
         input.parallelEngagementEnabled ?? false,
       ],
     );
