@@ -1,11 +1,14 @@
 "use client";
 
 /* ================================================================
-   STEP 6: Verification Complete — Summary Dashboard
+   STEP 5: Verification Summary Dashboard
    ================================================================
-   Final step showing a summary of all completed onboarding steps
-   with green checkmarks. Displays account readiness status and
-   requires final acknowledgment before submission.
+   Summary step showing all completed onboarding steps with green
+   checkmarks. Displays account readiness status and requires
+   final acknowledgment before proceeding to security enrollment.
+
+   NOTE: True biometric liveness is handled off-site via the
+   iDenfy/Veriff redirect — this step is the on-platform summary.
    ================================================================ */
 
 import { useFormContext } from "react-hook-form";
@@ -18,6 +21,7 @@ import {
   Users,
   FileSignature,
   ShieldCheck,
+  Landmark,
 } from "lucide-react";
 
 import type { OnboardingFormData } from "@/lib/schemas/onboarding-schema";
@@ -34,23 +38,18 @@ const SUMMARY_ITEMS = [
   },
   {
     icon: FileCheck2,
-    label: "KYB & AML Screening Passed",
-    detail: "Veriff KYB + OpenSanctions (OFAC, EU, UN, HMT, DFAT)",
-  },
-  {
-    icon: KeyRound,
-    label: "WebAuthn Security Key Enrolled",
-    detail: "FIDO2/ES256 · Phishing-resistant credential",
+    label: "KYB Entity Verification Passed",
+    detail: "Veriff KYB — corporate registry, UBO & officers, entity AML",
   },
   {
     icon: Users,
-    label: "Maker-Checker Role Assigned",
-    detail: "Dual-authorization policy acknowledged",
+    label: "UBO & AML Screening Passed",
+    detail: "OpenSanctions (OFAC, EU, UN, HMT, DFAT)",
   },
   {
-    icon: FileSignature,
-    label: "Master Agreement Executed",
-    detail: "DocuSign CLM · Cryptographic envelope",
+    icon: Landmark,
+    label: "Source of Funds Declared",
+    detail: "FATF R.10 compliant — documentary evidence archived",
   },
 ] as const;
 
@@ -58,7 +57,7 @@ const SUMMARY_ITEMS = [
    Step Component
    ---------------------------------------------------------------- */
 
-export function StepLivenessCheck() {
+export function StepVerificationSummary() {
   const {
     watch,
     register,
@@ -66,8 +65,16 @@ export function StepLivenessCheck() {
   } = useFormContext<OnboardingFormData>();
 
   const companyName = watch("companyName");
-  const role = watch("primaryRole");
-  const ssoProvider = watch("ssoProvider");
+  const sofType = watch("sourceOfFundsType");
+
+  const sofLabel =
+    sofType === "AUDITED_FINANCIALS"
+      ? "Audited Financials"
+      : sofType === "BANK_LETTER_OF_CREDIT"
+        ? "Bank Letter of Credit"
+        : sofType === "TREASURY_ALLOCATION"
+          ? "Treasury Allocation"
+          : "—";
 
   return (
     <div className="space-y-5">
@@ -75,13 +82,14 @@ export function StepLivenessCheck() {
       <div className="flex items-center gap-2 mb-1">
         <Shield className="h-4 w-4 text-color-2" />
         <h2 className="text-sm font-semibold text-color-3">
-          Verification Complete
+          Verification Summary
         </h2>
       </div>
 
       <p className="text-xs text-color-3/50 leading-relaxed -mt-2">
-        All verification steps have been completed. Review your account
-        configuration below and confirm to finalize onboarding.
+        All compliance verification steps have been completed. Review your
+        account configuration below and confirm to proceed to security
+        enrollment.
       </p>
 
       {/* ── Entity Summary Card ── */}
@@ -91,21 +99,9 @@ export function StepLivenessCheck() {
         </p>
         <div className="flex items-center gap-4 text-[10px] text-color-3/50">
           <span>
-            Role:{" "}
+            Source of Funds:{" "}
             <strong className="text-color-3/80 font-semibold">
-              {role === "TREASURY" ? "TREASURY (Checker)" : "TRADER (Maker)"}
-            </strong>
-          </span>
-          <span>
-            SSO:{" "}
-            <strong className="text-color-3/80 font-semibold">
-              {ssoProvider === "okta"
-                ? "Okta"
-                : ssoProvider === "entra_id"
-                  ? "Entra ID"
-                  : ssoProvider === "custom_saml"
-                    ? "Custom SAML"
-                    : "WebAuthn Only"}
+              {sofLabel}
             </strong>
           </span>
         </div>
@@ -139,11 +135,11 @@ export function StepLivenessCheck() {
         <div className="flex items-center justify-center gap-2 mb-1">
           <CheckCircle2 className="h-5 w-5 text-[#3fae7a]" />
           <span className="text-sm font-bold text-[#3fae7a]">
-            Account Ready for Trading
+            Compliance Verification Complete
           </span>
         </div>
         <p className="text-[10px] text-color-3/40">
-          All 5 verification gates passed · Capability level: SETTLE
+          All 4 compliance gates passed · Proceeding to security enrollment
         </p>
       </div>
 

@@ -3,9 +3,10 @@ import { z } from "zod";
 /* ================================================================
    ONBOARDING WIZARD — Zod Validation Schemas
    ================================================================
-   Eight-step enterprise onboarding flow for institutional KYB
-   verification, TOTP/WebAuthn MFA enrollment, maker-checker role
-   assignment, KYB entity verification, and DocuSign CLM attestation.
+   Nine-step enterprise onboarding flow for institutional KYB
+   verification, LEI/GLEIF validation, Source-of-Funds declaration,
+   TOTP/WebAuthn MFA enrollment, maker-checker role assignment,
+   KYB entity verification, and DocuSign CLM attestation.
 
    Each step has its own sub-schema; the combined schema is used
    by react-hook-form with zodResolver to validate per-step.
@@ -19,7 +20,7 @@ export const stepEntityRegistrationSchema = z.object({
     .string()
     .min(2, "Company name must be at least 2 characters")
     .max(255, "Company name must be under 255 characters"),
-  leiNumber: z
+  legalEntityIdentifier: z
     .string()
     .min(1, "LEI is required for institutional onboarding")
     .regex(
@@ -95,7 +96,7 @@ export const stepMakerCheckerSchema = z.object({
 });
 
 /* ----------------------------------------------------------------
-   Step 6: DocuSign CLM & Attestation
+   Step 6: DocuSign CLM & Attestation (MCA Execution Gate)
    ---------------------------------------------------------------- */
 export const stepDocuSignSchema = z.object({
   agreementSigned: z.literal(true, {
@@ -117,7 +118,32 @@ export const stepKYBEntitySchema = z.object({
 });
 
 /* ----------------------------------------------------------------
-   Step 8: Treasury Funding Architecture
+   Step 8: Source of Funds Declaration
+   ---------------------------------------------------------------- */
+export const SOURCE_OF_FUNDS_TYPES = [
+  { value: "AUDITED_FINANCIALS", label: "Audited Financials" },
+  { value: "BANK_LETTER_OF_CREDIT", label: "Bank Letter of Credit" },
+  { value: "TREASURY_ALLOCATION", label: "Corporate Treasury Allocation" },
+] as const;
+
+export type SourceOfFundsType = (typeof SOURCE_OF_FUNDS_TYPES)[number]["value"];
+
+export const stepSourceOfFundsSchema = z.object({
+  sourceOfFundsType: z.enum(
+    ["AUDITED_FINANCIALS", "BANK_LETTER_OF_CREDIT", "TREASURY_ALLOCATION"],
+    { message: "Select the origin of capital" },
+  ),
+  sourceOfFundsDocumentUrl: z
+    .string()
+    .min(1, "A supporting document is required"),
+  sourceOfFundsAttested: z.literal(true, {
+    message:
+      "You must attest under penalty of perjury that these funds do not originate from sanctioned, illicit, or conflict-related activities",
+  }),
+});
+
+/* ----------------------------------------------------------------
+   Step 9: Treasury Funding Architecture
    ----------------------------------------------------------------
    Phase 1 (Closed Beta): Stablecoin bridge for instant clearing.
    Phase 2 (General Availability): Legacy correspondent banking.
@@ -144,7 +170,7 @@ export const stepTreasuryFundingSchema = z.object({
 });
 
 /* ----------------------------------------------------------------
-   Step 9: Verification Complete (no additional validation)
+   Step 10: Verification Complete (no additional validation)
    ---------------------------------------------------------------- */
 export const stepVerificationCompleteSchema = z.object({
   verificationAcknowledged: z.literal(true, {
@@ -162,6 +188,7 @@ export const onboardingSchema = stepEntityRegistrationSchema
   .merge(stepMakerCheckerSchema)
   .merge(stepDocuSignSchema)
   .merge(stepKYBEntitySchema)
+  .merge(stepSourceOfFundsSchema)
   .merge(stepTreasuryFundingSchema)
   .merge(stepVerificationCompleteSchema);
 
@@ -175,58 +202,70 @@ export type StepTOTPEnrollmentData = z.infer<typeof stepTOTPEnrollmentSchema>;
 export type StepMakerCheckerData = z.infer<typeof stepMakerCheckerSchema>;
 export type StepDocuSignData = z.infer<typeof stepDocuSignSchema>;
 export type StepKYBEntityData = z.infer<typeof stepKYBEntitySchema>;
+export type StepSourceOfFundsData = z.infer<typeof stepSourceOfFundsSchema>;
 export type StepTreasuryFundingData = z.infer<typeof stepTreasuryFundingSchema>;
 export type StepVerificationCompleteData = z.infer<typeof stepVerificationCompleteSchema>;
 export type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
 /* ----------------------------------------------------------------
-   Step Metadata — used by the progress bar
+   Step Metadata — used by the progress bar (9-step flow)
+   ----------------------------------------------------------------
+   Sequence:
+     1. Corporate Identity & LEI
+     2. KYB Entity Verification
+     3. UBO & AML Screening
+     4. Source of Funds Declaration
+     5. Verification Summary
+     6. Maker-Checker Roles
+     7. TOTP 2FA Enrollment
+     8. WebAuthn Enrollment
+     9. MCA Execution (DocuSign CLM)
    ---------------------------------------------------------------- */
 export const ONBOARDING_STEPS = [
   {
     id: 1,
     label: "Entity & LEI",
-    fields: ["companyName", "leiNumber", "leiVerified", "registrationNumber", "jurisdiction", "contactEmail", "contactPhone"] as const,
+    fields: ["companyName", "legalEntityIdentifier", "leiVerified", "registrationNumber", "jurisdiction", "contactEmail", "contactPhone"] as const,
   },
   {
     id: 2,
-    label: "KYB & AML",
-    fields: ["uboDocumentName", "uboDeclarationAccepted", "sanctionsScreeningPassed"] as const,
-  },
-  {
-    id: 3,
-    label: "WebAuthn",
-    fields: ["webauthnEnrolled", "ssoProvider"] as const,
-  },
-  {
-    id: 4,
-    label: "TOTP MFA",
-    fields: ["totpEnrolled"] as const,
-  },
-  {
-    id: 5,
-    label: "Roles",
-    fields: ["primaryRole", "dualAuthAcknowledged"] as const,
-  },
-  {
-    id: 6,
-    label: "Agreement",
-    fields: ["agreementSigned", "complianceAttested"] as const,
-  },
-  {
-    id: 7,
     label: "Entity KYB",
     fields: ["kybVerificationPassed"] as const,
   },
   {
+    id: 3,
+    label: "UBO & AML",
+    fields: ["uboDocumentName", "uboDeclarationAccepted", "sanctionsScreeningPassed"] as const,
+  },
+  {
+    id: 4,
+    label: "Source of Funds",
+    fields: ["sourceOfFundsType", "sourceOfFundsDocumentUrl", "sourceOfFundsAttested"] as const,
+  },
+  {
+    id: 5,
+    label: "Summary",
+    fields: ["verificationAcknowledged"] as const,
+  },
+  {
+    id: 6,
+    label: "Roles",
+    fields: ["primaryRole", "dualAuthAcknowledged"] as const,
+  },
+  {
+    id: 7,
+    label: "TOTP MFA",
+    fields: ["totpEnrolled"] as const,
+  },
+  {
     id: 8,
-    label: "Treasury",
-    fields: ["fundingMethod", "walletAddress", "walletNetwork", "stablecoinAsset", "bankName", "bankRoutingNumber", "bankAccountNumber", "bankSwiftCode"] as const,
+    label: "WebAuthn",
+    fields: ["webauthnEnrolled", "ssoProvider"] as const,
   },
   {
     id: 9,
-    label: "Complete",
-    fields: ["verificationAcknowledged"] as const,
+    label: "MCA Gate",
+    fields: ["agreementSigned", "complianceAttested"] as const,
   },
 ] as const;
 

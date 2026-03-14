@@ -1,12 +1,12 @@
 "use client";
 
 /* ================================================================
-   ONBOARDING WIZARD — Orchestrator (8-step enterprise flow)
+   ONBOARDING WIZARD — Orchestrator (9-step enterprise flow)
    ================================================================
-   Eight-step progressive disclosure for institutional KYB enrollment,
-   TOTP/WebAuthn MFA credential registration, maker-checker role
-   assignment, KYB entity verification, DocuSign CLM attestation,
-   and verification completion.
+   Nine-step progressive disclosure for institutional KYB enrollment,
+   LEI/GLEIF verification, Source-of-Funds declaration, TOTP/WebAuthn
+   MFA credential registration, maker-checker role assignment, KYB
+   entity verification, and DocuSign CLM attestation.
 
    Save-and-Resume:
      • On mount: loads saved state from /api/compliance/state
@@ -16,13 +16,14 @@
 
    Steps:
      1. Entity Registration & LEI
-     2. KYB & Sanctions Screening
-     3. WebAuthn & SSO Enrollment
-     4. TOTP Authenticator Enrollment
-     5. Maker-Checker Role Assignment
-     6. DocuSign CLM & Attestation
-     7. KYB Entity Verification
-     8. Verification Complete
+     2. KYB Entity Verification
+     3. UBO & AML Screening
+     4. Source of Funds Declaration
+     5. Verification Summary
+     6. Maker-Checker Role Assignment
+     7. TOTP Authenticator Enrollment
+     8. WebAuthn & SSO Enrollment
+     9. DocuSign CLM & MCA Execution
    ================================================================ */
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -44,13 +45,14 @@ import {
 } from "@/lib/schemas/onboarding-schema";
 
 import { StepCorporateIdentity } from "./StepCorporateIdentity";
-import { StepUBODocuments } from "./StepUBODocuments";
-import { StepWebAuthnEnrollment } from "./StepWebAuthnEnrollment";
-import { StepTOTPEnrollment } from "./StepTOTPEnrollment";
-import { StepMakerChecker } from "./StepMakerChecker";
-import { StepDocuSignCLM } from "./StepDocuSignCLM";
 import { StepKYBEntityVerification } from "./StepKYBEntityVerification";
-import { StepLivenessCheck } from "./StepLivenessCheck";
+import { StepUBODocuments } from "./StepUBODocuments";
+import { StepSourceOfFunds } from "./StepSourceOfFunds";
+import { StepVerificationSummary } from "./StepVerificationSummary";
+import { StepMakerChecker } from "./StepMakerChecker";
+import { StepTOTPEnrollment } from "./StepTOTPEnrollment";
+import { StepWebAuthnEnrollment } from "./StepWebAuthnEnrollment";
+import { StepDocuSignCLM } from "./StepDocuSignCLM";
 
 import {
   useOnboardingState,
@@ -61,15 +63,18 @@ import {
    Constants
    ---------------------------------------------------------------- */
 
+/** Total number of steps in the wizard. */
+const TOTAL_STEPS = 9;
+
 /** Step index (1-based) of the DocuSign CLM / MCA gate. */
-const MCA_STEP = 6;
+const MCA_STEP = 9;
 
 /** Fatal error copy — displayed if a user attempts to bypass MCA signing. */
 const MCA_FATAL_MESSAGE =
   "Legal indemnification required. The Master Commercial Agreement must be executed by an authorized corporate officer before treasury routing is enabled.";
 
 /* ----------------------------------------------------------------
-   Progress Bar — 8-step
+   Progress Bar — 9-step
    ---------------------------------------------------------------- */
 
 function ProgressBar({ currentStep }: { currentStep: number }) {
@@ -148,24 +153,27 @@ export function OnboardingWizard() {
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       companyName: "",
-      leiNumber: "",
+      legalEntityIdentifier: "",
       leiVerified: false as unknown as true,
       registrationNumber: "",
       jurisdiction: "",
       contactEmail: "",
       contactPhone: "",
+      kybVerificationPassed: false as unknown as true,
       uboDocumentName: "",
       uboDeclarationAccepted: false as unknown as true,
       sanctionsScreeningPassed: false as unknown as true,
-      webauthnEnrolled: false as unknown as true,
-      ssoProvider: "none",
-      totpEnrolled: false as unknown as true,
+      sourceOfFundsType: undefined,
+      sourceOfFundsDocumentUrl: "",
+      sourceOfFundsAttested: false as unknown as true,
+      verificationAcknowledged: false as unknown as true,
       primaryRole: undefined,
       dualAuthAcknowledged: false as unknown as true,
+      totpEnrolled: false as unknown as true,
+      webauthnEnrolled: false as unknown as true,
+      ssoProvider: "none",
       agreementSigned: false as unknown as true,
       complianceAttested: false as unknown as true,
-      kybVerificationPassed: false as unknown as true,
-      verificationAcknowledged: false as unknown as true,
     },
     mode: "onTouched",
   });
@@ -183,7 +191,7 @@ export function OnboardingWizard() {
       const saved = savedStateQ.data;
 
       // Restore wizard step
-      if (saved.currentStep >= 1 && saved.currentStep <= 8) {
+      if (saved.currentStep >= 1 && saved.currentStep <= TOTAL_STEPS) {
         setCurrentStep(saved.currentStep);
       }
 
@@ -192,24 +200,27 @@ export function OnboardingWizard() {
       if (meta && typeof meta === "object") {
         reset({
           companyName: meta.companyName ?? "",
-          leiNumber: meta.leiNumber ?? "",
+          legalEntityIdentifier: meta.legalEntityIdentifier ?? "",
           leiVerified: (meta.leiVerified ?? false) as unknown as true,
           registrationNumber: meta.registrationNumber ?? "",
           jurisdiction: meta.jurisdiction ?? "",
           contactEmail: meta.contactEmail ?? "",
           contactPhone: meta.contactPhone ?? "",
+          kybVerificationPassed: (meta.kybVerificationPassed ?? false) as unknown as true,
           uboDocumentName: meta.uboDocumentName ?? "",
           uboDeclarationAccepted: (meta.uboDeclarationAccepted ?? false) as unknown as true,
           sanctionsScreeningPassed: (meta.sanctionsScreeningPassed ?? false) as unknown as true,
-          webauthnEnrolled: (meta.webauthnEnrolled ?? false) as unknown as true,
-          ssoProvider: meta.ssoProvider ?? "none",
-          totpEnrolled: (meta.totpEnrolled ?? false) as unknown as true,
+          sourceOfFundsType: meta.sourceOfFundsType,
+          sourceOfFundsDocumentUrl: meta.sourceOfFundsDocumentUrl ?? "",
+          sourceOfFundsAttested: (meta.sourceOfFundsAttested ?? false) as unknown as true,
+          verificationAcknowledged: (meta.verificationAcknowledged ?? false) as unknown as true,
           primaryRole: meta.primaryRole,
           dualAuthAcknowledged: (meta.dualAuthAcknowledged ?? false) as unknown as true,
+          totpEnrolled: (meta.totpEnrolled ?? false) as unknown as true,
+          webauthnEnrolled: (meta.webauthnEnrolled ?? false) as unknown as true,
+          ssoProvider: meta.ssoProvider ?? "none",
           agreementSigned: (meta.agreementSigned ?? false) as unknown as true,
           complianceAttested: (meta.complianceAttested ?? false) as unknown as true,
-          kybVerificationPassed: (meta.kybVerificationPassed ?? false) as unknown as true,
-          verificationAcknowledged: (meta.verificationAcknowledged ?? false) as unknown as true,
         });
       }
     }
@@ -238,7 +249,7 @@ export function OnboardingWizard() {
     const valid = await trigger(stepFields as unknown as (keyof OnboardingFormData)[]);
     if (!valid) return;
 
-    /* ── MCA HARD GATE — Step 6 (DocuSign CLM) ── */
+    /* ── MCA HARD GATE — Step 9 (DocuSign CLM) ── */
     if (currentStep === MCA_STEP) {
       const mcaSigned = getValues("agreementSigned");
       if (mcaSigned !== true) {
@@ -285,7 +296,7 @@ export function OnboardingWizard() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Mark onboarding as completed
-      saveProgress(8, "COMPLETED");
+      saveProgress(TOTAL_STEPS, "COMPLETED");
 
       setIsSubmitting(false);
       router.push("/buyer");
@@ -300,19 +311,21 @@ export function OnboardingWizard() {
       case 1:
         return <StepCorporateIdentity />;
       case 2:
-        return <StepUBODocuments />;
-      case 3:
-        return <StepWebAuthnEnrollment />;
-      case 4:
-        return <StepTOTPEnrollment />;
-      case 5:
-        return <StepMakerChecker />;
-      case 6:
-        return <StepDocuSignCLM />;
-      case 7:
         return <StepKYBEntityVerification />;
+      case 3:
+        return <StepUBODocuments />;
+      case 4:
+        return <StepSourceOfFunds />;
+      case 5:
+        return <StepVerificationSummary />;
+      case 6:
+        return <StepMakerChecker />;
+      case 7:
+        return <StepTOTPEnrollment />;
       case 8:
-        return <StepLivenessCheck />;
+        return <StepWebAuthnEnrollment />;
+      case 9:
+        return <StepDocuSignCLM />;
       default:
         return null;
     }
@@ -341,7 +354,7 @@ export function OnboardingWizard() {
               Institutional Onboarding
             </h1>
             <p className="text-xs text-color-3/50">
-              Enterprise KYB · WebAuthn · Maker-Checker · DocuSign CLM
+              Enterprise KYB · GLEIF LEI · Source of Funds · MFA · DocuSign CLM
             </p>
           </div>
         </div>
