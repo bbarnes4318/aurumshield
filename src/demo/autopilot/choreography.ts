@@ -210,13 +210,13 @@ const marketplace_browse: AutopilotStep = {
 
 /* ================================================================
    PHASE 4: THE ATOMIC SWAP
-   Route: /offtaker/checkout
+   Route: /offtaker/marketplace (inline execution)
    ================================================================ */
 
 const atomic_rail_select: AutopilotStep = {
   id: "atomic-rail-select",
   phase: AutopilotPhase.ATOMIC_SWAP,
-  route: "/offtaker/checkout/demo-quote-001",
+  route: "/offtaker/marketplace",
   label: "MPC Wallet Provisioning",
   navigationDelayMs: 1200,
   domActions: [
@@ -261,7 +261,7 @@ const atomic_rail_select: AutopilotStep = {
 const atomic_confirm: AutopilotStep = {
   id: "atomic-confirm",
   phase: AutopilotPhase.ATOMIC_SWAP,
-  route: "/offtaker/checkout/demo-quote-001",
+  route: "/offtaker/marketplace",
   label: "Settlement Finality",
   navigationDelayMs: 500,
   domActions: [
