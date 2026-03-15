@@ -15,9 +15,8 @@ export const intakeDossierSchema = z.object({
 
   legalEntityIdentifier: z
     .string()
-    .min(1, "LEI is required for institutional onboarding")
-    .regex(
-      /^[A-Z0-9]{20}$/,
+    .refine(
+      (v) => v === "" || /^[A-Za-z0-9]{20}$/.test(v),
       "LEI must be exactly 20 alphanumeric characters (e.g. 5493001KJTIIGC8Y1R12)",
     ),
 

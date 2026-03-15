@@ -71,8 +71,9 @@ export default function IntakeDossierPage() {
           </h1>
 
           <p className="text-slate-400 text-sm md:text-base max-w-2xl leading-relaxed">
-            Complete the compliance intake dossier for your legal entity. All
-            fields are required prior to biometric identity verification.
+            Complete the compliance intake dossier for your legal entity.
+            Required fields must be filled prior to biometric identity
+            verification.
           </p>
         </div>
 

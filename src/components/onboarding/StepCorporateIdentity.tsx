@@ -263,8 +263,8 @@ export function StepCorporateIdentity() {
       </div>
 
       <p className="text-xs text-color-3/50 leading-relaxed -mt-2">
-        Register your organization with a mandatory Legal Entity Identifier
-        (LEI), verified against the Global LEI Foundation (GLEIF) API.
+        Register your organization. If you have a Legal Entity Identifier
+        (LEI), enter it below to auto-verify via the GLEIF API.
       </p>
 
       {/* Company Name */}
@@ -279,7 +279,7 @@ export function StepCorporateIdentity() {
       <div className="flex flex-col gap-1.5">
         <label className="text-[11px] font-semibold uppercase tracking-widest text-color-3/60">
           Legal Entity Identifier (LEI)
-          <span className="text-color-4 ml-0.5">*</span>
+          <span className="text-color-3/30 ml-1 normal-case tracking-normal text-[10px]">Optional</span>
         </label>
         <div className="flex gap-2">
           <input
@@ -300,7 +300,7 @@ export function StepCorporateIdentity() {
           <button
             type="button"
             onClick={handleGleifVerify}
-            disabled={gleifState === "verifying" || gleifState === "verified" || !leiValue || leiValue.length !== 20}
+            disabled={gleifState === "verifying" || gleifState === "verified" || !leiValue || leiValue.trim().length !== 20}
             className="
               inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5
               bg-color-2/15 text-color-2 text-xs font-medium

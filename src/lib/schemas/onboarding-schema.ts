@@ -22,14 +22,11 @@ export const stepEntityRegistrationSchema = z.object({
     .max(255, "Company name must be under 255 characters"),
   legalEntityIdentifier: z
     .string()
-    .min(1, "LEI is required for institutional onboarding")
-    .regex(
-      /^[A-Z0-9]{20}$/,
+    .refine(
+      (v) => v === "" || /^[A-Za-z0-9]{20}$/.test(v),
       "LEI must be exactly 20 alphanumeric characters (e.g. 5493001KJTIIGC8Y1R12)",
     ),
-  leiVerified: z.literal(true, {
-    message: "LEI must be verified via GLEIF before proceeding",
-  }),
+  leiVerified: z.boolean().optional().default(false),
   registrationNumber: z
     .string()
     .max(100, "Registration number must be under 100 characters")
