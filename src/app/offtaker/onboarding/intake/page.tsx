@@ -37,14 +37,25 @@ export default function IntakeDossierPage() {
     formState: { errors, isSubmitting },
   } = useForm<IntakeDossierData>({
     resolver: zodResolver(intakeDossierSchema),
-    defaultValues: {
-      legalEntityName: "",
-      legalEntityIdentifier: "",
-      jurisdictionOfIncorporation: "",
-      registrationDate: "",
-      ultimateBeneficialOwners: "",
-      sourceOfFundsDeclaration: "",
-    },
+    defaultValues: isDemoActive
+      ? {
+          legalEntityName: "Aureus Capital Partners Ltd.",
+          legalEntityIdentifier: "5493001KJTIIGC8Y1R12",
+          jurisdictionOfIncorporation: "GB",
+          registrationDate: "2019-03-15",
+          ultimateBeneficialOwners:
+            "James R. Whitfield — British National — 45% voting rights\nVictoria A. Chen — Singapore National — 30% voting rights\nNicholas D. Hartmann — Swiss National — 25% voting rights",
+          sourceOfFundsDeclaration:
+            "Capital originates from the operational treasury of Aureus Capital Partners Ltd., a UK-registered institutional precious metals trading firm (FCA Reference: 847291). Funds are held in segregated Tier-1 custody accounts at Barclays Corporate Banking (Sort Code: 20-00-00) and deployed exclusively for sovereign-grade physical gold acquisition through regulated clearing infrastructure.",
+        }
+      : {
+          legalEntityName: "",
+          legalEntityIdentifier: "",
+          jurisdictionOfIncorporation: "",
+          registrationDate: "",
+          ultimateBeneficialOwners: "",
+          sourceOfFundsDeclaration: "",
+        },
   });
 
   const onSubmit = async (data: IntakeDossierData) => {
@@ -251,7 +262,7 @@ export default function IntakeDossierPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`bg-gold-primary text-slate-950 font-bold text-sm tracking-wide px-6 py-3 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}
+                className={`bg-gold-primary text-slate-950 font-bold text-sm tracking-wide px-6 py-3 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${isDemoActive ? `${DEMO_SPOTLIGHT_CLASSES} demo-cta-glow` : ""}`}
               >
                 {isSubmitting ? "Saving..." : "Save & Proceed to Identity Verification"}
                 <ArrowRight className="h-4 w-4" />

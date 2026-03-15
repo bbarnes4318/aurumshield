@@ -557,7 +557,7 @@ export default function KYBConsolePage() {
               /* All steps complete — unlock marketplace */
               <button
                 onClick={() => router.push(`/offtaker/marketplace${demoParam}`)}
-                className="w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-4 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2 font-mono cursor-pointer"
+                className="w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-4 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2 font-mono cursor-pointer demo-cta-glow"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 Enter AurumShield Marketplace

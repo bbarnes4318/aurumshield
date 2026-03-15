@@ -587,6 +587,33 @@ body.presentation-mode .typo-mono {
 }
 
 /* ----------------------------------------------------------------
+   10b. DATE INPUT — Dark Background Browser Fixes
+   ----------------------------------------------------------------
+   Ensures native date/time picker icons are visible on dark backgrounds.
+   ---------------------------------------------------------------- */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.7);
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------
+   10c. DEMO CTA — Gold Glow Animation
+   ---------------------------------------------------------------- */
+@keyframes goldGlow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(198, 168, 107, 0.3), 0 0 16px rgba(198, 168, 107, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(198, 168, 107, 0.5), 0 0 32px rgba(198, 168, 107, 0.2);
+  }
+}
+.demo-cta-glow {
+  animation: goldGlow 2s ease-in-out infinite;
+}
+
+/* ----------------------------------------------------------------
    11. SLIDE-OUT PANEL ANIMATION
    ---------------------------------------------------------------- */
 @keyframes slideInRight {

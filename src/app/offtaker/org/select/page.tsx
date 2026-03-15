@@ -135,7 +135,7 @@ export default function OrgSelectPage() {
               )}
               <button
                 onClick={handleInitializeOrg}
-                className={`w-full bg-gold-primary text-slate-950 font-mono font-bold text-sm tracking-[0.15em] uppercase py-4 flex items-center justify-center gap-2 hover:bg-gold-hover transition-colors cursor-pointer ${isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}
+                className={`w-full bg-gold-primary text-slate-950 font-mono font-bold text-sm tracking-[0.15em] uppercase py-4 flex items-center justify-center gap-2 hover:bg-gold-hover transition-colors cursor-pointer ${isDemoActive ? `${DEMO_SPOTLIGHT_CLASSES} demo-cta-glow` : ""}`}
               >
                 <Building2 className="h-4 w-4" />
                 Initialize New Entity
