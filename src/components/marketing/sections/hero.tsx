@@ -50,9 +50,8 @@ export function HeroSection() {
             variants={fade}
             className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight max-w-3xl"
           >
-            Settle Millions <span className="text-gold">Instantly</span>
-            <br />
-            with Verified Gold.
+            Institutional Gold Clearing,{" "}
+            <span className="text-gold">Modernized.</span>
           </motion.h1>
 
           <motion.p
@@ -62,10 +61,9 @@ export function HeroSection() {
             variants={fade}
             className="text-base md:text-lg text-gray-300 leading-relaxed max-w-2xl"
           >
-            AurumShield is a Principal Market Maker clearinghouse. We bypass
-            legacy correspondent banking, utilizing vaulted physical gold as a
-            deterministic transport layer for instant, multi-million dollar
-            cross-border settlements.
+            Execute instant, high-volume cross-border settlements backed by
+            fully allocated, vaulted physical gold. We bypass legacy banking
+            delays to deliver zero counterparty risk and absolute finality.
           </motion.p>
 
           <motion.div
@@ -79,15 +77,15 @@ export function HeroSection() {
               href="#pipeline"
               className="inline-flex items-center justify-center gap-2 bg-action-gold hover:bg-action-gold/90 text-slate-950 font-bold px-8 py-4 rounded-lg transition-all duration-200"
             >
-              Explore the Protocol
+              See How It Works
               <ArrowDown className="h-4 w-4" />
             </a>
 
             <a
-              href="#card"
+              href="/perimeter/register"
               className="inline-flex items-center justify-center gap-2 bg-transparent border border-gold/40 hover:border-gold text-gold font-bold px-8 py-4 rounded-lg transition-all duration-200"
             >
-              View Corporate Card
+              Request Institutional Access
             </a>
           </motion.div>
         </div>

@@ -19,17 +19,17 @@ import { ArrowRight, Menu, X } from "lucide-react";
 /* ── Section Imports ── */
 import { HeroSection } from "./sections/hero";
 import { InstitutionalTrustMarquee } from "./sections/trust-marquee";
-import { MarketWeaknessSection } from "./sections/market-weakness";
-import { ClearingArchitectureSection } from "./sections/clearing-architecture";
 import { SettlementLifecycleSection } from "./sections/settlement-lifecycle";
 import { InstitutionalVolumeScalingTable } from "./sections/volume-scaling-table";
+import { MarketWeaknessSection } from "./sections/market-weakness";
+import { CapitalEfficiencySection } from "./sections/capital-efficiency";
+import { BuyerJourneySection } from "./sections/buyer-journey";
 import { GoldwireLiquiditySimulator } from "./sections/liquidity-simulator";
 import { RiskModelSection } from "./sections/risk-model";
 import { ComplianceGate } from "./sections/compliance-gate";
 import { GoldwireCardSection } from "./sections/goldwire-card";
 import { InstitutionalCloseSection } from "./sections/institutional-close";
 import { TelemetryTerminal } from "./telemetry-terminal";
-import SystemComparisonChart from "./SystemComparisonChart";
 
 const InstitutionalBarShowcase = dynamic(
   () =>
@@ -398,43 +398,40 @@ function SiteFooter() {
 }
 
 /* ================================================================
-   MAIN EXPORT — THE STRICT NARRATIVE RENDER SEQUENCE
+   MAIN EXPORT — OPTIMIZED INVESTOR CONVERSION SEQUENCE
    ================================================================
-   14-section architecture:
-   1. The Hook & Proof       → HeroSection, InstitutionalTrustMarquee
-   2. The Thesis             → MarketWeaknessSection, SystemComparisonChart
-   3. The Solution (Engine)  → ClearingArchitecture, SettlementLifecycle, TelemetryTerminal
-   4. The Asset              → InstitutionalBarShowcase, InstitutionalVolumeScalingTable
-   5. The Security           → RiskModelSection, ComplianceGate
-   6. The Velocity           → GoldwireLiquiditySimulator, GoldwireCardSection
-   7. The Close              → InstitutionalCloseSection, SiteFooter
+   1. Hook & Proof         → HeroSection, InstitutionalTrustMarquee
+   2. How It Works          → SettlementLifecycleSection
+   3. Proof of Asset        → InstitutionalBarShowcase, VolumeScalingTable
+   4. Live Engine           → TelemetryTerminal
+   5. The Thesis            → MarketWeaknessSection, CapitalEfficiencySection
+   6. The Journey           → BuyerJourneySection (Perimeter to Vault)
+   7. Security & Compliance → RiskModel, ComplianceGate, LiquiditySimulator
+   8. The Close             → GoldwireCard, InstitutionalClose, Footer
    ================================================================ */
 export function MarketingLanding() {
   return (
     <div className="min-h-screen bg-slate-950 text-white antialiased font-sans">
       <Navigation />
 
-      {/* ── 1. THE HOOK & PROOF ── */}
+      {/* ── 1. HOOK & PROOF ── */}
       <HeroSection />
       <InstitutionalTrustMarquee />
 
-      {/* ── 2. THE THESIS (Why legacy fails) ── */}
-      <section className="bg-slate-900 border-t border-slate-800/50">
-        <MarketWeaknessSection />
-      </section>
-      <section className="py-16 lg:py-24 bg-slate-950 border-t border-slate-800/50">
-        <div className="mx-auto max-w-7xl px-6">
-          <SystemComparisonChart />
-        </div>
-      </section>
-
-      {/* ── 3. THE SOLUTION (The Engine) ── */}
-      <section className="bg-slate-900 border-t border-slate-800/50">
-        <ClearingArchitectureSection />
-      </section>
-      <section className="bg-slate-950 border-t border-slate-800/50">
+      {/* ── 2. HOW IT WORKS ── */}
+      <section id="pipeline" className="bg-slate-950 border-t border-slate-800/50">
         <SettlementLifecycleSection />
       </section>
+
+      {/* ── 3. PROOF OF ASSET (Physical Reality — early conviction) ── */}
+      <section className="bg-slate-950 border-t border-slate-800/50">
+        <InstitutionalBarShowcase />
+      </section>
+      <section className="bg-slate-900 border-t border-slate-800/50">
+        <InstitutionalVolumeScalingTable />
+      </section>
+
+      {/* ── 4. LIVE ENGINE (Trust builder — real-time proof) ── */}
       <section className="py-16 lg:py-24 bg-slate-900 border-t border-slate-800/50 relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(198,168,107,0.03)_0%,transparent_70%)] pointer-events-none" />
         <div className="mx-auto max-w-7xl px-6 w-full relative z-10">
@@ -459,29 +456,32 @@ export function MarketingLanding() {
         </div>
       </section>
 
-      {/* ── 4. THE ASSET (Physical Reality) ── */}
+      {/* ── 5. THE THESIS (Why legacy fails + capital efficiency) ── */}
       <section className="bg-slate-950 border-t border-slate-800/50">
-        <InstitutionalBarShowcase />
+        <MarketWeaknessSection />
       </section>
-      <section className="bg-slate-900 border-t border-slate-800/50">
-        <InstitutionalVolumeScalingTable />
+      <section className="bg-slate-950">
+        <CapitalEfficiencySection />
       </section>
 
-      {/* ── 5. THE SECURITY (Risk & Law) ── */}
+      {/* ── 6. THE BUYER'S JOURNEY (Perimeter to Vault) ── */}
+      <BuyerJourneySection />
+
+      {/* ── 7. SECURITY & COMPLIANCE (Unified dark block) ── */}
       <section className="bg-slate-950 border-t border-slate-800/50">
         <RiskModelSection />
-      </section>
-      <section className="bg-slate-900 border-t border-slate-800/50">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="h-px w-full bg-slate-800/50" />
+        </div>
         <ComplianceGate />
-      </section>
-
-      {/* ── 6. THE VELOCITY (Liquidity) ── */}
-      <section className="bg-slate-950 border-t border-slate-800/50">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="h-px w-full bg-slate-800/50" />
+        </div>
         <GoldwireLiquiditySimulator />
       </section>
-      <GoldwireCardSection />
 
-      {/* ── 7. THE CLOSE ── */}
+      {/* ── 8. THE CLOSE ── */}
+      <GoldwireCardSection />
       <section className="bg-slate-900 border-t border-slate-800/50">
         <InstitutionalCloseSection />
       </section>

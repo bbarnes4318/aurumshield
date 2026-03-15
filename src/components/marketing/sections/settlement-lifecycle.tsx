@@ -2,36 +2,38 @@
 
 import { motion } from "framer-motion";
 
+/* ── Step Data — scannable, jargon-free ── */
 const STEPS = [
   {
     label: "Listed",
     description:
-      "Asset verified against LBMA Good Delivery standards. Three evidence types packed and immutably recorded in the audit ledger.",
+      "Your gold is verified against LBMA Good Delivery standards and recorded in the immutable audit ledger.",
   },
   {
     label: "Locked",
     description:
-      "Price locked via live XAU/USD spot rate. Inventory concurrency guard prevents double-allocation. Capital adequacy validated.",
+      "Price is locked to the live XAU/USD spot rate. No double-allocations, no slippage.",
   },
   {
     label: "Payment Confirmed",
     description:
-      "Dual-rail settlement initiated. Moov or Modern Treasury selected deterministically. SHA-256 idempotency key generated per transaction.",
+      "Funds are received and confirmed via automated bank rail. Every transaction gets a unique idempotency key.",
   },
   {
     label: "Settled",
     description:
-      "Atomic DvP execution completes. Title and funds transfer simultaneously. No intermediate state where value is exposed.",
+      "Title and payment transfer simultaneously. At no point is either party exposed to counterparty risk.",
   },
   {
     label: "Title Transferred",
     description:
-      "SHA-256 signed clearing certificate issued. Settlement finality independently verifiable. Append-only ledger sealed.",
+      "A signed clearing certificate is issued. Settlement finality is independently verifiable on the sealed ledger.",
   },
 ] as const;
 
-const reveal = {
-  hidden: { opacity: 0, y: 16 },
+/* ── Motion variants ── */
+const sectionReveal = {
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
@@ -39,111 +41,126 @@ const reveal = {
   },
 };
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 18 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.12, duration: 0.55, ease: "easeOut" as const },
+  }),
+};
+
 export function SettlementLifecycleSection() {
   return (
     <section
       id="settlement-lifecycle"
-      className="mk-section border-t border-[var(--mk-border)]"
+      className="mk-section border-t border-(--mk-border)"
     >
       <div className="mk-container">
-        {/* ── Intro: text left / visual right ── */}
+        {/* ── Section Header ── */}
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
-          variants={reveal}
-          className="grid lg:grid-cols-2 gap-16 mb-16"
+          variants={sectionReveal}
+          className="max-w-3xl mb-16 lg:mb-20"
         >
-          <div>
-            <p className="mk-overline mb-3">Settlement</p>
-            <h2 className="mk-h2 mb-4">
-              Deterministic Settlement Lifecycle
-            </h2>
-            <p className="mk-body max-w-xl">
-              Every transaction traverses a strict, irreversible state machine.
-              Each transition is role-gated, audited, and deterministic.
-              Execution order cannot be circumvented.
+          <div className="flex items-center gap-4 mb-5">
+            <div
+              className="h-px w-10"
+              style={{ backgroundColor: "var(--mk-gold)" }}
+            />
+            <p className="mk-overline" style={{ color: "var(--mk-gold)" }}>
+              How It Works
             </p>
           </div>
-          <div className="flex items-center">
-            <div
-              className="w-full p-6"
-              style={{
-                backgroundColor: "var(--mk-surface)",
-                border: "1px solid var(--mk-border)",
-                borderRadius: "0.75rem",
-              }}
-            >
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--mk-faint)] mb-4">
-                State Machine Flow
-              </p>
-              <div className="flex items-center justify-between gap-1">
-                {STEPS.map((s, i) => (
-                  <div key={s.label} className="flex items-center gap-1">
-                    <div
-                      className="flex h-8 items-center justify-center px-2 text-[10px] font-bold uppercase tracking-wide"
-                      style={{
-                        border: "1px solid var(--mk-border)",
-                        borderRadius: "0.375rem",
-                        color: i === 3 ? "var(--mk-gold)" : "var(--mk-muted)",
-                        backgroundColor:
-                          i === 3 ? "rgba(198, 168, 90, 0.08)" : "transparent",
-                      }}
-                    >
-                      {s.label.length > 8 ? s.label.slice(0, 7) + "…" : s.label}
-                    </div>
-                    {i < STEPS.length - 1 && (
-                      <span className="text-[var(--mk-faint)] text-xs">→</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <h2 className="mk-h2 mb-5">
+            Five Steps to{" "}
+            <span style={{ color: "var(--mk-gold)" }}>
+              Absolute Finality.
+            </span>
+          </h2>
+          <p className="mk-body max-w-2xl">
+            Every transaction follows a strict, irreversible sequence — from
+            asset verification to cleared title. No ambiguity, no
+            intermediate exposure, no exceptions.
+          </p>
         </motion.div>
 
-        {/* ── Lifecycle Steps: 5-column ── */}
+        {/* ── Lifecycle Cards ── */}
         <div className="relative">
-          {/* Connector line (desktop) */}
-          <div className="absolute left-0 right-0 top-[18px] hidden h-px bg-[var(--mk-border)] lg:block" />
+          {/* Gold connector line (desktop only) */}
+          <div
+            className="absolute left-0 right-0 hidden lg:block pointer-events-none"
+            style={{
+              top: "36px",
+              height: "2px",
+              background:
+                "linear-gradient(90deg, var(--mk-gold) 0%, rgba(198,168,107,0.15) 100%)",
+            }}
+          />
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {STEPS.map((s, i) => (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+            {STEPS.map((step, i) => (
               <motion.div
-                key={s.label}
+                key={step.label}
+                custom={i}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: "-40px" }}
-                variants={{
-                  hidden: { opacity: 0, y: 14 },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: { delay: i * 0.1, duration: 0.5 },
-                  },
+                variants={cardVariants}
+                className="group relative rounded-xl p-6 transition-all duration-300 ease-out cursor-default"
+                style={{
+                  backgroundColor: "var(--mk-surface)",
+                  border: "1px solid var(--mk-border)",
                 }}
-                className="relative"
+                whileHover={{
+                  y: -6,
+                  transition: { duration: 0.25, ease: "easeOut" },
+                }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = "var(--mk-gold)";
+                  el.style.boxShadow =
+                    "0 8px 30px rgba(198, 168, 107, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = "var(--mk-border)";
+                  el.style.boxShadow = "none";
+                }}
               >
-                <div className="relative z-10 mb-5 flex items-center gap-3 lg:flex-col lg:items-start lg:gap-0">
-                  <div
-                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
-                    style={{
-                      border: "1px solid var(--mk-border)",
-                      borderRadius: "0.375rem",
-                      backgroundColor: "var(--mk-surface)",
-                    }}
+                {/* Step number — large gold badge */}
+                <div
+                  className="relative z-10 mb-5 flex h-[52px] w-[52px] items-center justify-center rounded-lg"
+                  style={{
+                    border: "1px solid var(--mk-gold)",
+                    backgroundColor: "rgba(198, 168, 107, 0.06)",
+                  }}
+                >
+                  <span
+                    className="font-mono text-xl font-bold tabular-nums"
+                    style={{ color: "var(--mk-gold)" }}
                   >
-                    <span className="font-mono text-xs font-bold text-[var(--mk-gold)] tabular-nums">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                  <h3 className="mt-0 text-sm font-bold uppercase tracking-wide text-white lg:mt-4">
-                    {s.label}
-                  </h3>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                 </div>
-                <p className="text-sm leading-relaxed text-slate-300">
-                  {s.description}
+
+                {/* Step label */}
+                <h3 className="text-base font-bold uppercase tracking-wide text-white mb-3">
+                  {step.label}
+                </h3>
+
+                {/* Step description */}
+                <p className="text-sm leading-relaxed text-slate-400">
+                  {step.description}
                 </p>
+
+                {/* Gold bottom accent bar on hover */}
+                <div
+                  className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  style={{ backgroundColor: "var(--mk-gold)" }}
+                />
               </motion.div>
             ))}
           </div>
