@@ -31,17 +31,65 @@ import { useDemoTour, DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
 import { DemoTooltip } from "@/components/demo/DemoTooltip";
 
 /* ----------------------------------------------------------------
-   MOCK DATA — seeded from previous intake dossier step
+   CASE FILE — reads from sessionStorage (populated by intake form)
+   Falls back to placeholder values if no intake data found.
    ---------------------------------------------------------------- */
-const MOCK_CASE_FILE = {
-  legalEntityName: "Aureus Capital Partners Ltd.",
-  lei: "5493001KJTIIGC8Y1R12",
-  jurisdiction: "United Kingdom",
-  registrationDate: "2019-03-15",
-  riskTier: "PENDING" as const,
-  caseId: "AS-OFT-2026-00417",
-  submittedAt: "2026-03-11T09:38:00Z",
-};
+function getCaseFileFromSession(): {
+  legalEntityName: string;
+  lei: string;
+  jurisdiction: string;
+  registrationDate: string;
+  riskTier: "PENDING";
+  caseId: string;
+  submittedAt: string;
+} {
+  if (typeof window === "undefined") {
+    return {
+      legalEntityName: "—",
+      lei: "—",
+      jurisdiction: "—",
+      registrationDate: "—",
+      riskTier: "PENDING",
+      caseId: "PENDING",
+      submittedAt: new Date().toISOString(),
+    };
+  }
+
+  const raw = sessionStorage.getItem("aurumshield:intake-dossier");
+  const caseId = sessionStorage.getItem("aurumshield:case-id") || "PENDING";
+
+  if (raw) {
+    try {
+      const data = JSON.parse(raw) as {
+        legalEntityName: string;
+        legalEntityIdentifier: string;
+        jurisdictionOfIncorporation: string;
+        registrationDate: string;
+      };
+      return {
+        legalEntityName: data.legalEntityName || "—",
+        lei: data.legalEntityIdentifier || "—",
+        jurisdiction: data.jurisdictionOfIncorporation || "—",
+        registrationDate: data.registrationDate || "—",
+        riskTier: "PENDING",
+        caseId,
+        submittedAt: new Date().toISOString(),
+      };
+    } catch {
+      // Corrupt data — fall through to defaults
+    }
+  }
+
+  return {
+    legalEntityName: "No intake dossier submitted",
+    lei: "—",
+    jurisdiction: "—",
+    registrationDate: "—",
+    riskTier: "PENDING",
+    caseId,
+    submittedAt: new Date().toISOString(),
+  };
+}
 
 /* ----------------------------------------------------------------
    VERIFICATION STEPS — deterministic ladder
@@ -159,6 +207,8 @@ export default function KYBConsolePage() {
   const [steps, setSteps] = useState<VerificationStep[]>(INITIAL_STEPS);
   const [veriffRunning, setVeriffRunning] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; size: number }[]>([]);
+  const [caseFile] = useState(() => getCaseFileFromSession());
   const router = useRouter();
   const { isDemoActive } = useDemoTour();
   const demoParam = isDemoActive ? "?demo=active" : "";
@@ -197,9 +247,10 @@ export default function KYBConsolePage() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    // TODO: Handle file upload to API
     const files = Array.from(e.dataTransfer.files);
-    console.log("[KYB] Files dropped:", files.map((f) => f.name));
+    const fileInfos = files.map(f => ({ name: f.name, size: f.size }));
+    setUploadedFiles(prev => [...prev, ...fileInfos]);
+    // TODO: Upload files to S3 via presigned URL for production
   }, []);
 
   return (
@@ -238,26 +289,26 @@ export default function KYBConsolePage() {
                 <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
                   Case ID
                 </span>
-                <HashBadge value={MOCK_CASE_FILE.caseId} />
+                <HashBadge value={caseFile.caseId} />
               </div>
               <DataRow
                 label="Legal Entity"
-                value={MOCK_CASE_FILE.legalEntityName}
+                value={caseFile.legalEntityName}
               />
               {/* LEI — Hash Badge */}
               <div>
                 <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
                   LEI
                 </span>
-                <HashBadge value={MOCK_CASE_FILE.lei} />
+                <HashBadge value={caseFile.lei} />
               </div>
               <DataRow
                 label="Jurisdiction"
-                value={MOCK_CASE_FILE.jurisdiction}
+                value={caseFile.jurisdiction}
               />
               <DataRow
                 label="Registration"
-                value={MOCK_CASE_FILE.registrationDate}
+                value={caseFile.registrationDate}
                 mono
               />
 
@@ -266,7 +317,7 @@ export default function KYBConsolePage() {
                 <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-2">
                   Risk Assessment
                 </span>
-                <StatusBadge status={MOCK_CASE_FILE.riskTier} />
+                <StatusBadge status={caseFile.riskTier} />
               </div>
 
               {/* Timestamp */}
@@ -275,7 +326,7 @@ export default function KYBConsolePage() {
                   Dossier Submitted
                 </span>
                 <span className="font-mono text-xs text-slate-400">
-                  {new Date(MOCK_CASE_FILE.submittedAt).toLocaleString(
+                  {new Date(caseFile.submittedAt).toLocaleString(
                     "en-US",
                     {
                       dateStyle: "medium",
@@ -433,8 +484,18 @@ export default function KYBConsolePage() {
                 Accepted: PDF, PNG, JPG · Max 25MB per file
               </p>
               <p className="font-mono text-[10px] text-slate-700">
-                0 documents uploaded
+                {uploadedFiles.length} document{uploadedFiles.length !== 1 ? 's' : ''} uploaded
               </p>
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {uploadedFiles.map((f, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-sm">
+                      <span className="font-mono text-[10px] text-slate-400 truncate">{f.name}</span>
+                      <span className="font-mono text-[9px] text-slate-600 ml-2 shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -492,20 +553,35 @@ export default function KYBConsolePage() {
         ) : (
           /* Normal mode: marketplace gated */
           <>
-            <div className="text-center mb-2">
-              <span className="font-mono text-xs text-red-400/70 tracking-[0.15em] uppercase flex items-center justify-center gap-2">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                Marketplace Access Restricted Until Identity Perimeter Is Cleared
-              </span>
-            </div>
-            <button
-              disabled
-              className="w-full bg-slate-800 text-slate-500 font-bold text-sm tracking-wide py-4 rounded-sm cursor-not-allowed opacity-50 flex items-center justify-center gap-2 font-mono"
-            >
-              <Lock className="h-4 w-4" />
-              Enter AurumShield Marketplace
-              <ChevronRight className="h-4 w-4" />
-            </button>
+            {steps.every(s => s.status === "COMPLETE") ? (
+              /* All steps complete — unlock marketplace */
+              <button
+                onClick={() => router.push(`/offtaker/marketplace${demoParam}`)}
+                className="w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-4 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2 font-mono cursor-pointer"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Enter AurumShield Marketplace
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : (
+              /* Steps incomplete — gate locked */
+              <>
+                <div className="text-center mb-2">
+                  <span className="font-mono text-xs text-red-400/70 tracking-[0.15em] uppercase flex items-center justify-center gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Marketplace Access Restricted Until Identity Perimeter Is Cleared
+                  </span>
+                </div>
+                <button
+                  disabled
+                  className="w-full bg-slate-800 text-slate-500 font-bold text-sm tracking-wide py-4 rounded-sm cursor-not-allowed opacity-50 flex items-center justify-center gap-2 font-mono"
+                >
+                  <Lock className="h-4 w-4" />
+                  Enter AurumShield Marketplace
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </>
+            )}
           </>
         )}
       </div>

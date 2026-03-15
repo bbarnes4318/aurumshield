@@ -136,12 +136,34 @@ export default function CheckoutPage() {
   /* ── Confirm Order ── */
   const handleConfirm = useCallback(() => {
     setConfirmed(true);
-    // TODO: Submit order to backend API
+
+    // Persist order to sessionStorage for settlement page
+    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-XAU`;
+    const orderSummary = {
+      orderId,
+      product: productTitle,
+      weightOz,
+      spotPrice,
+      premiumPct,
+      lineItems: {
+        goldCost: lineItems.goldCost,
+        transit: lineItems.transit,
+        platformFee: lineItems.platformFee,
+        assay: lineItems.optionalAssay,
+        total: lineItems.grandTotal,
+      },
+      confirmedAt: new Date().toISOString(),
+    };
+    sessionStorage.setItem("aurumshield:order", JSON.stringify(orderSummary));
+
+    // TODO: POST to /api/orders for DB persistence + settlement case creation
+    // Defined interface: orderSummary object above
+
     const demoParam = isDemoActive ? "?demo=active" : "";
     setTimeout(() => {
       router.push(`/settlements${demoParam}`);
     }, 800);
-  }, [router, isDemoActive]);
+  }, [router, isDemoActive, productTitle, weightOz, spotPrice, premiumPct, lineItems]);
 
   return (
     <div className="mx-auto max-w-xl py-8">

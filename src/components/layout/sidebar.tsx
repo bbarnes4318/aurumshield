@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import type { UserRole } from "@/lib/mock-data";
 
@@ -239,6 +239,17 @@ function SidebarNav({
 
   /* ── Admin Portal Impersonation Toggle ── */
   const [impersonationMode, setImpersonationMode] = useState<ImpersonationMode>("none");
+  const router = useRouter();
+
+  const handleImpersonate = useCallback((mode: ImpersonationMode) => {
+    setImpersonationMode(mode);
+    // Navigate to the portal's entry point
+    if (mode === "offtaker") {
+      router.push("/offtaker/org/select");
+    } else if (mode === "producer") {
+      router.push("/producer/accreditation");
+    }
+  }, [router]);
 
   /* ── Helper: render a portal nav list with optional section header ── */
   const renderPortalNav = (items: NavItem[], sectionLabel: string) => (
@@ -329,7 +340,7 @@ function SidebarNav({
               <>
                 <button
                   type="button"
-                  onClick={() => setImpersonationMode("offtaker")}
+                  onClick={() => handleImpersonate("offtaker")}
                   className="w-full flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gold hover:bg-gold/10 transition-all"
                 >
                   <Eye className="h-4 w-4 text-gold shrink-0" />
@@ -337,7 +348,7 @@ function SidebarNav({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setImpersonationMode("producer")}
+                  onClick={() => handleImpersonate("producer")}
                   className="w-full flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-400 hover:bg-emerald-500/10 transition-all"
                 >
                   <Eye className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -348,7 +359,7 @@ function SidebarNav({
               <>
                 <button
                   type="button"
-                  onClick={() => setImpersonationMode("offtaker")}
+                  onClick={() => handleImpersonate("offtaker")}
                   className="flex items-center justify-center rounded-lg border border-gold/30 bg-gold/5 p-2 text-gold hover:bg-gold/10 transition-all"
                   title="View Offtaker Portal"
                 >
@@ -356,7 +367,7 @@ function SidebarNav({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setImpersonationMode("producer")}
+                  onClick={() => handleImpersonate("producer")}
                   className="flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2 text-emerald-400 hover:bg-emerald-500/10 transition-all"
                   title="View Producer Portal"
                 >

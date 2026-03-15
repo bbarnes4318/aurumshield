@@ -482,10 +482,19 @@ function ReceiptContent() {
 
   function handleExportJson() {
     const payload = buildJsonPayload(order!, settlement!, listing, ledger, docId, authEntry, dvpEntry);
-    console.log("=== AURUMSHIELD CLEARING RECEIPT — JSON EXPORT ===");
-    console.log(JSON.stringify(payload, null, 2));
-    // TODO: Generate PDF from structured payload
-    alert("Receipt JSON payload has been exported to the browser console.\nSee Developer Tools → Console.");
+
+    // Generate and download the clearing receipt as a JSON file
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `clearing-receipt-${docId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   return (

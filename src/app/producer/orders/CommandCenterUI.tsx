@@ -326,10 +326,13 @@ export default function CommandCenterUI({
 
                           {/* Action */}
                           <td className="px-4 py-3 text-right">
-                            <button className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-500 hover:text-gold-primary tracking-wider uppercase transition-colors cursor-pointer">
+                            <Link
+                              href={`/producer/orders/${asset.id}/settlement${isDemo ? '?demo=active' : ''}`}
+                              className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-500 hover:text-gold-primary tracking-wider uppercase transition-colors cursor-pointer"
+                            >
                               <Eye className="h-3 w-3" />
                               View
-                            </button>
+                            </Link>
                           </td>
                         </tr>
                       ))}
@@ -368,9 +371,10 @@ export default function CommandCenterUI({
                 {/* Settlement List */}
                 <div className="flex-1 divide-y divide-slate-800/50">
                   {settlements.map((s) => (
-                    <div
+                    <Link
                       key={s.orderId}
-                      className="px-4 py-3 hover:bg-slate-800/30 transition-colors"
+                      href={`/producer/orders/${s.orderId}/settlement${isDemo ? '?demo=active' : ''}`}
+                      className="block px-4 py-3 hover:bg-slate-800/30 transition-colors cursor-pointer"
                     >
                       {/* Top row: Order + Amount */}
                       <div className="flex items-center justify-between mb-1.5">
@@ -409,7 +413,7 @@ export default function CommandCenterUI({
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
 

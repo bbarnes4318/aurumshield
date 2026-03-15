@@ -15,6 +15,7 @@
    ================================================================ */
 
 import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { CheckCircle2, Lock, Radio, Radar, Copy, Shield } from "lucide-react";
 import Link from "next/link";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
@@ -230,6 +231,7 @@ function FundsConfirmedBanner() {
    PAGE COMPONENT
    ================================================================ */
 export default function SettlementLedgerPage() {
+  const { orderId } = useParams<{ orderId: string }>();
   const [fundsConfirmed, setFundsConfirmed] = useState(
     ORDER.fundsConfirmedFinal,
   );
@@ -287,7 +289,7 @@ export default function SettlementLedgerPage() {
             <span className="font-mono text-slate-500 uppercase text-xs tracking-[0.3em] block mb-2">
               Settlement Ledger
             </span>
-            <HashBadge value={ORDER.orderId} />
+            <HashBadge value={orderId} />
           </div>
 
           <div className="flex items-center gap-3">
@@ -356,7 +358,7 @@ export default function SettlementLedgerPage() {
 
               {/* ── Logistics Radar Entry Point ── */}
               <div className="border-t border-slate-800 mt-6 pt-5">
-                <Link href={`/offtaker/orders/ORD-8842-XAU/logistics`}>
+                <Link href={`/offtaker/orders/${orderId}/logistics`}>
                   <button
                     type="button"
                     className="w-full relative group cursor-pointer"

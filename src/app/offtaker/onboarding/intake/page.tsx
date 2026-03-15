@@ -10,7 +10,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   FileText,
   ArrowRight,
@@ -28,7 +28,6 @@ import { DemoTooltip } from "@/components/demo/DemoTooltip";
 
 export default function IntakeDossierPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { isDemoActive } = useDemoTour();
   const demoParam = isDemoActive ? "?demo=active" : "";
 
@@ -48,9 +47,24 @@ export default function IntakeDossierPage() {
     },
   });
 
-  const onSubmit = (data: IntakeDossierData) => {
-    // TODO: Submit intake dossier to API / persist to session
-    console.log("[IntakeDossier] Submitting:", data);
+  const onSubmit = async (data: IntakeDossierData) => {
+    // Persist to sessionStorage so KYB page can read the real data
+    sessionStorage.setItem("aurumshield:intake-dossier", JSON.stringify(data));
+
+    // Call server action to persist to database
+    try {
+      const { serverSubmitIntakeDossier } = await import(
+        "@/lib/actions/onboarding-actions"
+      );
+      const result = await serverSubmitIntakeDossier(data);
+      if (result.caseId) {
+        sessionStorage.setItem("aurumshield:case-id", result.caseId);
+      }
+    } catch (err) {
+      // Server action failed — data is still in sessionStorage
+      console.warn("[IntakeDossier] Server persist failed, using client fallback:", err);
+    }
+
     router.push(`/offtaker/onboarding/kyb${demoParam}`);
   };
 

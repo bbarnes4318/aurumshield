@@ -60,8 +60,15 @@ export default function VerifyPage() {
   const handleDragLeave = useCallback(() => setIsDragOver(false), []);
 
   const handleFileSelect = useCallback(() => {
-    // TODO: Replace with real Veriff SDK
-    setUploadedFile("passport_scan.pdf");
+    // Open a real file picker
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.jpg,.jpeg,.png";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) setUploadedFile(file.name);
+    };
+    input.click();
   }, []);
 
   const handleStep1Submit = useCallback(() => {

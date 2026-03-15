@@ -25,18 +25,29 @@ export default function ProducerAccreditationPage() {
   const [refinerCode, setRefinerCode] = useState("");
   const [annualProduction, setAnnualProduction] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!refinerName.trim() || !refinerCode.trim() || !annualProduction.trim())
       return;
 
     setIsSubmitting(true);
-    // TODO: Submit to accreditation verification API
-    console.log("[Accreditation] Submitting:", {
-      refinerName,
-      refinerCode,
-      annualProduction,
-    });
+
+    // Persist accreditation data client-side
+    const accreditationData = {
+      refinerName: refinerName.trim(),
+      refinerCode: refinerCode.trim(),
+      annualProduction: annualProduction.trim(),
+      submittedAt: new Date().toISOString(),
+    };
+    sessionStorage.setItem(
+      "aurumshield:producer-accreditation",
+      JSON.stringify(accreditationData),
+    );
+
+    // TODO: POST to /api/producer/accreditation for DB persistence
+    // Server action for producer accreditation not yet created —
+    // defined interface: { refinerName, refinerCode, annualProduction }
+
     setTimeout(() => {
       router.push("/producer/inventory/new");
     }, 800);

@@ -54,8 +54,18 @@ export function ClaimExportStub({ claim, decision }: Props) {
       exportedAt: new Date().toISOString(),
     };
 
-    // TODO: Replace with POST /api/claims/:id/export
-    console.log("[AurumShield] Reinsurer Package Export:", JSON.stringify(pkg, null, 2));
+    // Generate and download the reinsurer package as a JSON file
+    const blob = new Blob([JSON.stringify(pkg, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reinsurer-package-${claim.id}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     setExported(true);
     setTimeout(() => setExported(false), 3000);
   }
@@ -65,7 +75,7 @@ export function ClaimExportStub({ claim, decision }: Props) {
       type="button"
       onClick={handleExport}
       className={cn(
-        "flex items-center gap-2 rounded-[var(--radius)] px-4 py-2.5 text-sm font-medium transition-colors border",
+        "flex items-center gap-2 rounded-(--radius) px-4 py-2.5 text-sm font-medium transition-colors border",
         exported
           ? "bg-success/10 text-success border-success/30"
           : "bg-surface-2 text-text-muted border-border hover:text-gold hover:border-gold/30 hover:bg-gold/5"

@@ -8,6 +8,7 @@
    card — serial, refiner, weight, fineness, vault jurisdiction.
    ================================================================ */
 
+import { useParams } from "next/navigation";
 import { Shield, Landmark } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 
@@ -52,6 +53,7 @@ function HashBadge({ value }: { value: string }) {
    PAGE COMPONENT
    ================================================================ */
 export default function AllocationRegistryPage() {
+  const { orderId } = useParams<{ orderId: string }>();
   const { bar } = ALLOCATION;
 
   return (
@@ -69,7 +71,7 @@ export default function AllocationRegistryPage() {
             Allocated Physical Assets
           </h1>
           <div className="flex items-center gap-2 mt-2">
-            <HashBadge value={ALLOCATION.orderId} />
+            <HashBadge value={orderId} />
             <span className="font-mono text-slate-600 text-xs">·</span>
             <span className="font-mono text-slate-600 text-xs tracking-wider">
               {ALLOCATION.offtakerEntity}

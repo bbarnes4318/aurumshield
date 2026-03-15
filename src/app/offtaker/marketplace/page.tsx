@@ -231,13 +231,25 @@ export default function OfftakerMarketplacePage() {
     if (phase !== "QUOTE_LOCKED" || isExecuting) return;
     setIsExecuting(true);
     setPhase("EXECUTING");
-    // TODO: Submit execution to API, create settlement case
-    const mockOrderId = `ORD-${String(Math.floor(Math.random() * 9000) + 1000)}-XAU`;
+
+    // Generate order ID and persist the full execution to sessionStorage
+    const orderId = `ORD-${String(Math.floor(Math.random() * 9000) + 1000)}-XAU`;
+    const executionRecord = {
+      orderId,
+      asset: selectedAsset,
+      deliveryMode,
+      destination,
+      executedAt: new Date().toISOString(),
+      // TODO: POST to /api/goldwire/execute for DB persistence + settlement case
+      // Defined interface: { orderId, asset, deliveryMode, destination, quoteSnapshot }
+    };
+    sessionStorage.setItem("aurumshield:execution", JSON.stringify(executionRecord));
+
     const demoParam = isDemoActive ? "?demo=active" : "";
     setTimeout(() => {
-      router.push(`/offtaker/orders/${mockOrderId}${demoParam}`);
+      router.push(`/offtaker/orders/${orderId}${demoParam}`);
     }, 800);
-  }, [phase, isExecuting, isDemoActive, router]);
+  }, [phase, isExecuting, isDemoActive, router, selectedAsset, deliveryMode, destination]);
 
   return (
     <div className="h-screen w-full flex flex-col bg-slate-950 overflow-hidden">

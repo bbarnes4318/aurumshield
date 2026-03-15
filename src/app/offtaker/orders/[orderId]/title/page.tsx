@@ -10,6 +10,7 @@
    ================================================================ */
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { FileDown, Fingerprint, ShieldCheck } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 
@@ -56,13 +57,48 @@ function HashBadge({ value }: { value: string }) {
    PAGE COMPONENT
    ================================================================ */
 export default function CryptographicTitlePage() {
+  const { orderId } = useParams<{ orderId: string }>();
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownload = () => {
     setIsDownloading(true);
-    // TODO: Generate and download immutable PDF
-    console.log("[Title] Initiating PDF generation for", TITLE_RECORD.orderId);
-    setTimeout(() => setIsDownloading(false), 1500);
+
+    // Generate a structured title record document
+    const titleDocument = {
+      documentType: "DIGITAL_WARRANT_OF_TITLE",
+      version: "1.0",
+      issuer: "AurumShield Clearing",
+      record: {
+        orderId: orderId,
+        offtakerEntity: TITLE_RECORD.offtakerEntity,
+        offtakerOrgId: TITLE_RECORD.offtakerOrgId,
+        issuedAt: TITLE_RECORD.issuedAt,
+        algorithm: TITLE_RECORD.algorithm,
+        enclaveSignature: TITLE_RECORD.enclaveSignature,
+        canonicalSerialization: TITLE_RECORD.canonicalSerialization,
+        blockchainAnchor: TITLE_RECORD.blockchainAnchor,
+      },
+      asset: {
+        barSerial: TITLE_RECORD.barSerial,
+        barWeight: TITLE_RECORD.barWeight,
+        barFineness: TITLE_RECORD.barFineness,
+      },
+      generatedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(titleDocument, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `title-record-${TITLE_RECORD.orderId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setIsDownloading(false);
   };
 
   return (

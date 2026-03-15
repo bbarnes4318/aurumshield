@@ -76,6 +76,41 @@ export default function OfftakerOrdersPage() {
   const isDemoActive = searchParams.get("demo") === "active";
 
   const [executionPhase, setExecutionPhase] = useState<ExecutionPhase>("ledger");
+
+  /* ── Merge mock orders with any dynamically created order from marketplace ── */
+  const [allOrders] = useState(() => {
+    const orders = [...MOCK_ORDERS];
+    if (typeof window !== "undefined") {
+      const executionRaw = sessionStorage.getItem("aurumshield:execution");
+      if (executionRaw) {
+        try {
+          const exec = JSON.parse(executionRaw) as {
+            orderId: string;
+            asset?: { title?: string };
+            executedAt?: string;
+          };
+          // Only add if not already in mock orders
+          if (!orders.some((o) => o.id === exec.orderId)) {
+            orders.unshift({
+              id: exec.orderId,
+              asset: exec.asset?.title || "400oz LBMA Good Delivery",
+              qty: 1,
+              notional: 2_652_650.0,
+              status: "pending_execution",
+              statusLabel: "PENDING EXECUTION",
+              statusColor: "text-gold-primary",
+              date: new Date(exec.executedAt || Date.now()).toISOString().slice(0, 10),
+              vault: "Zurich — Malca-Amit Hub 1",
+            });
+          }
+        } catch {
+          // Invalid JSON — skip
+        }
+      }
+    }
+    return orders;
+  });
+
   const [selectedOrder, setSelectedOrder] = useState<(typeof MOCK_ORDERS)[0] | null>(null);
 
   const handleOrderClick = useCallback((order: (typeof MOCK_ORDERS)[0]) => {
@@ -145,7 +180,7 @@ export default function OfftakerOrdersPage() {
             </div>
 
             {/* Rows */}
-            {MOCK_ORDERS.map((order, idx) => {
+            {allOrders.map((order, idx) => {
               const isPending = order.status === "pending_execution";
               return (
                 <div key={order.id} className="relative">
