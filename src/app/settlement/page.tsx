@@ -135,7 +135,7 @@ export default function SettlementPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950" data-tour="treasury-sweep">
       {/* ── Terminal Header ── */}
       <div className="border-b border-slate-800 px-6 py-10 sm:px-10 sm:py-14">
         <div className="mx-auto max-w-4xl">
@@ -352,7 +352,9 @@ export default function SettlementPage() {
         </div>
 
         {/* ── Footer ── */}
-        <div className="mx-auto mt-6 max-w-4xl border-t border-slate-800 pt-6">
+        <div className="mx-auto mt-6 max-w-4xl border-t border-slate-800 pt-6" data-tour="treasury-audit">
+          {/* Autopilot fee sweep badge target */}
+          <div data-tour="treasury-fee" className="font-mono text-xs text-slate-600 mb-3" />
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
             <p className="font-mono text-[10px] leading-relaxed text-slate-600">
               All settlements are irrevocable and subject to compliance

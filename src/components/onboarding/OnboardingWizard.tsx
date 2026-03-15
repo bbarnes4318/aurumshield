@@ -345,7 +345,7 @@ export function OnboardingWizard() {
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-2.5 mb-4">
+        <div className="flex items-center gap-2.5 mb-4" data-tour="onboarding-status">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-color-2/10">
             <Shield className="h-5 w-5 text-color-2" />
           </div>
@@ -363,7 +363,7 @@ export function OnboardingWizard() {
         <ProgressBar currentStep={currentStep} />
 
         {/* Active step */}
-        <div className="min-h-[280px]">{renderStep()}</div>
+        <div className="min-h-[280px]" data-tour="onboarding-lei">{renderStep()}</div>
 
         {/* Navigation */}
         <div className="flex items-center justify-between mt-5 pt-4 border-t border-color-5/20">

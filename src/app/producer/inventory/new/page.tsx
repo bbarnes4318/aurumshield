@@ -266,6 +266,7 @@ export default function AssetIngestionPage() {
 
               {/* Dropzone */}
               <div
+                data-tour="producer-upload"
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -345,6 +346,7 @@ export default function AssetIngestionPage() {
                   </p>
                   <p className="text-slate-700 flex items-center gap-1">
                     STATUS:{" "}
+                    <span data-tour="producer-status">
                     {isScanning ? (
                       <span className="text-emerald-400">SCANNING...</span>
                     ) : uploadedFile ? (
@@ -352,10 +354,15 @@ export default function AssetIngestionPage() {
                     ) : (
                       <span className="text-slate-600">AWAITING UPLOAD</span>
                     )}
+                    </span>
                     <span className="inline-block w-1.5 h-3 bg-gold-primary ml-1 animate-pulse" />
                   </p>
                 </div>
               </div>
+              {/* Autopilot terminal output target */}
+              <div data-tour="producer-textract" className="bg-black border border-slate-800 p-3 min-h-[80px] font-mono text-xs" style={{ display: 'none' }} />
+              {/* Autopilot yield badge target */}
+              <div data-tour="producer-yield" className="text-xs font-mono text-slate-600" style={{ display: 'none' }} />
             </div>
 
             {/* ─────────────────────────────────────────────────────

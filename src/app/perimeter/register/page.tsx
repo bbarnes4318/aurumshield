@@ -14,7 +14,7 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-lg py-8">
       {/* Header */}
-      <div className="mb-8 text-center">
+      <div className="mb-8 text-center" data-tour="perimeter-auth">
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Create Your Account
         </h1>
@@ -25,6 +25,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Clerk SignUp Component */}
+      <div data-tour="perimeter-email">
       <SignUp
         routing="hash"
         fallbackRedirectUrl="/perimeter/verify"
@@ -61,6 +62,9 @@ export default function RegisterPage() {
           },
         }}
       />
+      </div>
+      {/* Autopilot target — WebAuthn verification badge */}
+      <div data-tour="perimeter-webauthn" className="mt-4 text-center text-xs text-slate-600 font-mono" />
     </div>
   );
 }

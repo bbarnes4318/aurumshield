@@ -146,7 +146,7 @@ export default function OfftakerMarketplacePage() {
       {/* ──────────────────────────────────────────────────────────
          TOP TICKER BAR
          ────────────────────────────────────────────────────────── */}
-      <div className="bg-slate-900 border-b border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] h-12 flex items-center px-4 shrink-0">
+      <div data-tour="offtaker-ticker" className="bg-slate-900 border-b border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] h-12 flex items-center px-4 shrink-0">
         <div className="flex items-center gap-6 w-full">
           {/* Spot Price */}
           <div className="flex items-center gap-2">
@@ -187,7 +187,7 @@ export default function OfftakerMarketplacePage() {
          ────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* ─── Central Catalog Grid ─── */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-6 overflow-y-auto" data-tour="offtaker-apex">
           {/* Section Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:migrate": "npx tsx src/db/run-migration.ts"
+    "db:migrate": "npx tsx src/db/run-migration.ts",
+    "db:seed-hubs": "npx tsx src/db/seed-logistics-hubs.ts"
   },
   "dependencies": {
     "@aws-sdk/client-kms": "^3.997.0",
