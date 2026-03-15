@@ -135,8 +135,10 @@ describe("RSK-013: Idempotent Webhook Ledger Transactions", () => {
   /* ────────────────────────────────────────────── */
 
   describe("BigInt decimal scaling", () => {
-    it("converts notionalCents to USDT 6-decimal base units using BigInt", () => {
-      expect(routeSource).toContain("BigInt(settlement.notional_cents)");
+    it("derives notionalCents from total_notional and converts to USDT base units using BigInt", () => {
+      // notionalCents is computed at runtime: Math.round(parseFloat(total_notional) * 100)
+      expect(routeSource).toContain("notionalCents");
+      expect(routeSource).toContain("BigInt(notionalCents)");
       expect(routeSource).toContain("BigInt(10000)");
     });
 

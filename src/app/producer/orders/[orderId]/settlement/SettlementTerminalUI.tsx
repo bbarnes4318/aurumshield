@@ -23,6 +23,7 @@ import {
   ArrowRight,
   FileText,
   Activity,
+  Copy,
 } from "lucide-react";
 import { executeAtomicSwap } from "@/actions/settlement-actions";
 
@@ -45,6 +46,10 @@ export interface SettlementOrder {
   status: string;
   escrowConfirmedAt: string;
   producerId: string;
+  /** Funding route: 'fedwire' | 'stablecoin' */
+  fundingRoute?: string;
+  /** Producer's verified ERC-20 wallet address for USDT payouts */
+  producerWalletAddress?: string;
 }
 
 interface SettlementTerminalUIProps {
@@ -261,15 +266,49 @@ export default function SettlementTerminalUI({
                   </div>
                   <div className="flex items-start gap-2">
                     <ArrowRight className="h-3 w-3 text-gold-primary mt-0.5 shrink-0" />
-                    <p className="font-mono text-[10px] text-slate-400 leading-relaxed">
-                      Outbound Fedwire of{" "}
-                      <span className="text-white font-bold">
-                        ${fmt(order.totalNotional)}
-                      </span>{" "}
-                      routed to your pre-verified counterparty account via
-                      Column Bank.
-                    </p>
+                    {order.fundingRoute === "stablecoin" ? (
+                      <p className="font-mono text-[10px] text-slate-400 leading-relaxed">
+                        On-Chain USDT payout of{" "}
+                        <span className="text-white font-bold">
+                          ${fmt(order.totalNotional)}
+                        </span>{" "}
+                        routed to your registered ERC-20 wallet via Turnkey MPC.
+                      </p>
+                    ) : (
+                      <p className="font-mono text-[10px] text-slate-400 leading-relaxed">
+                        Outbound Fedwire of{" "}
+                        <span className="text-white font-bold">
+                          ${fmt(order.totalNotional)}
+                        </span>{" "}
+                        routed to your pre-verified counterparty account via
+                        Column Bank.
+                      </p>
+                    )}
                   </div>
+
+                  {/* Producer Wallet Address (USDT rail only) */}
+                  {order.fundingRoute === "stablecoin" && order.producerWalletAddress && (
+                    <div className="border-t border-slate-800 pt-3 mt-3">
+                      <span className="font-mono text-[9px] text-slate-600 tracking-[0.15em] uppercase block mb-1">
+                        Payout Destination (ERC-20)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-white tabular-nums">
+                          {order.producerWalletAddress.slice(0, 10)}...{order.producerWalletAddress.slice(-8)}
+                        </span>
+                        <button
+                          onClick={() => {
+                            if (order.producerWalletAddress) {
+                              navigator.clipboard.writeText(order.producerWalletAddress);
+                            }
+                          }}
+                          className="text-slate-600 hover:text-slate-400 transition-colors cursor-pointer"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

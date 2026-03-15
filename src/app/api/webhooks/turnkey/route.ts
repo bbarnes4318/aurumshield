@@ -8,14 +8,16 @@
 
    When the deposited amount >= required notional (converted to
    6-decimal USDT base units), this handler advances the settlement
-   state machine by calling CONFIRM_FUNDS_FINAL.
+   state machine by setting funds_confirmed_final and emitting
+   the FUNDS_CLEARED_ON_CHAIN audit event.
 
    Security:
      - HMAC-SHA256 signature validation using TURNKEY_WEBHOOK_SECRET
      - X-Turnkey-Signature header verification
 
    CRITICAL MATH:
-     Our DB stores notionalCents (10^2). USDT uses 6 decimals (10^6).
+     Our DB stores total_notional as USD dollars (NUMERIC).
+     We derive notionalCents = Math.round(parseFloat(total_notional) * 100).
      requiredBaseUnits = BigInt(notionalCents) * BigInt(10000)
 
    MUST NOT be imported in client components — server-side only.
@@ -174,11 +176,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { rows } = await client.query<{
       id: string;
-      notional_cents: number;
+      total_notional: string;
       status: string;
       funds_confirmed_final: boolean;
     }>(
-      `SELECT id, notional_cents, status, funds_confirmed_final
+      `SELECT id, total_notional, status,
+              COALESCE(funds_confirmed_final, FALSE) AS funds_confirmed_final
        FROM settlement_cases
        WHERE LOWER(turnkey_deposit_address) = $1
          AND funding_route = 'stablecoin'
@@ -212,13 +215,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     /* ── 6. Amount verification (BigInt 6-decimal math) ── */
+    // Derive notionalCents from total_notional (NUMERIC, stores USD dollars)
+    const notionalCents = Math.round(parseFloat(settlement.total_notional) * 100);
+
     // Convert notionalCents (10^2) → USDT base units (10^6)
     // Formula: requiredBaseUnits = notionalCents * 10000
-    const requiredBaseUnits = BigInt(settlement.notional_cents) * BigInt(10000);
+    const requiredBaseUnits = BigInt(notionalCents) * BigInt(10000);
     const receivedBaseUnits = BigInt(transferredAmount);
 
     console.log(
       `[TURNKEY-WEBHOOK] Amount check for settlement ${settlement.id}: ` +
+        `notionalCents=${notionalCents} ` +
         `required=${requiredBaseUnits.toString()} ` +
         `received=${receivedBaseUnits.toString()} ` +
         `sufficient=${receivedBaseUnits >= requiredBaseUnits}`,
@@ -260,16 +267,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     /* ── 7. Full funding confirmed — advance state machine ── */
     console.log(
       `[TURNKEY-WEBHOOK] Full USDT deposit confirmed for settlement ${settlement.id}. ` +
-        `Advancing to CONFIRM_FUNDS_FINAL.`,
+        `Setting funds_confirmed_final=true, status=PROCESSING_RAIL.`,
     );
 
     // Record finality for the inbound deposit
     await client.query(
       `INSERT INTO settlement_finality
-         (settlement_id, rail, external_transfer_id, idempotency_key,
-          finality_status, amount_cents, leg, is_fallback, finalized_at)
-       VALUES ($1, 'turnkey', $2, $3, 'COMPLETED', $4, 'buyer_deposit', FALSE, NOW())
-       ON CONFLICT DO NOTHING`,
+          (settlement_id, rail, external_transfer_id, idempotency_key,
+           finality_status, amount_cents, leg, is_fallback, finalized_at)
+        VALUES ($1, 'turnkey', $2, $3, 'COMPLETED', $4, 'buyer_deposit', FALSE, NOW())
+        ON CONFLICT DO NOTHING`,
       [
         settlement.id,
         txHash,
@@ -278,7 +285,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ],
     );
 
-    // Apply CONFIRM_FUNDS_FINAL via the settlement engine (SYSTEM actor)
+    // Directly update settlement_cases: funds confirmed + advance status
+    await client.query(
+      `UPDATE settlement_cases
+       SET funds_confirmed_final = TRUE,
+           status = 'PROCESSING_RAIL'
+       WHERE id = $1`,
+      [settlement.id],
+    );
+
+    // Emit FUNDS_CLEARED_ON_CHAIN audit event to dvp_events
+    await client.query(
+      `INSERT INTO dvp_events
+         (settlement_id, event_type, previous_state,
+          actor_user_id, actor_role, detail, metadata)
+       VALUES ($1, 'FUNDS_HELD', $2, 'SYSTEM_TURNKEY_WEBHOOK', 'system', $3, $4)`,
+      [
+        settlement.id,
+        settlement.status,
+        `FUNDS_CLEARED_ON_CHAIN: USDT deposit confirmed. ` +
+          `txHash=${txHash} amount=${receivedBaseUnits.toString()} base units. ` +
+          `Deposit address: ${depositAddress}`,
+        JSON.stringify({
+          event: "FUNDS_CLEARED_ON_CHAIN",
+          txHash,
+          depositAddress,
+          receivedBaseUnits: receivedBaseUnits.toString(),
+          requiredBaseUnits: requiredBaseUnits.toString(),
+          notionalCents,
+          confirmedAt: new Date().toISOString(),
+        }),
+      ],
+    );
+
+    // Also apply CONFIRM_FUNDS_FINAL via the settlement engine for ledger consistency
     try {
       const { apiApplySettlementAction } = await import("@/lib/api");
       await apiApplySettlementAction({

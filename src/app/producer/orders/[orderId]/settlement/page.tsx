@@ -35,6 +35,8 @@ const MOCK_ORDER: SettlementOrder = {
   status: "FUNDS_CLEARED_READY_FOR_RELEASE",
   escrowConfirmedAt: "2026-03-11T18:32:00Z",
   producerId: "producer-001",
+  fundingRoute: "fedwire",
+  producerWalletAddress: undefined,
 };
 
 /* ================================================================

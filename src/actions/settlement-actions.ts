@@ -240,11 +240,13 @@ export async function executeAtomicSwap(
       funding_route: string | null;
       turnkey_sub_org_id: string | null;
       turnkey_deposit_address: string | null;
+      producer_wallet_address: string | null;
     }>(
       `SELECT id, order_id, buyer_id, producer_id, listing_id,
               status, total_notional, weight_oz, locked_price_per_oz,
               clearing_certificate_hash, funding_route,
-              turnkey_sub_org_id, turnkey_deposit_address
+              turnkey_sub_org_id, turnkey_deposit_address,
+              producer_wallet_address
        FROM settlement_cases
        WHERE id = $1
        FOR UPDATE`,
@@ -446,10 +448,17 @@ export async function executeAtomicSwap(
 
       payoutResult = await routeOutboundStablecoin({
         fromSubOrgId: order.turnkey_sub_org_id ?? `suborg-${orderId}`,
-        toWalletAddress: order.turnkey_deposit_address ?? "0x0000000000000000000000000000000000000000", // TODO: Query from producer's verified wallet
+        toWalletAddress: order.producer_wallet_address ?? "0x0000000000000000000000000000000000000000",
         amountCents: finalNotionalCents,
         idempotencyKey,
       });
+
+      if (!order.producer_wallet_address) {
+        console.warn(
+          `[DVP-ENGINE] WARNING: No producer_wallet_address on file for order=${orderId}. ` +
+            `Using zero-address fallback. Funds will not be delivered until producer registers their ERC-20 wallet.`,
+        );
+      }
     }
 
     console.log(

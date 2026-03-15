@@ -6,11 +6,16 @@
    Phase 1, Steps 6 & 7 — Post-Execution immutable ledger.
    The Offtaker has confirmed execution; this screen presents the
    deterministic settlement pipeline as a mission-control state
-   machine: Asset & Custody Registry, Fedwire Instructions, and
-   a strict Settlement State Timeline.
+   machine: Asset & Custody Registry, Funding Instructions (Fedwire
+   OR USDT), and a strict Settlement State Timeline.
+
+   Dual-Rail Support:
+     - FEDWIRE: Bank wire instructions (Column FBO)
+     - TURNKEY_USDT: QR code + copyable deposit address, 5s polling
    ================================================================ */
 
-import { CheckCircle2, Lock, Radio, Radar } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { CheckCircle2, Lock, Radio, Radar, Copy, Shield } from "lucide-react";
 import Link from "next/link";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 
@@ -19,8 +24,12 @@ import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
    ---------------------------------------------------------------- */
 const ORDER = {
   orderId: "ORD-8842-XAU",
+  settlementId: "stl-001",
   status: "AWAITING_FUNDS",
-  rail: "FEDWIRE",
+  /** Settlement rail: "FEDWIRE" | "TURNKEY_USDT" */
+  rail: "FEDWIRE" as "FEDWIRE" | "TURNKEY_USDT",
+  /** Funding route from settlement_cases: "fedwire" | "stablecoin" */
+  fundingRoute: "fedwire" as "fedwire" | "stablecoin",
   asset: "400 oz LBMA Good Delivery Bar",
   quantity: 10,
   totalWeightOz: 4_000,
@@ -28,6 +37,10 @@ const ORDER = {
   custody: "Allocated Vaulting (Zurich — Malca-Amit)",
   totalNotional: 10_610_600.0,
   offtakerEntity: "Aureus Capital Partners Ltd.",
+  /** Turnkey MPC deposit address (only populated for USDT rail) */
+  depositAddress: null as string | null,
+  /** Whether inbound funds have been confirmed */
+  fundsConfirmedFinal: false,
 };
 
 const WIRE_INSTRUCTIONS = {
@@ -51,38 +64,47 @@ interface TimelineStep {
   status: StepStatus;
 }
 
-const TIMELINE: TimelineStep[] = [
-  {
-    id: 1,
-    label: "Order Placed & Price Locked",
-    subtext: "Execution confirmed at locked spot + premium.",
-    status: "completed",
-  },
-  {
-    id: 2,
-    label: "Escrow Instructions Issued",
-    subtext: "Fedwire routing packet dispatched to Offtaker.",
-    status: "completed",
-  },
-  {
-    id: 3,
-    label: "Fedwire Funds Received",
-    subtext: "Monitoring Column FBO virtual account.",
-    status: "active",
-  },
-  {
-    id: 4,
-    label: "Cryptographic Title Minted",
-    subtext: "Immutable proof-of-ownership token issued on settlement.",
-    status: "locked",
-  },
-  {
-    id: 5,
-    label: "Physical Allocation Confirmed",
-    subtext: "Vault allocation receipt from Malca-Amit (Zurich).",
-    status: "locked",
-  },
-];
+function getTimeline(rail: "FEDWIRE" | "TURNKEY_USDT"): TimelineStep[] {
+  const isCrypto = rail === "TURNKEY_USDT";
+  return [
+    {
+      id: 1,
+      label: "Order Placed & Price Locked",
+      subtext: "Execution confirmed at locked spot + premium.",
+      status: "completed",
+    },
+    {
+      id: 2,
+      label: isCrypto
+        ? "USDT Deposit Address Issued"
+        : "Escrow Instructions Issued",
+      subtext: isCrypto
+        ? "Turnkey MPC wallet generated. Awaiting USDT transfer."
+        : "Fedwire routing packet dispatched to Offtaker.",
+      status: "completed",
+    },
+    {
+      id: 3,
+      label: isCrypto ? "USDT Deposit Received" : "Fedwire Funds Received",
+      subtext: isCrypto
+        ? "Monitoring Turnkey MPC wallet for inbound ERC-20 USDT."
+        : "Monitoring Column FBO virtual account.",
+      status: "active",
+    },
+    {
+      id: 4,
+      label: "Cryptographic Title Minted",
+      subtext: "Immutable proof-of-ownership token issued on settlement.",
+      status: "locked",
+    },
+    {
+      id: 5,
+      label: "Physical Allocation Confirmed",
+      subtext: "Vault allocation receipt from Malca-Amit (Zurich).",
+      status: "locked",
+    },
+  ];
+}
 
 /* ----------------------------------------------------------------
    CURRENCY FORMATTER
@@ -96,9 +118,14 @@ function fmt(value: number, decimals = 2): string {
 
 /* ── Cryptographic Hash Badge ── */
 function HashBadge({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
+
   return (
     <span className="bg-black border border-slate-800 px-2 py-1 text-gold-primary font-mono flex items-center gap-2 w-fit">
       {value}
@@ -106,9 +133,96 @@ function HashBadge({ value }: { value: string }) {
         onClick={handleCopy}
         className="text-slate-600 text-[9px] hover:text-slate-400 transition-colors cursor-pointer"
       >
-        [ COPY ]
+        {copied ? "[ COPIED ]" : "[ COPY ]"}
       </button>
     </span>
+  );
+}
+
+/* ── QR Code Component (lightweight SVG-based) ── */
+function DepositQRCode({ address }: { address: string }) {
+  // Generate a deterministic visual pattern from the address
+  // This is a visual placeholder — in production, use a proper QR library
+  const chars = address.replace("0x", "");
+  const gridSize = 21; // Standard QR Module count
+  const cellSize = 8;
+  const svgSize = gridSize * cellSize;
+
+  // Generate deterministic grid from address hash
+  const cells: boolean[][] = [];
+  for (let row = 0; row < gridSize; row++) {
+    cells[row] = [];
+    for (let col = 0; col < gridSize; col++) {
+      const idx = (row * gridSize + col) % chars.length;
+      const charCode = chars.charCodeAt(idx);
+      // Finder patterns (top-left, top-right, bottom-left corners)
+      const isFinderPattern =
+        (row < 7 && col < 7) ||
+        (row < 7 && col >= gridSize - 7) ||
+        (row >= gridSize - 7 && col < 7);
+
+      if (isFinderPattern) {
+        // Standard QR finder pattern
+        const localRow = row < 7 ? row : row - (gridSize - 7);
+        const localCol = col < 7 ? col : col - (gridSize - 7);
+        const isOuter =
+          localRow === 0 ||
+          localRow === 6 ||
+          localCol === 0 ||
+          localCol === 6;
+        const isInner =
+          localRow >= 2 &&
+          localRow <= 4 &&
+          localCol >= 2 &&
+          localCol <= 4;
+        cells[row][col] = isOuter || isInner;
+      } else {
+        cells[row][col] = charCode % 3 !== 0;
+      }
+    }
+  }
+
+  return (
+    <div className="bg-white p-3 inline-block">
+      <svg
+        width={svgSize}
+        height={svgSize}
+        viewBox={`0 0 ${svgSize} ${svgSize}`}
+      >
+        {cells.map((row, rowIdx) =>
+          row.map((filled, colIdx) =>
+            filled ? (
+              <rect
+                key={`${rowIdx}-${colIdx}`}
+                x={colIdx * cellSize}
+                y={rowIdx * cellSize}
+                width={cellSize}
+                height={cellSize}
+                fill="black"
+              />
+            ) : null,
+          ),
+        )}
+      </svg>
+    </div>
+  );
+}
+
+/* ── Funds Confirmed Banner ── */
+function FundsConfirmedBanner() {
+  return (
+    <div className="bg-emerald-950/50 border-2 border-emerald-500 p-4 animate-pulse">
+      <div className="flex items-center gap-3 justify-center">
+        <Shield className="h-5 w-5 text-emerald-400" />
+        <span className="font-mono text-sm text-emerald-400 font-bold tracking-[0.2em] uppercase">
+          BLOCKCHAIN CONFIRMATION: FUNDS SECURED
+        </span>
+        <Shield className="h-5 w-5 text-emerald-400" />
+      </div>
+      <p className="font-mono text-[10px] text-emerald-500/70 text-center mt-2">
+        On-chain USDT deposit verified. Settlement advancing to title minting.
+      </p>
+    </div>
   );
 }
 
@@ -116,6 +230,52 @@ function HashBadge({ value }: { value: string }) {
    PAGE COMPONENT
    ================================================================ */
 export default function SettlementLedgerPage() {
+  const [fundsConfirmed, setFundsConfirmed] = useState(
+    ORDER.fundsConfirmedFinal,
+  );
+  const [timeline, setTimeline] = useState<TimelineStep[]>(
+    getTimeline(ORDER.rail),
+  );
+
+  const isCrypto = ORDER.rail === "TURNKEY_USDT";
+
+  /* ── 5-Second Polling for USDT deposits ── */
+  const pollSettlementStatus = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/settlement-status/${ORDER.settlementId}`,
+      );
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (data.fundsConfirmedFinal && !fundsConfirmed) {
+        setFundsConfirmed(true);
+        // Update timeline: mark step 3 as complete
+        setTimeline((prev) =>
+          prev.map((step) => {
+            if (step.id === 3) return { ...step, status: "completed" as StepStatus };
+            if (step.id === 4) return { ...step, status: "active" as StepStatus };
+            return step;
+          }),
+        );
+      }
+    } catch {
+      // Silently fail — polling will retry
+    }
+  }, [fundsConfirmed]);
+
+  /* Derive polling active status from existing state */
+  const pollingActive = isCrypto && !fundsConfirmed;
+
+  useEffect(() => {
+    if (!isCrypto || fundsConfirmed) return;
+
+    const interval = setInterval(pollSettlementStatus, 5000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isCrypto, fundsConfirmed, pollSettlementStatus]);
+
   return (
     <div className="min-h-screen bg-slate-950 pb-14">
       <div className="max-w-7xl mx-auto p-8 pt-12">
@@ -130,10 +290,32 @@ export default function SettlementLedgerPage() {
             <HashBadge value={ORDER.orderId} />
           </div>
 
-          <div className="bg-yellow-500/10 border border-yellow-500/50 text-yellow-500 font-mono px-3 py-1 text-sm whitespace-nowrap">
-            STATUS: {ORDER.status} ({ORDER.rail})
+          <div className="flex items-center gap-3">
+            <div
+              className={`border font-mono px-3 py-1 text-sm whitespace-nowrap ${
+                fundsConfirmed
+                  ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
+                  : "bg-yellow-500/10 border-yellow-500/50 text-yellow-500"
+              }`}
+            >
+              STATUS: {fundsConfirmed ? "FUNDS_CONFIRMED" : ORDER.status} (
+              {isCrypto ? "USDT" : ORDER.rail})
+            </div>
+            {pollingActive && (
+              <span className="font-mono text-[9px] text-cyan-400 flex items-center gap-1.5 animate-pulse">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                POLLING
+              </span>
+            )}
           </div>
         </div>
+
+        {/* ── Funds Confirmed Banner (only for crypto, only when confirmed) ── */}
+        {isCrypto && fundsConfirmed && (
+          <div className="mb-8">
+            <FundsConfirmedBanner />
+          </div>
+        )}
 
         {/* ════════════════════════════════════════════════════════
             3-COLUMN LEDGER GRID
@@ -194,51 +376,118 @@ export default function SettlementLedgerPage() {
           </div>
 
           {/* ──────────────────────────────────────────────────────
-              COLUMN 2 — Wire Instructions (Mission Control)
+              COLUMN 2 — Funding Instructions (Dual-Rail)
               ────────────────────────────────────────────────────── */}
           <div className="lg:col-span-4">
             <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 h-full flex flex-col">
               <span className="font-mono text-slate-400 text-xs tracking-[0.2em] uppercase block mb-5">
-                Pending Inbound Transfer
+                {isCrypto
+                  ? "USDT Deposit Instructions"
+                  : "Pending Inbound Transfer"}
               </span>
 
-              <div className="space-y-4 flex-1">
-                <WireField
-                  label="Receiving Institution"
-                  value={WIRE_INSTRUCTIONS.receivingInstitution}
-                />
-                <WireField
-                  label="ABA Routing Number"
-                  value={WIRE_INSTRUCTIONS.abaRouting}
-                />
-                <WireField
-                  label="Beneficiary"
-                  value={WIRE_INSTRUCTIONS.beneficiary}
-                />
-                <WireField
-                  label="Virtual Account Number"
-                  value={WIRE_INSTRUCTIONS.virtualAccount}
-                />
-                <WireField
-                  label="Reference / Memo"
-                  value={WIRE_INSTRUCTIONS.reference}
-                />
+              {isCrypto ? (
+                /* ═══ USDT / CRYPTO RAIL ═══ */
+                <div className="space-y-4 flex-1">
+                  {/* QR Code */}
+                  {ORDER.depositAddress && (
+                    <div className="flex justify-center">
+                      <DepositQRCode address={ORDER.depositAddress} />
+                    </div>
+                  )}
 
-                {/* Settlement Amount */}
-                <div className="border-t border-slate-800 pt-4 mt-4">
-                  <span className="font-mono text-[10px] text-slate-600 tracking-[0.15em] uppercase block mb-2">
-                    Exact Settlement Amount
-                  </span>
-                  <span className="font-mono text-2xl text-white font-bold tabular-nums block">
-                    ${fmt(WIRE_INSTRUCTIONS.amount)}
-                  </span>
+                  {/* Deposit Address */}
+                  <div>
+                    <span className="font-mono text-[9px] text-slate-600 tracking-[0.15em] uppercase block mb-1">
+                      Deposit Address (ERC-20 USDT)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-white break-all">
+                        {ORDER.depositAddress ?? "Generating..."}
+                      </span>
+                      {ORDER.depositAddress && (
+                        <button
+                          onClick={() => {
+                            if (ORDER.depositAddress) {
+                              navigator.clipboard.writeText(
+                                ORDER.depositAddress,
+                              );
+                            }
+                          }}
+                          className="text-slate-600 hover:text-slate-400 transition-colors shrink-0 cursor-pointer"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Network */}
+                  <WireField label="Network" value="Ethereum Mainnet" />
+                  <WireField label="Token" value="USDT (Tether)" />
+                  <WireField label="Contract" value="0xdAC1...1ec7" />
+
+                  {/* Settlement Amount */}
+                  <div className="border-t border-slate-800 pt-4 mt-4">
+                    <span className="font-mono text-[10px] text-slate-600 tracking-[0.15em] uppercase block mb-2">
+                      Exact USDT Required
+                    </span>
+                    <span className="font-mono text-2xl text-white font-bold tabular-nums block">
+                      {fmt(ORDER.totalNotional)} USDT
+                    </span>
+                  </div>
+
+                  {/* Warning */}
+                  <div className="bg-amber-500/5 border border-amber-500/30 p-3 mt-2">
+                    <p className="font-mono text-[10px] text-amber-500 leading-relaxed">
+                      Send exactly the amount shown above. Partial deposits will
+                      be held pending. Only ERC-20 USDT on Ethereum mainnet is
+                      accepted.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* ═══ FEDWIRE RAIL (existing) ═══ */
+                <div className="space-y-4 flex-1">
+                  <WireField
+                    label="Receiving Institution"
+                    value={WIRE_INSTRUCTIONS.receivingInstitution}
+                  />
+                  <WireField
+                    label="ABA Routing Number"
+                    value={WIRE_INSTRUCTIONS.abaRouting}
+                  />
+                  <WireField
+                    label="Beneficiary"
+                    value={WIRE_INSTRUCTIONS.beneficiary}
+                  />
+                  <WireField
+                    label="Virtual Account Number"
+                    value={WIRE_INSTRUCTIONS.virtualAccount}
+                  />
+                  <WireField
+                    label="Reference / Memo"
+                    value={WIRE_INSTRUCTIONS.reference}
+                  />
 
-              {/* RTGS Warning */}
+                  {/* Settlement Amount */}
+                  <div className="border-t border-slate-800 pt-4 mt-4">
+                    <span className="font-mono text-[10px] text-slate-600 tracking-[0.15em] uppercase block mb-2">
+                      Exact Settlement Amount
+                    </span>
+                    <span className="font-mono text-2xl text-white font-bold tabular-nums block">
+                      ${fmt(WIRE_INSTRUCTIONS.amount)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Rail-specific footer */}
               <div className="bg-slate-800/50 border border-slate-700 p-3 mt-5">
                 <p className="font-mono text-[10px] text-slate-500 leading-relaxed">
-                  Awaiting webhook confirmation from Federal Reserve RTGS.
+                  {isCrypto
+                    ? "Monitoring Turnkey MPC wallet for inbound ERC-20 USDT. Auto-confirmation every 5 seconds."
+                    : "Awaiting webhook confirmation from Federal Reserve RTGS."}
                 </p>
               </div>
             </div>
@@ -258,7 +507,7 @@ export default function SettlementLedgerPage() {
                 <div className="absolute left-[5px] top-0 bottom-0 border-l border-slate-700" />
 
                 <div className="space-y-6">
-                  {TIMELINE.map((step) => (
+                  {timeline.map((step) => (
                     <TimelineNode key={step.id} step={step} />
                   ))}
                 </div>
@@ -269,7 +518,7 @@ export default function SettlementLedgerPage() {
 
         {/* ── Footer ── */}
         <p className="mt-12 text-center font-mono text-[10px] text-slate-700 tracking-wider">
-          AurumShield Clearing · Fedwire RTGS · LBMA Good Delivery ·
+          AurumShield Clearing · {isCrypto ? "Turnkey MPC · ERC-20 USDT" : "Fedwire RTGS"} · LBMA Good Delivery ·
           Immutable Settlement Ledger
         </p>
       </div>

@@ -70,6 +70,10 @@ export interface LiveSettlementOrder {
   status: string;
   escrowConfirmedAt: string;
   producerId: string;
+  /** Funding route: 'fedwire' | 'stablecoin' */
+  fundingRoute?: string;
+  /** Producer's registered ERC-20 wallet for USDT payouts */
+  producerWalletAddress?: string;
 }
 
 /* ================================================================
@@ -342,6 +346,8 @@ export async function getSettlementCaseForOrder(
       weight_oz: string;
       locked_price_per_oz: string;
       opened_at: string;
+      funding_route: string | null;
+      producer_wallet_address: string | null;
       // Joined from inventory_listings
       form: string;
       purity: string;
@@ -365,7 +371,9 @@ export async function getSettlementCaseForOrder(
          COALESCE(il.purity, '0.9950') AS purity,
          COALESCE(il.vault_location, 'Zurich FTZ') AS vault_location,
          COALESCE(o.name, 'Unknown Entity') AS buyer_org_name,
-         COALESCE(o.legal_entity_identifier, '') AS buyer_lei
+         COALESCE(o.legal_entity_identifier, '') AS buyer_lei,
+         sc.funding_route,
+         sc.producer_wallet_address
        FROM settlement_cases sc
        LEFT JOIN inventory_listings il ON il.id = sc.listing_id
        LEFT JOIN organizations o ON o.id = sc.buyer_org_id
@@ -403,6 +411,8 @@ export async function getSettlementCaseForOrder(
       status: r.status,
       escrowConfirmedAt: r.opened_at,
       producerId: r.seller_id,
+      fundingRoute: r.funding_route ?? "fedwire",
+      producerWalletAddress: r.producer_wallet_address ?? undefined,
     };
   } finally {
     client.release();
