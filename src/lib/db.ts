@@ -124,9 +124,9 @@ let _poolInitPromise: Promise<InstanceType<typeof import("pg").Pool>> | null = n
  * The pool manages connection lifecycle, reuse, and health checks.
  *
  * Pool settings:
- *   - max: 10 connections (suitable for Next.js serverless)
+ *   - max: DB_POOL_MAX env var, default 20 connections per container
  *   - idleTimeoutMillis: 30s (reclaim idle connections)
- *   - connectionTimeoutMillis: 10s
+ *   - connectionTimeoutMillis: 2s (fail-fast to prevent cascading hangs)
  */
 export async function getDbPool() {
   if (_pool) return _pool;
@@ -145,9 +145,11 @@ export async function getDbPool() {
       user: creds.user,
       password: creds.password,
       ssl: creds.ssl,
-      max: 10,
+      // Dynamic scaling limit, defaulting to 20 connections per container
+      max: process.env.DB_POOL_MAX ? parseInt(process.env.DB_POOL_MAX, 10) : 20,
       idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 10_000,
+      // Fail fast: If DB doesn't respond in 2 seconds, throw an error rather than hanging the container
+      connectionTimeoutMillis: 2000, 
     });
 
     // Log pool errors (don't crash the process)

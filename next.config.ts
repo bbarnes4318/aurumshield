@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: "standalone", // Critical for reducing Docker image size on AWS ECS
   images: {
     remotePatterns: [
       {
