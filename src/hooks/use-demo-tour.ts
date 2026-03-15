@@ -50,7 +50,7 @@ export const DEMO_TOUR_STEPS = [
 
 /** The spotlight CSS classes for the target button */
 export const DEMO_SPOTLIGHT_CLASSES =
-  "relative z-[100] bg-slate-900 pointer-events-auto ring-2 ring-[#c6a86b] ring-offset-4 ring-offset-slate-950 shadow-[0_0_30px_rgba(198,168,107,0.15)]";
+  "ring-2 ring-[#c6a86b] ring-offset-2 ring-offset-slate-950";
 
 /** Helper: find current step index from pathname */
 export function getDemoStepIndex(pathname: string): number {

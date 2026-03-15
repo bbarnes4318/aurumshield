@@ -156,7 +156,8 @@ function StatusBadge({ status }: { status: StepStatus | string }) {
    PAGE COMPONENT
    ================================================================ */
 export default function KYBConsolePage() {
-  const [steps] = useState<VerificationStep[]>(INITIAL_STEPS);
+  const [steps, setSteps] = useState<VerificationStep[]>(INITIAL_STEPS);
+  const [veriffRunning, setVeriffRunning] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -164,9 +165,23 @@ export default function KYBConsolePage() {
   const demoParam = isDemoActive ? "?demo=active" : "";
 
   const handleLaunchVeriff = useCallback(() => {
-    // TODO: Integrate Veriff SDK session creation
-    console.log("[KYB] Launching Veriff secure session...");
-  }, []);
+    if (veriffRunning) return;
+    setVeriffRunning(true);
+    // Simulate Veriff session — advance each step from ACTIVE → COMPLETE
+    const stepDelay = 1200;
+    INITIAL_STEPS.forEach((_, idx) => {
+      setTimeout(() => {
+        setSteps(prev => prev.map((s, i) => {
+          if (i === idx) return { ...s, status: "COMPLETE" as StepStatus };
+          if (i === idx + 1) return { ...s, status: "ACTIVE" as StepStatus };
+          return s;
+        }));
+        if (idx === INITIAL_STEPS.length - 1) {
+          setVeriffRunning(false);
+        }
+      }, stepDelay * (idx + 1));
+    });
+  }, [veriffRunning]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -359,7 +374,8 @@ export default function KYBConsolePage() {
                         <div>
                           <button
                             onClick={handleLaunchVeriff}
-                            className="bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-5 py-2.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 cursor-pointer"
+                            disabled={veriffRunning}
+                            className={`bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-5 py-2.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait ${veriffRunning ? 'animate-pulse' : ''}`}
                           >
                             Launch Veriff Secure Session
                             <ChevronRight className="h-3.5 w-3.5" />

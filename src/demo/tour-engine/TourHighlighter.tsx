@@ -1,9 +1,9 @@
 /* ================================================================
-   TOUR HIGHLIGHTER — Institutional highlight + spotlight mask
+   TOUR HIGHLIGHTER — Clean outline around target element
    
-   Positions a clean 2px solid outline around the target element.
-   Adds a flat dim spotlight mask over the rest of the screen.
-   No glow, no pulse, no animation, no shadows.
+   Positions a 2px solid outline around the target element.
+   NO full-page dimming mask — the user must be able to see and
+   interact with the entire page at all times.
    
    Handles scroll containers, resize, and auto-scrolls
    the target into view if not visible.
@@ -18,8 +18,6 @@ import { useTourTarget, getScrollParent, ensureElementVisible } from "./useTourT
 
 /** Padding around the highlighted element (px) */
 const HIGHLIGHT_PAD = 6;
-/** Z-index for the spotlight mask */
-const MASK_Z = 9990;
 /** Z-index for the highlight outline */
 const HIGHLIGHT_Z = 9991;
 
@@ -110,77 +108,12 @@ export function TourHighlighter() {
   // Don't render anything if not active or no target
   if (!mounted || state.status !== "active") return null;
 
-  // If no selector, show full-screen dim only (center overlay mode)
-  if (!selector) {
-    return createPortal(
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: MASK_Z,
-          backgroundColor: "rgba(0, 0, 0, 0.45)",
-          pointerEvents: "none",
-        }}
-        aria-hidden="true"
-      />,
-      document.body,
-    );
-  }
+  // If no selector or target not found — render nothing (no mask, no overlay)
+  if (!selector || !found || !rect) return null;
 
-  // Target not found — render NO mask, just a small non-blocking info banner
-  if (!found || !rect) {
-    return createPortal(
-      <div
-        style={{
-          position: "fixed",
-          bottom: 80,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: MASK_Z,
-          pointerEvents: "none",
-          background: "rgba(30, 30, 30, 0.85)",
-          backdropFilter: "blur(4px)",
-          border: "1px solid rgba(198, 168, 107, 0.3)",
-          borderRadius: 8,
-          padding: "8px 16px",
-          fontSize: 12,
-          color: "rgba(198, 168, 107, 0.9)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Tour target unavailable on this page — you can continue manually.
-      </div>,
-      document.body,
-    );
-  }
-
-  // Spotlight mask with rectangular cutout
-  const maskStyle = `
-    polygon(
-      0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
-      ${rect.left}px ${rect.top}px,
-      ${rect.left}px ${rect.top + rect.height}px,
-      ${rect.left + rect.width}px ${rect.top + rect.height}px,
-      ${rect.left + rect.width}px ${rect.top}px,
-      ${rect.left}px ${rect.top}px
-    )
-  `;
-
+  // Render ONLY the highlight outline — NO full-page dimming mask
   return createPortal(
     <>
-      {/* Spotlight mask — flat neutral dim with rectangular cutout */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: MASK_Z,
-          backgroundColor: "rgba(0, 0, 0, 0.45)",
-          clipPath: maskStyle,
-          pointerEvents: "none",
-        }}
-        aria-hidden="true"
-      />
-
       {/* Highlight outline — 2px solid, no glow, no pulse */}
       <div
         style={{
@@ -210,37 +143,6 @@ export function TourHighlighter() {
           borderRadius: "calc(var(--radius-sm, 10px) - 3px)",
           opacity: 0.4,
           pointerEvents: "none",
-        }}
-        aria-hidden="true"
-      />
-
-      {/* Click-through zone over the target — allows interaction */}
-      <div
-        style={{
-          position: "fixed",
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-          zIndex: MASK_Z + 1,
-          pointerEvents: "auto",
-          background: "transparent",
-          cursor: "pointer",
-        }}
-        onClick={(e) => {
-          // Temporarily hide this overlay so elementFromPoint finds the real target
-          const overlay = e.currentTarget as HTMLElement;
-          overlay.style.pointerEvents = "none";
-          overlay.style.display = "none";
-          const targetEl = document.elementFromPoint(
-            rect.left + rect.width / 2,
-            rect.top + rect.height / 2,
-          );
-          overlay.style.display = "";
-          overlay.style.pointerEvents = "auto";
-          if (targetEl) {
-            (targetEl as HTMLElement).click();
-          }
         }}
         aria-hidden="true"
       />
