@@ -10,7 +10,7 @@
    ================================================================ */
 
 import { useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Shield,
   CheckCircle2,
@@ -160,7 +160,6 @@ export default function KYBConsolePage() {
   const [veriffRunning, setVeriffRunning] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { isDemoActive } = useDemoTour();
   const demoParam = isDemoActive ? "?demo=active" : "";
 

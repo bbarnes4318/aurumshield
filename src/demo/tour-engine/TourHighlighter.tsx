@@ -31,7 +31,6 @@ interface HighlightRect {
 export function TourHighlighter() {
   const { state, currentStep } = useTour();
   const [rect, setRect] = useState<HighlightRect | null>(null);
-  const [mounted, setMounted] = useState(false);
   const scrollCleanupRef = useRef<(() => void) | null>(null);
 
   const selector = currentStep?.target;
@@ -40,11 +39,7 @@ export function TourHighlighter() {
     currentStep?.id ?? "none",
   );
 
-  // Client-side only
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const mounted = typeof window !== "undefined";
 
   // Calculate and track element position
   const updateRect = useCallback(() => {
@@ -64,7 +59,6 @@ export function TourHighlighter() {
   // Attach scroll + resize listeners
   useEffect(() => {
     if (!element || state.status !== "active") {
-      setRect(null);
       return;
     }
 
