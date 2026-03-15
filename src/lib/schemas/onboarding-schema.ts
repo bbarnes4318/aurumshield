@@ -26,7 +26,7 @@ export const stepEntityRegistrationSchema = z.object({
       (v) => v === "" || /^[A-Za-z0-9]{20}$/.test(v),
       "LEI must be exactly 20 alphanumeric characters (e.g. 5493001KJTIIGC8Y1R12)",
     ),
-  leiVerified: z.boolean().optional().default(false),
+  leiVerified: z.boolean(),
   registrationNumber: z
     .string()
     .max(100, "Registration number must be under 100 characters")
@@ -222,7 +222,7 @@ export const ONBOARDING_STEPS = [
   {
     id: 1,
     label: "Entity & LEI",
-    fields: ["companyName", "legalEntityIdentifier", "leiVerified", "registrationNumber", "jurisdiction", "contactEmail", "contactPhone"] as const,
+    fields: ["companyName", "legalEntityIdentifier", "registrationNumber", "jurisdiction", "contactEmail", "contactPhone"] as const,
   },
   {
     id: 2,

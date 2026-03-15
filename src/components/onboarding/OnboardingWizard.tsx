@@ -154,7 +154,7 @@ export function OnboardingWizard() {
     defaultValues: {
       companyName: "",
       legalEntityIdentifier: "",
-      leiVerified: false as unknown as true,
+      leiVerified: false,
       registrationNumber: "",
       jurisdiction: "",
       contactEmail: "",
@@ -206,7 +206,7 @@ export function OnboardingWizard() {
           reset({
             companyName: meta.companyName ?? "",
             legalEntityIdentifier: meta.legalEntityIdentifier ?? "",
-            leiVerified: (meta.leiVerified ?? false) as unknown as true,
+            leiVerified: meta.leiVerified ?? false,
             registrationNumber: meta.registrationNumber ?? "",
             jurisdiction: meta.jurisdiction ?? "",
             contactEmail: meta.contactEmail ?? "",
