@@ -14,7 +14,6 @@
 import {
   forwardRef,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -41,17 +40,13 @@ export interface GhostCursorHandle {
 
 export const GhostCursor = forwardRef<GhostCursorHandle>(
   function GhostCursor(_props, ref) {
-    const [mounted, setMounted] = useState(false);
+    const mounted = typeof window !== "undefined";
     const [visible, setVisible] = useState(false);
     const [clicking, setClicking] = useState(false);
     const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
-    const posRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-    const [pos, setPos] = useState(posRef.current);
-
-    useEffect(() => {
-      setMounted(true);
-      return () => setMounted(false);
-    }, []);
+    const initialPos = { x: mounted ? window.innerWidth / 2 : 0, y: mounted ? window.innerHeight / 2 : 0 };
+    const posRef = useRef(initialPos);
+    const [pos, setPos] = useState(initialPos);
 
     const moveTo = useCallback(
       async (x: number, y: number, durationMs: number = 600) => {

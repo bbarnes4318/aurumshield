@@ -11,10 +11,7 @@
 import { useState, useCallback } from "react";
 import {
   Landmark,
-  Search,
   ArrowDownToLine,
-  FileKey2,
-  Truck,
   Shield,
   Radio,
   Lock,
@@ -49,7 +46,7 @@ function TimelineStep({
             status === "complete"
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
               : status === "active"
-                ? "border-[#c6a86b]/50 bg-[#c6a86b]/10 text-[#c6a86b]"
+                ? "border-gold-primary/50 bg-gold-primary/10 text-gold-primary"
                 : "border-slate-700 bg-slate-900 text-slate-600"
           }`}
         >

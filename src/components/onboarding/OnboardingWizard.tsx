@@ -180,52 +180,58 @@ export function OnboardingWizard() {
 
   const { trigger, handleSubmit, reset, getValues } = methods;
 
-  /* ── Restore saved state on mount ── */
+  /* ── Restore saved state on mount ── 
+     Uses queueMicrotask to avoid synchronous setState inside the 
+     effect body, which the React compiler flags as a cascading 
+     render hazard. The microtask fires after the effect commit 
+     but before paint, so there is no visible flash. ── */
   useEffect(() => {
     if (hasRestoredRef.current) return;
     if (savedStateQ.isLoading) return;
 
     hasRestoredRef.current = true;
 
-    if (savedStateQ.data) {
-      const saved = savedStateQ.data;
+    queueMicrotask(() => {
+      if (savedStateQ.data) {
+        const saved = savedStateQ.data;
 
-      // Restore wizard step
-      if (saved.currentStep >= 1 && saved.currentStep <= TOTAL_STEPS) {
-        setCurrentStep(saved.currentStep);
+        // Restore wizard step
+        if (saved.currentStep >= 1 && saved.currentStep <= TOTAL_STEPS) {
+          setCurrentStep(saved.currentStep);
+        }
+
+        // Restore form values from metadata_json
+        const meta = saved.metadataJson as Partial<OnboardingFormData> | undefined;
+        if (meta && typeof meta === "object") {
+          reset({
+            companyName: meta.companyName ?? "",
+            legalEntityIdentifier: meta.legalEntityIdentifier ?? "",
+            leiVerified: (meta.leiVerified ?? false) as unknown as true,
+            registrationNumber: meta.registrationNumber ?? "",
+            jurisdiction: meta.jurisdiction ?? "",
+            contactEmail: meta.contactEmail ?? "",
+            contactPhone: meta.contactPhone ?? "",
+            kybVerificationPassed: (meta.kybVerificationPassed ?? false) as unknown as true,
+            uboDocumentName: meta.uboDocumentName ?? "",
+            uboDeclarationAccepted: (meta.uboDeclarationAccepted ?? false) as unknown as true,
+            sanctionsScreeningPassed: (meta.sanctionsScreeningPassed ?? false) as unknown as true,
+            sourceOfFundsType: meta.sourceOfFundsType,
+            sourceOfFundsDocumentUrl: meta.sourceOfFundsDocumentUrl ?? "",
+            sourceOfFundsAttested: (meta.sourceOfFundsAttested ?? false) as unknown as true,
+            verificationAcknowledged: (meta.verificationAcknowledged ?? false) as unknown as true,
+            primaryRole: meta.primaryRole,
+            dualAuthAcknowledged: (meta.dualAuthAcknowledged ?? false) as unknown as true,
+            totpEnrolled: (meta.totpEnrolled ?? false) as unknown as true,
+            webauthnEnrolled: (meta.webauthnEnrolled ?? false) as unknown as true,
+            ssoProvider: meta.ssoProvider ?? "none",
+            agreementSigned: (meta.agreementSigned ?? false) as unknown as true,
+            complianceAttested: (meta.complianceAttested ?? false) as unknown as true,
+          });
+        }
       }
 
-      // Restore form values from metadata_json
-      const meta = saved.metadataJson as Partial<OnboardingFormData> | undefined;
-      if (meta && typeof meta === "object") {
-        reset({
-          companyName: meta.companyName ?? "",
-          legalEntityIdentifier: meta.legalEntityIdentifier ?? "",
-          leiVerified: (meta.leiVerified ?? false) as unknown as true,
-          registrationNumber: meta.registrationNumber ?? "",
-          jurisdiction: meta.jurisdiction ?? "",
-          contactEmail: meta.contactEmail ?? "",
-          contactPhone: meta.contactPhone ?? "",
-          kybVerificationPassed: (meta.kybVerificationPassed ?? false) as unknown as true,
-          uboDocumentName: meta.uboDocumentName ?? "",
-          uboDeclarationAccepted: (meta.uboDeclarationAccepted ?? false) as unknown as true,
-          sanctionsScreeningPassed: (meta.sanctionsScreeningPassed ?? false) as unknown as true,
-          sourceOfFundsType: meta.sourceOfFundsType,
-          sourceOfFundsDocumentUrl: meta.sourceOfFundsDocumentUrl ?? "",
-          sourceOfFundsAttested: (meta.sourceOfFundsAttested ?? false) as unknown as true,
-          verificationAcknowledged: (meta.verificationAcknowledged ?? false) as unknown as true,
-          primaryRole: meta.primaryRole,
-          dualAuthAcknowledged: (meta.dualAuthAcknowledged ?? false) as unknown as true,
-          totpEnrolled: (meta.totpEnrolled ?? false) as unknown as true,
-          webauthnEnrolled: (meta.webauthnEnrolled ?? false) as unknown as true,
-          ssoProvider: meta.ssoProvider ?? "none",
-          agreementSigned: (meta.agreementSigned ?? false) as unknown as true,
-          complianceAttested: (meta.complianceAttested ?? false) as unknown as true,
-        });
-      }
-    }
-
-    setIsRestoring(false);
+      setIsRestoring(false);
+    });
   }, [savedStateQ.isLoading, savedStateQ.data, reset]);
 
   /* ── Auto-save helper ── */
