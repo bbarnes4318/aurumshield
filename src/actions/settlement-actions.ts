@@ -123,6 +123,88 @@ async function routeOutboundFedwire(
 }
 
 /* ================================================================
+   TURNKEY ADAPTER (Outbound USDT/Stablecoin Payout)
+   ================================================================
+   Uses the Turnkey MPC adapter to sign and broadcast an ERC-20
+   USDT Transfer from the buyer's isolated deposit wallet to the
+   Producer's verified Ethereum wallet.
+
+   CRITICAL: ERC-20 USDT uses 6 decimals (10^6 base units).
+   Our fiat engine stores value in cents (10^2).
+   Conversion: usdtBaseUnits = amountCents * 10000
+   (cents → dollars = ÷100, dollars → 6-dec = ×10^6, net = ×10^4)
+
+   TODO: Replace simulation with live Turnkey signing when
+   TURNKEY_API_PRIVATE_KEY is deployed.
+   ================================================================ */
+
+interface StablecoinPayoutRequest {
+  fromSubOrgId: string;
+  toWalletAddress: string;
+  amountCents: number;
+  idempotencyKey: string;
+}
+
+/** USDT ERC-20 contract on Ethereum mainnet */
+const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+/** ERC-20 Transfer function selector: transfer(address,uint256) */
+const ERC20_TRANSFER_SELECTOR = "0xa9059cbb";
+
+async function routeOutboundStablecoin(
+  req: StablecoinPayoutRequest,
+): Promise<{ transferId: string; status: string }> {
+  // Convert cents → USDT 6-decimal base units using BigInt for precision
+  const usdtBaseUnits = BigInt(req.amountCents) * BigInt(10000);
+
+  console.log(
+    `[TURNKEY-PAYOUT] Constructing ERC-20 USDT transfer: ` +
+      `fromSubOrg=${req.fromSubOrgId} to=${req.toWalletAddress} ` +
+      `amountCents=${req.amountCents} usdtBaseUnits=${usdtBaseUnits.toString()} ` +
+      `idempotencyKey=${req.idempotencyKey}`,
+  );
+
+  // Attempt live Turnkey signing if API keys are configured
+  const turnkeyPublicKey = process.env.TURNKEY_API_PUBLIC_KEY;
+  const turnkeyPrivateKey = process.env.TURNKEY_API_PRIVATE_KEY;
+
+  if (turnkeyPublicKey && turnkeyPrivateKey) {
+    // TODO: Live Turnkey signing path
+    // 1. Initialize TurnkeyService within the fromSubOrgId context
+    // 2. Construct ERC-20 transfer calldata:
+    //    - to: USDT_CONTRACT_ADDRESS
+    //    - data: ERC20_TRANSFER_SELECTOR + abi.encode(toWalletAddress, usdtBaseUnits)
+    // 3. Sign and broadcast via Turnkey SDK
+    // const { Turnkey } = await import("@turnkey/sdk-server");
+    // const turnkey = new Turnkey({ ... });
+    // const signedTx = await turnkey.apiClient().signTransaction({ ... });
+
+    console.warn(
+      `[TURNKEY-PAYOUT] Live signing not yet enabled — falling through to simulation`,
+    );
+  }
+
+  // Simulate network latency (mock mode)
+  await new Promise((r) => setTimeout(r, 250));
+
+  // Encode the ERC-20 transfer calldata for audit logging
+  const paddedAddress = req.toWalletAddress.replace("0x", "").padStart(64, "0");
+  const paddedAmount = usdtBaseUnits.toString(16).padStart(64, "0");
+  const transferCalldata = `${ERC20_TRANSFER_SELECTOR}${paddedAddress}${paddedAmount}`;
+
+  const transferId = `usdt_${randomUUID().replace(/-/g, "").slice(0, 20)}`;
+
+  console.log(
+    `[TURNKEY-PAYOUT] Outbound USDT transfer routed (simulated): ` +
+      `transfer=${transferId} contract=${USDT_CONTRACT_ADDRESS} ` +
+      `calldata=${transferCalldata.slice(0, 42)}... ` +
+      `usdtBaseUnits=${usdtBaseUnits.toString()}`,
+  );
+
+  return { transferId, status: "submitted" };
+}
+
+/* ================================================================
    EXECUTE ATOMIC SWAP — Server Action
    ================================================================ */
 
@@ -155,10 +237,14 @@ export async function executeAtomicSwap(
       weight_oz: string;
       locked_price_per_oz: string;
       clearing_certificate_hash: string | null;
+      funding_route: string | null;
+      turnkey_sub_org_id: string | null;
+      turnkey_deposit_address: string | null;
     }>(
       `SELECT id, order_id, buyer_id, producer_id, listing_id,
               status, total_notional, weight_oz, locked_price_per_oz,
-              clearing_certificate_hash
+              clearing_certificate_hash, funding_route,
+              turnkey_sub_org_id, turnkey_deposit_address
        FROM settlement_cases
        WHERE id = $1
        FOR UPDATE`,
@@ -213,14 +299,24 @@ export async function executeAtomicSwap(
     /* ── 2. Phase A: Cryptographic Title Handoff ── */
     console.log(`[DVP-ENGINE] Phase A: Minting cryptographic title for order=${orderId}`);
 
-    // Query the asset details from the listing
+    // Query the asset details from the listing (including provenance + refinery flags)
     const { rows: listingRows } = await client.query<{
       form: string;
       purity: string;
       total_weight_oz: string;
       vault_location: string;
+      assay_verified: boolean;
+      transit_logged: boolean;
+      refinery_status: string;
+      actual_refined_weight_oz: string | null;
+      estimated_weight_oz: string | null;
     }>(
-      `SELECT form, purity, total_weight_oz, vault_location
+      `SELECT form, purity, total_weight_oz, vault_location,
+              COALESCE(assay_verified, FALSE) AS assay_verified,
+              COALESCE(transit_logged, FALSE) AS transit_logged,
+              COALESCE(refinery_status, 'NOT_APPLICABLE') AS refinery_status,
+              actual_refined_weight_oz,
+              estimated_weight_oz
        FROM inventory_listings
        WHERE id = $1`,
       [order.listing_id],
@@ -231,40 +327,134 @@ export async function executeAtomicSwap(
       purity: "0.9950",
       total_weight_oz: order.weight_oz,
       vault_location: "Zurich FTZ",
+      assay_verified: false,
+      transit_logged: false,
+      refinery_status: "NOT_APPLICABLE",
+      actual_refined_weight_oz: null,
+      estimated_weight_oz: null,
     };
+
+    /* ── PROVENANCE GATE (Good Delivery Bullion Only) ── */
+    // Raw Doré listings bypass the assay gate — they have their own
+    // Refinery Gate below.
+    const isRawDore = listing.form === "RAW_DORE";
+    const isGoodDelivery = !isRawDore;
+
+    if (isGoodDelivery && (!listing.assay_verified || !listing.transit_logged)) {
+      await client.query("ROLLBACK");
+      console.error(
+        `[DVP-ENGINE] PROVENANCE VIOLATION: listing=${order.listing_id} ` +
+          `assay_verified=${listing.assay_verified} transit_logged=${listing.transit_logged}`,
+      );
+      throw new Error(
+        "ASSET_PROVENANCE_VIOLATION: Sovereign assay data missing or invalid. Title minting aborted.",
+      );
+    }
+
+    /* ── DORÉ GATE (RAW_DORE Only) ── */
+    // Raw Doré assets MUST have a completed refinery yield confirmation
+    // before title minting is permitted. The actual_refined_weight_oz
+    // from the refinery webhook is the ONLY acceptable weight.
+    if (isRawDore && listing.refinery_status !== "COMPLETED") {
+      await client.query("ROLLBACK");
+      console.error(
+        `[DVP-ENGINE] ASSET_UNREFINED: listing=${order.listing_id} ` +
+          `refinery_status=${listing.refinery_status} ` +
+          `estimated_weight_oz=${listing.estimated_weight_oz ?? "N/A"}`,
+      );
+      throw new Error(
+        "ASSET_UNREFINED: Doré asset has not received final yield confirmation from the refinery. Title minting aborted.",
+      );
+    }
+
+    /* ── DYNAMIC EXECUTION WEIGHT ── */
+    // For RAW_DORE: use the refinery's actual_refined_weight_oz (the oracle).
+    // For Good Delivery: use the original order weight_oz.
+    const finalExecutionWeight = isRawDore
+      ? parseFloat(listing.actual_refined_weight_oz!)
+      : parseFloat(listing.total_weight_oz || order.weight_oz);
+
+    if (isRawDore) {
+      console.log(
+        `[DVP-ENGINE] Doré weight patch: estimated=${listing.estimated_weight_oz} ` +
+          `actual_refined=${listing.actual_refined_weight_oz} ` +
+          `finalExecutionWeight=${finalExecutionWeight}`,
+      );
+    }
 
     const titleResult = await mintCryptographicTitle({
       orderId: order.order_id,
       serialNumber: `SN-${order.order_id}-${Date.now().toString(36)}`,
       fineness: listing.purity,
-      weightOz: parseFloat(listing.total_weight_oz || order.weight_oz),
+      weightOz: finalExecutionWeight,
       vaultLocation: listing.vault_location,
       offtakerId: order.buyer_id,
     });
 
     console.log(
       `[DVP-ENGINE] Phase A complete: title_hash=${titleResult.titleHash.slice(0, 16)}... ` +
-        `certificate=${titleResult.certificateId}`,
+        `certificate=${titleResult.certificateId} weightOz=${finalExecutionWeight}`,
     );
 
-    /* ── 3. Phase B: Fiat Payout Routing ── */
-    console.log(`[DVP-ENGINE] Phase B: Routing outbound Fedwire for order=${orderId}`);
+    /* ── 3. Phase B: Payout Routing (Rail-Dependent) ── */
 
-    const notionalCents = Math.round(parseFloat(order.total_notional) * 100);
+    /* ── DYNAMIC NOTIONAL RECALCULATION ── */
+    // For RAW_DORE listings, the notional MUST be recalculated using the
+    // actual refined weight × the locked price per oz. This prevents the
+    // buyer from paying the estimated (higher) notional for a smaller
+    // amount of actual refined gold.
+    const originalNotionalCents = Math.round(parseFloat(order.total_notional) * 100);
+    let finalNotionalCents: number;
+
+    if (isRawDore) {
+      const finalNotionalUsd = finalExecutionWeight * parseFloat(order.locked_price_per_oz);
+      finalNotionalCents = Math.round(finalNotionalUsd * 100);
+
+      console.log(
+        `[DVP-ENGINE] Doré notional recalculation: ` +
+          `original_notional_cents=${originalNotionalCents} ` +
+          `final_notional_cents=${finalNotionalCents} ` +
+          `delta_cents=${originalNotionalCents - finalNotionalCents} ` +
+          `finalWeight=${finalExecutionWeight} ` +
+          `lockedPricePerOz=${order.locked_price_per_oz}`,
+      );
+    } else {
+      finalNotionalCents = originalNotionalCents;
+    }
+
     const idempotencyKey = `dvp-payout-${order.order_id}-${orderId}`;
+    const isFedwire = order.funding_route !== "stablecoin";
 
-    const payoutResult = await routeOutboundFedwire({
-      fromVirtualAccountId: `va_${orderId}`,
-      toRoutingNumber: "021000021", // TODO: Query from producer's verified bank details
-      toAccountNumber: "****8842",  // TODO: Query from producer's verified bank details
-      amountCents: notionalCents,
-      currency: "USD",
-      reference: `DVP-${order.order_id}`,
-      idempotencyKey,
-    });
+    let payoutResult: { transferId: string; status: string };
+
+    if (isFedwire) {
+      /* ── Phase B-1: Fiat Payout via Fedwire (Column Bank) ── */
+      console.log(`[DVP-ENGINE] Phase B: Routing outbound Fedwire for order=${orderId}`);
+
+      payoutResult = await routeOutboundFedwire({
+        fromVirtualAccountId: `va_${orderId}`,
+        toRoutingNumber: "021000021", // TODO: Query from producer's verified bank details
+        toAccountNumber: "****8842",  // TODO: Query from producer's verified bank details
+        amountCents: finalNotionalCents,
+        currency: "USD",
+        reference: `DVP-${order.order_id}`,
+        idempotencyKey,
+      });
+    } else {
+      /* ── Phase B-2: Stablecoin Payout via Turnkey MPC ── */
+      console.log(`[DVP-ENGINE] Phase B: Routing outbound USDT for order=${orderId}`);
+
+      payoutResult = await routeOutboundStablecoin({
+        fromSubOrgId: order.turnkey_sub_org_id ?? `suborg-${orderId}`,
+        toWalletAddress: order.turnkey_deposit_address ?? "0x0000000000000000000000000000000000000000", // TODO: Query from producer's verified wallet
+        amountCents: finalNotionalCents,
+        idempotencyKey,
+      });
+    }
 
     console.log(
-      `[DVP-ENGINE] Phase B complete: outbound_transfer=${payoutResult.transferId}`,
+      `[DVP-ENGINE] Phase B complete: outbound_transfer=${payoutResult.transferId} ` +
+        `finalNotionalCents=${finalNotionalCents}`,
     );
 
     /* ── 4. Phase C: Ledger Finality ── */
@@ -273,14 +463,25 @@ export async function executeAtomicSwap(
     const settledAt = new Date().toISOString();
 
     // Update settlement_cases → TITLE_TRANSFERRED_AND_COMPLETED
+    // For RAW_DORE: persist the actual refined weight and recalculated
+    // notional so the ledger exactly matches the final financial reality.
     await client.query(
       `UPDATE settlement_cases
        SET status = 'TITLE_TRANSFERRED_AND_COMPLETED',
            clearing_certificate_hash = $1,
            outbound_transfer_id = $2,
-           settled_at = $3
+           settled_at = $3,
+           weight_oz = $5,
+           total_notional = $6
        WHERE id = $4`,
-      [titleResult.titleHash, payoutResult.transferId, settledAt, orderId],
+      [
+        titleResult.titleHash,
+        payoutResult.transferId,
+        settledAt,
+        orderId,
+        finalExecutionWeight.toString(),
+        (finalNotionalCents / 100).toFixed(2),
+      ],
     );
 
     // DVP event audit trail
@@ -292,13 +493,16 @@ export async function executeAtomicSwap(
       [
         orderId,
         producerId,
-        `Atomic DvP executed: title transferred to Offtaker, Fedwire routed to Producer. ` +
+        `Atomic DvP executed: title transferred to Offtaker, ${isFedwire ? "Fedwire" : "USDT"} routed to Producer. ` +
           `Certificate: ${titleResult.certificateId}`,
         JSON.stringify({
           titleHash: titleResult.titleHash,
           certificateId: titleResult.certificateId,
           outboundTransferId: payoutResult.transferId,
-          notionalCents,
+          originalNotionalCents: originalNotionalCents,
+          finalNotionalCents,
+          finalExecutionWeight,
+          isRawDore,
           settledAt,
           producerId,
           offtakerId: order.buyer_id,
@@ -306,14 +510,15 @@ export async function executeAtomicSwap(
       ],
     );
 
-    // Settlement finality record for outbound wire
+    // Settlement finality record for outbound payout (rail-aware)
+    const payoutRail = isFedwire ? "column" : "turnkey";
     await client.query(
       `INSERT INTO settlement_finality
          (settlement_id, rail, external_transfer_id, idempotency_key,
           finality_status, amount_cents, leg, is_fallback, finalized_at)
-       VALUES ($1, 'column', $2, $3, 'COMPLETED', $4, 'producer_payout', FALSE, NOW())
+       VALUES ($1, $2, $3, $4, 'COMPLETED', $5, 'producer_payout', FALSE, NOW())
        ON CONFLICT (idempotency_key) DO NOTHING`,
-      [orderId, payoutResult.transferId, idempotencyKey, notionalCents],
+      [orderId, payoutRail, payoutResult.transferId, idempotencyKey, finalNotionalCents],
     );
 
     // Payout record (idempotent)
@@ -321,9 +526,9 @@ export async function executeAtomicSwap(
       `INSERT INTO payouts
          (settlement_id, payee_id, idempotency_key, rail,
           action_type, amount_cents, status, external_id)
-       VALUES ($1, $2, $3, 'column', 'producer_payout', $4, 'SUBMITTED', $5)
+       VALUES ($1, $2, $3, $4, 'producer_payout', $5, 'SUBMITTED', $6)
        ON CONFLICT (idempotency_key) DO NOTHING`,
-      [orderId, producerId, idempotencyKey, notionalCents, payoutResult.transferId],
+      [orderId, producerId, idempotencyKey, payoutRail, finalNotionalCents, payoutResult.transferId],
     );
 
     /* ── COMMIT ── */
@@ -346,9 +551,15 @@ export async function executeAtomicSwap(
 
     const message = err instanceof Error ? err.message : String(err);
 
-    // Re-throw the specific state validation error
+    // Re-throw specific fatal errors — these must propagate to the caller
     if (message === "Invalid settlement state for DvP execution.") {
       throw new Error("Invalid settlement state for DvP execution.");
+    }
+    if (message.startsWith("ASSET_PROVENANCE_VIOLATION")) {
+      throw new Error(message);
+    }
+    if (message.startsWith("ASSET_UNREFINED")) {
+      throw new Error(message);
     }
 
     console.error(

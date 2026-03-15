@@ -10,7 +10,8 @@
    a strict Settlement State Timeline.
    ================================================================ */
 
-import { CheckCircle2, Lock, Radio } from "lucide-react";
+import { CheckCircle2, Lock, Radio, Radar } from "lucide-react";
+import Link from "next/link";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 
 /* ----------------------------------------------------------------
@@ -169,6 +170,25 @@ export default function SettlementLedgerPage() {
                 <span className="font-mono text-2xl text-white font-bold tabular-nums block">
                   ${fmt(ORDER.totalNotional)}
                 </span>
+              </div>
+
+              {/* ── Logistics Radar Entry Point ── */}
+              <div className="border-t border-slate-800 mt-6 pt-5">
+                <Link href={`/offtaker/orders/ORD-8842-XAU/logistics`}>
+                  <button
+                    type="button"
+                    className="w-full relative group cursor-pointer"
+                  >
+                    {/* Animated glow border */}
+                    <div className="absolute -inset-px bg-linear-to-r from-cyan-500 via-gold-primary to-cyan-500 opacity-60 group-hover:opacity-100 transition-opacity animate-pulse" />
+                    <div className="relative bg-slate-950 border border-transparent px-4 py-3 flex items-center justify-center gap-3">
+                      <Radar className="h-4 w-4 text-cyan-400 animate-spin" style={{ animationDuration: '3s' }} />
+                      <span className="font-mono text-xs text-cyan-400 font-bold tracking-[0.2em] uppercase">
+                        Initiate Logistics Radar
+                      </span>
+                    </div>
+                  </button>
+                </Link>
               </div>
             </div>
           </div>

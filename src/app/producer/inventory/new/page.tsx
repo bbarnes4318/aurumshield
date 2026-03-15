@@ -26,7 +26,10 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import ProducerTelemetryFooter from "@/components/producer/ProducerTelemetryFooter";
+import SovereignAssayGauntlet from "@/components/producer/SovereignAssayGauntlet";
+import type { AssayGauntletData } from "@/components/producer/SovereignAssayGauntlet";
 import { ingestAsset, type IngestAssetState } from "@/actions/inventory-actions";
+import type { AssetFormType } from "@/lib/delivery/asset-registry.types";
 
 /* ----------------------------------------------------------------
    VAULT JURISDICTIONS
@@ -82,6 +85,12 @@ export default function AssetIngestionPage() {
 
   /* ── Asset Metadata State (controlled for live preview) ── */
   const [serialNumber, setSerialNumber] = useState("");
+
+  /* ── Asset Form Classification ── */
+  const [assetForm, setAssetForm] = useState<AssetFormType>("GOOD_DELIVERY_BULLION");
+
+  /* ── Assay Gauntlet Data (from child component) ── */
+  const [, setAssayGauntletData] = useState<AssayGauntletData | null>(null);
 
   /* ── Post-Submission Effects ── */
   useEffect(() => {
@@ -191,6 +200,59 @@ export default function AssetIngestionPage() {
 
           {/* ── 2-Column Grid ── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+            {/* ─────────────────────────────────────────────────────
+               ASSET FORM CLASSIFICATION (Top of Form)
+               ───────────────────────────────────────────────────── */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-2 mb-4">
+                <Shield className="h-3.5 w-3.5 text-slate-500" />
+                <span className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
+                  Asset Form Classification
+                </span>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6">
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="assetForm"
+                      value="GOOD_DELIVERY_BULLION"
+                      checked={assetForm === "GOOD_DELIVERY_BULLION"}
+                      onChange={() => setAssetForm("GOOD_DELIVERY_BULLION")}
+                      disabled={isPending}
+                      className="h-4 w-4 appearance-none border-2 border-slate-600 rounded-full bg-slate-950 checked:border-gold-primary checked:bg-gold-primary transition-colors cursor-pointer"
+                    />
+                    <div>
+                      <span className="font-mono text-sm text-white group-hover:text-gold-primary transition-colors">
+                        Good Delivery Bullion
+                      </span>
+                      <p className="font-mono text-[10px] text-slate-600 mt-0.5">
+                        400oz bars · LBMA certified · Assay gauntlet required
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="assetForm"
+                      value="RAW_DORE"
+                      checked={assetForm === "RAW_DORE"}
+                      onChange={() => setAssetForm("RAW_DORE")}
+                      disabled={isPending}
+                      className="h-4 w-4 appearance-none border-2 border-slate-600 rounded-full bg-slate-950 checked:border-gold-primary checked:bg-gold-primary transition-colors cursor-pointer"
+                    />
+                    <div>
+                      <span className="font-mono text-sm text-white group-hover:text-gold-primary transition-colors">
+                        Raw Doré
+                      </span>
+                      <p className="font-mono text-[10px] text-slate-600 mt-0.5">
+                        Unrefined mine output · Refinery intake pipeline
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
             {/* ─────────────────────────────────────────────────────
                LEFT COLUMN — Document Upload
                ───────────────────────────────────────────────────── */}
@@ -420,6 +482,34 @@ export default function AssetIngestionPage() {
               </div>
             </div>
           </div>
+
+          {/* ─────────────────────────────────────────────────────
+             SOVEREIGN ASSAY GAUNTLET (Conditional)
+             ───────────────────────────────────────────────────── */}
+          {assetForm === "GOOD_DELIVERY_BULLION" ? (
+            <div className="mt-10 border-t border-slate-800 pt-10">
+              <SovereignAssayGauntlet
+                disabled={isPending}
+                onDataChange={(data) => setAssayGauntletData(data)}
+              />
+            </div>
+          ) : (
+            <div className="mt-10 border-t border-slate-800 pt-10">
+              <div className="bg-amber-500/5 border border-amber-500/30 p-6 flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-mono text-amber-500 text-xs font-bold tracking-wider uppercase mb-2">
+                    Raw Doré Selected
+                  </p>
+                  <p className="font-mono text-amber-500/80 text-xs leading-relaxed">
+                    Raw Doré selected: Asset will be routed to the Refinery Intake Pipeline.
+                    Sovereign assay verification is not required at this stage — the refinery
+                    webhook gate will handle provenance verification post-refining.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Error Display ── */}
           {state.error && !isPending && (

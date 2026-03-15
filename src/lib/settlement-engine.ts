@@ -90,6 +90,7 @@ export type SettlementActionType =
   | "AUTHORIZE_SETTLEMENT"
   | "EXECUTE_DVP"
   | "CONFIRM_RAIL_SETTLED"
+  | "CONFIRM_DELIVERY"
   | "FAIL_SETTLEMENT"
   | "CANCEL_SETTLEMENT"
   | "RESOLVE_AMBIGUOUS"
@@ -103,6 +104,7 @@ export const ACTION_ROLE_MAP: Record<SettlementActionType, UserRole[]> = {
   AUTHORIZE_SETTLEMENT: ["admin"],
   EXECUTE_DVP: ["admin"],
   CONFIRM_RAIL_SETTLED: ["admin", "INSTITUTION_TREASURY"],
+  CONFIRM_DELIVERY: ["admin", "vault_ops"],
   FAIL_SETTLEMENT: ["admin"],
   CANCEL_SETTLEMENT: ["admin"],
   RESOLVE_AMBIGUOUS: ["admin", "INSTITUTION_TREASURY"],
@@ -388,6 +390,8 @@ export function openSettlementFromOrder(
     activationStatus: "draft",
     requiresManualApproval: false,
     approvalStatus: "not_required",
+    // Funding route — determines settlement rail (Fedwire vs USDT/Turnkey MPC)
+    fundingRoute: order.fundingRoute ?? "fedwire",
   };
 
   const ledgerEntry: LedgerEntry = {
@@ -755,8 +759,10 @@ export function applySettlementAction(
       // Notional in cents
       const notionalCents = Math.round(settlement.notionalUsd * 100);
 
-      // Payment rail — 100% Modern Treasury (Fedwire/RTGS)
-      const paymentRail = "modern_treasury";
+      // Payment rail — dynamic based on funding route selection
+      const paymentRail = settlement.fundingRoute === "stablecoin"
+        ? "turnkey_mpc"
+        : "modern_treasury";
 
       // Logistics routing — sovereign carriers only
       const logisticsThresholdCents = 50_000_000; // $500,000 in cents
@@ -866,9 +872,10 @@ export function applySettlementAction(
       }
 
       settlement.status = "SETTLED";
+      const confirmedRail = settlement.fundingRoute === "stablecoin" ? "Turnkey MPC" : "Modern Treasury";
       addLedger(
         "STATUS_CHANGED",
-        `Rail settlement confirmed — payout completed via Modern Treasury. Settlement finalized at ${now}.`,
+        `Rail settlement confirmed — payout completed via ${confirmedRail}. Settlement finalized at ${now}.`,
       );
       break;
     }
@@ -936,6 +943,41 @@ export function applySettlementAction(
         "STATUS_CHANGED",
         `Settlement REVERSED — ${payload.reason}. Initiated by ${payload.actorRole} (${payload.actorUserId}).`,
       );
+      break;
+    }
+
+    /* ── CONFIRM_DELIVERY (logistics webhook — physical delivery confirmed) ── */
+    case "CONFIRM_DELIVERY": {
+      // Delivery can arrive while settlement is in various states.
+      // If funds are confirmed, finalize to SETTLED.
+      // If funds are NOT confirmed, park in AWAITING_FUNDS_RELEASE.
+      const terminalForDelivery: SettlementStatus[] = ["SETTLED", "FAILED", "CANCELLED", "REVERSED"];
+      if (terminalForDelivery.includes(settlement.status)) {
+        return {
+          ok: false,
+          code: "INVALID_STATE",
+          message: `CONFIRM_DELIVERY: Settlement ${settlementId} is already ${settlement.status}`,
+        };
+      }
+
+      if (settlement.fundsConfirmedFinal) {
+        // Funds already cleared — finalize settlement
+        settlement.status = "SETTLED";
+        addLedger(
+          "DELIVERY_CONFIRMED",
+          `Physical delivery CONFIRMED — carrier confirmed custody handoff. ` +
+          `Funds already cleared. Settlement finalized at ${now}.`,
+        );
+      } else {
+        // Delivery outpaced funds — park in intermediate state
+        settlement.status = "AWAITING_FUNDS_RELEASE" as SettlementStatus;
+        addLedger(
+          "DELIVERY_CONFIRMED",
+          `Physical delivery CONFIRMED — carrier confirmed custody handoff. ` +
+          `Funds NOT yet cleared (funds_confirmed_final=false). ` +
+          `Settlement parked in AWAITING_FUNDS_RELEASE until wire settles.`,
+        );
+      }
       break;
     }
 

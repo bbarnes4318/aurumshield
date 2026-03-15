@@ -241,8 +241,15 @@ export async function evaluateCounterpartyReadiness(
     complianceCase = await getComplianceCaseByUserId(userId);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(
-      `[COMPLIANCE_ENGINE] DB query failed for userId=${userId}: ${message}. Falling back to provider routing.`,
+    auditLog(
+      "compliance.counterparty_readiness.db_failure",
+      "P1_ALERT",
+      { userId, errorMessage: message },
+      userId,
+    );
+    throw new Error(
+      `COMPLIANCE_DB_UNAVAILABLE: Cannot evaluate counterparty readiness — ` +
+        `database query failed for userId=${userId}: ${message}`,
     );
   }
 

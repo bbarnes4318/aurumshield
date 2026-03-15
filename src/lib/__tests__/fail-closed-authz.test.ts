@@ -92,7 +92,7 @@ describe("RSK-012: Fail-Closed Authorization Enforcement", () => {
         await expect(requireComplianceCapability(cap)).rejects.toThrow(
           expect.objectContaining({
             statusCode: 403,
-            message: expect.stringContaining("COMPLIANCE_DENIED"),
+            message: expect.stringContaining("COMPLIANCE_NOT_APPROVED"),
           }),
         );
       });
@@ -108,7 +108,7 @@ describe("RSK-012: Fail-Closed Authorization Enforcement", () => {
         await expect(requireComplianceCapability(cap)).rejects.toThrow(
           expect.objectContaining({
             statusCode: 403,
-            message: expect.stringContaining("COMPLIANCE_DENIED"),
+            message: expect.stringContaining("COMPLIANCE_NOT_APPROVED"),
           }),
         );
       });
@@ -207,7 +207,7 @@ describe("RSK-012: Fail-Closed Authorization Enforcement", () => {
       await expect(requireComplianceCapability("LOCK_PRICE")).rejects.toThrow(
         expect.objectContaining({
           statusCode: 403,
-          message: expect.stringContaining("COMPLIANCE_DENIED"),
+          message: expect.stringContaining("COMPLIANCE_NOT_APPROVED"),
         }),
       );
     });

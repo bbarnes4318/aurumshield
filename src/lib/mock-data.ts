@@ -2842,6 +2842,8 @@ export interface Order {
   status: OrderStatus;
   createdAt: string;
   policySnapshot?: MarketplacePolicySnapshot;
+  /** Selected funding route — determines settlement rail (Fedwire vs USDT/Turnkey MPC). */
+  fundingRoute?: 'fedwire' | 'stablecoin';
 }
 
 /* ---------- Marketplace Fixtures ---------- */
@@ -3659,7 +3661,8 @@ export type LedgerEntryType =
   | "PAYMENT_RECEIVED"
   | "ACTIVATION_COMPLETED"
   | "APPROVAL_UPDATED"
-  | "JOURNAL_POSTED";
+  | "JOURNAL_POSTED"
+  | "DELIVERY_CONFIRMED";
 
 export interface LedgerEntrySnapshot {
   checksStatus: "PASS" | "WARN" | "BLOCK";
@@ -3729,6 +3732,7 @@ export type SettlementStatus =
   | "AUTHORIZED"
   | "PROCESSING_RAIL" // RSK-007: Funds mid-flight, UI locked
   | "AMBIGUOUS_STATE" // RSK-007: Timeout/partition, needs reconciliation
+  | "AWAITING_FUNDS_RELEASE" // Delivery confirmed but funds not yet cleared
   | "SETTLED"
   | "REVERSED" // RSK-007: Dispute or rollback initiated
   | "FAILED"
@@ -3813,6 +3817,12 @@ export interface SettlementCase {
   railConfirmedAt?: string;
   /** External rail reference ID (Modern Treasury payment ID) */
   railReferenceId?: string;
+  /** Selected funding route — determines settlement rail (Fedwire vs USDT/Turnkey MPC). */
+  fundingRoute?: 'fedwire' | 'stablecoin';
+  /** Turnkey MPC deposit wallet address (0x-prefixed) for stablecoin settlements. */
+  turnkeyDepositAddress?: string;
+  /** Turnkey sub-organization ID for stablecoin settlements. */
+  turnkeySubOrgId?: string;
   /** Reason for reversal (dispute details, compliance note) */
   reversalReason?: string;
   /** Timestamp of reversal */

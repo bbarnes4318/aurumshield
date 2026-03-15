@@ -484,6 +484,7 @@ export function mapLegacySettlementStatus(legacy: SettlementStatus): SettlementL
     FAILED: "FAILED_RETRY",
     CANCELLED: "CANCELLED",
     AMBIGUOUS_STATE: "AMBIGUOUS_STATE",
+    AWAITING_FUNDS_RELEASE: "PENDING_RAIL",
   };
 
   const result = mapping[legacy];

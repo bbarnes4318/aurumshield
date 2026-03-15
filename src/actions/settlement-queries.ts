@@ -33,6 +33,7 @@ export type SettlementStatus =
   | "AUTHORIZED"
   | "PROCESSING_RAIL"
   | "AMBIGUOUS_STATE"
+  | "AWAITING_FUNDS_RELEASE"
   | "SETTLED"
   | "REVERSED"
   | "FAILED"

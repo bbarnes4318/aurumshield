@@ -173,3 +173,150 @@ export interface ProvenanceVerification {
   /** SHA-256 hash of the verification result */
   verification_hash: string;
 }
+
+/* ================================================================
+   Asset Form Classification
+   ================================================================
+   Determines whether a listing is refined Good Delivery bullion
+   (requires full assay gauntlet) or raw doré (routed to the
+   Refinery Intake Pipeline — separate gate).
+   ================================================================ */
+
+export type AssetFormType = "GOOD_DELIVERY_BULLION" | "RAW_DORE";
+
+/* ================================================================
+   Refinery Status — Doré Yield Pipeline State Machine
+   ================================================================
+   Tracks the asynchronous state of raw doré moving through an
+   LBMA-certified refinery. Title minting is blocked until status
+   reaches 'COMPLETED' with a confirmed actual_refined_weight_oz.
+   ================================================================ */
+
+export type RefineryStatus =
+  | "NOT_APPLICABLE"
+  | "PENDING_DELIVERY"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "REJECTED";
+
+/* ================================================================
+   Refinery Yield Report — Inbound Webhook Payload
+   ================================================================
+   Secure payload received from the LBMA refinery via HMAC-signed
+   webhook when fire-assay and recasting are complete.
+   ================================================================ */
+
+export interface RefineryYieldReport {
+  /** True refined weight in troy ounces (99.99% pure) */
+  finalWeightOz: number;
+  /** Final purity string (e.g., "0.9999") */
+  finalPurity: string;
+  /** New serial numbers assigned to the recast bars */
+  newSerialNumbers: string[];
+  /** Refinery's cryptographic signoff hash */
+  refinerySignoffHash: string;
+}
+
+export const refineryYieldReportSchema = z.object({
+  finalWeightOz: z
+    .number()
+    .positive("Final weight must be a positive number."),
+  finalPurity: z
+    .string()
+    .min(1, "Final purity is required."),
+  newSerialNumbers: z
+    .array(z.string().min(1))
+    .min(1, "At least one serial number is required."),
+  refinerySignoffHash: z
+    .string()
+    .min(1, "Refinery signoff hash is required."),
+});
+
+export type RefineryYieldReportInput = z.infer<typeof refineryYieldReportSchema>;
+
+
+/* ================================================================
+   Sovereign Assay Record
+   ================================================================
+   Scientific proof payload for ultrasonic thickness gauging and
+   4-point conductivity testing. Required for Good Delivery bars
+   before cryptographic title minting is permitted.
+   ================================================================ */
+
+export interface SovereignAssayRecord {
+  /** Ultrasonic thickness measurement in millimeters */
+  ultrasonicThicknessMm: number;
+  /** Electrical conductivity in percent IACS */
+  conductivityIacs: number;
+  /** Certified assayer name (e.g., "Argor-Heraeus", "Valcambi") */
+  assayerName: string;
+  /** URL to the uploaded raw PDF assay report */
+  documentUrl: string;
+  /** SHA-256 hash of the assay payload for tamper detection */
+  attestationHash: string;
+}
+
+export const sovereignAssayRecordSchema = z.object({
+  ultrasonicThicknessMm: z
+    .number()
+    .positive("Ultrasonic thickness must be a positive number.")
+    .max(200, "Ultrasonic thickness cannot exceed 200mm."),
+  conductivityIacs: z
+    .number()
+    .positive("Conductivity must be a positive number.")
+    .max(120, "Conductivity cannot exceed 120% IACS."),
+  assayerName: z
+    .string()
+    .min(1, "Assayer name is required."),
+  documentUrl: z
+    .string()
+    .min(1, "Document URL is required."),
+  attestationHash: z
+    .string()
+    .min(1, "Attestation hash is required."),
+});
+
+export type SovereignAssayRecordInput = z.infer<typeof sovereignAssayRecordSchema>;
+
+/* ================================================================
+   Transit Handoff Record
+   ================================================================
+   Armored transit logistics record for sovereign carrier handoff.
+   Tracks the physical chain of custody from tarmac pickup to
+   destination vault.
+   ================================================================ */
+
+/** Recognized sovereign armored carriers. */
+export type SovereignCarrier = "BRINKS" | "MALCA_AMIT";
+
+export interface TransitHandoffRecord {
+  /** Armored carrier handling the shipment */
+  carrier: SovereignCarrier;
+  /** Air Waybill or tracking reference number */
+  trackingReference: string;
+  /** ISO 8601 timestamp of tarmac pickup */
+  tarmacPickupAt: string;
+  /** Destination vault identifier */
+  destinationVault: string;
+}
+
+export const transitHandoffRecordSchema = z.object({
+  carrier: z.enum(["BRINKS", "MALCA_AMIT"], {
+    message: "Carrier must be BRINKS or MALCA_AMIT.",
+  }),
+  trackingReference: z
+    .string()
+    .min(1, "Tracking reference is required."),
+  tarmacPickupAt: z
+    .string()
+    .min(1, "Tarmac pickup timestamp is required.")
+    .refine(
+      (v) => !isNaN(Date.parse(v)),
+      { message: "Tarmac pickup must be a valid ISO 8601 timestamp." },
+    ),
+  destinationVault: z
+    .string()
+    .min(1, "Destination vault is required."),
+});
+
+export type TransitHandoffRecordInput = z.infer<typeof transitHandoffRecordSchema>;

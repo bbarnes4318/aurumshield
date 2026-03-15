@@ -1,16 +1,21 @@
 "use client";
 
 /* ================================================================
-   OFFTAKER MARKETPLACE — Sovereign Asset Trading Terminal
+   OFFTAKER MARKETPLACE — Sovereign Asset Execution Terminal
    ================================================================
-   Bloomberg-like execution interface. Dense tabular grids,
-   terminal-efficiency, zero consumer shopping-cart patterns.
+   Bloomberg-class institutional execution interface. Dense tabular
+   grids, terminal-efficiency, zero consumer shopping-cart patterns.
    The Offtaker selects an asset tier, then locks a deterministic
    60-second quote in the Execution Ticket sidebar.
+
+   VISUAL: Hyper-premium card redesign with photorealistic gold
+   asset imagery, radial gradient showcases, market depth overlays,
+   and CLS-safe Next.js <Image /> rendering.
    ================================================================ */
 
 import { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import {
   Radio,
   ChevronRight,
@@ -41,6 +46,7 @@ interface AssetTier {
   totalNotional: number;
   custody: string;
   isApex: boolean;
+  imageUrl: string;
 }
 
 const SPOT_PRICE = 2650.0;
@@ -59,6 +65,7 @@ const ASSET_CATALOG: AssetTier[] = [
     totalNotional: SPOT_PRICE * 1.001 * 400,
     custody: "ALLOCATED",
     isApex: true,
+    imageUrl: "/assets/gold-400oz.png",
   },
   {
     id: "kilo-bar",
@@ -73,6 +80,7 @@ const ASSET_CATALOG: AssetTier[] = [
     totalNotional: SPOT_PRICE * 1.0035 * 32.15,
     custody: "ALLOCATED",
     isApex: false,
+    imageUrl: "/assets/gold-1kg.png",
   },
   {
     id: "10oz-cast",
@@ -87,6 +95,7 @@ const ASSET_CATALOG: AssetTier[] = [
     totalNotional: SPOT_PRICE * 1.0075 * 10,
     custody: "ALLOCATED",
     isApex: false,
+    imageUrl: "/assets/gold-10oz.png",
   },
   {
     id: "1oz-minted",
@@ -101,6 +110,7 @@ const ASSET_CATALOG: AssetTier[] = [
     totalNotional: SPOT_PRICE * 1.015 * 1,
     custody: "ALLOCATED",
     isApex: false,
+    imageUrl: "/assets/gold-1oz.png",
   },
 ];
 
@@ -201,86 +211,119 @@ export default function OfftakerMarketplacePage() {
                   key={asset.id}
                   onClick={() => handleSelectAsset(asset)}
                   className={`
-                    bg-black border p-5 rounded-none text-left transition-all duration-150 cursor-pointer shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)]
-                    ${asset.isApex ? "border-l-gold-primary border-l-2" : ""}
+                    bg-black border rounded-none text-left transition-all duration-200 cursor-pointer overflow-hidden flex flex-col
+                    ${asset.isApex ? "border-l-[#C6A86B] border-l-2" : ""}
                     ${isSelected
-                      ? "border-gold-primary/60 bg-gold-primary/5"
-                      : "border-slate-800 hover:border-gold-primary/60"
+                      ? "border-[#C6A86B]/60 ring-1 ring-[#C6A86B]/40 shadow-[0_0_20px_rgba(198,168,107,0.15)]"
+                      : "border-slate-800 hover:border-[#C6A86B]/40 hover:shadow-[0_0_12px_rgba(198,168,107,0.08)]"
                     }
                   `}
                 >
-                  {/* Header Row */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {asset.isApex && (
-                        <span className="font-mono text-[9px] bg-gold-primary/15 text-gold-primary px-1.5 py-0.5 tracking-wider uppercase">
-                          APEX
+                  {/* ── VISUAL SHOWCASE — Top Half ── */}
+                  <div
+                    className="relative w-full h-52 flex items-center justify-center overflow-hidden"
+                    style={{
+                      background: "radial-gradient(ellipse at center, #1e293b 0%, #020617 70%)",
+                    }}
+                  >
+                    {/* Gold Asset Image — CLS-safe with explicit dimensions */}
+                    <div className="relative h-36 w-36">
+                      <Image
+                        src={asset.imageUrl}
+                        alt={asset.name}
+                        width={144}
+                        height={144}
+                        className="object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.8)]"
+                        priority={asset.tier <= 2}
+                      />
+                    </div>
+
+                    {/* APEX Badge */}
+                    {asset.isApex && (
+                      <span className="absolute top-3 left-3 font-mono text-[9px] bg-[#C6A86B]/15 text-[#C6A86B] px-2 py-0.5 tracking-wider uppercase border border-[#C6A86B]/20">
+                        APEX
+                      </span>
+                    )}
+
+                    {/* Tier Badge */}
+                    <span className="absolute top-3 right-3 font-mono text-[10px] text-slate-500 tracking-wider">
+                      TIER {asset.tier}
+                    </span>
+
+                    {/* Market Depth Indicator — Glowing Green Overlay */}
+                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm border border-emerald-500/30 px-2 py-1 rounded-sm">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse" />
+                      <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase">
+                        Liquidity: {fmt(asset.weightOz * 37.5, 0)} oz
+                      </span>
+                    </div>
+
+                    {/* Selection Radio */}
+                    <div className="absolute bottom-3 right-3">
+                      <div
+                        className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          isSelected
+                            ? "border-[#C6A86B] bg-[#C6A86B]"
+                            : "border-slate-600 bg-transparent"
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="h-1.5 w-1.5 rounded-full bg-slate-950" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── DATA GRID — Bottom Half ── */}
+                  <div className="p-5">
+                    {/* Asset Name */}
+                    <h3 className="font-mono text-sm text-white font-bold mb-1">
+                      {asset.name}
+                    </h3>
+                    <p className="font-mono text-[11px] text-slate-600 mb-4">
+                      {asset.description}
+                    </p>
+
+                    {/* Tabular Data Grid */}
+                    <div className="grid grid-cols-3 gap-3 border-t border-slate-800 pt-3">
+                      <div>
+                        <span className="font-mono text-[9px] text-slate-600 uppercase block mb-1">
+                          Premium
                         </span>
-                      )}
-                      <span className="font-mono text-[10px] text-slate-600 tracking-wider">
-                        TIER {asset.tier}
-                      </span>
+                        <span className="font-mono text-xs text-[#C6A86B] font-bold tabular-nums">
+                          +{asset.premiumPct.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[9px] text-slate-600 uppercase block mb-1">
+                          Price/oz
+                        </span>
+                        <span className="font-mono text-xs text-white tabular-nums">
+                          ${fmt(asset.pricePerOz)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[9px] text-slate-600 uppercase block mb-1">
+                          Total Notional
+                        </span>
+                        <span className="font-mono text-xs text-white font-bold tabular-nums">
+                          ${fmt(asset.totalNotional)}
+                        </span>
+                      </div>
                     </div>
-                    <div
-                      className={`h-3 w-3 rounded-full border-2 flex items-center justify-center ${
-                        isSelected
-                          ? "border-gold-primary bg-gold-primary"
-                          : "border-slate-700"
-                      }`}
-                    >
-                      {isSelected && (
-                        <div className="h-1 w-1 rounded-full bg-slate-950" />
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Asset Name */}
-                  <h3 className="font-mono text-sm text-white font-bold mb-1">
-                    {asset.name}
-                  </h3>
-                  <p className="font-mono text-[11px] text-slate-600 mb-4">
-                    {asset.description}
-                  </p>
-
-                  {/* Data Grid */}
-                  <div className="grid grid-cols-3 gap-3 border-t border-slate-800 pt-3">
-                    <div>
-                      <span className="font-mono text-[9px] text-slate-600 uppercase block mb-1">
-                        Premium
+                    {/* Footer Metadata */}
+                    <div className="flex items-center gap-4 mt-3 pt-2 border-t border-slate-800/50">
+                      <span className="font-mono text-[9px] text-slate-700">
+                        WT: {asset.weightOz} oz
                       </span>
-                      <span className="font-mono text-xs text-gold-primary font-bold tabular-nums">
-                        +{asset.premiumPct.toFixed(2)}%
+                      <span className="font-mono text-[9px] text-slate-700">
+                        FIN: {asset.fineness}
+                      </span>
+                      <span className="font-mono text-[9px] text-slate-700">
+                        {asset.custody}
                       </span>
                     </div>
-                    <div>
-                      <span className="font-mono text-[9px] text-slate-600 uppercase block mb-1">
-                        Price/oz
-                      </span>
-                      <span className="font-mono text-xs text-white tabular-nums">
-                        ${fmt(asset.pricePerOz)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-mono text-[9px] text-slate-600 uppercase block mb-1">
-                        Total Notional
-                      </span>
-                      <span className="font-mono text-xs text-white font-bold tabular-nums">
-                        ${fmt(asset.totalNotional)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Footer Metadata */}
-                  <div className="flex items-center gap-4 mt-3 pt-2 border-t border-slate-800/50">
-                    <span className="font-mono text-[9px] text-slate-700">
-                      WT: {asset.weightOz} oz
-                    </span>
-                    <span className="font-mono text-[9px] text-slate-700">
-                      FIN: {asset.fineness}
-                    </span>
-                    <span className="font-mono text-[9px] text-slate-700">
-                      {asset.custody}
-                    </span>
                   </div>
                 </button>
               );
@@ -303,8 +346,33 @@ export default function OfftakerMarketplacePage() {
             {hasSelection ? (
               /* ── Selected Asset Details ── */
               <>
+                {/* ── Thumbnail + Instrument Header ── */}
+                <div className="flex items-center gap-3 mb-5 bg-black/40 border border-slate-800 p-3">
+                  <div className="relative h-12 w-12 shrink-0 rounded-sm overflow-hidden bg-slate-800">
+                    <Image
+                      src={selectedAsset.imageUrl}
+                      alt={selectedAsset.shortName}
+                      width={48}
+                      height={48}
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-mono text-[9px] text-slate-600 tracking-wider uppercase">
+                      Instrument
+                    </span>
+                    <span className="font-mono text-sm text-white font-bold">
+                      {selectedAsset.shortName}
+                    </span>
+                  </div>
+                  {selectedAsset.isApex && (
+                    <span className="ml-auto font-mono text-[8px] bg-[#C6A86B]/15 text-[#C6A86B] px-1.5 py-0.5 tracking-wider uppercase border border-[#C6A86B]/20">
+                      APEX
+                    </span>
+                  )}
+                </div>
+
                 <div className="space-y-4 mb-6">
-                  <TicketRow label="Instrument" value={selectedAsset.shortName} />
                   <TicketRow label="Tier" value={String(selectedAsset.tier)} />
                   <TicketRow
                     label="Spot Reference"
@@ -341,7 +409,7 @@ export default function OfftakerMarketplacePage() {
                         onChange={(e) =>
                           setQuantity(Math.max(1, parseInt(e.target.value) || 1))
                         }
-                        className="h-8 w-16 bg-black border border-slate-700 text-center font-mono text-sm text-white tabular-nums focus:border-gold-primary focus:outline-none"
+                        className="h-8 w-16 bg-black border border-slate-700 text-center font-mono text-sm text-white tabular-nums focus:border-[#C6A86B] focus:outline-none"
                       />
                       <button
                         onClick={() => setQuantity(quantity + 1)}
@@ -360,21 +428,23 @@ export default function OfftakerMarketplacePage() {
                     value={`${fmt(selectedAsset.weightOz * quantity, 2)} oz`}
                     mono
                   />
-                  <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-3">
-                    <span className="font-mono text-[9px] text-slate-600 uppercase block mb-1.5">
+
+                  {/* ── Massive Frosted Indicative Notional ── */}
+                  <div className="bg-black/50 backdrop-blur-md border border-slate-700/50 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.1)] p-4 rounded-sm">
+                    <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block mb-2">
                       Indicative Notional
                     </span>
-                    <span className="font-mono text-lg text-white font-bold tabular-nums">
+                    <span className="font-mono text-3xl font-bold tabular-nums" style={{ color: "#C6A86B" }}>
                       ${fmt(selectedAsset.totalNotional * quantity)}
                     </span>
                   </div>
                 </div>
 
                 {/* Quote Lock Notice */}
-                <div className="bg-gold-primary/5 border border-gold-primary/20 p-3 mb-4">
+                <div className="bg-[#C6A86B]/5 border border-[#C6A86B]/20 p-3 mb-4">
                   <div className="flex items-start gap-2">
-                    <Lock className="h-3 w-3 text-gold-primary mt-0.5 shrink-0" />
-                    <p className="font-mono text-[10px] text-gold-primary/80 leading-relaxed">
+                    <Lock className="h-3 w-3 text-[#C6A86B] mt-0.5 shrink-0" />
+                    <p className="font-mono text-[10px] text-[#C6A86B]/80 leading-relaxed">
                       Requesting a quote will generate a deterministic 60-second
                       price lock. The quoted price is final and non-negotiable
                       for the lock duration.
@@ -401,6 +471,18 @@ export default function OfftakerMarketplacePage() {
             {/* Spacer */}
             <div className="flex-1" />
 
+            {/* ── Dynamic Rail Indicator ── */}
+            {hasSelection && (
+              <div className="flex items-center justify-center mb-3">
+                <span className="font-mono text-[9px] text-slate-500 tracking-wider bg-slate-800/80 border border-slate-700/50 px-3 py-1.5 rounded-sm uppercase">
+                  <span className="text-slate-600">System Routing:</span>{" "}
+                  <span className="text-emerald-400">Turnkey MPC</span>{" "}
+                  <span className="text-slate-700">/</span>{" "}
+                  <span className="text-blue-400">Column RTGS</span>
+                </span>
+              </div>
+            )}
+
             {/* CTA Button */}
             <div className="relative">
               {isDemoActive && hasSelection && <DemoTooltip text="Initiate a cryptographic 30-second execution quote ↓" position="top" />}
@@ -413,7 +495,7 @@ export default function OfftakerMarketplacePage() {
                 }}
                 className={`w-full font-bold text-sm tracking-[0.15em] uppercase py-3.5 flex items-center justify-center gap-2 font-mono transition-colors ${
                   hasSelection
-                    ? "bg-gold-primary text-slate-950 hover:bg-gold-hover cursor-pointer"
+                    ? "bg-[#C6A86B] text-slate-950 hover:bg-[#d4b87a] cursor-pointer"
                     : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
                 } ${isDemoActive && hasSelection ? DEMO_SPOTLIGHT_CLASSES : ""}`}
               >
@@ -458,7 +540,7 @@ function TicketRow({
       </span>
       <span
         className={`font-mono text-xs tabular-nums ${
-          highlight ? "text-gold-primary font-bold" : "text-white"
+          highlight ? "text-[#C6A86B] font-bold" : "text-white"
         } ${mono ? "font-mono" : ""}`}
       >
         {value}
