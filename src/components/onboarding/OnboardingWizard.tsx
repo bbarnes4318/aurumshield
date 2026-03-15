@@ -349,7 +349,7 @@ export function OnboardingWizard() {
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
+      <form onSubmit={handleSubmit(onSubmit)} className="h-screen overflow-hidden flex flex-col bg-slate-950">
         {/* Header */}
         <div className="flex items-center gap-2.5 mb-4" data-tour="onboarding-status">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-color-2/10">
@@ -369,10 +369,13 @@ export function OnboardingWizard() {
         <ProgressBar currentStep={currentStep} />
 
         {/* Active step */}
-        <div className="min-h-[280px]" data-tour="onboarding-lei">{renderStep()}</div>
+        {/* Active step — scrollable content area */}
+        <div className="flex-1 overflow-y-auto px-1 pb-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent" data-tour="onboarding-lei">
+          <div className="min-h-[280px]">{renderStep()}</div>
+        </div>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between mt-5 pt-4 border-t border-color-5/20">
+        {/* Navigation — Fixed frosted glass footer */}
+        <div className="shrink-0 flex items-center justify-between bg-black/90 backdrop-blur-md border-t border-slate-800 px-6 py-4">
           <div className="flex items-center gap-3">
             {currentStep > 1 ? (
               <button

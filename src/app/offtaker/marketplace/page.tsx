@@ -51,6 +51,9 @@ interface AssetTier {
 
 const SPOT_PRICE = 2650.0;
 
+/** Total pool liquidity in troy ounces — represents available inventory */
+const POOL_LIQUIDITY_OZ = 48_000;
+
 const ASSET_CATALOG: AssetTier[] = [
   {
     id: "lbma-400oz",
@@ -254,7 +257,7 @@ export default function OfftakerMarketplacePage() {
                     <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm border border-emerald-500/30 px-2 py-1 rounded-sm">
                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse" />
                       <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase">
-                        Liquidity: {fmt(asset.weightOz * 37.5, 0)} oz
+                        Available: {Math.floor(POOL_LIQUIDITY_OZ / asset.weightOz)} Bars
                       </span>
                     </div>
 
@@ -490,8 +493,9 @@ export default function OfftakerMarketplacePage() {
                 disabled={!hasSelection}
                 onClick={() => {
                   if (!selectedAsset) return;
+                  const mockQuoteId = `QTE-2026-XAU-${String(Math.floor(Math.random() * 9000) + 1000)}`;
                   const demoParam = isDemoActive ? "?demo=active" : "";
-                  router.push(`/offtaker/orders${demoParam}`);
+                  router.push(`/offtaker/checkout/${mockQuoteId}${demoParam}`);
                 }}
                 className={`w-full font-bold text-sm tracking-[0.15em] uppercase py-3.5 flex items-center justify-center gap-2 font-mono transition-colors ${
                   hasSelection
