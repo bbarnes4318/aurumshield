@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDown } from "lucide-react";
+import { ArrowRight, ArrowDown } from "lucide-react";
 import { ClearingSeal } from "../ClearingSeal";
-import { GoldwireBrandLogo } from "@/components/ui/goldwire-logo";
+
 
 const fade = {
   hidden: { opacity: 0, y: 14 },
@@ -30,28 +30,17 @@ export function HeroSection() {
         }}
       />
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start lg:items-center w-full pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start w-full pt-24 pb-16 lg:pt-32 lg:pb-24 max-w-7xl mx-auto px-6">
         {/* ── Left Column ── */}
-        <div className="w-full flex flex-col justify-center space-y-5 lg:space-y-6 max-w-2xl text-left">
-          <motion.div
-            custom={0}
-            initial="hidden"
-            animate="visible"
-            variants={fade}
-            className="mb-1 flex justify-start"
-          >
-            <GoldwireBrandLogo className="scale-110 lg:scale-125 origin-left" />
-          </motion.div>
-
+        <div className="w-full flex flex-col justify-start space-y-5 lg:space-y-6 max-w-2xl text-left lg:pt-4">
           <motion.h1
-            custom={1}
+            custom={0}
             initial="hidden"
             animate="visible"
             variants={fade}
             className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight max-w-3xl"
           >
-            Institutional Gold Clearing,{" "}
-            <span className="text-gold">Modernized.</span>
+            Acquire Physical Gold with <span className="text-gold">Absolute Certainty.</span>
           </motion.h1>
 
           <motion.p
@@ -61,9 +50,10 @@ export function HeroSection() {
             variants={fade}
             className="text-base md:text-lg text-gray-300 leading-relaxed max-w-2xl"
           >
-            Execute instant, high-volume cross-border settlements backed by
-            fully allocated, vaulted physical gold. We bypass legacy banking
-            delays to deliver zero counterparty risk and absolute finality.
+            AurumShield eliminates the blind risk of global gold acquisition.
+            Your capital remains secured in escrow and is never released until
+            the asset is physically delivered to a partner refinery, melted, and
+            verified for absolute purity.
           </motion.p>
 
           <motion.div
@@ -71,21 +61,22 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={fade}
-            className="flex flex-col gap-4 sm:flex-row justify-start"
+            className="flex flex-wrap gap-3 sm:gap-4 justify-start pt-2"
           >
             <a
-              href="#pipeline"
-              className="inline-flex items-center justify-center gap-2 bg-action-gold hover:bg-action-gold/90 text-slate-950 font-bold px-8 py-4 rounded-lg transition-all duration-200"
+              href="/perimeter/verify"
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-gold/50 bg-transparent px-5 py-2.5 text-sm font-semibold text-gold tracking-wide transition-all duration-200 hover:bg-gold/10 hover:border-gold"
             >
-              See How It Works
-              <ArrowDown className="h-4 w-4" />
+              Apply for Institutional Access
+              <ArrowRight className="h-3.5 w-3.5" />
             </a>
 
             <a
-              href="/perimeter/register"
-              className="inline-flex items-center justify-center gap-2 bg-transparent border border-gold/40 hover:border-gold text-gold font-bold px-8 py-4 rounded-lg transition-all duration-200"
+              href="/perimeter/verify?demo=active"
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-slate-600 bg-transparent px-5 py-2.5 text-sm font-semibold text-slate-300 tracking-wide transition-all duration-200 hover:border-slate-400 hover:text-white"
             >
-              Request Institutional Access
+              See Our Verification Process
+              <ArrowDown className="h-3.5 w-3.5" />
             </a>
           </motion.div>
         </div>
