@@ -20,6 +20,8 @@ import {
   ArrowUpRight,
   Eye,
   Radio,
+  LayoutGrid,
+  Activity,
 } from "lucide-react";
 import ProducerTelemetryFooter from "@/components/producer/ProducerTelemetryFooter";
 
@@ -134,6 +136,7 @@ export default function CommandCenterUI({
 }: CommandCenterUIProps) {
   /* Toggle between populated and empty state for demonstration */
   const [showZeroState, setShowZeroState] = useState(false);
+  const [activeTab, setActiveTab] = useState<"inventory" | "radar">("inventory");
 
   /* ── Dual-mode data resolution ── */
   const inventory = isDemo
@@ -225,13 +228,40 @@ export default function CommandCenterUI({
           <ZeroState />
         ) : (
           /* ════════════════════════════════════════════════════════
-             TWO-COLUMN LAYOUT: Inventory Grid + Capital Radar
+             TAB BAR
              ════════════════════════════════════════════════════════ */
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 flex-1 min-h-0">
+          <>
+            <div className="shrink-0 flex items-center gap-0 border border-slate-800 bg-black mb-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab("inventory")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 font-mono text-[10px] tracking-[0.15em] uppercase transition-colors cursor-pointer border-r border-slate-800 ${
+                  activeTab === "inventory"
+                    ? "bg-gold-primary/10 text-gold-primary border-b-2 border-b-gold-primary"
+                    : "text-slate-600 hover:text-slate-400 hover:bg-slate-900/50"
+                }`}
+              >
+                <LayoutGrid className="h-3 w-3" />
+                Active Inventory
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("radar")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 font-mono text-[10px] tracking-[0.15em] uppercase transition-colors cursor-pointer ${
+                  activeTab === "radar"
+                    ? "bg-gold-primary/10 text-gold-primary border-b-2 border-b-gold-primary"
+                    : "text-slate-600 hover:text-slate-400 hover:bg-slate-900/50"
+                }`}
+              >
+                <Activity className="h-3 w-3" />
+                Inbound Capital Radar
+              </button>
+            </div>
 
-            {/* ─── INVENTORY & YIELD GRID (Left — 3/5) ─── */}
-            <div className="xl:col-span-3">
-              <div className="bg-slate-900 border border-slate-800">
+            {/* ═══ TAB: INVENTORY ═══ */}
+            {activeTab === "inventory" && (
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="bg-slate-900 border border-slate-800 flex-1 min-h-0 flex flex-col">
                 {/* Grid Header */}
                 <div className="flex items-center justify-between p-4 border-b border-slate-800">
                   <h2 className="font-mono text-xs text-slate-400 tracking-[0.15em] uppercase">
@@ -351,9 +381,11 @@ export default function CommandCenterUI({
                 </div>
               </div>
             </div>
+            )}
 
-            {/* ─── INBOUND CAPITAL RADAR (Right — 2/5) ─── */}
-            <div className="xl:col-span-2">
+            {/* ═══ TAB: CAPITAL RADAR ═══ */}
+            {activeTab === "radar" && (
+            <div className="flex-1 min-h-0">
               <div className="bg-slate-900 border border-slate-800 h-full flex flex-col">
                 {/* Radar Header */}
                 <div className="p-4 border-b border-slate-800">
@@ -441,7 +473,8 @@ export default function CommandCenterUI({
                 </div>
               </div>
             </div>
-          </div>
+            )}
+          </>
         )}
 
         <p className="mt-3 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
