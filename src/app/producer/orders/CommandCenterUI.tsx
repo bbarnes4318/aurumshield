@@ -155,8 +155,8 @@ export default function CommandCenterUI({
     : liveMetrics;
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-14">
-      <div className="max-w-7xl mx-auto p-6 pt-10">
+    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col max-w-7xl w-full mx-auto px-4 py-3">
 
         {/* ── Page Header ── */}
         <div className="flex items-center justify-between mb-1">
@@ -184,14 +184,14 @@ export default function CommandCenterUI({
         <h1 className="font-mono text-2xl text-white font-bold tracking-tight mb-1">
           Industrial Operations Overview
         </h1>
-        <p className="font-mono text-[11px] text-slate-600 mb-8">
+        <p className="font-mono text-[11px] text-slate-600 mb-3">
           REAL-TIME VAULTING · REFINERY PIPELINE · SETTLEMENT RADAR
         </p>
 
         {/* ════════════════════════════════════════════════════════
            METRICS STRIP (4 blocks)
            ════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-slate-800 border border-slate-800 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-slate-800 border border-slate-800 mb-3 shrink-0">
           <MetricBlock
             icon={<Vault className="h-4 w-4 text-emerald-400" />}
             label="Vaulted Good Delivery"
@@ -227,7 +227,7 @@ export default function CommandCenterUI({
           /* ════════════════════════════════════════════════════════
              TWO-COLUMN LAYOUT: Inventory Grid + Capital Radar
              ════════════════════════════════════════════════════════ */
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 flex-1 min-h-0">
 
             {/* ─── INVENTORY & YIELD GRID (Left — 3/5) ─── */}
             <div className="xl:col-span-3">
@@ -250,7 +250,7 @@ export default function CommandCenterUI({
                 </div>
 
                 {/* Dense Data Table */}
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto flex-1 min-h-0 overflow-y-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-800">
@@ -444,8 +444,7 @@ export default function CommandCenterUI({
           </div>
         )}
 
-        {/* ── Footer trust line ── */}
-        <p className="mt-10 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-3 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
           AurumShield Clearing · Producer Command Center · LBMA Fire-Assay Pipeline · Goldwire Settlement Engine
         </p>
       </div>

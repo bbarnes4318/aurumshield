@@ -54,10 +54,10 @@ export default function ProducerAccreditationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-14">
-      <div className="max-w-4xl mx-auto p-8 pt-12">
+    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col max-w-4xl w-full mx-auto px-6 py-4">
         {/* ── Header ── */}
-        <div className="mb-10">
+        <div className="mb-4 shrink-0">
           <div className="flex items-center gap-3 mb-5">
             <Landmark className="h-4 w-4 text-gold-primary" />
             <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
@@ -65,7 +65,7 @@ export default function ProducerAccreditationPage() {
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
+          <h1 className="text-2xl font-bold tracking-tight text-white mb-2">
             LBMA Good Delivery Verification
           </h1>
 
@@ -79,7 +79,7 @@ export default function ProducerAccreditationPage() {
 
         {/* ── Form Panel ── */}
         <form onSubmit={handleSubmit}>
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-8 mb-6">
+          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-5 mb-4">
             {/* Section Title */}
             <div className="flex items-center gap-2 mb-8 pb-4 border-b border-slate-800">
               <Shield className="h-3.5 w-3.5 text-slate-500" />
@@ -151,7 +151,7 @@ export default function ProducerAccreditationPage() {
           </div>
 
           {/* ── Status Readout Terminal ── */}
-          <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-4 mb-8">
+          <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-3 mb-4">
             <div className="flex items-center gap-2 mb-3">
               <Terminal className="h-3 w-3 text-slate-600" />
               <span className="font-mono text-slate-600 text-[9px] tracking-wider uppercase">
@@ -205,8 +205,7 @@ export default function ProducerAccreditationPage() {
           </div>
         </form>
 
-        {/* ── Footer trust line ── */}
-        <p className="mt-12 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-4 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
           AurumShield Clearing · LBMA Good Delivery List · Axedras Integrity
           Ledger · Producer Perimeter Enforcement
         </p>

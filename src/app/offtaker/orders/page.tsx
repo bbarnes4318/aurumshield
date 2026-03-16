@@ -133,8 +133,8 @@ export default function OfftakerOrdersPage() {
   }, []);
 
   return (
-    <div className="h-full bg-slate-950 overflow-y-auto">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col max-w-6xl w-full mx-auto px-4 sm:px-6 py-4">
         {/* ── Header ── */}
         <div className="flex items-center gap-3 mb-2">
           <Shield className="h-4 w-4 text-gold-primary" />
@@ -143,11 +143,11 @@ export default function OfftakerOrdersPage() {
           </span>
         </div>
 
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+        <h1 className="text-2xl font-bold tracking-tight text-white mb-1">
           Offtaker Allocation Ledger
         </h1>
 
-        <p className="text-slate-400 text-sm max-w-2xl mb-6 leading-relaxed">
+        <p className="text-slate-400 text-xs max-w-2xl mb-4 leading-relaxed">
           All settlement positions for your institutional entity. Click a pending
           order to initiate the dual-authorization execution pipeline.
         </p>
@@ -156,7 +156,7 @@ export default function OfftakerOrdersPage() {
            PHASE: LEDGER — Show the order grid
            ════════════════════════════════════════════════════════════ */}
         {executionPhase === "ledger" && (
-          <div className="bg-slate-900 border border-slate-800 rounded-sm shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-sm shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] flex-1 min-h-0 flex flex-col overflow-hidden">
             {/* Table Header */}
             <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800 bg-black/30">
               <span className="col-span-2 font-mono text-[10px] text-slate-600 tracking-wider uppercase">
@@ -179,7 +179,8 @@ export default function OfftakerOrdersPage() {
               </span>
             </div>
 
-            {/* Rows */}
+            {/* Rows — internal scroll */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
             {allOrders.map((order, idx) => {
               const isPending = order.status === "pending_execution";
               return (
@@ -227,6 +228,7 @@ export default function OfftakerOrdersPage() {
                 </div>
               );
             })}
+            </div>
           </div>
         )}
 
@@ -234,7 +236,7 @@ export default function OfftakerOrdersPage() {
            PHASE: AUTH — Dual-Authorization Gate
            ════════════════════════════════════════════════════════════ */}
         {executionPhase === "auth" && selectedOrder && (
-          <div className="space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
             {/* Order context bar */}
             <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-sm px-4 py-3">
               <FileText className="h-4 w-4 text-gold-primary" />
@@ -278,13 +280,13 @@ export default function OfftakerOrdersPage() {
         )}
 
         {/* ── Footer ── */}
-        <p className="mt-6 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-3 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
           AurumShield Clearing · Append-Only Settlement Ledger ·
           End-to-End Encryption · Sovereign Custody
         </p>
 
-        <TelemetryFooter />
       </div>
+      <TelemetryFooter />
     </div>
   );
 }

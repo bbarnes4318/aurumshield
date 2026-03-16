@@ -10,7 +10,7 @@
 
 export default function ProducerTelemetryFooter() {
   return (
-    <div className="fixed bottom-0 left-0 w-full h-8 bg-black border-t border-slate-800 flex items-center justify-between px-4 z-50">
+    <div className="shrink-0 w-full h-8 bg-black border-t border-slate-800 flex items-center justify-between px-4">
       {/* Left — Producer Org Status */}
       <span className="font-mono text-[9px] text-slate-500">
         PRODUCER ORG ID: ACTIVE | ENCLAVE: SECURED

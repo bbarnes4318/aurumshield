@@ -103,8 +103,8 @@ export default function ProducerSettlementsPage() {
   const totalInFlight = MOCK_PAYOUTS.filter((p) => p.status === "IN_FLIGHT" || p.status === "PENDING").reduce((s, p) => s + p.amount, 0);
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-14">
-      <div className="max-w-6xl mx-auto p-6 pt-10">
+    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col max-w-6xl w-full mx-auto px-4 py-3">
         {/* ── Header ── */}
         <div className="flex items-center gap-3 mb-1">
           <Shield className="h-4 w-4 text-gold-primary" />
@@ -120,12 +120,12 @@ export default function ProducerSettlementsPage() {
         <h1 className="font-mono text-2xl text-white font-bold tracking-tight mb-1">
           Escrow Release History
         </h1>
-        <p className="font-mono text-[11px] text-slate-600 mb-8">
+        <p className="font-mono text-[11px] text-slate-600 mb-4">
           ALL PAYOUTS · FEDWIRE RTGS · USDT ERC-20 · SETTLEMENT ENGINE
         </p>
 
         {/* ── Metrics ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-slate-800 border border-slate-800 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-slate-800 border border-slate-800 mb-3 shrink-0">
           <div className="bg-slate-900 p-5 border-t-2 border-t-emerald-500/40">
             <div className="flex items-center gap-2 mb-3">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -151,7 +151,7 @@ export default function ProducerSettlementsPage() {
         </div>
 
         {/* ── Filters ── */}
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3 shrink-0">
           {(["ALL", "SETTLED", "IN_FLIGHT", "PENDING"] as const).map((f) => (
             <button
               key={f}
@@ -168,7 +168,7 @@ export default function ProducerSettlementsPage() {
         </div>
 
         {/* ── Payout Table ── */}
-        <div className="bg-slate-900 border border-slate-800 overflow-hidden">
+        <div className="bg-slate-900 border border-slate-800 flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800 bg-black/30">
             <span className="col-span-2 font-mono text-[9px] text-slate-600 tracking-wider uppercase">
@@ -192,6 +192,7 @@ export default function ProducerSettlementsPage() {
           </div>
 
           {/* Rows */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
           {payouts.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <p className="font-mono text-xs text-slate-600">No payouts match the current filter.</p>
@@ -247,10 +248,10 @@ export default function ProducerSettlementsPage() {
               </div>
             ))
           )}
+          </div>
         </div>
 
-        {/* ── Footer ── */}
-        <p className="mt-10 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-3 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
           AurumShield Clearing · Producer Settlement Ledger · Column Bank · Turnkey MPC
         </p>
       </div>

@@ -88,7 +88,7 @@ export function AppShell({ children }: AppShellProps) {
 
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto px-5 pt-3 pb-4 lg:px-8"
+          className="flex-1 overflow-hidden"
         >
           <RoleRouter />
           {children}

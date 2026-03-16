@@ -164,18 +164,18 @@ export default function AssetIngestionPage() {
   const isScanning = isPending;
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-14">
-      <div className="max-w-6xl mx-auto p-8 pt-12">
+    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col max-w-6xl w-full mx-auto px-5 py-3">
         {/* ── Header ── */}
-        <div className="mb-4">
-          <div className="flex items-center gap-3 mb-5">
+        <div className="mb-3 shrink-0">
+          <div className="flex items-center gap-3 mb-3">
             <Fingerprint className="h-4 w-4 text-gold-primary" />
             <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
               Asset Ingestion
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
+          <h1 className="text-2xl font-bold tracking-tight text-white mb-2">
             Mint Digital Twin (ERC-3643)
           </h1>
 
@@ -187,7 +187,7 @@ export default function AssetIngestionPage() {
         </div>
 
         {/* ── Server Action Form ── */}
-        <form ref={formRef} action={formAction}>
+        <form ref={formRef} action={formAction} className="flex-1 min-h-0 flex flex-col overflow-y-auto">
           {/* Hidden file input — populated by drag-drop or click */}
           <input
             ref={fileInputRef}
@@ -199,7 +199,7 @@ export default function AssetIngestionPage() {
           />
 
           {/* ── 2-Column Grid ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
             {/* ─────────────────────────────────────────────────────
                ASSET FORM CLASSIFICATION (Top of Form)
                ───────────────────────────────────────────────────── */}
@@ -553,7 +553,7 @@ export default function AssetIngestionPage() {
           )}
 
           {/* ── Footer CTA ── */}
-          <div className="mt-10">
+          <div className="mt-4 shrink-0">
             <button
               type="submit"
               disabled={isPending}
@@ -582,8 +582,7 @@ export default function AssetIngestionPage() {
           </div>
         </form>
 
-        {/* ── Footer trust line ── */}
-        <p className="mt-12 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-4 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
           AurumShield Clearing · ERC-3643 Digital Twin · Fire Assay VLM
           Parser · Immutable Provenance Ledger
         </p>

@@ -254,7 +254,7 @@ export default function KYBConsolePage() {
   }, []);
 
   return (
-    <div className="h-full bg-slate-950 p-4 md:p-5 flex flex-col overflow-auto">
+    <div className="h-full bg-slate-950 p-4 md:p-5 flex flex-col overflow-hidden">
       {/* ── Header ── */}
       <div className="mb-4 shrink-0">
         <div className="flex items-center gap-3 mb-3">

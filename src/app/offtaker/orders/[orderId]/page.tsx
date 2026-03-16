@@ -279,12 +279,12 @@ export default function SettlementLedgerPage() {
   }, [isCrypto, fundsConfirmed, pollSettlementStatus]);
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-14">
-      <div className="max-w-7xl mx-auto p-8 pt-12">
+    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col max-w-7xl w-full mx-auto px-5 py-3">
         {/* ════════════════════════════════════════════════════════
             HEADER RIBBON
             ════════════════════════════════════════════════════════ */}
-        <div className="bg-slate-900 border-b border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] pb-6 mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div className="bg-slate-900 border-b border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] pb-4 mb-4 flex flex-col sm:flex-row justify-between items-start gap-3 shrink-0">
           <div>
             <span className="font-mono text-slate-500 uppercase text-xs tracking-[0.3em] block mb-2">
               Settlement Ledger
@@ -314,7 +314,7 @@ export default function SettlementLedgerPage() {
 
         {/* ── Funds Confirmed Banner (only for crypto, only when confirmed) ── */}
         {isCrypto && fundsConfirmed && (
-          <div className="mb-8">
+          <div className="mb-4 shrink-0">
             <FundsConfirmedBanner />
           </div>
         )}
@@ -322,7 +322,7 @@ export default function SettlementLedgerPage() {
         {/* ════════════════════════════════════════════════════════
             3-COLUMN LEDGER GRID
             ════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 overflow-y-auto">
           {/* ──────────────────────────────────────────────────────
               COLUMN 1 — Asset & Custody Registry
               ────────────────────────────────────────────────────── */}
@@ -518,8 +518,7 @@ export default function SettlementLedgerPage() {
           </div>
         </div>
 
-        {/* ── Footer ── */}
-        <p className="mt-12 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-3 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
           AurumShield Clearing · {isCrypto ? "Turnkey MPC · ERC-20 USDT" : "Fedwire RTGS"} · LBMA Good Delivery ·
           Immutable Settlement Ledger
         </p>

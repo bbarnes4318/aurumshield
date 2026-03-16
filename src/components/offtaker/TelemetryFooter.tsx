@@ -10,7 +10,7 @@
 
 export default function TelemetryFooter() {
   return (
-    <div className="fixed bottom-0 w-full h-8 bg-black border-t border-slate-800 flex items-center justify-between px-4 z-50">
+    <div className="shrink-0 w-full h-8 bg-black border-t border-slate-800 flex items-center justify-between px-4">
       {/* Left — Session Metadata */}
       <span className="font-mono text-[9px] text-slate-500">
         SESSION: AS-9942-X | IP: SECURE_RELAY | ENCLAVE: ACTIVE
