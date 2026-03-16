@@ -451,72 +451,137 @@ function ExposureSection() {
 }
 
 /* ================================================================
-   KINETIC RISK — Sovereign Custody Layer
+   SOLUTION — Bypassing the Middlemen
    ================================================================ */
 function KineticRiskSection() {
   return (
-    <section className="pb-24 lg:pb-32 pt-4 lg:pt-8">
-      {/* Architectural Divider */}
-      <div className="mx-auto max-w-7xl px-6 mb-16 lg:mb-20">
-        <div className="h-px w-full bg-linear-to-r from-slate-800 via-slate-800/50 to-transparent" />
-      </div>
-      <div className="mx-auto max-w-7xl px-6">
-        {/* ── Premium card wrapper for section header ── */}
-        <div className="bg-white/2 border border-white/10 rounded-2xl p-8 lg:p-10 backdrop-blur-sm mb-16">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="h-px w-8 bg-gold/50" />
+    <section className="py-24 lg:py-32 relative overflow-hidden">
+      {/* Background radial glow */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 h-[600px] w-[900px] rounded-full"
+        style={{
+          background:
+            "radial-gradient(ellipse, rgba(198,168,107,0.04) 0%, transparent 65%)",
+        }}
+      />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-6">
+        {/* ── Section Header — centered for impact ── */}
+        <div className="text-center mb-20">
+          <div className="inline-flex items-center gap-3 mb-5">
+            <div className="h-px w-10 bg-gold/50" />
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-              PHYSICAL PERIMETER
+              THE SOLUTION
             </p>
+            <div className="h-px w-10 bg-gold/50" />
           </div>
-          <h2 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold tracking-tight text-white max-w-3xl">
-            The Sovereign Custody Layer: Kinetic Risk Eliminated
+          <h2 className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold tracking-tight text-white leading-[1.15]">
+            Bypassing the Middlemen.
+            <br />
+            <span className="text-gold">Eliminating the Risk.</span>
           </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-            Physical transport of bullion exposes participants to severe kinetic
-            threats—supply chain interception, transport extortion, and
-            counterfeit asset injection. AurumShield bypasses the physical rail
-            entirely. Bullion is confined within sovereign-grade vault networks,
-            and ownership is settled atomically.
+          <p className="mt-5 mx-auto max-w-2xl text-base md:text-lg leading-relaxed text-gray-300">
+            AurumShield replaces trust with deterministic proof and unshakeable
+            financial guarantees. We orchestrate a closed-loop ecosystem that
+            connects you directly to the source.
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* Large Feature - Spans 8 columns */}
-          <div className="lg:col-span-8 bg-white/2 border border-white/10 rounded-2xl p-8 sm:p-10 backdrop-blur-sm flex flex-col justify-center">
-            <h3 className="text-xl font-bold text-white mb-4">
-              Sovereign Vault Confinement
-            </h3>
-            <p className="text-base leading-relaxed text-slate-400 max-w-2xl">
-              From vetted mine extraction to final settlement, assets remain
-              locked in secure, insured facilities operated exclusively by
-              Tier-1 logistics partners like Malca-Amit and Brink&apos;s. Asset
-              provenance is cryptographically verified, and physical reality is
-              maintained without kinetic exposure.
-            </p>
+        {/* ── Bento Grid — 1 large + 2 side-by-side ── */}
+        <div className="grid gap-5 lg:gap-6">
+          {/* ▸ Feature 1 — Full-width hero card */}
+          <div className="group relative rounded-xl border border-gold/20 bg-gradient-to-br from-gold/[0.06] to-transparent p-8 md:p-10 lg:p-12 overflow-hidden transition-all duration-300 hover:border-gold/40">
+            {/* Large faded number */}
+            <span className="pointer-events-none absolute -right-4 -top-6 font-mono text-[10rem] font-black leading-none text-gold/[0.04] select-none">
+              01
+            </span>
+
+            <div className="relative z-10 grid lg:grid-cols-[1fr_auto] gap-8 items-center">
+              <div>
+                <span className="inline-block mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-gold/70 border border-gold/20 rounded-full px-3 py-1">
+                  MARKET DISCRETION
+                </span>
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-4">
+                  Your Trade Privacy Is a Non-Negotiable Asset
+                </h3>
+                <p className="text-base leading-relaxed text-gray-300 max-w-2xl">
+                  While we maintain strict, bank-grade AML compliance, our
+                  platform is structured to ensure your identity, allocations,
+                  and trade volumes remain strictly confidential and completely
+                  shielded from public registries and OTC desks.
+                </p>
+              </div>
+
+              {/* Visual accent — lock icon cluster */}
+              <div className="hidden lg:flex items-center justify-center w-28 h-28 rounded-2xl border border-gold/15 bg-gold/[0.05]">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  className="w-12 h-12 text-gold/60"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  <circle cx="12" cy="16" r="1" fill="currentColor" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Gold accent bar */}
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
           </div>
 
-          {/* Stacked Side Features - Span 4 columns */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className="bg-white/2 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex-1">
-              <h3 className="text-base font-bold text-white mb-2">
-                Armored Transit Eliminated
-              </h3>
-              <p className="text-sm leading-relaxed text-slate-400">
-                Because settlement occurs atomically at the vault level,
-                participants never need to manage armed transport or supply
-                chain security.
-              </p>
+          {/* ▸ Features 2 + 3 — Side by side */}
+          <div className="grid md:grid-cols-2 gap-5 lg:gap-6">
+            {/* Feature 2 */}
+            <div className="group relative rounded-xl border border-slate-800 bg-white/[0.02] p-8 md:p-10 overflow-hidden transition-all duration-300 hover:border-gold/30 hover:bg-gold/[0.02]">
+              <span className="pointer-events-none absolute -right-2 -top-4 font-mono text-[8rem] font-black leading-none text-white/[0.02] select-none">
+                02
+              </span>
+
+              <div className="relative z-10">
+                <span className="inline-block mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-gold/70 border border-gold/20 rounded-full px-3 py-1">
+                  DIRECT SOURCE
+                </span>
+                <h3 className="text-lg md:text-xl font-bold text-white mb-3">
+                  Direct Miner Sourcing
+                </h3>
+                <p className="text-sm leading-relaxed text-gray-300">
+                  We bypass retail dealers and OTC brokers entirely, sourcing
+                  directly from verified, heavily vetted mining operations. No
+                  middlemen. No inflated premiums. Direct access to the source
+                  of supply.
+                </p>
+              </div>
+
+              {/* Hover accent */}
+              <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-xl bg-gradient-to-r from-transparent via-gold/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
-            <div className="bg-white/2 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex-1">
-              <h3 className="text-base font-bold text-white mb-2">
-                Geopolitical Insulation
-              </h3>
-              <p className="text-sm leading-relaxed text-slate-400">
-                Assets remain sequestered in highly stable jurisdictions,
-                eliminating the risk of local extortion, confiscation, or
-                transit interception.
-              </p>
+
+            {/* Feature 3 */}
+            <div className="group relative rounded-xl border border-slate-800 bg-white/[0.02] p-8 md:p-10 overflow-hidden transition-all duration-300 hover:border-gold/30 hover:bg-gold/[0.02]">
+              <span className="pointer-events-none absolute -right-2 -top-4 font-mono text-[8rem] font-black leading-none text-white/[0.02] select-none">
+                03
+              </span>
+
+              <div className="relative z-10">
+                <span className="inline-block mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-gold/70 border border-gold/20 rounded-full px-3 py-1">
+                  LEGAL PROTECTION
+                </span>
+                <h3 className="text-lg md:text-xl font-bold text-white mb-3">
+                  Absolute Legal Title
+                </h3>
+                <p className="text-sm leading-relaxed text-gray-300">
+                  Your gold is physically segregated. Through strict legal
+                  bailment, your assets are &ldquo;bankruptcy remote&rdquo;&mdash;meaning
+                  they can never be seized by a bank or vaulting provider. You
+                  hold absolute, unencumbered legal title.
+                </p>
+              </div>
+
+              {/* Hover accent */}
+              <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-xl bg-gradient-to-r from-transparent via-gold/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
           </div>
         </div>
