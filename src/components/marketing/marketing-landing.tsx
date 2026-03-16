@@ -490,9 +490,9 @@ function KineticRiskSection() {
         {/* ── Bento Grid — 1 large + 2 side-by-side ── */}
         <div className="grid gap-5 lg:gap-6">
           {/* ▸ Feature 1 — Full-width hero card */}
-          <div className="group relative rounded-xl border border-gold/20 bg-gradient-to-br from-gold/[0.06] to-transparent p-8 md:p-10 lg:p-12 overflow-hidden transition-all duration-300 hover:border-gold/40">
+          <div className="group relative rounded-xl border border-gold/20 bg-linear-to-br from-gold/6 to-transparent p-8 md:p-10 lg:p-12 overflow-hidden transition-all duration-300 hover:border-gold/40">
             {/* Large faded number */}
-            <span className="pointer-events-none absolute -right-4 -top-6 font-mono text-[10rem] font-black leading-none text-gold/[0.04] select-none">
+            <span className="pointer-events-none absolute -right-4 -top-6 font-mono text-[10rem] font-black leading-none text-gold/4 select-none">
               01
             </span>
 
@@ -513,7 +513,7 @@ function KineticRiskSection() {
               </div>
 
               {/* Visual accent — lock icon cluster */}
-              <div className="hidden lg:flex items-center justify-center w-28 h-28 rounded-2xl border border-gold/15 bg-gold/[0.05]">
+              <div className="hidden lg:flex items-center justify-center w-28 h-28 rounded-2xl border border-gold/15 bg-gold/5">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -529,14 +529,14 @@ function KineticRiskSection() {
             </div>
 
             {/* Gold accent bar */}
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-linear-to-r from-transparent via-gold/40 to-transparent" />
           </div>
 
           {/* ▸ Features 2 + 3 — Side by side */}
           <div className="grid md:grid-cols-2 gap-5 lg:gap-6">
             {/* Feature 2 */}
-            <div className="group relative rounded-xl border border-slate-800 bg-white/[0.02] p-8 md:p-10 overflow-hidden transition-all duration-300 hover:border-gold/30 hover:bg-gold/[0.02]">
-              <span className="pointer-events-none absolute -right-2 -top-4 font-mono text-[8rem] font-black leading-none text-white/[0.02] select-none">
+            <div className="group relative rounded-xl border border-slate-800 bg-white/2 p-8 md:p-10 overflow-hidden transition-all duration-300 hover:border-gold/30 hover:bg-gold/2">
+              <span className="pointer-events-none absolute -right-2 -top-4 font-mono text-[8rem] font-black leading-none text-white/2 select-none">
                 02
               </span>
 
@@ -556,12 +556,12 @@ function KineticRiskSection() {
               </div>
 
               {/* Hover accent */}
-              <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-xl bg-gradient-to-r from-transparent via-gold/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-xl bg-linear-to-r from-transparent via-gold/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
 
             {/* Feature 3 */}
-            <div className="group relative rounded-xl border border-slate-800 bg-white/[0.02] p-8 md:p-10 overflow-hidden transition-all duration-300 hover:border-gold/30 hover:bg-gold/[0.02]">
-              <span className="pointer-events-none absolute -right-2 -top-4 font-mono text-[8rem] font-black leading-none text-white/[0.02] select-none">
+            <div className="group relative rounded-xl border border-slate-800 bg-white/2 p-8 md:p-10 overflow-hidden transition-all duration-300 hover:border-gold/30 hover:bg-gold/2">
+              <span className="pointer-events-none absolute -right-2 -top-4 font-mono text-[8rem] font-black leading-none text-white/2 select-none">
                 03
               </span>
 
@@ -581,7 +581,7 @@ function KineticRiskSection() {
               </div>
 
               {/* Hover accent */}
-              <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-xl bg-gradient-to-r from-transparent via-gold/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-xl bg-linear-to-r from-transparent via-gold/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
           </div>
         </div>

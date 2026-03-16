@@ -86,10 +86,10 @@ export function MarketWeaknessSection() {
                     transition: { delay: i * 0.12, duration: 0.6 },
                   },
                 }}
-                className="group relative rounded-md border border-slate-800 bg-white/[0.02] p-8 transition-all duration-300 hover:border-rose-500/30 hover:bg-rose-500/[0.03]"
+                className="group relative rounded-md border border-slate-800 bg-white/2 p-8 transition-all duration-300 hover:border-rose-500/30 hover:bg-rose-500/3"
               >
                 {/* Icon */}
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-md border border-slate-800 bg-white/[0.03] group-hover:border-rose-500/20 transition-colors">
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-md border border-slate-800 bg-white/3 group-hover:border-rose-500/20 transition-colors">
                   <Icon className="h-5 w-5 text-rose-400" />
                 </div>
 
@@ -109,7 +109,7 @@ export function MarketWeaknessSection() {
                 </p>
 
                 {/* Bottom accent */}
-                <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-md bg-gradient-to-r from-transparent via-rose-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-x-0 bottom-0 h-[2px] rounded-b-md bg-linear-to-r from-transparent via-rose-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </motion.div>
             );
           })}
