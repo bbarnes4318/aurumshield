@@ -36,7 +36,7 @@ export default function OrgSelectPage() {
 
   const handleJoinOrg = () => {
     if (!invitationCode.trim()) {
-      setJoinError("Invitation code is required");
+      setJoinError("Access token is required");
       return;
     }
     setJoinError("");
@@ -61,13 +61,13 @@ export default function OrgSelectPage() {
             <div className="flex items-center gap-2.5">
               <Shield className="h-4 w-4 text-gold-primary" />
               <span className="font-mono text-gold-primary text-[10px] tracking-[0.3em] uppercase font-bold">
-                Register Executing Entity
+                Establish Corporate Custody
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <Fingerprint className="h-3 w-3 text-slate-600" />
               <span className="font-mono text-[9px] text-slate-600 tracking-wider">
-                PERIMETER GATE
+                TREASURY REGISTRATION
               </span>
             </div>
           </div>
@@ -78,15 +78,16 @@ export default function OrgSelectPage() {
             <div className="flex items-center gap-2">
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] animate-pulse" />
               <span className="font-mono text-[10px] text-emerald-400 tracking-wider uppercase">
-                Clearing Engine Online — Ready for Entity Registration
+                Clearing Engine Online — Ready for Corporate Registration
               </span>
             </div>
 
             {/* Context */}
             <p className="font-mono text-xs text-slate-400 leading-relaxed">
               Bind your session to a verified corporate entity before accessing
-              the AurumShield settlement engine. All actions within this
-              perimeter are cryptographically logged.
+              the AurumShield settlement engine. All treasury actions within
+              this environment are cryptographically logged and bound by strict
+              AML/KYB protocols.
             </p>
 
             {/* ── Parameter Readout ── */}
@@ -138,7 +139,7 @@ export default function OrgSelectPage() {
                 className={`w-full bg-gold-primary text-slate-950 font-mono font-bold text-sm tracking-[0.15em] uppercase py-4 flex items-center justify-center gap-2 hover:bg-gold-hover transition-colors cursor-pointer ${isDemoActive ? `${DEMO_SPOTLIGHT_CLASSES} demo-cta-glow` : ""}`}
               >
                 <Building2 className="h-4 w-4" />
-                Initialize New Entity
+                Register Corporate Entity
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -152,7 +153,7 @@ export default function OrgSelectPage() {
                 <div className="flex items-center gap-2">
                   <KeyRound className="h-3.5 w-3.5 text-slate-500" />
                   <span className="font-mono text-[10px] text-slate-500 tracking-[0.15em] uppercase">
-                    Attach to Existing Perimeter
+                    Join Existing Corporate Account
                   </span>
                 </div>
                 {showAttach ? (
@@ -169,7 +170,7 @@ export default function OrgSelectPage() {
                       htmlFor="invitation-code"
                       className="font-mono text-slate-600 text-[9px] tracking-[0.15em] uppercase block mb-2"
                     >
-                      Encrypted Invitation Code
+                      Corporate Access Token
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-gold-primary text-sm select-none">
@@ -183,7 +184,7 @@ export default function OrgSelectPage() {
                           setInvitationCode(e.target.value);
                           if (joinError) setJoinError("");
                         }}
-                        placeholder="enter-invitation-code"
+                        placeholder="enter-access-token"
                         className="w-full bg-slate-950 border border-slate-700 px-8 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-gold-primary focus:ring-1 focus:ring-gold-primary/30 focus:outline-none transition-colors"
                       />
                     </div>
@@ -201,7 +202,7 @@ export default function OrgSelectPage() {
                     onClick={handleJoinOrg}
                     className="w-full border border-slate-700 text-slate-300 font-mono text-xs tracking-widest uppercase py-2.5 hover:border-gold-primary/50 hover:text-white transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    Authenticate & Attach
+                    Authenticate & Join
                     <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
