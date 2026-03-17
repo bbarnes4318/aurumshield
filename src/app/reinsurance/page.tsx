@@ -56,6 +56,7 @@ const columns: ColumnDef<ReinsuranceTreaty, unknown>[] = [
 
 export default function ReinsurancePage() {
   const [printMode, setPrintMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "risk" | "exposure" | "treaties">("overview");
   const riQ = useReinsurance();
   const dashQ = useDashboardData("phase1");
 
@@ -70,16 +71,25 @@ export default function ReinsurancePage() {
   const isLoading = riQ.isLoading || dashQ.isLoading;
   const isError = riQ.isError || dashQ.isError;
 
+  const REINS_TABS = [
+    { key: "overview" as const, label: "Overview" },
+    { key: "risk" as const, label: "Risk" },
+    { key: "exposure" as const, label: "Exposure" },
+    { key: "treaties" as const, label: "Treaties" },
+  ];
+
   return (
-    <div className={cn(printMode && "print-preview")}>
+    <div className={cn("flex h-full flex-col overflow-hidden", printMode && "print-preview")}>
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <PageHeader title="Reinsurance Capital Report" description="Treaty portfolio and capital adequacy — deterministic reconciliation." />
-        <div className="flex items-center gap-2 print:hidden">
-          {capital && treaties.length > 0 && <ReportExportStub capital={capital} treaties={treaties} />}
-          <button type="button" onClick={() => setPrintMode(!printMode)} className={cn("flex items-center gap-2 rounded-[var(--radius)] px-3 py-2 text-xs font-medium transition-colors border", printMode ? "bg-gold/10 text-gold border-gold/30" : "bg-surface-2 text-text-muted border-border hover:text-text")}>
-            {printMode ? <><EyeOff className="h-3.5 w-3.5" /> Exit Print</> : <><Printer className="h-3.5 w-3.5" /> Print Preview</>}
-          </button>
+      <div className="shrink-0">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <PageHeader title="Reinsurance Capital Report" description="Treaty portfolio and capital adequacy — deterministic reconciliation." />
+          <div className="flex items-center gap-2 print:hidden">
+            {capital && treaties.length > 0 && <ReportExportStub capital={capital} treaties={treaties} />}
+            <button type="button" onClick={() => setPrintMode(!printMode)} className={cn("flex items-center gap-2 rounded-[var(--radius)] px-3 py-2 text-xs font-medium transition-colors border", printMode ? "bg-gold/10 text-gold border-gold/30" : "bg-surface-2 text-text-muted border-border hover:text-text")}>
+              {printMode ? <><EyeOff className="h-3.5 w-3.5" /> Exit Print</> : <><Printer className="h-3.5 w-3.5" /> Print Preview</>}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -87,36 +97,62 @@ export default function ReinsurancePage() {
       {isError && <ErrorState message="Failed to load capital data." onRetry={() => { riQ.refetch(); dashQ.refetch(); }} />}
 
       {capital && (
-        <div className="space-y-6">
-          {/* Metric strip */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-            <MetricCard label="In-Force Treaties" value={String(inForce.length)} change={0} trend="flat" period="active" />
-            <MetricCard label="Aggregate Limit" value={`$${(totalLimit / 1e9).toFixed(2)}B`} change={0} trend="flat" period="in-force" />
-            <MetricCard label="Total Premium" value={`$${(totalPremium / 1e6).toFixed(1)}M`} change={0} trend="flat" period="annualized" />
-            <MetricCard label="Capital Buffer" value={`$${(capital.bufferVsTvar99 / 1e6).toFixed(1)}M`} change={0} trend={capital.bufferVsTvar99 > 0 ? "up" : "down"} period="vs TVaR99" />
-            <MetricCard label="Wtd Loss Ratio" value={`${weightedLossRatio.toFixed(0)}%`} change={0} trend={weightedLossRatio > 60 ? "down" : "flat"} period="premium-weighted" />
+        <>
+          {/* Tab Bar */}
+          <div className="shrink-0 flex items-center gap-1 border-b border-border px-1">
+            {REINS_TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setActiveTab(t.key)}
+                className={cn(
+                  "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+                  activeTab === t.key
+                    ? "border-gold text-gold"
+                    : "border-transparent text-text-muted hover:text-text hover:border-border"
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
 
-          {/* Capital Waterfall */}
-          <CapitalWaterfall capital={capital} />
+          {/* Tab Content */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+            {activeTab === "overview" && (
+              <>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                  <MetricCard label="In-Force Treaties" value={String(inForce.length)} change={0} trend="flat" period="active" />
+                  <MetricCard label="Aggregate Limit" value={`$${(totalLimit / 1e9).toFixed(2)}B`} change={0} trend="flat" period="in-force" />
+                  <MetricCard label="Total Premium" value={`$${(totalPremium / 1e6).toFixed(1)}M`} change={0} trend="flat" period="annualized" />
+                  <MetricCard label="Capital Buffer" value={`$${(capital.bufferVsTvar99 / 1e6).toFixed(1)}M`} change={0} trend={capital.bufferVsTvar99 > 0 ? "up" : "down"} period="vs TVaR99" />
+                  <MetricCard label="Wtd Loss Ratio" value={`${weightedLossRatio.toFixed(0)}%`} change={0} trend={weightedLossRatio > 60 ? "down" : "flat"} period="premium-weighted" />
+                </div>
+                <CapitalWaterfall capital={capital} />
+              </>
+            )}
 
-          {/* 2-column: VaR/TVaR | Stress Scenarios */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <VarTvarTable capital={capital} />
-            <StressScenarios capital={capital} />
+            {activeTab === "risk" && (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <VarTvarTable capital={capital} />
+                <StressScenarios capital={capital} />
+              </div>
+            )}
+
+            {activeTab === "exposure" && (
+              <ExposureTable treaties={treaties} capital={capital} />
+            )}
+
+            {activeTab === "treaties" && (
+              <div className="card-base overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-border">
+                  <h3 className="text-sm font-semibold text-text">Treaty Portfolio</h3>
+                </div>
+                <DataTable columns={columns} data={treaties} />
+              </div>
+            )}
           </div>
-
-          {/* Exposure Table */}
-          <ExposureTable treaties={treaties} capital={capital} />
-
-          {/* Treaty DataTable */}
-          <div className="card-base overflow-hidden">
-            <div className="px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold text-text">Treaty Portfolio</h3>
-            </div>
-            <DataTable columns={columns} data={treaties} />
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

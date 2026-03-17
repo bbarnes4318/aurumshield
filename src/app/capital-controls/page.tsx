@@ -121,6 +121,13 @@ function CapitalControlsConsole() {
   const exportMutation = useExportCapitalControlsPacket();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<"controls" | "overrides" | "history">("controls");
+
+  const CC_TABS = [
+    { key: "controls" as const, label: "Controls" },
+    { key: "overrides" as const, label: "Overrides" },
+    { key: "history" as const, label: "History" },
+  ];
 
   if (controlsQ.isLoading || overridesQ.isLoading || capitalQ.isLoading) {
     return <LoadingState message="Loading capital controls..." />;
@@ -145,216 +152,258 @@ function CapitalControlsConsole() {
   const canCreateOverride = user && OVERRIDE_ALLOWED_ROLES.includes(user.role);
 
   return (
-    <>
-      <PageHeader
-        title="Capital Controls Console"
-        description="Deterministic guardrails, throttles, and override governance. Committee-grade instrument."
-        actions={
-          <div className="flex items-center gap-2 print:hidden">
-            <button
-              onClick={() => sweepMutation.mutate()}
-              disabled={sweepMutation.isPending}
-              className="flex items-center gap-2 rounded-input border border-border bg-surface-2 px-3 py-2 text-xs font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-3 disabled:opacity-50"
-              data-tour="control-mode-toggle"
-            >
-              <RotateCw className={cn("h-3.5 w-3.5", sweepMutation.isPending && "animate-spin")} />
-              Run Sweep
-            </button>
-            <button
-              onClick={() => exportMutation.mutate()}
-              disabled={exportMutation.isPending}
-              className="flex items-center gap-2 rounded-input border border-border bg-surface-2 px-3 py-2 text-xs font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-3 disabled:opacity-50"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Export
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-2 rounded-input bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed"
-            >
-              <Printer className="h-4 w-4" />
-              Print
-            </button>
-          </div>
-        }
-      />
-
-      {/* ── SECTION: CONTROL MODE ── */}
-      <section>
-        <h2 className="typo-label mb-3">Current Control Mode</h2>
-        <div className={cn("card-base px-5 py-5 border-l-4", modeCfg.bg.split(" ").find(c => c.startsWith("border-")))}>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <ModeIcon className={cn("h-6 w-6 mt-0.5 shrink-0", modeCfg.cls)} />
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <span className={cn("text-lg font-bold tracking-wider", modeCfg.cls)}>
-                    {modeCfg.label}
-                  </span>
-                  <span className="text-[10px] font-mono text-text-faint">
-                    Severity: {CONTROL_MODE_SEVERITY[decision.mode]}/4
-                  </span>
-                </div>
-                <p className="text-sm text-text-muted">{modeCfg.description}</p>
-                {decision.reasons.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-text-faint">Reasons</span>
-                    {decision.reasons.map((r, i) => (
-                      <p key={i} className="text-xs text-text-muted pl-3 border-l border-border">
-                        {r}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="shrink-0">
+        <PageHeader
+          title="Capital Controls Console"
+          description="Deterministic guardrails, throttles, and override governance. Committee-grade instrument."
+          actions={
+            <div className="flex items-center gap-2 print:hidden">
+              <button
+                onClick={() => sweepMutation.mutate()}
+                disabled={sweepMutation.isPending}
+                className="flex items-center gap-2 rounded-input border border-border bg-surface-2 px-3 py-2 text-xs font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-3 disabled:opacity-50"
+                data-tour="control-mode-toggle"
+              >
+                <RotateCw className={cn("h-3.5 w-3.5", sweepMutation.isPending && "animate-spin")} />
+                Run Sweep
+              </button>
+              <button
+                onClick={() => exportMutation.mutate()}
+                disabled={exportMutation.isPending}
+                className="flex items-center gap-2 rounded-input border border-border bg-surface-2 px-3 py-2 text-xs font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-3 disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 rounded-input bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed"
+              >
+                <Printer className="h-4 w-4" />
+                Print
+              </button>
             </div>
-            <div className="text-right shrink-0 print:hidden">
-              {snap && (
-                <div className="space-y-1">
-                  <div className="text-xs tabular-nums text-text-faint">
-                    ECR <span className="text-text">{snap.ecr.toFixed(2)}x</span>
+          }
+        />
+      </div>
+
+      {/* Tab Bar */}
+      <div className="shrink-0 flex items-center gap-1 border-b border-border px-1">
+        {CC_TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setActiveTab(t.key)}
+            className={cn(
+              "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+              activeTab === t.key
+                ? "border-gold text-gold"
+                : "border-transparent text-text-muted hover:text-text hover:border-border"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+        {/* ── CONTROLS TAB ── */}
+        {activeTab === "controls" && (
+          <>
+            {/* Control Mode */}
+            <section>
+              <h2 className="typo-label mb-2">Current Control Mode</h2>
+              <div className={cn("card-base px-5 py-4 border-l-4", modeCfg.bg.split(" ").find(c => c.startsWith("border-")))}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <ModeIcon className={cn("h-6 w-6 mt-0.5 shrink-0", modeCfg.cls)} />
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className={cn("text-lg font-bold tracking-wider", modeCfg.cls)}>
+                          {modeCfg.label}
+                        </span>
+                        <span className="text-[10px] font-mono text-text-faint">
+                          Severity: {CONTROL_MODE_SEVERITY[decision.mode]}/4
+                        </span>
+                      </div>
+                      <p className="text-sm text-text-muted">{modeCfg.description}</p>
+                      {decision.reasons.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          <span className="text-[10px] font-semibold uppercase tracking-widest text-text-faint">Reasons</span>
+                          {decision.reasons.map((r, i) => (
+                            <p key={i} className="text-xs text-text-muted pl-3 border-l border-border">
+                              {r}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs tabular-nums text-text-faint">
-                    HU <span className="text-text">{(snap.hardstopUtilization * 100).toFixed(1)}%</span>
+                  <div className="text-right shrink-0 print:hidden">
+                    {snap && (
+                      <div className="space-y-1">
+                        <div className="text-xs tabular-nums text-text-faint">
+                          ECR <span className="text-text">{snap.ecr.toFixed(2)}x</span>
+                        </div>
+                        <div className="text-xs tabular-nums text-text-faint">
+                          HU <span className="text-text">{(snap.hardstopUtilization * 100).toFixed(1)}%</span>
+                        </div>
+                        <div className="text-[10px] font-mono text-text-faint mt-1">
+                          Hash: {decision.snapshotHash}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-[10px] font-mono text-text-faint mt-1">
-                    Hash: {decision.snapshotHash}
-                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Action Matrix */}
+            <section>
+              <h2 className="typo-label mb-2">Action Matrix</h2>
+              <div className="card-base overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-surface-2/50">
+                        <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-text-faint">Action</th>
+                        <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-text-faint">Status</th>
+                        <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-text-faint">Override</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {ALL_ACTION_KEYS.map((key) => {
+                        const blocked = decision.blocks[key];
+                        const hasOverride = activeOverrides.some(
+                          (o) => o.scope === "GLOBAL" || (o.scope === "ACTION" && o.actionKey === key)
+                        );
+                        return (
+                          <tr key={key} className="hover:bg-surface-2/30 transition-colors">
+                            <td className="px-4 py-2">
+                              <span className="font-medium text-text">{ACTION_KEY_LABELS[key]}</span>
+                              <span className="ml-2 text-[10px] font-mono text-text-faint">{key}</span>
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              {blocked ? (
+                                <span className="inline-flex items-center gap-1 text-danger">
+                                  <Ban className="h-3.5 w-3.5" />
+                                  <span className="text-xs font-bold">BLOCKED</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-success">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  <span className="text-xs font-bold">ALLOWED</span>
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              {hasOverride ? (
+                                <span className="inline-flex items-center gap-1 text-gold">
+                                  <ShieldOff className="h-3.5 w-3.5" />
+                                  <span className="text-[10px] font-bold uppercase">Override Active</span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-text-faint">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Advisory limits (throttle mode) */}
+              {decision.limits.maxReservationNotional != null && (
+                <div className="mt-2 card-base px-4 py-2 bg-warning/5 border-warning/20">
+                  <p className="text-xs text-warning">
+                    <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+                    Advisory limit — max reservation notional:{" "}
+                    <span className="font-bold tabular-nums">
+                      ${decision.limits.maxReservationNotional.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </p>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── SECTION: ACTION MATRIX ── */}
-      <section className="mt-6">
-        <h2 className="typo-label mb-3">Action Matrix</h2>
-        <div className="card-base overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface-2/50">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-text-faint">Action</th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-text-faint">Status</th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-text-faint">Override</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {ALL_ACTION_KEYS.map((key) => {
-                  const blocked = decision.blocks[key];
-                  const hasOverride = activeOverrides.some(
-                    (o) => o.scope === "GLOBAL" || (o.scope === "ACTION" && o.actionKey === key)
-                  );
-                  return (
-                    <tr key={key} className="hover:bg-surface-2/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-text">{ACTION_KEY_LABELS[key]}</span>
-                        <span className="ml-2 text-[10px] font-mono text-text-faint">{key}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {blocked ? (
-                          <span className="inline-flex items-center gap-1 text-danger">
-                            <Ban className="h-3.5 w-3.5" />
-                            <span className="text-xs font-bold">BLOCKED</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-success">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span className="text-xs font-bold">ALLOWED</span>
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {hasOverride ? (
-                          <span className="inline-flex items-center gap-1 text-gold">
-                            <ShieldOff className="h-3.5 w-3.5" />
-                            <span className="text-[10px] font-bold uppercase">Override Active</span>
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-text-faint">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Advisory limits (throttle mode) */}
-        {decision.limits.maxReservationNotional != null && (
-          <div className="mt-3 card-base px-4 py-3 bg-warning/5 border-warning/20">
-            <p className="text-xs text-warning">
-              <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-              Advisory limit — max reservation notional:{" "}
-              <span className="font-bold tabular-nums">
-                ${decision.limits.maxReservationNotional.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </p>
-          </div>
+            </section>
+          </>
         )}
-      </section>
 
-      {/* ── SECTION: ACTIVE OVERRIDES ── */}
-      <section className="mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="typo-label">
-            Active Overrides
-            {activeOverrides.length > 0 && (
-              <span className="ml-2 text-[11px] font-normal text-gold tabular-nums">
-                ({activeOverrides.length})
-              </span>
+        {/* ── OVERRIDES TAB ── */}
+        {activeTab === "overrides" && (
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="typo-label">
+                Active Overrides
+                {activeOverrides.length > 0 && (
+                  <span className="ml-2 text-[11px] font-normal text-gold tabular-nums">
+                    ({activeOverrides.length})
+                  </span>
+                )}
+              </h2>
+              {canCreateOverride && (
+                <button
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                  className="flex items-center gap-1.5 rounded-input border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-3 print:hidden"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {showCreateForm ? "Cancel" : "Create Override"}
+                </button>
+              )}
+            </div>
+
+            {showCreateForm && user && <CreateOverrideForm currentMode={decision.mode} onClose={() => setShowCreateForm(false)} />}
+
+            {activeOverrides.length === 0 ? (
+              <div className="card-base px-5 py-6 text-center">
+                <Lock className="h-6 w-6 text-text-faint mx-auto mb-2" />
+                <p className="text-sm text-text-muted">No active overrides</p>
+              </div>
+            ) : (
+              <div className="card-base overflow-hidden">
+                <div className="overflow-x-auto">
+                  <OverridesTable overrides={activeOverrides} showRevoke={!!canCreateOverride} />
+                </div>
+              </div>
             )}
-          </h2>
-          {canCreateOverride && (
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="flex items-center gap-1.5 rounded-input border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-3 print:hidden"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              {showCreateForm ? "Cancel" : "Create Override"}
-            </button>
-          )}
-        </div>
-
-        {showCreateForm && user && <CreateOverrideForm currentMode={decision.mode} onClose={() => setShowCreateForm(false)} />}
-
-        {activeOverrides.length === 0 ? (
-          <div className="card-base px-5 py-8 text-center">
-            <Lock className="h-6 w-6 text-text-faint mx-auto mb-2" />
-            <p className="text-sm text-text-muted">No active overrides</p>
-          </div>
-        ) : (
-          <div className="card-base overflow-hidden">
-            <div className="overflow-x-auto">
-              <OverridesTable overrides={activeOverrides} showRevoke={!!canCreateOverride} />
-            </div>
-          </div>
+          </section>
         )}
-      </section>
 
-      {/* ── SECTION: OVERRIDE HISTORY ── */}
-      {inactiveOverrides.length > 0 && (
-        <section className="mt-6">
-          <h2 className="typo-label mb-3">Override History</h2>
-          <div className="card-base overflow-hidden">
-            <div className="overflow-x-auto">
-              <OverridesTable overrides={inactiveOverrides} showRevoke={false} />
-            </div>
-          </div>
-        </section>
-      )}
+        {/* ── HISTORY TAB ── */}
+        {activeTab === "history" && (
+          <>
+            {inactiveOverrides.length > 0 && (
+              <section>
+                <h2 className="typo-label mb-2">Override History</h2>
+                <div className="card-base overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <OverridesTable overrides={inactiveOverrides} showRevoke={false} />
+                  </div>
+                </div>
+              </section>
+            )}
 
-      {/* ── SECTION: METADATA ── */}
-      <section className="mt-6 print:mt-4">
-        <div className="flex items-center gap-4 text-[10px] text-text-faint tabular-nums">
-          <span>As of: {new Date(decision.asOf).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "medium" })}</span>
-          <span>Snapshot Hash: <span className="font-mono">{decision.snapshotHash}</span></span>
-          <span>Mode Severity: {CONTROL_MODE_SEVERITY[decision.mode]}/4</span>
-        </div>
-      </section>
+            {inactiveOverrides.length === 0 && (
+              <div className="card-base px-5 py-6 text-center">
+                <Lock className="h-6 w-6 text-text-faint mx-auto mb-2" />
+                <p className="text-sm text-text-muted">No override history</p>
+              </div>
+            )}
+
+            {/* Metadata */}
+            <section className="print:mt-2">
+              <div className="flex items-center gap-4 text-[10px] text-text-faint tabular-nums">
+                <span>As of: {new Date(decision.asOf).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "medium" })}</span>
+                <span>Snapshot Hash: <span className="font-mono">{decision.snapshotHash}</span></span>
+                <span>Mode Severity: {CONTROL_MODE_SEVERITY[decision.mode]}/4</span>
+              </div>
+            </section>
+          </>
+        )}
+      </div>
 
       {/* Print styles */}
       <style jsx global>{`
@@ -366,7 +415,7 @@ function CapitalControlsConsole() {
           .font-mono { font-family: "Courier New", monospace !important; }
         }
       `}</style>
-    </>
+    </div>
   );
 }
 

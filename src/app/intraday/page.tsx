@@ -177,11 +177,18 @@ function IntradayConsolePage() {
   const exportMutation = useExportIntradayPacket();
 
   const [sweepResult, setSweepResult] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"capital" | "drivers" | "events">("capital");
 
   // Memoize cutoff to avoid impure Date.now() in render path
   const [cutoff24h] = useState(() =>
     new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
   );
+
+  const INTRA_TABS = [
+    { key: "capital" as const, label: "Capital" },
+    { key: "drivers" as const, label: "Drivers" },
+    { key: "events" as const, label: "Events" },
+  ];
 
   /* ── URL filter parsing (strict enum validation) ── */
   const filterLevel = parseLevel(searchParams.get("level"));
@@ -254,411 +261,395 @@ function IntradayConsolePage() {
   const badge = BREACH_BADGE[snap.breachLevel];
 
   return (
-    <>
+    <div className="flex h-full flex-col overflow-hidden">
       {/* ── Header ── */}
-      <PageHeader
-        title="Intraday Capital Console"
-        description="Live capital adequacy, breach monitoring, and supervisory controls."
-        actions={
-          <div className="flex items-center gap-2 print:hidden">
-            {/* Run Sweep */}
-            <button
-              id="btn-run-sweep"
-              onClick={handleRunSweep}
-              disabled={sweepMutation.isPending}
-              className={cn(
-                "flex items-center gap-2 rounded-input px-4 py-2 text-sm font-medium transition-colors",
-                "bg-surface-2 border border-border text-text hover:bg-surface-3",
-                sweepMutation.isPending && "opacity-60 cursor-not-allowed",
-              )}
-            >
-              <RefreshCw
-                className={cn("h-4 w-4", sweepMutation.isPending && "animate-spin")}
-              />
-              Run Sweep
-            </button>
-
-            {/* Export Packet */}
-            <button
-              id="btn-export-packet"
-              onClick={handleExport}
-              disabled={exportMutation.isPending}
-              className={cn(
-                "flex items-center gap-2 rounded-input px-4 py-2 text-sm font-medium transition-colors",
-                "bg-surface-2 border border-border text-text hover:bg-surface-3",
-                exportMutation.isPending && "opacity-60 cursor-not-allowed",
-              )}
-            >
-              <Download className="h-4 w-4" />
-              Export Packet
-            </button>
-
-            {/* Print */}
-            <button
-              id="btn-print"
-              onClick={() => window.print()}
-              className="flex items-center gap-2 rounded-input bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed"
-            >
-              <Printer className="h-4 w-4" />
-              Print
-            </button>
-          </div>
-        }
-      />
+      <div className="shrink-0">
+        <PageHeader
+          title="Intraday Capital Console"
+          description="Live capital adequacy, breach monitoring, and supervisory controls."
+          actions={
+            <div className="flex items-center gap-2 print:hidden">
+              <button
+                id="btn-run-sweep"
+                onClick={handleRunSweep}
+                disabled={sweepMutation.isPending}
+                className={cn(
+                  "flex items-center gap-2 rounded-input px-4 py-2 text-sm font-medium transition-colors",
+                  "bg-surface-2 border border-border text-text hover:bg-surface-3",
+                  sweepMutation.isPending && "opacity-60 cursor-not-allowed",
+                )}
+              >
+                <RefreshCw
+                  className={cn("h-4 w-4", sweepMutation.isPending && "animate-spin")}
+                />
+                Run Sweep
+              </button>
+              <button
+                id="btn-export-packet"
+                onClick={handleExport}
+                disabled={exportMutation.isPending}
+                className={cn(
+                  "flex items-center gap-2 rounded-input px-4 py-2 text-sm font-medium transition-colors",
+                  "bg-surface-2 border border-border text-text hover:bg-surface-3",
+                  exportMutation.isPending && "opacity-60 cursor-not-allowed",
+                )}
+              >
+                <Download className="h-4 w-4" />
+                Export Packet
+              </button>
+              <button
+                id="btn-print"
+                onClick={() => window.print()}
+                className="flex items-center gap-2 rounded-input bg-gold px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed"
+              >
+                <Printer className="h-4 w-4" />
+                Print
+              </button>
+            </div>
+          }
+        />
+      </div>
 
       {/* ── Sweep notification ── */}
       {sweepResult && (
-        <div className="rounded-sm border border-info/30 bg-info/10 px-4 py-2.5 text-sm text-info print:hidden">
+        <div className="shrink-0 rounded-sm border border-info/30 bg-info/10 px-4 py-2 text-sm text-info print:hidden mx-4 mt-1">
           {sweepResult}
         </div>
       )}
 
-      {/* ============================================================
-         SECTION 1: KPI STRIP
-         ============================================================ */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <h2 className="typo-label">Capital Snapshot</h2>
-          <span className="text-[10px] tabular-nums text-text-faint">{fmtTime(snap.asOf)}</span>
-        </div>
+      {/* Tab Bar */}
+      <div className="shrink-0 flex items-center gap-1 border-b border-border px-1">
+        {INTRA_TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setActiveTab(t.key)}
+            className={cn(
+              "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+              activeTab === t.key
+                ? "border-gold text-gold"
+                : "border-transparent text-text-muted hover:text-text hover:border-border"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* ECR */}
-          <div className="card-base px-5 py-4">
-            <div className="mb-1 flex items-center gap-1.5">
-              <p className="typo-label">ECR</p>
-              <InfoTooltip content={TOOLTIPS.ecr} />
-            </div>
-            <p
-              className={cn(
-                "text-2xl font-semibold tabular-nums tracking-tight",
-                snap.ecr >= 8 ? "text-danger" : snap.ecr >= 6 ? "text-warning" : "text-success",
-              )}
-            >
-              {snap.ecr.toFixed(2)}x
-            </p>
-            <p className="mt-1 text-[11px] tabular-nums text-text-faint">
-              {fmtUSD(snap.grossExposureNotional, true)} ÷ {fmtUSD(snap.capitalBase, true)}
-            </p>
-          </div>
+      {/* Tab Content */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+        {/* ── CAPITAL TAB ── */}
+        {activeTab === "capital" && (
+          <>
+            <section>
+              <div className="mb-2 flex items-center gap-2">
+                <h2 className="typo-label">Capital Snapshot</h2>
+                <span className="text-[10px] tabular-nums text-text-faint">{fmtTime(snap.asOf)}</span>
+              </div>
 
-          {/* Hardstop Utilization */}
-          <div className="card-base px-5 py-4">
-            <div className="mb-1 flex items-center gap-1.5">
-              <p className="typo-label">Hardstop %</p>
-              <InfoTooltip content={TOOLTIPS.hardstop} />
-            </div>
-            <p
-              className={cn(
-                "text-2xl font-semibold tabular-nums tracking-tight",
-                snap.hardstopUtilization >= 0.95
-                  ? "text-danger"
-                  : snap.hardstopUtilization >= 0.8
-                    ? "text-warning"
-                    : "text-success",
-              )}
-            >
-              {fmtPct(snap.hardstopUtilization)}
-            </p>
-            <div className="mt-2 relative h-2 w-full overflow-hidden rounded-full bg-surface-3">
-              <div
-                className={cn(
-                  "absolute inset-y-0 left-0 rounded-full transition-all",
-                  snap.hardstopUtilization >= 0.95
-                    ? "bg-danger"
-                    : snap.hardstopUtilization >= 0.8
-                      ? "bg-warning"
-                      : "bg-success",
-                )}
-                style={{
-                  width: `${Math.min(snap.hardstopUtilization * 100, 100)}%`,
-                }}
-              />
-            </div>
-            <div className="mt-1.5 flex items-center justify-between text-[10px] tabular-nums text-text-faint">
-              <span>{fmtUSD(snap.grossExposureNotional, true)} used</span>
-              <span>{fmtUSD(snap.hardstopLimit, true)} limit</span>
-            </div>
-          </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {/* ECR */}
+                <div className="card-base px-4 py-3">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <p className="typo-label">ECR</p>
+                    <InfoTooltip content={TOOLTIPS.ecr} />
+                  </div>
+                  <p
+                    className={cn(
+                      "text-xl font-semibold tabular-nums tracking-tight",
+                      snap.ecr >= 8 ? "text-danger" : snap.ecr >= 6 ? "text-warning" : "text-success",
+                    )}
+                  >
+                    {snap.ecr.toFixed(2)}x
+                  </p>
+                  <p className="mt-0.5 text-[10px] tabular-nums text-text-faint">
+                    {fmtUSD(snap.grossExposureNotional, true)} ÷ {fmtUSD(snap.capitalBase, true)}
+                  </p>
+                </div>
 
-          {/* Buffer vs TVaR₉₉ */}
-          <div className="card-base px-5 py-4">
-            <div className="mb-1 flex items-center gap-1.5">
-              <p className="typo-label">Buffer</p>
-              <InfoTooltip content={TOOLTIPS.buffer} />
-            </div>
-            <p
-              className={cn(
-                "text-2xl font-semibold tabular-nums tracking-tight",
-                snap.bufferVsTvar99 >= 0 ? "text-success" : "text-danger",
-              )}
-            >
-              {snap.bufferVsTvar99 >= 0 ? "+" : ""}
-              {fmtUSD(snap.bufferVsTvar99, true)}
-            </p>
-            <p className="mt-1 text-[11px] tabular-nums text-text-faint">
-              vs TVaR₉₉ tail-risk
-            </p>
-          </div>
+                {/* Hardstop Utilization */}
+                <div className="card-base px-4 py-3">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <p className="typo-label">Hardstop %</p>
+                    <InfoTooltip content={TOOLTIPS.hardstop} />
+                  </div>
+                  <p
+                    className={cn(
+                      "text-xl font-semibold tabular-nums tracking-tight",
+                      snap.hardstopUtilization >= 0.95
+                        ? "text-danger"
+                        : snap.hardstopUtilization >= 0.8
+                          ? "text-warning"
+                          : "text-success",
+                    )}
+                  >
+                    {fmtPct(snap.hardstopUtilization)}
+                  </p>
+                  <div className="mt-1.5 relative h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
+                    <div
+                      className={cn(
+                        "absolute inset-y-0 left-0 rounded-full transition-all",
+                        snap.hardstopUtilization >= 0.95
+                          ? "bg-danger"
+                          : snap.hardstopUtilization >= 0.8
+                            ? "bg-warning"
+                            : "bg-success",
+                      )}
+                      style={{
+                        width: `${Math.min(snap.hardstopUtilization * 100, 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] tabular-nums text-text-faint">
+                    <span>{fmtUSD(snap.grossExposureNotional, true)} used</span>
+                    <span>{fmtUSD(snap.hardstopLimit, true)} limit</span>
+                  </div>
+                </div>
 
-          {/* Breach Level */}
-          <div className={cn("card-base px-5 py-4 border", badge.bg)}>
-            <div className="mb-1 flex items-center gap-1.5">
-              <p className="typo-label">Breach Level</p>
-              <InfoTooltip content={TOOLTIPS.breachLevel} />
-            </div>
-            <div className="flex items-center gap-3">
-              {snap.breachLevel === "CLEAR" ? (
-                <CheckCircle2 className="h-6 w-6 text-success" />
-              ) : snap.breachLevel === "CAUTION" ? (
-                <AlertTriangle className="h-6 w-6 text-warning" />
-              ) : (
-                <ShieldAlert className="h-6 w-6 text-danger" />
-              )}
-              <span
-                className={cn(
-                  "text-xl font-bold tracking-wider",
-                  badge.cls,
-                )}
-              >
-                {badge.label}
-              </span>
-            </div>
-            {snap.breachReasons.length > 0 && (
-              <ul className="mt-2 space-y-0.5">
-                {snap.breachReasons.map((r, i) => (
-                  <li key={i} className="text-[11px] text-text-faint">
-                    • {r}
-                  </li>
+                {/* Buffer vs TVaR₉₉ */}
+                <div className="card-base px-4 py-3">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <p className="typo-label">Buffer</p>
+                    <InfoTooltip content={TOOLTIPS.buffer} />
+                  </div>
+                  <p
+                    className={cn(
+                      "text-xl font-semibold tabular-nums tracking-tight",
+                      snap.bufferVsTvar99 >= 0 ? "text-success" : "text-danger",
+                    )}
+                  >
+                    {snap.bufferVsTvar99 >= 0 ? "+" : ""}
+                    {fmtUSD(snap.bufferVsTvar99, true)}
+                  </p>
+                  <p className="mt-0.5 text-[10px] tabular-nums text-text-faint">
+                    vs TVaR₉₉ tail-risk
+                  </p>
+                </div>
+
+                {/* Breach Level */}
+                <div className={cn("card-base px-4 py-3 border", badge.bg)}>
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <p className="typo-label">Breach Level</p>
+                    <InfoTooltip content={TOOLTIPS.breachLevel} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {snap.breachLevel === "CLEAR" ? (
+                      <CheckCircle2 className="h-5 w-5 text-success" />
+                    ) : snap.breachLevel === "CAUTION" ? (
+                      <AlertTriangle className="h-5 w-5 text-warning" />
+                    ) : (
+                      <ShieldAlert className="h-5 w-5 text-danger" />
+                    )}
+                    <span
+                      className={cn(
+                        "text-lg font-bold tracking-wider",
+                        badge.cls,
+                      )}
+                    >
+                      {badge.label}
+                    </span>
+                  </div>
+                  {snap.breachReasons.length > 0 && (
+                    <ul className="mt-1.5 space-y-0.5">
+                      {snap.breachReasons.map((r, i) => (
+                        <li key={i} className="text-[10px] text-text-faint">
+                          • {r}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Exposure Breakdown */}
+            <section>
+              <h2 className="typo-label mb-2">Exposure Breakdown</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: "Reserved", value: snap.reservedNotional, sub: "ACTIVE × haircut 35%" },
+                  { label: "Allocated", value: snap.allocatedNotional, sub: "CONVERTED + inventory" },
+                  { label: "Settlement Open", value: snap.settlementNotionalOpen, sub: "ESCROW → AUTHORIZED" },
+                  { label: "Settled Today", value: snap.settledNotionalToday, sub: "SETTLED this session" },
+                ].map((item) => (
+                  <div key={item.label} className="card-base px-3 py-2.5">
+                    <p className="typo-label mb-0.5">{item.label}</p>
+                    <p className="text-base font-semibold tabular-nums text-text">{fmtUSD(item.value, true)}</p>
+                    <p className="mt-0.5 text-[10px] text-text-faint">{item.sub}</p>
+                  </div>
                 ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================================
-         SECTION 2: EXPOSURE BREAKDOWN
-         ============================================================ */}
-      <section>
-        <h2 className="typo-label mb-3">Exposure Breakdown</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[
-            { label: "Reserved", value: snap.reservedNotional, sub: "ACTIVE × haircut 35%" },
-            { label: "Allocated", value: snap.allocatedNotional, sub: "CONVERTED + inventory" },
-            { label: "Settlement Open", value: snap.settlementNotionalOpen, sub: "ESCROW → AUTHORIZED" },
-            { label: "Settled Today", value: snap.settledNotionalToday, sub: "SETTLED this session" },
-          ].map((item) => (
-            <div key={item.label} className="card-base px-4 py-3">
-              <p className="typo-label mb-1">{item.label}</p>
-              <p className="text-lg font-semibold tabular-nums text-text">{fmtUSD(item.value, true)}</p>
-              <p className="mt-0.5 text-[10px] text-text-faint">{item.sub}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ============================================================
-         SECTION 3: TOP DRIVERS
-         ============================================================ */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-gold" />
-          <h2 className="typo-label">Top Exposure Drivers</h2>
-          <InfoTooltip content={TOOLTIPS.topDrivers} />
-        </div>
-
-        <div className="card-base overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="px-4 py-2.5 typo-label font-semibold">#</th>
-                <th className="px-4 py-2.5 typo-label font-semibold">Driver</th>
-                <th className="px-4 py-2.5 typo-label font-semibold text-right">Contribution</th>
-                <th className="px-4 py-2.5 typo-label font-semibold text-right">ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {snap.topDrivers.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-text-faint">
-                    No active exposure drivers.
-                  </td>
-                </tr>
-              ) : (
-                snap.topDrivers.map((d, i) => (
-                  <tr key={d.id ?? i} className="border-b border-border/50 last:border-b-0">
-                    <td className="px-4 py-2.5 tabular-nums text-text-faint">{i + 1}</td>
-                    <td className="px-4 py-2.5 text-text">{d.label}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums font-medium text-gold">
-                      {fmtUSD(d.value, true)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right typo-mono text-text-faint">
-                      {d.id ?? "—"}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* ============================================================
-         SECTION 4: BREACH EVENTS (24h)
-         ============================================================ */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <Activity className="h-4 w-4 text-warning" />
-          <h2 className="typo-label">Breach Events (24h)</h2>
-          <InfoTooltip content={TOOLTIPS.events} />
-          {filteredEvents.length > 0 && (
-            <span className="ml-auto text-xs tabular-nums text-text-faint">
-              {filteredEvents.length} event(s)
-            </span>
-          )}
-        </div>
-
-        {/* Active filters display */}
-        {(filterLevel || filterType || filterFrom || filterTo) && (
-          <div className="mb-2 flex flex-wrap gap-2 print:hidden">
-            {filterLevel && (
-              <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
-                Level: {filterLevel}
-              </span>
-            )}
-            {filterType && (
-              <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
-                Type: {filterType}
-              </span>
-            )}
-            {filterFrom && (
-              <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
-                From: {filterFrom}
-              </span>
-            )}
-            {filterTo && (
-              <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
-                To: {filterTo}
-              </span>
-            )}
-          </div>
+              </div>
+            </section>
+          </>
         )}
 
-        <div className="card-base overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="px-4 py-2.5 typo-label font-semibold">Time</th>
-                <th className="px-4 py-2.5 typo-label font-semibold">Type</th>
-                <th className="px-4 py-2.5 typo-label font-semibold">Severity</th>
-                <th className="px-4 py-2.5 typo-label font-semibold">Message</th>
-                <th className="px-4 py-2.5 typo-label font-semibold text-right">ECR</th>
-                <th className="px-4 py-2.5 typo-label font-semibold text-right">Hardstop %</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEvents.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-text-faint">
-                    <div className="flex flex-col items-center gap-2">
-                      <CheckCircle2 className="h-6 w-6 text-success" />
-                      <span>No breach events in the last 24 hours.</span>
-                      <span className="text-[10px]">
-                        Click &quot;Run Sweep&quot; to evaluate current conditions.
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredEvents.map((evt) => {
-                  const sev = EVENT_SEVERITY[evt.level];
-                  return (
-                    <tr key={evt.id} className="border-b border-border/50 last:border-b-0">
-                      <td className="px-4 py-2.5 tabular-nums text-text-faint whitespace-nowrap text-xs">
-                        {fmtTime(evt.occurredAt)}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className="inline-flex rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
-                          {evt.type.replace(/_/g, " ")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
-                            sev.bg,
-                            sev.cls,
-                          )}
-                        >
-                          {evt.level === "CRITICAL" && <AlertTriangle className="h-3 w-3" />}
-                          {evt.level}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-text max-w-xs truncate">{evt.message}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-text-muted">
-                        {evt.snapshot.ecr.toFixed(2)}x
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-text-muted">
-                        {fmtPct(evt.snapshot.hardstopUtilization)}
+        {/* ── DRIVERS TAB ── */}
+        {activeTab === "drivers" && (
+          <section>
+            <div className="mb-2 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-gold" />
+              <h2 className="typo-label">Top Exposure Drivers</h2>
+              <InfoTooltip content={TOOLTIPS.topDrivers} />
+            </div>
+
+            <div className="card-base overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th className="px-4 py-2 typo-label font-semibold">#</th>
+                    <th className="px-4 py-2 typo-label font-semibold">Driver</th>
+                    <th className="px-4 py-2 typo-label font-semibold text-right">Contribution</th>
+                    <th className="px-4 py-2 typo-label font-semibold text-right">ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {snap.topDrivers.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-6 text-center text-text-faint">
+                        No active exposure drivers.
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                  ) : (
+                    snap.topDrivers.map((d, i) => (
+                      <tr key={d.id ?? i} className="border-b border-border/50 last:border-b-0">
+                        <td className="px-4 py-2 tabular-nums text-text-faint">{i + 1}</td>
+                        <td className="px-4 py-2 text-text">{d.label}</td>
+                        <td className="px-4 py-2 text-right tabular-nums font-medium text-gold">
+                          {fmtUSD(d.value, true)}
+                        </td>
+                        <td className="px-4 py-2 text-right typo-mono text-text-faint">
+                          {d.id ?? "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
-      {/* ============================================================
-         PRINT STYLES
-         ============================================================ */}
+        {/* ── EVENTS TAB ── */}
+        {activeTab === "events" && (
+          <section>
+            <div className="mb-2 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-warning" />
+              <h2 className="typo-label">Breach Events (24h)</h2>
+              <InfoTooltip content={TOOLTIPS.events} />
+              {filteredEvents.length > 0 && (
+                <span className="ml-auto text-xs tabular-nums text-text-faint">
+                  {filteredEvents.length} event(s)
+                </span>
+              )}
+            </div>
+
+            {/* Active filters display */}
+            {(filterLevel || filterType || filterFrom || filterTo) && (
+              <div className="mb-2 flex flex-wrap gap-2 print:hidden">
+                {filterLevel && (
+                  <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
+                    Level: {filterLevel}
+                  </span>
+                )}
+                {filterType && (
+                  <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
+                    Type: {filterType}
+                  </span>
+                )}
+                {filterFrom && (
+                  <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
+                    From: {filterFrom}
+                  </span>
+                )}
+                {filterTo && (
+                  <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
+                    To: {filterTo}
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="card-base overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th className="px-4 py-2 typo-label font-semibold">Time</th>
+                    <th className="px-4 py-2 typo-label font-semibold">Type</th>
+                    <th className="px-4 py-2 typo-label font-semibold">Severity</th>
+                    <th className="px-4 py-2 typo-label font-semibold">Message</th>
+                    <th className="px-4 py-2 typo-label font-semibold text-right">ECR</th>
+                    <th className="px-4 py-2 typo-label font-semibold text-right">Hardstop %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEvents.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-center text-text-faint">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <CheckCircle2 className="h-5 w-5 text-success" />
+                          <span>No breach events in the last 24 hours.</span>
+                          <span className="text-[10px]">
+                            Click &quot;Run Sweep&quot; to evaluate current conditions.
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEvents.map((evt) => {
+                      const sev = EVENT_SEVERITY[evt.level];
+                      return (
+                        <tr key={evt.id} className="border-b border-border/50 last:border-b-0">
+                          <td className="px-4 py-2 tabular-nums text-text-faint whitespace-nowrap text-xs">
+                            {fmtTime(evt.occurredAt)}
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className="inline-flex rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted border border-border">
+                              {evt.type.replace(/_/g, " ")}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                                sev.bg,
+                                sev.cls,
+                              )}
+                            >
+                              {evt.level === "CRITICAL" && <AlertTriangle className="h-3 w-3" />}
+                              {evt.level}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-text max-w-xs truncate">{evt.message}</td>
+                          <td className="px-4 py-2 text-right tabular-nums text-text-muted">
+                            {evt.snapshot.ecr.toFixed(2)}x
+                          </td>
+                          <td className="px-4 py-2 text-right tabular-nums text-text-muted">
+                            {fmtPct(evt.snapshot.hardstopUtilization)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* Print styles */}
       <style jsx global>{`
         @media print {
-          body {
-            background: white !important;
-            color: black !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          aside,
-          nav,
-          header,
-          .print\\:hidden {
-            display: none !important;
-          }
-          main {
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          .card-base {
-            border: 1px solid #ddd !important;
-            background: white !important;
-            break-inside: avoid;
-          }
-          table {
-            font-size: 11px !important;
-          }
-          h2 {
-            font-size: 14px !important;
-            font-weight: 700 !important;
-            margin-bottom: 8px !important;
-          }
-          section {
-            margin-bottom: 16px !important;
-          }
-          /* Force text colors for print */
-          .text-success,
-          .text-warning,
-          .text-danger,
-          .text-gold,
-          .text-info {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
+          body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          aside, nav, header, .print\\:hidden { display: none !important; }
+          main { padding: 0 !important; margin: 0 !important; }
+          .card-base { border: 1px solid #ddd !important; background: white !important; break-inside: avoid; }
+          table { font-size: 11px !important; }
+          h2 { font-size: 14px !important; font-weight: 700 !important; margin-bottom: 8px !important; }
+          section { margin-bottom: 16px !important; }
+          .text-success, .text-warning, .text-danger, .text-gold, .text-info { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>
-    </>
+    </div>
   );
 }

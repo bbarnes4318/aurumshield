@@ -4,7 +4,8 @@ import { RequireAuth } from "@/components/auth/require-auth";
 import { useGovernanceAuditEvent } from "@/hooks/use-mock-queries";
 import type { AuditSeverity } from "@/lib/mock-data";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 const SEV_COLORS: Record<AuditSeverity, string> = {
   info: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -35,6 +36,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 
 function EventDetailContent() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const { data: event, isLoading } = useGovernanceAuditEvent(id);
 
@@ -46,7 +48,7 @@ function EventDetailContent() {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-2">
         <p className="text-text-faint">Event not found</p>
-        <Link href="/audit/events" className="text-xs text-gold hover:underline">← Back to events</Link>
+        <button onClick={() => router.back()} className="text-xs text-gold hover:underline">← Back to events</button>
       </div>
     );
   }
@@ -63,7 +65,7 @@ function EventDetailContent() {
           </h1>
           <p className="text-sm text-text-muted mt-0.5">{event.message}</p>
         </div>
-        <Link href="/audit/events" className="text-xs text-text-muted hover:text-gold transition-colors">← Back to events</Link>
+        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-text-muted hover:text-text transition-colors"><ArrowLeft className="h-4 w-4" /> Back</button>
       </div>
 
       {/* Three-panel layout */}

@@ -9,7 +9,8 @@ import {
 } from "@/hooks/use-mock-queries";
 import type { GovernanceAuditEvent, AuditSeverity, LedgerEntry } from "@/lib/mock-data";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 /* ---------- helpers ---------- */
 
@@ -47,6 +48,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 /* ---------- main ---------- */
 function SupervisoryCaseContent() {
   const params = useParams();
+  const router = useRouter();
   const resourceType = params.type as string;
   const resourceId = params.id as string;
 
@@ -86,7 +88,7 @@ function SupervisoryCaseContent() {
           </h1>
           <p className="text-sm text-text-muted mt-0.5">Full audit dossier — read-only supervisory view</p>
         </div>
-        <Link href="/supervisory" className="text-xs text-text-muted hover:text-gold transition-colors">← Back to supervisory</Link>
+        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-text-muted hover:text-text transition-colors"><ArrowLeft className="h-4 w-4" /> Back</button>
       </div>
 
       {/* Subject panel */}

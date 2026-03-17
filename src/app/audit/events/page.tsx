@@ -4,9 +4,9 @@ import { RequireAuth } from "@/components/auth/require-auth";
 import { useGovernanceAuditEvents } from "@/hooks/use-mock-queries";
 import type { GovernanceAuditEvent, AuditSeverity, AuditAction, AuditResourceType, AuditActorRole } from "@/lib/mock-data";
 import type { AuditEventFilters } from "@/lib/api";
-import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useMemo, useCallback, Suspense } from "react";
+import { ArrowLeft } from "lucide-react";
 
 /* ---------- constants ---------- */
 
@@ -107,7 +107,7 @@ function AuditEventsContent() {
             {activeFilterCount > 0 && <span className="ml-2 text-gold">({activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active)</span>}
           </p>
         </div>
-        <Link href="/audit" className="text-xs text-text-muted hover:text-gold transition-colors">← Back to overview</Link>
+        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-text-muted hover:text-text transition-colors"><ArrowLeft className="h-4 w-4" /> Back</button>
       </div>
 
       {/* Filter Bar */}
