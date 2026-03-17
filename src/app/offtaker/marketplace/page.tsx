@@ -27,6 +27,8 @@ import {
   CheckCircle2,
   FileText,
   Globe,
+  Wallet,
+  Landmark,
 } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 import { useGoldPrice } from "@/hooks/use-gold-price";
@@ -36,6 +38,7 @@ import { useGoldPrice } from "@/hooks/use-gold-price";
    ──────────────────────────────────────────────────────────────── */
 
 type DeliveryMode = "VAULT" | "PHYSICAL";
+type SettlementRail = "FEDWIRE" | "TURNKEY_USDT";
 
 interface AssetTier {
   id: string;
@@ -163,6 +166,7 @@ export default function OfftakerMarketplacePage() {
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("VAULT");
   const [destination, setDestination] = useState("");
   const [phase, setPhase] = useState<ExecutionPhase>("CONFIGURING");
+  const [settlementRail, setSettlementRail] = useState<SettlementRail>("FEDWIRE");
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
 
@@ -239,9 +243,10 @@ export default function OfftakerMarketplacePage() {
       asset: selectedAsset,
       deliveryMode,
       destination,
+      rail: settlementRail,
       executedAt: new Date().toISOString(),
       // TODO: POST to /api/goldwire/execute for DB persistence + settlement case
-      // Defined interface: { orderId, asset, deliveryMode, destination, quoteSnapshot }
+      // Defined interface: { orderId, asset, deliveryMode, destination, rail, quoteSnapshot }
     };
     sessionStorage.setItem("aurumshield:execution", JSON.stringify(executionRecord));
 
@@ -249,7 +254,7 @@ export default function OfftakerMarketplacePage() {
     setTimeout(() => {
       router.push(`/offtaker/orders/${orderId}${demoParam}`);
     }, 800);
-  }, [phase, isExecuting, isDemoActive, router, selectedAsset, deliveryMode, destination]);
+  }, [phase, isExecuting, isDemoActive, router, selectedAsset, deliveryMode, destination, settlementRail]);
 
   return (
     <div className="h-screen w-full flex flex-col bg-slate-950 overflow-hidden">
@@ -557,6 +562,51 @@ export default function OfftakerMarketplacePage() {
                 </div>
 
                 {/* ════════════════════════════════════════════
+                   SECTION 5.5: Settlement Rail Selector
+                   ════════════════════════════════════════════ */}
+                <div>
+                  <span className="font-mono text-[10px] text-slate-600 tracking-[0.15em] uppercase block mb-2">
+                    Settlement Rail
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setSettlementRail("FEDWIRE")}
+                      disabled={phase === "QUOTE_LOCKED"}
+                      className={`p-3 border text-left transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                        settlementRail === "FEDWIRE"
+                          ? "bg-slate-950 border-[#C6A86B]/50 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)]"
+                          : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Landmark className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="font-mono text-xs text-white font-bold">Fedwire RTGS</span>
+                      </div>
+                      <p className="font-mono text-[9px] text-slate-500 leading-relaxed">
+                        Bank wire via Federal Reserve. T+0 same-day settlement.
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => setSettlementRail("TURNKEY_USDT")}
+                      disabled={phase === "QUOTE_LOCKED"}
+                      className={`p-3 border text-left transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                        settlementRail === "TURNKEY_USDT"
+                          ? "bg-slate-950 border-[#C6A86B]/50 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)]"
+                          : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Wallet className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="font-mono text-xs text-white font-bold">USDT (ERC-20)</span>
+                      </div>
+                      <p className="font-mono text-[9px] text-slate-500 leading-relaxed">
+                        Stablecoin via Turnkey MPC. On-chain settlement.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ════════════════════════════════════════════
                    SECTION 6: Full Cost Breakdown
                    ════════════════════════════════════════════ */}
                 {destination && (
@@ -668,23 +718,40 @@ export default function OfftakerMarketplacePage() {
                     <div className="flex items-center gap-2 mb-3">
                       <Lock className="h-3 w-3 text-slate-500" />
                       <span className="font-mono text-[10px] text-slate-500 tracking-[0.15em] uppercase">
-                        Funds Routing (Fedwire RTGS)
+                        {settlementRail === "TURNKEY_USDT" ? "Stablecoin Deposit (USDT ERC-20)" : "Funds Routing (Fedwire RTGS)"}
                       </span>
                     </div>
-                    <div className="space-y-2.5">
-                      <WireField label="Receiving Institution" value="Column N.A." />
-                      <WireField label="ABA Routing" value="121000248" />
-                      <WireField label="Beneficiary" value="AurumShield Institutional Escrow FBO Offtaker Entity" />
-                      <WireField label="Reference" value="QTE-AURM-2026-EXEC" />
-                    </div>
-                    <div className="bg-amber-500/5 border border-amber-500/20 p-2.5 mt-3">
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle className="h-3 w-3 text-amber-400 mt-0.5 shrink-0" />
-                        <p className="font-mono text-[9px] text-amber-400/80 leading-relaxed">
-                          Funds must be received via Fedwire before 18:45 ET to guarantee T+0 clearing.
-                        </p>
+                    {settlementRail === "TURNKEY_USDT" ? (
+                      <div className="space-y-2.5">
+                        <WireField label="Network" value="Ethereum Mainnet" />
+                        <WireField label="Token" value="USDT (Tether) — ERC-20" />
+                        <WireField label="MPC Wallet Provider" value="Turnkey (Enterprise Custody)" />
+                        <WireField label="Deposit Address" value="Generated upon execution confirmation" />
+                        <div className="bg-amber-500/5 border border-amber-500/20 p-2.5 mt-3">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-3 w-3 text-amber-400 mt-0.5 shrink-0" />
+                            <p className="font-mono text-[9px] text-amber-400/80 leading-relaxed">
+                              A unique MPC deposit address will be generated after execution. Send exact USDT amount on Ethereum mainnet only.
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        <WireField label="Receiving Institution" value="Column N.A." />
+                        <WireField label="ABA Routing" value="121000248" />
+                        <WireField label="Beneficiary" value="AurumShield Institutional Escrow FBO Offtaker Entity" />
+                        <WireField label="Reference" value="QTE-AURM-2026-EXEC" />
+                        <div className="bg-amber-500/5 border border-amber-500/20 p-2.5 mt-3">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-3 w-3 text-amber-400 mt-0.5 shrink-0" />
+                            <p className="font-mono text-[9px] text-amber-400/80 leading-relaxed">
+                              Funds must be received via Fedwire before 18:45 ET to guarantee T+0 clearing.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -696,7 +763,7 @@ export default function OfftakerMarketplacePage() {
                     <p className="font-mono text-[9px] text-slate-600 leading-relaxed">
                       By clicking &quot;Confirm Execution&quot; you acknowledge this constitutes a binding
                       commitment to purchase the specified asset(s) at the locked price. The settlement
-                      amount must be remitted in full via Fedwire RTGS within the specified window.
+                      amount must be remitted in full via {settlementRail === "TURNKEY_USDT" ? "ERC-20 USDT on Ethereum mainnet" : "Fedwire RTGS"} within the specified window.
                       AurumShield acts as principal counterparty under the Master Commercial Agreement.
                     </p>
                   </div>
@@ -768,7 +835,7 @@ export default function OfftakerMarketplacePage() {
                 </span>
 
                 <p className="font-mono text-[9px] text-slate-700 text-center leading-relaxed">
-                  Settlement via Goldwire · T+0 Digital Rail · T+2 Wire Rail
+                  Settlement via Goldwire · {settlementRail === "TURNKEY_USDT" ? "Turnkey MPC · ERC-20 USDT" : "T+0 Digital Rail · T+2 Wire Rail"}
                 </p>
               </>
             ) : (

@@ -20,24 +20,59 @@ import Link from "next/link";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 
 /* ----------------------------------------------------------------
-   MOCK ORDER DATA (mirrors checkout)
+   MOCK ORDER DATA (reads rail from execution record if available)
    ---------------------------------------------------------------- */
-const ORDER = {
-  orderId: "ORD-8842-XAU",
-  settlementId: "stl-001",
-  status: "AWAITING_FUNDS",
-  rail: "FEDWIRE" as "FEDWIRE" | "TURNKEY_USDT",
-  fundingRoute: "fedwire" as "fedwire" | "stablecoin",
-  asset: "400 oz LBMA Good Delivery Bar",
-  quantity: 10,
-  totalWeightOz: 4_000,
-  fineness: "≥995.0",
-  custody: "Allocated Vaulting (Zurich — Malca-Amit)",
-  totalNotional: 10_610_600.0,
-  offtakerEntity: "Aureus Capital Partners Ltd.",
-  depositAddress: null as string | null,
-  fundsConfirmedFinal: false,
-};
+function getOrderFromSession() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem("aurumshield:execution");
+    if (!raw) return null;
+    return JSON.parse(raw) as {
+      orderId?: string;
+      asset?: { name?: string; weightOz?: number; fineness?: string };
+      deliveryMode?: string;
+      destination?: string;
+      rail?: "FEDWIRE" | "TURNKEY_USDT";
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildOrder() {
+  const exec = getOrderFromSession();
+  const rail: "FEDWIRE" | "TURNKEY_USDT" = exec?.rail ?? "FEDWIRE";
+  const isCrypto = rail === "TURNKEY_USDT";
+
+  // Generate a deterministic mock deposit address for USDT rail
+  let depositAddress: string | null = null;
+  if (isCrypto) {
+    // In production this would come from the Turnkey adapter via a server action.
+    // For now, generate a mock address from the order ID.
+    const orderId = exec?.orderId ?? "ORD-0000-XAU";
+    const hash = orderId.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    depositAddress = `0x${hash.toString(16).padStart(8, "0")}a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9`;
+  }
+
+  return {
+    orderId: exec?.orderId ?? "ORD-8842-XAU",
+    settlementId: "stl-001",
+    status: "AWAITING_FUNDS",
+    rail,
+    fundingRoute: (isCrypto ? "stablecoin" : "fedwire") as "fedwire" | "stablecoin",
+    asset: exec?.asset?.name ?? "400 oz LBMA Good Delivery Bar",
+    quantity: 10,
+    totalWeightOz: (exec?.asset?.weightOz ?? 400) * 10,
+    fineness: exec?.asset?.fineness ?? "≥995.0",
+    custody: "Allocated Vaulting (Zurich — Malca-Amit)",
+    totalNotional: 10_610_600.0,
+    offtakerEntity: "Aureus Capital Partners Ltd.",
+    depositAddress,
+    fundsConfirmedFinal: false,
+  };
+}
+
+const ORDER = buildOrder();
 
 const WIRE_INSTRUCTIONS = {
   receivingInstitution: "Column N.A.",
