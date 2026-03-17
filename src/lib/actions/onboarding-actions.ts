@@ -341,12 +341,12 @@ async function getDeclineReasons(
   userId: string,
 ): Promise<string[]> {
   try {
-    const { rows } = await client.query<{ raw_payload: string }>(
+    const { rows } = await client.query(
       `SELECT raw_payload FROM idenfy_webhook_log
        WHERE user_id = $1 AND idenfy_status IN ('DENIED', 'SUSPECTED', 'EXPIRED')
        ORDER BY created_at DESC LIMIT 1`,
       [userId],
-    );
+    ) as { rows: { raw_payload: string }[] };
 
     if (rows.length === 0) return ["Verification did not pass. Please try again with valid documents."];
 

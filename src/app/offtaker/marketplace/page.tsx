@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 import { useGoldPrice } from "@/hooks/use-gold-price";
+import { checkTransactionLimits } from "@/lib/transaction-limits";
 
 /* ────────────────────────────────────────────────────────────────
    TYPES & CONSTANTS
@@ -169,6 +170,8 @@ export default function OfftakerMarketplacePage() {
   const [settlementRail, setSettlementRail] = useState<SettlementRail>("FEDWIRE");
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [limitWarning, setLimitWarning] = useState<string | null>(null);
+  const [limitBlocked, setLimitBlocked] = useState(false);
 
   /* ── Live spot price ── */
   const spotPrice = goldPrice?.spotPriceUsd ?? 2650.0;
@@ -206,12 +209,31 @@ export default function OfftakerMarketplacePage() {
     setPhase("CONFIGURING");
   }, []);
 
-  /* ── Quote lock ── */
+  /* ── Quote lock (with transaction limit enforcement) ── */
   const handleLockQuote = useCallback(() => {
     if (!canLockQuote) return;
+
+    // Enforce transaction limits
+    const amountCents = Math.round(totalExecutionAmount * 100);
+    const limitCheck = checkTransactionLimits(amountCents);
+
+    if (!limitCheck.allowed) {
+      setLimitWarning(limitCheck.reason);
+      setLimitBlocked(true);
+      return;
+    }
+
+    if (limitCheck.requiresReview) {
+      setLimitWarning(limitCheck.reason);
+      setLimitBlocked(false);
+    } else {
+      setLimitWarning(null);
+      setLimitBlocked(false);
+    }
+
     setPhase("QUOTE_LOCKED");
     setSecondsLeft(60);
-  }, [canLockQuote]);
+  }, [canLockQuote, totalExecutionAmount]);
 
   /* ── Countdown timer ── */
   useEffect(() => {
@@ -244,6 +266,7 @@ export default function OfftakerMarketplacePage() {
       deliveryMode,
       destination,
       rail: settlementRail,
+      requiresManualReview: limitWarning !== null && !limitBlocked,
       executedAt: new Date().toISOString(),
       // TODO: POST to /api/goldwire/execute for DB persistence + settlement case
       // Defined interface: { orderId, asset, deliveryMode, destination, rail, quoteSnapshot }
@@ -254,7 +277,7 @@ export default function OfftakerMarketplacePage() {
     setTimeout(() => {
       router.push(`/offtaker/orders/${orderId}${demoParam}`);
     }, 800);
-  }, [phase, isExecuting, isDemoActive, router, selectedAsset, deliveryMode, destination, settlementRail]);
+  }, [phase, isExecuting, isDemoActive, router, selectedAsset, deliveryMode, destination, settlementRail, limitWarning, limitBlocked]);
 
   return (
     <div className="h-screen w-full flex flex-col bg-slate-950 overflow-hidden">
@@ -789,11 +812,39 @@ export default function OfftakerMarketplacePage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Transaction Limit Warning */}
+                    {limitWarning && (
+                      <div className={`border p-3 ${
+                        limitBlocked
+                          ? "bg-red-950/30 border-red-500/50"
+                          : "bg-amber-950/30 border-amber-500/50"
+                      }`}>
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className={`h-3 w-3 mt-0.5 shrink-0 ${
+                            limitBlocked ? "text-red-400" : "text-amber-400"
+                          }`} />
+                          <div>
+                            <p className={`font-mono text-[9px] leading-relaxed ${
+                              limitBlocked ? "text-red-400" : "text-amber-400"
+                            }`}>
+                              {limitWarning}
+                            </p>
+                            {!limitBlocked && (
+                              <p className="font-mono text-[9px] text-amber-500/60 mt-1">
+                                This transaction will be held for manual compliance review before settlement.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <button
-                      disabled={!canLockQuote}
+                      disabled={!canLockQuote || limitBlocked}
                       onClick={handleLockQuote}
                       className={`w-full font-bold text-sm tracking-[0.15em] uppercase py-3.5 flex items-center justify-center gap-2 font-mono transition-colors ${
-                        canLockQuote
+                        canLockQuote && !limitBlocked
                           ? "bg-[#C6A86B] text-slate-950 hover:bg-[#d4b87a] cursor-pointer"
                           : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
                       }`}
