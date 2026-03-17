@@ -471,3 +471,69 @@ export async function serverGenerateCheckoutIdempotencyKey(
   };
 }
 
+/* ---------- Turnkey MPC Wallet Provisioning (USDT Rail) ---------- */
+
+export interface ProvisionWalletInput {
+  /** Settlement or order ID — used as the sub-org isolation key */
+  settlementId: string;
+}
+
+export interface ProvisionWalletResult {
+  /** Ethereum address for ERC-20 USDT deposit */
+  depositAddress: string;
+  /** Turnkey sub-organization ID */
+  subOrganizationId: string;
+  /** Turnkey wallet ID */
+  walletId: string;
+  /** Whether this was provisioned via live Turnkey API */
+  isLive: boolean;
+  /** ISO 8601 creation timestamp */
+  createdAt: string;
+  /** Error message if provisioning failed */
+  error?: string;
+}
+
+/**
+ * Provision an MPC deposit wallet via Turnkey for USDT settlement.
+ *
+ * Creates an isolated sub-organization with an HD wallet containing
+ * an Ethereum-compatible address for ERC-20 deposit collection.
+ *
+ * When Turnkey API keys are absent, returns a deterministic mock
+ * address so the UI always renders without crashing.
+ */
+export async function serverProvisionDepositWallet(
+  input: ProvisionWalletInput,
+): Promise<ProvisionWalletResult> {
+  try {
+    const { turnkeyService } = await import("@/lib/banking/turnkey-adapter");
+    const wallet = await turnkeyService.createDepositWallet(input.settlementId);
+
+    console.info(
+      `[SETTLEMENT] MPC wallet provisioned: ` +
+      `settlementId=${input.settlementId} ` +
+      `address=${wallet.ethereumAddress} ` +
+      `isLive=${wallet.isLive} ` +
+      `subOrgId=${wallet.subOrganizationId}`,
+    );
+
+    return {
+      depositAddress: wallet.ethereumAddress,
+      subOrganizationId: wallet.subOrganizationId,
+      walletId: wallet.walletId,
+      isLive: wallet.isLive,
+      createdAt: wallet.createdAt,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[SETTLEMENT] Wallet provisioning failed:", message);
+    return {
+      depositAddress: "",
+      subOrganizationId: "",
+      walletId: "",
+      isLive: false,
+      createdAt: new Date().toISOString(),
+      error: message,
+    };
+  }
+}

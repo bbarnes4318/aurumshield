@@ -18,11 +18,29 @@ import { useParams } from "next/navigation";
 import { CheckCircle2, Lock, Radio, Radar, Copy, Shield, Landmark, CreditCard, Clock } from "lucide-react";
 import Link from "next/link";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import { serverProvisionDepositWallet } from "@/lib/actions/checkout-actions";
 
 /* ----------------------------------------------------------------
-   MOCK ORDER DATA (reads rail from execution record if available)
+   ORDER DATA — reads from sessionStorage execution record
    ---------------------------------------------------------------- */
-function getOrderFromSession() {
+interface OrderData {
+  orderId: string;
+  settlementId: string;
+  status: string;
+  rail: "FEDWIRE" | "TURNKEY_USDT";
+  fundingRoute: "fedwire" | "stablecoin";
+  asset: string;
+  quantity: number;
+  totalWeightOz: number;
+  fineness: string;
+  custody: string;
+  totalNotional: number;
+  offtakerEntity: string;
+  depositAddress: string | null;
+  fundsConfirmedFinal: boolean;
+}
+
+function getExecFromSession() {
   if (typeof window === "undefined") return null;
   try {
     const raw = sessionStorage.getItem("aurumshield:execution");
@@ -39,27 +57,17 @@ function getOrderFromSession() {
   }
 }
 
-function buildOrder() {
-  const exec = getOrderFromSession();
+function buildInitialOrder(): OrderData {
+  const exec = getExecFromSession();
   const rail: "FEDWIRE" | "TURNKEY_USDT" = exec?.rail ?? "FEDWIRE";
   const isCrypto = rail === "TURNKEY_USDT";
 
-  // Generate a deterministic mock deposit address for USDT rail
-  let depositAddress: string | null = null;
-  if (isCrypto) {
-    // In production this would come from the Turnkey adapter via a server action.
-    // For now, generate a mock address from the order ID.
-    const orderId = exec?.orderId ?? "ORD-0000-XAU";
-    const hash = orderId.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    depositAddress = `0x${hash.toString(16).padStart(8, "0")}a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9`;
-  }
-
   return {
     orderId: exec?.orderId ?? "ORD-8842-XAU",
-    settlementId: "stl-001",
+    settlementId: `stl-${exec?.orderId?.replace(/[^0-9]/g, "")?.slice(0, 6) ?? "001"}`,
     status: "AWAITING_FUNDS",
     rail,
-    fundingRoute: (isCrypto ? "stablecoin" : "fedwire") as "fedwire" | "stablecoin",
+    fundingRoute: isCrypto ? "stablecoin" : "fedwire",
     asset: exec?.asset?.name ?? "400 oz LBMA Good Delivery Bar",
     quantity: 10,
     totalWeightOz: (exec?.asset?.weightOz ?? 400) * 10,
@@ -67,20 +75,18 @@ function buildOrder() {
     custody: "Allocated Vaulting (Zurich — Malca-Amit)",
     totalNotional: 10_610_600.0,
     offtakerEntity: "Aureus Capital Partners Ltd.",
-    depositAddress,
+    depositAddress: null, // Will be set by Turnkey provisioning for USDT rail
     fundsConfirmedFinal: false,
   };
 }
 
-const ORDER = buildOrder();
-
 const WIRE_INSTRUCTIONS = {
   receivingInstitution: "Column N.A.",
   abaRouting: "121000248",
-  beneficiary: `AurumShield Institutional Escrow FBO ${ORDER.offtakerEntity}`,
+  beneficiary: "AurumShield Institutional Escrow FBO Offtaker Entity",
   virtualAccount: "•••• •••• 8842",
-  amount: ORDER.totalNotional,
-  reference: ORDER.orderId,
+  amount: 10_610_600.0,
+  reference: "ORD-8842-XAU",
 };
 
 /* ----------------------------------------------------------------
@@ -191,13 +197,19 @@ function FundsConfirmedBanner() {
    ================================================================ */
 export default function SettlementLedgerPage() {
   const { orderId } = useParams<{ orderId: string }>();
-  const [fundsConfirmed, setFundsConfirmed] = useState(ORDER.fundsConfirmedFinal);
-  const [timeline, setTimeline] = useState<TimelineStep[]>(getTimeline(ORDER.rail));
+
+  /* ── Order state ── */
+  const [order, setOrder] = useState<OrderData>(buildInitialOrder);
+  const [walletProvisioning, setWalletProvisioning] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
+
+  const [fundsConfirmed, setFundsConfirmed] = useState(false);
+  const [timeline, setTimeline] = useState<TimelineStep[]>(getTimeline(order.rail));
 
   /* ── Tab State ── */
   const [activeTab, setActiveTab] = useState<"allocation" | "funding" | "timeline">("allocation");
 
-  const isCrypto = ORDER.rail === "TURNKEY_USDT";
+  const isCrypto = order.rail === "TURNKEY_USDT";
 
   const TABS = [
     { id: "allocation" as const, label: "Allocation", icon: Landmark },
@@ -205,10 +217,38 @@ export default function SettlementLedgerPage() {
     { id: "timeline" as const, label: "Settlement Timeline", icon: Clock },
   ];
 
+  /* ── Provision Turnkey MPC wallet on mount for USDT orders ── */
+  useEffect(() => {
+    if (!isCrypto || order.depositAddress) return;
+
+    let cancelled = false;
+    setWalletProvisioning(true);
+
+    serverProvisionDepositWallet({ settlementId: order.settlementId })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.error) {
+          setWalletError(result.error);
+        } else {
+          setOrder((prev) => ({ ...prev, depositAddress: result.depositAddress }));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setWalletError(err instanceof Error ? err.message : String(err));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setWalletProvisioning(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [isCrypto, order.depositAddress, order.settlementId]);
+
   /* ── 5-Second Polling for USDT deposits ── */
   const pollSettlementStatus = useCallback(async () => {
     try {
-      const res = await fetch(`/api/settlement-status/${ORDER.settlementId}`);
+      const res = await fetch(`/api/settlement-status/${order.settlementId}`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.fundsConfirmedFinal && !fundsConfirmed) {
@@ -224,7 +264,7 @@ export default function SettlementLedgerPage() {
     } catch {
       // Silently fail — polling will retry
     }
-  }, [fundsConfirmed]);
+  }, [fundsConfirmed, order.settlementId]);
 
   const pollingActive = isCrypto && !fundsConfirmed;
 
@@ -253,7 +293,7 @@ export default function SettlementLedgerPage() {
                 ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
                 : "bg-yellow-500/10 border-yellow-500/50 text-yellow-500"
             }`}>
-              STATUS: {fundsConfirmed ? "FUNDS_CONFIRMED" : ORDER.status} ({isCrypto ? "USDT" : ORDER.rail})
+              STATUS: {fundsConfirmed ? "FUNDS_CONFIRMED" : order.status} ({isCrypto ? "USDT" : order.rail})
             </div>
             {pollingActive && (
               <span className="font-mono text-[9px] text-cyan-400 flex items-center gap-1.5 animate-pulse">
@@ -313,14 +353,14 @@ export default function SettlementLedgerPage() {
                   Reserved Allocation
                 </span>
                 <div className="space-y-3">
-                  <LedgerField label="Instrument" value={`${ORDER.quantity}x ${ORDER.asset}`} />
-                  <LedgerField label="Total Weight" value={`${fmt(ORDER.totalWeightOz, 0)} troy oz`} mono />
-                  <LedgerField label="Fineness" value={ORDER.fineness} mono />
-                  <LedgerField label="Custody" value={ORDER.custody} />
+                  <LedgerField label="Instrument" value={`${order.quantity}x ${order.asset}`} />
+                  <LedgerField label="Total Weight" value={`${fmt(order.totalWeightOz, 0)} troy oz`} mono />
+                  <LedgerField label="Fineness" value={order.fineness} mono />
+                  <LedgerField label="Custody" value={order.custody} />
                 </div>
                 <div className="border-t border-slate-800 mt-6 pt-5">
                   <span className="font-mono text-[10px] text-slate-600 tracking-[0.15em] uppercase block mb-2">Notional Value</span>
-                  <span className="font-mono text-2xl text-white font-bold tabular-nums block">${fmt(ORDER.totalNotional)}</span>
+                  <span className="font-mono text-2xl text-white font-bold tabular-nums block">${fmt(order.totalNotional)}</span>
                 </div>
                 <div className="border-t border-slate-800 mt-6 pt-5">
                   <Link href={`/offtaker/orders/${orderId}/logistics`}>
@@ -342,9 +382,9 @@ export default function SettlementLedgerPage() {
                 <span className="font-mono text-slate-400 text-xs tracking-[0.2em] uppercase block mb-5">Order Context</span>
                 <div className="space-y-3">
                   <LedgerField label="Order ID" value={orderId} />
-                  <LedgerField label="Offtaker" value={ORDER.offtakerEntity} />
+                  <LedgerField label="Offtaker" value={order.offtakerEntity} />
                   <LedgerField label="Settlement Rail" value={isCrypto ? "TURNKEY_USDT" : "FEDWIRE"} />
-                  <LedgerField label="Status" value={fundsConfirmed ? "FUNDS_CONFIRMED" : ORDER.status} />
+                  <LedgerField label="Status" value={fundsConfirmed ? "FUNDS_CONFIRMED" : order.status} />
                 </div>
               </div>
             </div>
@@ -360,18 +400,27 @@ export default function SettlementLedgerPage() {
 
                 {isCrypto ? (
                   <div className="space-y-4 flex-1">
-                    {ORDER.depositAddress && (
+                    {walletError && (
+                      <div className="bg-red-950/30 border border-red-500/50 p-3">
+                        <p className="font-mono text-[10px] text-red-400 leading-relaxed">
+                          Wallet provisioning error: {walletError}
+                        </p>
+                      </div>
+                    )}
+                    {order.depositAddress && (
                       <div className="flex justify-center">
-                        <DepositQRCode address={ORDER.depositAddress} />
+                        <DepositQRCode address={order.depositAddress} />
                       </div>
                     )}
                     <div>
                       <span className="font-mono text-[9px] text-slate-600 tracking-[0.15em] uppercase block mb-1">Deposit Address (ERC-20 USDT)</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-white break-all">{ORDER.depositAddress ?? "Generating..."}</span>
-                        {ORDER.depositAddress && (
+                        <span className="font-mono text-xs text-white break-all">
+                          {walletProvisioning ? "Provisioning MPC wallet..." : order.depositAddress ?? "Awaiting provisioning..."}
+                        </span>
+                        {order.depositAddress && (
                           <button
-                            onClick={() => { if (ORDER.depositAddress) navigator.clipboard.writeText(ORDER.depositAddress); }}
+                            onClick={() => { if (order.depositAddress) navigator.clipboard.writeText(order.depositAddress); }}
                             className="text-slate-600 hover:text-slate-400 transition-colors shrink-0 cursor-pointer"
                           >
                             <Copy className="h-3.5 w-3.5" />
@@ -384,7 +433,7 @@ export default function SettlementLedgerPage() {
                     <WireField label="Contract" value="0xdAC1...1ec7" />
                     <div className="border-t border-slate-800 pt-4 mt-4">
                       <span className="font-mono text-[10px] text-slate-600 tracking-[0.15em] uppercase block mb-2">Exact USDT Required</span>
-                      <span className="font-mono text-2xl text-white font-bold tabular-nums block">{fmt(ORDER.totalNotional)} USDT</span>
+                      <span className="font-mono text-2xl text-white font-bold tabular-nums block">{fmt(order.totalNotional)} USDT</span>
                     </div>
                     <div className="bg-amber-500/5 border border-amber-500/30 p-3 mt-2">
                       <p className="font-mono text-[10px] text-amber-500 leading-relaxed">
