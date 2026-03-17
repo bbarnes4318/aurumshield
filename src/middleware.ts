@@ -94,6 +94,14 @@ export function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const { pathname } = request.nextUrl;
 
+  // Detect RSC (React Server Component) prefetch requests.
+  // These MUST NOT be 307-redirected cross-domain because the browser
+  // will fail the redirect with a CORS error (the target domain doesn't
+  // serve Access-Control-Allow-Origin for prefetch requests).
+  const isRSC =
+    request.headers.get("RSC") === "1" ||
+    request.nextUrl.searchParams.has("_rsc");
+
   // Skip domain gating in local development
   if (isLocalhost(host)) {
     if (!CLERK_ENABLED) {
@@ -114,6 +122,10 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
     // App route on marketing domain → redirect to app subdomain
+    // (skip redirect for RSC prefetches to avoid CORS failures)
+    if (isRSC) {
+      return new NextResponse(null, { status: 204 });
+    }
     const target = new URL(pathname + request.nextUrl.search, APP_URL);
     return NextResponse.redirect(target, 307);
   }
@@ -122,6 +134,10 @@ export function middleware(request: NextRequest) {
   if (isAppHost(host)) {
     if (isMarketingPath(pathname)) {
       // Marketing route on app domain → redirect to root domain
+      // (skip redirect for RSC prefetches to avoid CORS failures)
+      if (isRSC) {
+        return new NextResponse(null, { status: 204 });
+      }
       const target = new URL(pathname + request.nextUrl.search, ROOT_URL);
       return NextResponse.redirect(target, 307);
     }

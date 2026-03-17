@@ -42,5 +42,6 @@ next-env.d.ts
 
 # infrastructure (contains task definitions with secrets)
 /infrastructure/
+scripts/fix-ecs-secrets.ps1
 
 edenor-pdf-template/
