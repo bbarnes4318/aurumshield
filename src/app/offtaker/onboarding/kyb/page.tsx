@@ -30,7 +30,7 @@ import {
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 import { useDemoTour, DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
 import { DemoTooltip } from "@/components/demo/DemoTooltip";
-import { serverLaunchIdentityScan, serverPollVerificationStatus } from "@/lib/actions/onboarding-actions";
+import { serverLaunchIdentityScan, serverPollVerificationStatus, serverResetForRetry } from "@/lib/actions/onboarding-actions";
 
 /* ----------------------------------------------------------------
    CASE FILE — reads from sessionStorage (populated by intake form)
@@ -209,6 +209,7 @@ export default function KYBConsolePage() {
   const [steps, setSteps] = useState<VerificationStep[]>(INITIAL_STEPS);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [declineReasons, setDeclineReasons] = useState<string[]>([]);
   const [scanProvider, setScanProvider] = useState<string | null>(null);
   const [scanSessionId, setScanSessionId] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -326,7 +327,8 @@ export default function KYBConsolePage() {
           case "DECLINED":
             if (pollRef.current) clearInterval(pollRef.current);
             setScanSessionId(null);
-            setScanError(`Identity verification DECLINED (${result.kybStatus}). Please contact support.`);
+            setDeclineReasons(result.declineReasons ?? []);
+            setScanError(`Identity verification DECLINED`);
             break;
 
           case "REVIEWING":
@@ -352,6 +354,46 @@ export default function KYBConsolePage() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [scanSessionId, isDemoActive, caseFile.caseId]);
+
+  const handleRetry = useCallback(async () => {
+    setScanLoading(true);
+    setScanError(null);
+    setDeclineReasons([]);
+    setScanProvider(null);
+    setScanSessionId(null);
+    setSteps(INITIAL_STEPS.map((s, i) => i === 0 ? { ...s, status: "ACTIVE" as StepStatus } : { ...s, status: "LOCKED" as StepStatus }));
+
+    try {
+      const resetResult = await serverResetForRetry(caseFile.caseId);
+      if (!resetResult.success) {
+        setScanError(resetResult.error ?? "Failed to reset verification state.");
+        setScanLoading(false);
+        return;
+      }
+      // Now re-launch the identity scan
+      const result = await serverLaunchIdentityScan(caseFile.caseId);
+      if (result.status === "REDIRECT" && result.redirectUrl) {
+        setScanProvider(result.provider ?? null);
+        setScanSessionId(result.sessionId ?? null);
+        window.open(result.redirectUrl, "_blank", "noopener,noreferrer");
+        setSteps(prev => prev.map((s, i) => {
+          if (i === 0) return { ...s, status: "COMPLETE" as StepStatus };
+          if (i === 1) return { ...s, status: "ACTIVE" as StepStatus };
+          return s;
+        }));
+      } else if (result.status === "ALREADY_CLEARED") {
+        setScanProvider("CLEARED");
+        setSteps(prev => prev.map(s => ({ ...s, status: "COMPLETE" as StepStatus })));
+      } else if (result.status === "ERROR") {
+        setScanError(result.error ?? "Unknown error");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setScanError(msg);
+    } finally {
+      setScanLoading(false);
+    }
+  }, [caseFile.caseId]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -650,11 +692,34 @@ export default function KYBConsolePage() {
                 color="text-slate-600"
               />
               {scanError ? (
-                <TerminalLine
-                  prefix="ERR"
-                  text={scanError}
-                  color="text-red-400"
-                />
+                <>
+                  <TerminalLine
+                    prefix="ERR"
+                    text={scanError}
+                    color="text-red-400"
+                  />
+                  {declineReasons.length > 0 && declineReasons.map((reason, idx) => (
+                    <TerminalLine
+                      key={idx}
+                      prefix="ERR"
+                      text={`  → ${reason}`}
+                      color="text-red-300"
+                    />
+                  ))}
+                  <div className="mt-3">
+                    <button
+                      onClick={handleRetry}
+                      disabled={scanLoading}
+                      className="bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-4 py-2 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                    >
+                      {scanLoading ? 'Resetting...' : 'Retry Verification'}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="font-mono text-[9px] text-slate-600 mt-1.5 block">
+                      A new identity scan session will be created.
+                    </span>
+                  </div>
+                </>
               ) : scanProvider === "CLEARED" ? (
                 <TerminalLine
                   prefix="VRF"

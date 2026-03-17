@@ -269,6 +269,7 @@ export interface VerificationPollResult {
   status: "PENDING" | "APPROVED" | "DECLINED" | "REVIEWING" | "ERROR";
   kybStatus?: string;
   verifiedBy?: string;
+  declineReasons?: string[];
   error?: string;
 }
 
@@ -313,7 +314,9 @@ export async function serverPollVerificationStatus(
           verifiedBy: verifiedBy ?? undefined,
         };
       } else if (kybStatus === "KYB_DECLINED") {
-        return { status: "DECLINED", kybStatus };
+        // Fetch decline reasons from webhook log
+        const declineReasons = await getDeclineReasons(client, userId);
+        return { status: "DECLINED", kybStatus, declineReasons };
       } else if (kybStatus === "KYB_UNDER_REVIEW") {
         return { status: "REVIEWING", kybStatus };
       }
@@ -327,5 +330,93 @@ export async function serverPollVerificationStatus(
     const message = err instanceof Error ? err.message : String(err);
     console.error("[KYB] Poll verification status failed:", message);
     return { status: "ERROR", error: message };
+  }
+}
+
+/* ── Helper: extract decline reasons from iDenfy webhook log ── */
+
+async function getDeclineReasons(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
+  userId: string,
+): Promise<string[]> {
+  try {
+    const { rows } = await client.query<{ raw_payload: string }>(
+      `SELECT raw_payload FROM idenfy_webhook_log
+       WHERE user_id = $1 AND idenfy_status IN ('DENIED', 'SUSPECTED', 'EXPIRED')
+       ORDER BY created_at DESC LIMIT 1`,
+      [userId],
+    );
+
+    if (rows.length === 0) return ["Verification did not pass. Please try again with valid documents."];
+
+    const payload = typeof rows[0].raw_payload === "string"
+      ? JSON.parse(rows[0].raw_payload)
+      : rows[0].raw_payload;
+
+    const reasons: string[] = [];
+    const status = payload?.status;
+
+    if (status?.autoDocument && status.autoDocument !== "APPROVED") {
+      reasons.push(`Document verification: ${status.autoDocument}`);
+    }
+    if (status?.autoFace && status.autoFace !== "APPROVED") {
+      reasons.push(`Face match / liveness: ${status.autoFace}`);
+    }
+    if (status?.manualDocument && status.manualDocument !== "APPROVED") {
+      reasons.push(`Manual document review: ${status.manualDocument}`);
+    }
+    if (status?.manualFace && status.manualFace !== "APPROVED") {
+      reasons.push(`Manual face review: ${status.manualFace}`);
+    }
+
+    return reasons.length > 0
+      ? reasons
+      : ["Verification did not pass. Please try again with valid documents."];
+  } catch {
+    return ["Verification declined. Please try again."];
+  }
+}
+
+/* ================================================================
+   ACTION: Reset for Retry
+   ================================================================
+   Resets the user's kyb_status so they can re-initiate a scan.
+   Called when the user clicks "Retry Verification" after a DECLINED result.
+   ================================================================ */
+
+export async function serverResetForRetry(
+  userId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = await getPoolClient();
+    try {
+      await client.query(
+        `UPDATE users SET kyb_status = 'KYB_PENDING', marketplace_access = false
+         WHERE id = $1`,
+        [userId],
+      );
+
+      // Also reset onboarding case if it exists
+      await client.query(
+        `UPDATE onboarding_cases SET status = 'KYB_PENDING', updated_at = NOW()
+         WHERE case_id = $1`,
+        [userId],
+      );
+
+      // Reset compliance case status to OPEN so the engine generates a new session
+      await client.query(
+        `UPDATE compliance_cases SET status = 'OPEN'
+         WHERE user_id = $1 AND status = 'REJECTED'`,
+        [userId],
+      );
+    } finally {
+      client.release();
+    }
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[KYB] Reset for retry failed:", message);
+    return { success: false, error: message };
   }
 }
