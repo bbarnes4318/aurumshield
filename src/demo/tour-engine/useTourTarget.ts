@@ -56,14 +56,28 @@ export function useTourTarget(
     }
   }, []);
 
+  // Reset result in render phase when selector changes (avoids setState-in-effect)
+  const prevSelectorRef = useRef(selector);
+  if (selector !== prevSelectorRef.current) {
+    prevSelectorRef.current = selector;
+    // Trigger state update via render-phase conditional (valid React pattern)
+    const nextResult = selector
+      ? { element: null as HTMLElement | null, found: false, searching: true }
+      : { element: null as HTMLElement | null, found: false, searching: false };
+    if (
+      result.element !== nextResult.element ||
+      result.found !== nextResult.found ||
+      result.searching !== nextResult.searching
+    ) {
+      setResult(nextResult);
+    }
+  }
+
   useEffect(() => {
     if (!selector) {
-      setResult({ element: null, found: false, searching: false });
       cleanup();
       return;
     }
-
-    setResult({ element: null, found: false, searching: true });
 
     // Immediate check
     const immediateEl = document.querySelector<HTMLElement>(selector);

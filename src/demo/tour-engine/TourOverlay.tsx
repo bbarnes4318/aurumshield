@@ -15,7 +15,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronLeft,
@@ -55,24 +55,22 @@ export function TourOverlay() {
     volumeLevel,
   } = useTour();
 
-  const [mounted, setMounted] = useState(false);
   const [showJump, setShowJump] = useState(false);
   const [stepCompleted, setStepCompleted] = useState(false);
   const jumpRef = useRef<HTMLDivElement>(null);
+  const mounted = typeof window !== "undefined";
 
   const isCinematic = tour?.cinematic === true;
 
-  // Client mount
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  // Reset step completion on step change
-  useEffect(() => {
-    setStepCompleted(false);
-    setShowJump(false);
-  }, [state.stepIndex, state.tourId]);
+  // Reset step completion on step change — use ref to track previous step
+  const prevStepKeyRef = useRef(`${state.tourId}-${state.stepIndex}`);
+  const stepKey = `${state.tourId}-${state.stepIndex}`;
+  if (stepKey !== prevStepKeyRef.current) {
+    prevStepKeyRef.current = stepKey;
+    // These are render-phase resets (not in effect), which is valid React
+    if (stepCompleted) setStepCompleted(false);
+    if (showJump) setShowJump(false);
+  }
 
   // Resolve target for click gating
   const targetSelector =

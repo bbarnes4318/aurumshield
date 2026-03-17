@@ -280,45 +280,66 @@ export default function AssetIngestionPage() {
                         Asset Form Classification
                       </span>
                     </div>
-                    <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-5">
-                      <div className="flex gap-6">
-                        <label className="flex items-center gap-3 cursor-pointer group">
-                          <input
-                            type="radio"
-                            value="GOOD_DELIVERY_BULLION"
-                            checked={assetForm === "GOOD_DELIVERY_BULLION"}
-                            onChange={() => setAssetForm("GOOD_DELIVERY_BULLION")}
-                            disabled={isPending}
-                            className="h-4 w-4 appearance-none border-2 border-slate-600 rounded-full bg-slate-950 checked:border-gold-primary checked:bg-gold-primary transition-colors cursor-pointer"
-                          />
-                          <div>
-                            <span className="font-mono text-sm text-white group-hover:text-gold-primary transition-colors">
-                              Good Delivery Bullion
-                            </span>
-                            <p className="font-mono text-[10px] text-slate-600 mt-0.5">
-                              400oz bars · LBMA certified · Assay gauntlet required
-                            </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Good Delivery Card */}
+                      <button
+                        type="button"
+                        onClick={() => !isPending && setAssetForm("GOOD_DELIVERY_BULLION")}
+                        disabled={isPending}
+                        className={`p-5 text-left transition-all cursor-pointer border-2 ${
+                          assetForm === "GOOD_DELIVERY_BULLION"
+                            ? "border-gold-primary bg-gold-primary/10 shadow-[0_0_20px_rgba(198,168,107,0.15)]"
+                            : "border-slate-700 bg-slate-900 hover:border-slate-500"
+                        } disabled:opacity-50`}
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                            assetForm === "GOOD_DELIVERY_BULLION"
+                              ? "border-gold-primary bg-gold-primary"
+                              : "border-slate-600 bg-transparent"
+                          }`}>
+                            {assetForm === "GOOD_DELIVERY_BULLION" && <div className="h-2 w-2 rounded-full bg-slate-950" />}
                           </div>
-                        </label>
-                        <label className="flex items-center gap-3 cursor-pointer group">
-                          <input
-                            type="radio"
-                            value="RAW_DORE"
-                            checked={assetForm === "RAW_DORE"}
-                            onChange={() => setAssetForm("RAW_DORE")}
-                            disabled={isPending}
-                            className="h-4 w-4 appearance-none border-2 border-slate-600 rounded-full bg-slate-950 checked:border-gold-primary checked:bg-gold-primary transition-colors cursor-pointer"
-                          />
-                          <div>
-                            <span className="font-mono text-sm text-white group-hover:text-gold-primary transition-colors">
-                              Raw Doré
-                            </span>
-                            <p className="font-mono text-[10px] text-slate-600 mt-0.5">
-                              Unrefined mine output · Refinery intake pipeline
-                            </p>
+                          <span className={`font-mono text-sm font-bold tracking-wide ${
+                            assetForm === "GOOD_DELIVERY_BULLION" ? "text-gold-primary" : "text-white"
+                          }`}>
+                            Good Delivery Bullion
+                          </span>
+                        </div>
+                        <p className="font-mono text-[10px] text-slate-500 leading-relaxed">
+                          400oz bars · LBMA certified · Assay gauntlet required
+                        </p>
+                      </button>
+
+                      {/* Raw Doré Card */}
+                      <button
+                        type="button"
+                        onClick={() => !isPending && setAssetForm("RAW_DORE")}
+                        disabled={isPending}
+                        className={`p-5 text-left transition-all cursor-pointer border-2 ${
+                          assetForm === "RAW_DORE"
+                            ? "border-gold-primary bg-gold-primary/10 shadow-[0_0_20px_rgba(198,168,107,0.15)]"
+                            : "border-slate-700 bg-slate-900 hover:border-slate-500"
+                        } disabled:opacity-50`}
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                            assetForm === "RAW_DORE"
+                              ? "border-gold-primary bg-gold-primary"
+                              : "border-slate-600 bg-transparent"
+                          }`}>
+                            {assetForm === "RAW_DORE" && <div className="h-2 w-2 rounded-full bg-slate-950" />}
                           </div>
-                        </label>
-                      </div>
+                          <span className={`font-mono text-sm font-bold tracking-wide ${
+                            assetForm === "RAW_DORE" ? "text-gold-primary" : "text-white"
+                          }`}>
+                            Raw Doré
+                          </span>
+                        </div>
+                        <p className="font-mono text-[10px] text-slate-500 leading-relaxed">
+                          Unrefined mine output · Refinery intake pipeline
+                        </p>
+                      </button>
                     </div>
                   </div>
 
@@ -579,9 +600,9 @@ export default function AssetIngestionPage() {
                             Raw Doré Selected
                           </p>
                           <p className="font-mono text-amber-500/80 text-xs leading-relaxed">
-                            Raw Doré selected: Asset will be routed to the Refinery Intake Pipeline.
-                            Sovereign assay verification is not required at this stage — the refinery
-                            webhook gate will handle provenance verification post-refining.
+                            Raw Doré Selected: Asset will be routed to the Refinery Intake Pipeline.
+                            Sovereign assay verification is deferred until the asset clears the
+                            physical refining and authentication process.
                           </p>
                         </div>
                       </div>

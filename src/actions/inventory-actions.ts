@@ -127,6 +127,9 @@ export async function ingestAsset(
 ): Promise<IngestAssetState> {
   /* ── 1. Extract & Validate Inputs ── */
 
+  const assetForm = (formData.get("assetForm") as string | null) ?? "GOOD_DELIVERY_BULLION";
+  const isRawDore = assetForm === "RAW_DORE";
+
   const rawInputs = {
     serialNumber: formData.get("serialNumber") as string | null,
     grossWeight: formData.get("grossWeight") as string | null,
@@ -151,65 +154,82 @@ export async function ingestAsset(
 
   /* ── Assay File Extraction ── */
   const assayFile = formData.get("assayFile") as File | null;
-  if (!assayFile || assayFile.size === 0) {
-    return {
-      success: false,
-      error: "Fire Assay Report (PDF) is required. Upload via the dropzone.",
-    };
-  }
 
-  /* ── 2. Forensic Textract Analysis (AWS) ── */
+  /* ── RAW_DORE BYPASS: Skip Textract purity extraction entirely ── */
+  let fineness: number;
 
-  let fileBuffer: Buffer;
-  try {
-    const arrayBuffer = await assayFile.arrayBuffer();
-    fileBuffer = Buffer.from(arrayBuffer);
-  } catch {
-    return {
-      success: false,
-      error: "Failed to read the uploaded assay file.",
-    };
-  }
+  if (isRawDore) {
+    // Raw Doré is unrefined mine output — it has NO static purity to extract.
+    // Purity is determined AFTER refining, via the refinery intake pipeline.
+    fineness = 0;
 
-  const textractResult = await analyzeAssayReport(fileBuffer);
-
-  if (!textractResult.success || !textractResult.extractedPurity) {
-    console.error(
-      `[INGESTION-ENGINE] Textract extraction FAILED for: ${assayFile.name}`,
-      textractResult.error ?? "No purity detected in document.",
+    console.log(
+      `[INGESTION-ENGINE] RAW_DORE mode: Skipping Textract purity extraction ` +
+        `and LBMA assertion for serial=${serialNumber}. ` +
+        `Asset routed to Refinery Intake Pipeline.`,
     );
-    return {
-      success: false,
-      error: textractResult.error
-        ?? "Textract could not extract purity from the assay report. Ensure the document is a valid Fire Assay PDF.",
-    };
-  }
+  } else {
+    // GOOD_DELIVERY_BULLION: Full Textract + LBMA purity gate
+    if (!assayFile || assayFile.size === 0) {
+      return {
+        success: false,
+        error: "Fire Assay Report (PDF) is required. Upload via the dropzone.",
+      };
+    }
 
-  const fineness = purityCodeToFineness(textractResult.extractedPurity);
+    /* ── 2. Forensic Textract Analysis (AWS) ── */
 
-  console.log(
-    `[INGESTION-ENGINE] Textract OCR complete for: ${assayFile.name} ` +
-      `purity_code=${textractResult.extractedPurity} fineness=${fineness} ` +
-      `raw="${textractResult.rawPurityText}" weight=${textractResult.extractedWeightOz ?? "N/A"}`,
-  );
+    let fileBuffer: Buffer;
+    try {
+      const arrayBuffer = await assayFile.arrayBuffer();
+      fileBuffer = Buffer.from(arrayBuffer);
+    } catch {
+      return {
+        success: false,
+        error: "Failed to read the uploaded assay file.",
+      };
+    }
 
-  /* ── LBMA Good Delivery Assertion ── */
-  if (fineness < LBMA_GOOD_DELIVERY_MINIMUM_FINENESS) {
-    console.error(
-      `[INGESTION-ENGINE] LBMA REJECTION: fineness=${fineness} ` +
-        `threshold=${LBMA_GOOD_DELIVERY_MINIMUM_FINENESS} serial=${serialNumber}`,
+    const textractResult = await analyzeAssayReport(fileBuffer);
+
+    if (!textractResult.success || !textractResult.extractedPurity) {
+      console.error(
+        `[INGESTION-ENGINE] Textract extraction FAILED for: ${assayFile.name}`,
+        textractResult.error ?? "No purity detected in document.",
+      );
+      return {
+        success: false,
+        error: textractResult.error
+          ?? "Textract could not extract purity from the assay report. Ensure the document is a valid Fire Assay PDF.",
+      };
+    }
+
+    fineness = purityCodeToFineness(textractResult.extractedPurity);
+
+    console.log(
+      `[INGESTION-ENGINE] Textract OCR complete for: ${assayFile.name} ` +
+        `purity_code=${textractResult.extractedPurity} fineness=${fineness} ` +
+        `raw="${textractResult.rawPurityText}" weight=${textractResult.extractedWeightOz ?? "N/A"}`,
     );
-    return {
-      success: false,
-      error:
-        "Validation Error: Assay purity below LBMA Good Delivery threshold.",
-    };
-  }
 
-  console.log(
-    `[INGESTION-ENGINE] LBMA assertion PASSED: fineness=${fineness} ` +
-      `(>= ${LBMA_GOOD_DELIVERY_MINIMUM_FINENESS}) serial=${serialNumber}`,
-  );
+    /* ── LBMA Good Delivery Assertion ── */
+    if (fineness < LBMA_GOOD_DELIVERY_MINIMUM_FINENESS) {
+      console.error(
+        `[INGESTION-ENGINE] LBMA REJECTION: fineness=${fineness} ` +
+          `threshold=${LBMA_GOOD_DELIVERY_MINIMUM_FINENESS} serial=${serialNumber}`,
+      );
+      return {
+        success: false,
+        error:
+          "Validation Error: Assay purity below LBMA Good Delivery threshold.",
+      };
+    }
+
+    console.log(
+      `[INGESTION-ENGINE] LBMA assertion PASSED: fineness=${fineness} ` +
+        `(>= ${LBMA_GOOD_DELIVERY_MINIMUM_FINENESS}) serial=${serialNumber}`,
+    );
+  }
 
   /* ── 3. Cryptographic Title Minting (KMS) ── */
 

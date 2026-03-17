@@ -69,6 +69,7 @@ export function TourHighlighter() {
     isolation: string;
   } | null>(null);
   const lastTargetRef = useRef<HTMLElement | null>(null);
+  const elementRef = useRef<HTMLElement | null>(null);
 
   const isCinematic = tour?.cinematic === true;
   const selector = currentStep?.target;
@@ -76,6 +77,11 @@ export function TourHighlighter() {
     state.status === "active" ? selector : undefined,
     currentStep?.id ?? "none",
   );
+
+  // Sync hook return into mutable ref via effect (React compiler forbids ref writes during render)
+  useEffect(() => {
+    elementRef.current = element;
+  }, [element]);
 
   const mounted = typeof window !== "undefined";
 
@@ -113,22 +119,23 @@ export function TourHighlighter() {
       targetStyleBackupRef.current = null;
     }
 
-    if (!element || state.status !== "active" || !isCinematic) return;
+    const el = elementRef.current;
+    if (!el || state.status !== "active" || !isCinematic) return;
 
     // Back up original styles
     targetStyleBackupRef.current = {
-      position: element.style.position,
-      zIndex: element.style.zIndex,
-      pointerEvents: element.style.pointerEvents,
-      isolation: element.style.isolation,
+      position: el.style.position,
+      zIndex: el.style.zIndex,
+      pointerEvents: el.style.pointerEvents,
+      isolation: el.style.isolation,
     };
-    lastTargetRef.current = element;
+    lastTargetRef.current = el;
 
     // Inject z-index elevation
-    element.style.position = "relative";
-    element.style.zIndex = String(TARGET_Z);
-    element.style.pointerEvents = "auto";
-    element.style.isolation = "isolate";
+    el.style.position = "relative";
+    el.style.zIndex = String(TARGET_Z);
+    el.style.pointerEvents = "auto";
+    el.style.isolation = "isolate";
 
     return () => {
       // Cleanup on unmount or element change

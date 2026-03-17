@@ -55,10 +55,10 @@ export default function ProducerAccreditationPage() {
 
   return (
     <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
-      <div className="flex-1 min-h-0 flex flex-col max-w-4xl w-full mx-auto px-6 py-4">
+      <div className="flex-1 min-h-0 flex flex-col max-w-4xl w-full mx-auto px-6 py-3">
         {/* ── Header ── */}
-        <div className="mb-4 shrink-0">
-          <div className="flex items-center gap-3 mb-5">
+        <div className="mb-2 shrink-0">
+          <div className="flex items-center gap-3 mb-3">
             <Landmark className="h-4 w-4 text-gold-primary" />
             <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
               Producer Accreditation
@@ -79,16 +79,16 @@ export default function ProducerAccreditationPage() {
 
         {/* ── Form Panel ── */}
         <form onSubmit={handleSubmit}>
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-5 mb-4">
+          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-4 mb-3">
             {/* Section Title */}
-            <div className="flex items-center gap-2 mb-8 pb-4 border-b border-slate-800">
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
               <Shield className="h-3.5 w-3.5 text-slate-500" />
               <span className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
                 Refiner Identification — Regulatory Dossier
               </span>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Input 1: Registered Refiner Name */}
               <div>
                 <label
@@ -151,7 +151,7 @@ export default function ProducerAccreditationPage() {
           </div>
 
           {/* ── Status Readout Terminal ── */}
-          <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-3 mb-4">
+          <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-3 mb-3">
             <div className="flex items-center gap-2 mb-3">
               <Terminal className="h-3 w-3 text-slate-600" />
               <span className="font-mono text-slate-600 text-[9px] tracking-wider uppercase">
