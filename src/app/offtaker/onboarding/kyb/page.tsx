@@ -25,10 +25,12 @@ import {
   Banknote,
   Building2,
   ShieldAlert,
+  ExternalLink,
 } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 import { useDemoTour, DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
 import { DemoTooltip } from "@/components/demo/DemoTooltip";
+import { serverLaunchIdentityScan } from "@/lib/actions/onboarding-actions";
 
 /* ----------------------------------------------------------------
    CASE FILE — reads from sessionStorage (populated by intake form)
@@ -205,7 +207,10 @@ function StatusBadge({ status }: { status: StepStatus | string }) {
    ================================================================ */
 export default function KYBConsolePage() {
   const [steps, setSteps] = useState<VerificationStep[]>(INITIAL_STEPS);
-  const [veriffRunning, setVeriffRunning] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanProvider, setScanProvider] = useState<string | null>(null);
+  const [scanSessionId, setScanSessionId] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; size: number }[]>([]);
   const [caseFile] = useState(() => getCaseFileFromSession());
@@ -213,24 +218,78 @@ export default function KYBConsolePage() {
   const { isDemoActive } = useDemoTour();
   const demoParam = isDemoActive ? "?demo=active" : "";
 
-  const handleLaunchVeriff = useCallback(() => {
-    if (veriffRunning) return;
-    setVeriffRunning(true);
-    // Simulate Veriff session — advance each step from ACTIVE → COMPLETE
-    const stepDelay = 1200;
-    INITIAL_STEPS.forEach((_, idx) => {
-      setTimeout(() => {
-        setSteps(prev => prev.map((s, i) => {
-          if (i === idx) return { ...s, status: "COMPLETE" as StepStatus };
-          if (i === idx + 1) return { ...s, status: "ACTIVE" as StepStatus };
-          return s;
-        }));
-        if (idx === INITIAL_STEPS.length - 1) {
-          setVeriffRunning(false);
-        }
-      }, stepDelay * (idx + 1));
-    });
-  }, [veriffRunning]);
+  const handleLaunchIdentityScan = useCallback(async () => {
+    if (scanLoading) return;
+
+    // Demo mode: run local animation instead of hitting real API
+    if (isDemoActive) {
+      setScanLoading(true);
+      const stepDelay = 1200;
+      INITIAL_STEPS.forEach((_, idx) => {
+        setTimeout(() => {
+          setSteps(prev => prev.map((s, i) => {
+            if (i === idx) return { ...s, status: "COMPLETE" as StepStatus };
+            if (i === idx + 1) return { ...s, status: "ACTIVE" as StepStatus };
+            return s;
+          }));
+          if (idx === INITIAL_STEPS.length - 1) {
+            setScanLoading(false);
+          }
+        }, stepDelay * (idx + 1));
+      });
+      return;
+    }
+
+    // Production: call real compliance engine
+    setScanLoading(true);
+    setScanError(null);
+
+    try {
+      const result = await serverLaunchIdentityScan(caseFile.caseId);
+
+      switch (result.status) {
+        case "REDIRECT":
+          // Open iDenfy/Veriff verification URL in a new tab
+          setScanProvider(result.provider ?? null);
+          setScanSessionId(result.sessionId ?? null);
+          if (result.redirectUrl) {
+            window.open(result.redirectUrl, "_blank", "noopener,noreferrer");
+          }
+          // Mark step 1 as complete, step 2 as active (awaiting verification)
+          setSteps(prev => prev.map((s, i) => {
+            if (i === 0) return { ...s, status: "COMPLETE" as StepStatus };
+            if (i === 1) return { ...s, status: "ACTIVE" as StepStatus };
+            return s;
+          }));
+          break;
+
+        case "ALREADY_CLEARED":
+          // All checks passed — unlock everything
+          setScanProvider("CLEARED");
+          setSteps(prev => prev.map(s => ({ ...s, status: "COMPLETE" as StepStatus })));
+          break;
+
+        case "IN_PROGRESS":
+          // Verification submitted but not yet decided
+          setScanProvider("PENDING");
+          setSteps(prev => prev.map((s, i) => {
+            if (i === 0) return { ...s, status: "COMPLETE" as StepStatus };
+            if (i === 1) return { ...s, status: "ACTIVE" as StepStatus };
+            return s;
+          }));
+          break;
+
+        case "ERROR":
+          setScanError(result.error ?? "Unknown error");
+          break;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setScanError(msg);
+    } finally {
+      setScanLoading(false);
+    }
+  }, [scanLoading, isDemoActive, caseFile.caseId]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -424,12 +483,12 @@ export default function KYBConsolePage() {
                         <div>
                           <button
                             data-tour="cinematic-kyb-launch-scan"
-                            onClick={handleLaunchVeriff}
-                            disabled={veriffRunning}
-                            className={`bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-5 py-2.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait ${veriffRunning ? 'animate-pulse' : ''}`}
+                            onClick={handleLaunchIdentityScan}
+                            disabled={scanLoading}
+                            className={`bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-5 py-2.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait ${scanLoading ? 'animate-pulse' : ''}`}
                           >
-                            Launch Secure Identity Scan
-                            <ChevronRight className="h-3.5 w-3.5" />
+                            {scanLoading ? 'Initiating Secure Session…' : 'Launch Secure Identity Scan'}
+                            {scanLoading ? <Clock className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
                           </button>
                           <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wide mt-2 text-center block">
                             EXECUTION IS CRYPTOGRAPHICALLY BINDING. IP ADDRESS LOGGED UNDER BSA/AML PROTOCOLS.
@@ -528,12 +587,40 @@ export default function KYBConsolePage() {
                 text="Sanctions screening: STANDBY"
                 color="text-slate-600"
               />
-              <TerminalLine
-                prefix="VRF"
-                text="Awaiting Veriff webhook..."
-                color="text-gold-primary"
-                blink
-              />
+              {scanError ? (
+                <TerminalLine
+                  prefix="ERR"
+                  text={scanError}
+                  color="text-red-400"
+                />
+              ) : scanProvider === "CLEARED" ? (
+                <TerminalLine
+                  prefix="VRF"
+                  text="Identity perimeter CLEARED — all checks passed."
+                  color="text-emerald-400"
+                />
+              ) : scanProvider && scanSessionId ? (
+                <>
+                  <TerminalLine
+                    prefix="VRF"
+                    text={`${scanProvider} session initiated: ${scanSessionId}`}
+                    color="text-gold-primary"
+                  />
+                  <TerminalLine
+                    prefix="VRF"
+                    text="Verification opened in new tab. Complete scan to proceed."
+                    color="text-gold-primary"
+                    blink
+                  />
+                </>
+              ) : (
+                <TerminalLine
+                  prefix="VRF"
+                  text={scanLoading ? "Connecting to identity provider..." : "Awaiting identity scan launch..."}
+                  color="text-gold-primary"
+                  blink
+                />
+              )}
             </div>
 
             {/* Cinematic tour sentinel: mounts when ALL checks complete */}

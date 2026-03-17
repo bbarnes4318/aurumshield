@@ -13,6 +13,10 @@
    ================================================================ */
 
 import { getPoolClient } from "@/lib/db";
+import {
+  evaluateCounterpartyReadiness,
+  CompliancePendingError,
+} from "@/lib/compliance/compliance-engine";
 
 /* ── Types ── */
 
@@ -101,7 +105,81 @@ export async function serverSubmitIntakeDossier(
 }
 
 /* ================================================================
-   ACTION: Run KYB Verification
+   ACTION: Launch Identity Scan
+   ================================================================
+   Calls the real compliance engine to initiate an identity
+   verification session via the active provider (iDenfy or Veriff).
+
+   Returns one of:
+     - { status: 'REDIRECT', redirectUrl, provider, sessionId } — user must verify
+     - { status: 'ALREADY_CLEARED' } — user already passed
+     - { status: 'IN_PROGRESS' } — verification in progress, not yet decided
+     - { status: 'ERROR', error } — something went wrong
+   ================================================================ */
+
+export interface IdentityScanResult {
+  status: "REDIRECT" | "ALREADY_CLEARED" | "IN_PROGRESS" | "ERROR";
+  redirectUrl?: string;
+  provider?: "VERIFF" | "IDENFY";
+  sessionId?: string;
+  error?: string;
+}
+
+export async function serverLaunchIdentityScan(
+  caseId: string,
+): Promise<IdentityScanResult> {
+  try {
+    // Attempt to update case status in DB
+    try {
+      const client = await getPoolClient();
+      try {
+        await client.query(
+          `UPDATE onboarding_cases SET status = 'KYB_IN_PROGRESS', updated_at = NOW()
+           WHERE case_id = $1`,
+          [caseId],
+        );
+      } finally {
+        client.release();
+      }
+    } catch {
+      // DB unavailable — continue with the verification flow
+      console.warn("[KYB] DB update failed for case:", caseId);
+    }
+
+    // Call the real compliance engine — uses caseId as userId
+    const result = await evaluateCounterpartyReadiness(caseId);
+
+    // If we get here without throwing, the user is already cleared
+    if (result.ready) {
+      return { status: "ALREADY_CLEARED" };
+    }
+
+    // Not cleared but no redirect thrown — verification is in progress
+    return { status: "IN_PROGRESS" };
+  } catch (err) {
+    // CompliancePendingError is the EXPECTED path for new users —
+    // the compliance engine throws it with the redirect URL
+    if (err instanceof CompliancePendingError) {
+      return {
+        status: "REDIRECT",
+        redirectUrl: err.redirectUrl,
+        provider: err.provider,
+        sessionId: err.sessionId,
+      };
+    }
+
+    // Real error — surface it
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[KYB] Identity scan launch error:", message);
+    return {
+      status: "ERROR",
+      error: message,
+    };
+  }
+}
+
+/* ================================================================
+   ACTION: Run KYB Verification (legacy — poll for results)
    ================================================================
    Triggers the KYB verification pipeline for a case.
    In production: calls compliance engine (Veriff/iDenfy).
@@ -128,17 +206,47 @@ export async function serverRunKybVerification(
     console.warn("[KYB] DB update failed for case:", caseId);
   }
 
-  // TODO: Wire to real compliance engine (Veriff/iDenfy adapter)
-  // For now, return a deterministic pass result that the UI can display.
-  // This is labeled as a TODO with a defined interface per production rules.
+  // Check real compliance status
+  try {
+    const result = await evaluateCounterpartyReadiness(caseId);
+    if (result.ready) {
+      return {
+        success: true,
+        riskTier: "LOW",
+        checks: {
+          entityVerification: "PASS",
+          uboBiometric: "PASS",
+          sanctionsScreen: "PASS",
+          sourceOfFunds: "PASS",
+        },
+      };
+    }
+  } catch (err) {
+    if (err instanceof CompliancePendingError) {
+      // Verification still pending
+      return {
+        success: true,
+        riskTier: "PENDING",
+        checks: {
+          entityVerification: "PENDING",
+          uboBiometric: "PENDING",
+          sanctionsScreen: "PENDING",
+          sourceOfFunds: "PENDING",
+        },
+      };
+    }
+    console.warn("[KYB] Compliance engine check failed:", err);
+  }
+
+  // Fallback: return pending result
   return {
     success: true,
-    riskTier: "LOW",
+    riskTier: "PENDING",
     checks: {
-      entityVerification: "PASS",
-      uboBiometric: "PASS",
-      sanctionsScreen: "PASS",
-      sourceOfFunds: "PASS",
+      entityVerification: "PENDING",
+      uboBiometric: "PENDING",
+      sanctionsScreen: "PENDING",
+      sourceOfFunds: "PENDING",
     },
   };
 }
