@@ -250,3 +250,82 @@ export async function serverRunKybVerification(
     },
   };
 }
+
+/* ================================================================
+   ACTION: Poll Verification Status
+   ================================================================
+   Polled by the KYB page after identity scan redirect.
+   Checks users.kyb_status (set by the iDenfy webhook) to
+   determine if verification is complete.
+
+   Returns:
+     - PENDING   → still waiting for iDenfy callback
+     - APPROVED  → identity verified, unlock marketplace
+     - DECLINED  → verification failed
+     - ERROR     → DB query failed
+   ================================================================ */
+
+export interface VerificationPollResult {
+  status: "PENDING" | "APPROVED" | "DECLINED" | "REVIEWING" | "ERROR";
+  kybStatus?: string;
+  verifiedBy?: string;
+  error?: string;
+}
+
+export async function serverPollVerificationStatus(
+  userId: string,
+): Promise<VerificationPollResult> {
+  try {
+    const client = await getPoolClient();
+    try {
+      const { rows } = await client.query<{
+        kyb_status: string | null;
+        verified_by: string | null;
+        marketplace_access: boolean | null;
+      }>(
+        `SELECT kyb_status, verified_by, marketplace_access
+         FROM users WHERE id = $1 LIMIT 1`,
+        [userId],
+      );
+
+      if (rows.length === 0) {
+        // User not in users table yet — check onboarding_cases instead
+        const { rows: caseRows } = await client.query<{
+          status: string;
+        }>(
+          `SELECT status FROM onboarding_cases WHERE case_id = $1 LIMIT 1`,
+          [userId],
+        );
+
+        if (caseRows.length > 0 && caseRows[0].status === "KYB_APPROVED") {
+          return { status: "APPROVED", kybStatus: "KYB_APPROVED" };
+        }
+        return { status: "PENDING", kybStatus: "NOT_FOUND" };
+      }
+
+      const kybStatus = rows[0].kyb_status;
+      const verifiedBy = rows[0].verified_by;
+
+      if (kybStatus === "KYB_APPROVED") {
+        return {
+          status: "APPROVED",
+          kybStatus,
+          verifiedBy: verifiedBy ?? undefined,
+        };
+      } else if (kybStatus === "KYB_DECLINED") {
+        return { status: "DECLINED", kybStatus };
+      } else if (kybStatus === "KYB_UNDER_REVIEW") {
+        return { status: "REVIEWING", kybStatus };
+      }
+
+      // KYB_PENDING, KYB_IN_PROGRESS, or null
+      return { status: "PENDING", kybStatus: kybStatus ?? "NOT_STARTED" };
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[KYB] Poll verification status failed:", message);
+    return { status: "ERROR", error: message };
+  }
+}

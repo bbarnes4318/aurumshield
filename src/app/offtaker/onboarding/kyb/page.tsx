@@ -9,7 +9,7 @@
    all checks clear.
    ================================================================ */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Shield,
@@ -30,7 +30,7 @@ import {
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 import { useDemoTour, DEMO_SPOTLIGHT_CLASSES } from "@/hooks/use-demo-tour";
 import { DemoTooltip } from "@/components/demo/DemoTooltip";
-import { serverLaunchIdentityScan } from "@/lib/actions/onboarding-actions";
+import { serverLaunchIdentityScan, serverPollVerificationStatus } from "@/lib/actions/onboarding-actions";
 
 /* ----------------------------------------------------------------
    CASE FILE — reads from sessionStorage (populated by intake form)
@@ -290,6 +290,68 @@ export default function KYBConsolePage() {
       setScanLoading(false);
     }
   }, [scanLoading, isDemoActive, caseFile.caseId]);
+
+  /* ── Auto-poll for verification result after redirect ── */
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    // Only poll when a scan session is active (user redirected to iDenfy)
+    // and not in demo mode
+    if (!scanSessionId || isDemoActive) return;
+
+    const POLL_INTERVAL_MS = 5000; // 5 seconds
+    const MAX_POLLS = 120; // 10 minutes max
+    let pollCount = 0;
+
+    pollRef.current = setInterval(async () => {
+      pollCount++;
+      if (pollCount > MAX_POLLS) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        setScanError("Verification timeout — please refresh the page and try again.");
+        return;
+      }
+
+      try {
+        const result = await serverPollVerificationStatus(caseFile.caseId);
+
+        switch (result.status) {
+          case "APPROVED":
+            // iDenfy webhook fired — user is verified!
+            if (pollRef.current) clearInterval(pollRef.current);
+            setScanProvider("CLEARED");
+            setScanSessionId(null);
+            setSteps(prev => prev.map(s => ({ ...s, status: "COMPLETE" as StepStatus })));
+            break;
+
+          case "DECLINED":
+            if (pollRef.current) clearInterval(pollRef.current);
+            setScanSessionId(null);
+            setScanError(`Identity verification DECLINED (${result.kybStatus}). Please contact support.`);
+            break;
+
+          case "REVIEWING":
+            // Still under manual review — keep polling but update terminal
+            setScanProvider("REVIEWING");
+            break;
+
+          case "PENDING":
+            // Still waiting — do nothing
+            break;
+
+          case "ERROR":
+            // Don't stop polling on transient errors, just log
+            console.warn("[KYB-POLL] Error:", result.error);
+            break;
+        }
+      } catch (err) {
+        console.warn("[KYB-POLL] Exception:", err);
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [scanSessionId, isDemoActive, caseFile.caseId]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -599,6 +661,13 @@ export default function KYBConsolePage() {
                   text="Identity perimeter CLEARED — all checks passed."
                   color="text-emerald-400"
                 />
+              ) : scanProvider === "REVIEWING" ? (
+                <TerminalLine
+                  prefix="VRF"
+                  text="Manual review in progress — awaiting analyst decision..."
+                  color="text-amber-400"
+                  blink
+                />
               ) : scanProvider && scanSessionId ? (
                 <>
                   <TerminalLine
@@ -611,6 +680,11 @@ export default function KYBConsolePage() {
                     text="Verification opened in new tab. Complete scan to proceed."
                     color="text-gold-primary"
                     blink
+                  />
+                  <TerminalLine
+                    prefix="POLL"
+                    text="Auto-polling for result every 5s..."
+                    color="text-slate-600"
                   />
                 </>
               ) : (
