@@ -338,11 +338,109 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         `[TURNKEY-WEBHOOK] ✓ Settlement ${settlement.id} funds confirmed final via USDT deposit`,
       );
 
+      /* ── 8. Auto-sweep: Transfer USDT from settlement wallet to treasury ── */
+      let sweepTxHash = "";
+      try {
+        // Look up sub-org, wallet, and deposit address for this settlement
+        const { rows: walletRows } = await client.query<{
+          turnkey_sub_org_id: string;
+          turnkey_wallet_id: string;
+          turnkey_deposit_address: string;
+        }>(
+          `SELECT turnkey_sub_org_id, turnkey_wallet_id, turnkey_deposit_address
+           FROM settlement_cases WHERE id = $1`,
+          [settlement.id],
+        );
+
+        const walletInfo = walletRows[0];
+
+        if (walletInfo?.turnkey_sub_org_id && walletInfo?.turnkey_wallet_id && walletInfo?.turnkey_deposit_address) {
+          const { turnkeyService } = await import("@/lib/banking/turnkey-adapter");
+
+          const sweepResult = await turnkeyService.sweepToTreasury({
+            subOrganizationId: walletInfo.turnkey_sub_org_id,
+            walletId: walletInfo.turnkey_wallet_id,
+            fromAddress: walletInfo.turnkey_deposit_address,
+            amountBaseUnits: transferredAmount,
+            settlementId: settlement.id,
+          });
+
+          sweepTxHash = sweepResult.txHash;
+
+          // Record the sweep in settlement_finality
+          await client.query(
+            `INSERT INTO settlement_finality
+                (settlement_id, rail, external_transfer_id, idempotency_key,
+                 finality_status, amount_cents, leg, is_fallback, finalized_at)
+              VALUES ($1, 'turnkey', $2, $3, 'COMPLETED', $4, 'treasury_sweep', FALSE, NOW())
+              ON CONFLICT DO NOTHING`,
+            [
+              settlement.id,
+              sweepResult.txHash,
+              `turnkey-sweep-${sweepResult.txHash}`,
+              Number(receivedBaseUnits / BigInt(10000)),
+            ],
+          );
+
+          // Emit TREASURY_SWEEP audit event
+          await client.query(
+            `INSERT INTO dvp_events
+               (settlement_id, event_type, previous_state,
+                actor_user_id, actor_role, detail, metadata)
+             VALUES ($1, 'TREASURY_SWEEP', 'PROCESSING_RAIL', 'SYSTEM_TURNKEY_WEBHOOK', 'system', $2, $3)`,
+            [
+              settlement.id,
+              `USDT swept to treasury. txHash=${sweepResult.txHash} ` +
+                `from=${sweepResult.fromAddress} to=${sweepResult.toAddress} ` +
+                `amount=${sweepResult.amountBaseUnits} base units. isLive=${sweepResult.isLive}`,
+              JSON.stringify({
+                event: "TREASURY_SWEEP",
+                ...sweepResult,
+              }),
+            ],
+          );
+
+          console.log(
+            `[TURNKEY-WEBHOOK] ✓ Treasury sweep complete for settlement ${settlement.id}: txHash=${sweepResult.txHash}`,
+          );
+        } else {
+          console.warn(
+            `[TURNKEY-WEBHOOK] Cannot sweep: missing wallet metadata for settlement ${settlement.id}. ` +
+              `Manual sweep required.`,
+          );
+        }
+      } catch (sweepErr) {
+        // Sweep failure does NOT fail the webhook — funds are confirmed regardless.
+        // The sweep can be retried manually or via a scheduled job.
+        const sweepMessage = sweepErr instanceof Error ? sweepErr.message : String(sweepErr);
+        console.error(
+          `[TURNKEY-WEBHOOK] Treasury sweep FAILED for settlement ${settlement.id}: ${sweepMessage}. ` +
+            `Manual sweep required.`,
+        );
+
+        // Log sweep failure for ops monitoring
+        await client.query(
+          `INSERT INTO settlement_finality
+              (settlement_id, rail, external_transfer_id, idempotency_key,
+               finality_status, amount_cents, leg, is_fallback, error_message)
+            VALUES ($1, 'turnkey', $2, $3, 'FAILED', $4, 'treasury_sweep', FALSE, $5)
+            ON CONFLICT DO NOTHING`,
+          [
+            settlement.id,
+            `sweep-failed-${Date.now()}`,
+            `turnkey-sweep-failed-${settlement.id}-${Date.now()}`,
+            Number(receivedBaseUnits / BigInt(10000)),
+            sweepMessage,
+          ],
+        );
+      }
+
       return NextResponse.json({
         received: true,
         settled: true,
         settlementId: settlement.id,
         txHash,
+        sweepTxHash: sweepTxHash || undefined,
         amountBaseUnits: receivedBaseUnits.toString(),
       });
     } catch (err) {

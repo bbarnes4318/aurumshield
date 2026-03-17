@@ -292,9 +292,231 @@ export class TurnkeyService {
       });
     }
   }
+
+  /* ================================================================
+     sweepToTreasury — Transfer USDT from settlement wallet to treasury
+     ================================================================
+     After a USDT deposit is confirmed, this method sweeps the full
+     balance from the per-settlement MPC wallet to the platform's
+     central treasury address.
+
+     Flow:
+       1. Resolve the wallet and Ethereum account within the sub-org
+       2. Construct a raw ERC-20 transfer(to, amount) transaction
+       3. Sign via Turnkey's MPC signing infrastructure
+       4. Broadcast the signed transaction to Ethereum mainnet
+
+     Environment:
+       TREASURY_WALLET_ADDRESS — Ethereum address for USDT consolidation
+       ETHEREUM_RPC_URL        — JSON-RPC endpoint (e.g., Alchemy, Infura)
+
+     CRITICAL: This method handles real funds. The transaction is
+     irreversible once broadcast. The caller MUST verify the deposit
+     amount matches the settlement notional before calling.
+     ================================================================ */
+
+  async sweepToTreasury(opts: {
+    subOrganizationId: string;
+    walletId: string;
+    fromAddress: string;
+    amountBaseUnits: string;
+    settlementId: string;
+  }): Promise<TurnkeySweepResult> {
+    const treasuryAddress = process.env.TREASURY_WALLET_ADDRESS ?? "";
+    const rpcUrl = process.env.ETHEREUM_RPC_URL ?? "";
+
+    /* ── Mock mode ── */
+    if (!this.isConfigured() || !treasuryAddress) {
+      const mockTxHash = `0x${"0".repeat(8)}sweep${opts.settlementId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 48).padEnd(48, "0")}`;
+      console.warn(
+        `[TURNKEY] Mock sweep: ${opts.amountBaseUnits} USDT base units ` +
+        `from ${opts.fromAddress} → treasury (not configured). ` +
+        `Mock txHash=${mockTxHash}`,
+      );
+      return {
+        txHash: mockTxHash,
+        fromAddress: opts.fromAddress,
+        toAddress: treasuryAddress || "0x_TREASURY_NOT_CONFIGURED",
+        amountBaseUnits: opts.amountBaseUnits,
+        settlementId: opts.settlementId,
+        isLive: false,
+        sweptAt: new Date().toISOString(),
+      };
+    }
+
+    /* ── Live mode: Sign and broadcast ERC-20 transfer ── */
+    const api = this.getApiClient();
+
+    console.log(
+      `[TURNKEY] Sweeping USDT to treasury: ` +
+      `from=${opts.fromAddress} to=${treasuryAddress} ` +
+      `amount=${opts.amountBaseUnits} subOrg=${opts.subOrganizationId}`,
+    );
+
+    try {
+      // Step 1: Get the current nonce for the from address
+      const nonce = await this.getEthNonce(rpcUrl, opts.fromAddress);
+
+      // Step 2: Construct the ERC-20 transfer calldata
+      // transfer(address,uint256) selector = 0xa9059cbb
+      const paddedTo = treasuryAddress.replace("0x", "").padStart(64, "0");
+      // Pad amount to 32 bytes (uint256)
+      const paddedAmount = BigInt(opts.amountBaseUnits).toString(16).padStart(64, "0");
+      const transferData = `0xa9059cbb${paddedTo}${paddedAmount}`;
+
+      // Step 3: Construct the raw transaction
+      // Gas estimates for ERC-20 transfer on Ethereum mainnet
+      const gasLimit = "0x" + (100_000).toString(16); // 100k gas (ERC-20 transfers ~65k)
+      const gasPrice = await this.getGasPrice(rpcUrl);
+
+      const rawTx = {
+        to: USDT_CONTRACT,
+        value: "0x0",
+        data: transferData,
+        nonce: "0x" + nonce.toString(16),
+        gasLimit,
+        gasPrice,
+        chainId: 1, // Ethereum mainnet
+        type: "0x0", // Legacy transaction
+      };
+
+      // Step 4: Sign via Turnkey MPC
+      const signResult = await api.signTransaction({
+        signWith: opts.fromAddress,
+        organizationId: opts.subOrganizationId,
+        unsignedTransaction: JSON.stringify(rawTx),
+        type: "TRANSACTION_TYPE_ETHEREUM",
+      });
+
+      const signedTx = signResult.signedTransaction;
+
+      if (!signedTx) {
+        throw new TurnkeyApiError({
+          message: "Turnkey signTransaction returned empty signedTransaction",
+          httpStatus: 0,
+          turnkeyErrorCode: "EMPTY_SIGNED_TX",
+          responseBody: JSON.stringify(signResult),
+        });
+      }
+
+      // Step 5: Broadcast the signed transaction
+      const txHash = await this.broadcastTransaction(rpcUrl, signedTx);
+
+      console.log(
+        `[TURNKEY] ✓ Treasury sweep broadcast: txHash=${txHash} ` +
+        `from=${opts.fromAddress} to=${treasuryAddress} ` +
+        `amount=${opts.amountBaseUnits} USDT base units`,
+      );
+
+      return {
+        txHash,
+        fromAddress: opts.fromAddress,
+        toAddress: treasuryAddress,
+        amountBaseUnits: opts.amountBaseUnits,
+        settlementId: opts.settlementId,
+        isLive: true,
+        sweptAt: new Date().toISOString(),
+      };
+    } catch (err) {
+      if (err instanceof TurnkeyApiError) throw err;
+
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[TURNKEY] Treasury sweep FAILED for settlement=${opts.settlementId}:`,
+        message,
+      );
+
+      throw new TurnkeyApiError({
+        message: `Treasury sweep failed: ${message}`,
+        httpStatus: 0,
+        turnkeyErrorCode: "SWEEP_ERROR",
+        responseBody: err instanceof Error ? err.stack ?? "" : String(err),
+      });
+    }
+  }
+
+  /* ---------- Ethereum RPC Helpers ---------- */
+
+  /** Get the current nonce for an address via JSON-RPC. */
+  private async getEthNonce(rpcUrl: string, address: string): Promise<number> {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_getTransactionCount",
+        params: [address, "pending"],
+      }),
+    });
+    const data = await res.json() as { result: string };
+    return parseInt(data.result, 16);
+  }
+
+  /** Get the current gas price via JSON-RPC. */
+  private async getGasPrice(rpcUrl: string): Promise<string> {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_gasPrice",
+        params: [],
+      }),
+    });
+    const data = await res.json() as { result: string };
+    return data.result;
+  }
+
+  /** Broadcast a signed transaction via JSON-RPC. Returns the tx hash. */
+  private async broadcastTransaction(rpcUrl: string, signedTx: string): Promise<string> {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_sendRawTransaction",
+        params: [signedTx.startsWith("0x") ? signedTx : `0x${signedTx}`],
+      }),
+    });
+    const data = await res.json() as { result?: string; error?: { message: string } };
+    if (data.error) {
+      throw new Error(`eth_sendRawTransaction failed: ${data.error.message}`);
+    }
+    if (!data.result) {
+      throw new Error("eth_sendRawTransaction returned no tx hash");
+    }
+    return data.result;
+  }
 }
+
+/* ---------- Interfaces ---------- */
+
+/** Result from sweeping USDT from a settlement wallet to treasury. */
+export interface TurnkeySweepResult {
+  /** Ethereum transaction hash of the sweep */
+  txHash: string;
+  /** Source address (per-settlement MPC wallet) */
+  fromAddress: string;
+  /** Destination address (treasury) */
+  toAddress: string;
+  /** Amount swept in USDT base units (6 decimals) */
+  amountBaseUnits: string;
+  /** Settlement ID this sweep corresponds to */
+  settlementId: string;
+  /** Whether this was a live broadcast */
+  isLive: boolean;
+  /** ISO 8601 timestamp of the sweep */
+  sweptAt: string;
+}
+
+/** USDT contract address on Ethereum mainnet */
+const USDT_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 
 /* ---------- Singleton Export ---------- */
 
 /** Pre-instantiated Turnkey service for convenience. */
 export const turnkeyService = new TurnkeyService();
+
