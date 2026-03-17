@@ -1,12 +1,15 @@
 "use client";
 
 /* ================================================================
-   ONBOARDING WIZARD — Orchestrator (9-step enterprise flow)
+   ONBOARDING WIZARD — Orchestrator (7-step enterprise flow)
    ================================================================
-   Nine-step progressive disclosure for institutional KYB enrollment,
-   LEI/GLEIF verification, Source-of-Funds declaration, TOTP/WebAuthn
-   MFA credential registration, maker-checker role assignment, KYB
-   entity verification, and DocuSign CLM attestation.
+   Seven-step progressive disclosure for institutional KYB enrollment,
+   LEI/GLEIF verification, UBO declaration, automated AML screening,
+   Source-of-Funds declaration, maker-checker role assignment, and
+   DocuSign CLM attestation.
+
+   MFA (TOTP / WebAuthn / SSO) is handled by the Identity Provider
+   and is NOT part of this onboarding flow.
 
    Save-and-Resume:
      • On mount: loads saved state from /api/compliance/state
@@ -17,13 +20,11 @@
    Steps:
      1. Entity Registration & LEI
      2. KYB Entity Verification
-     3. UBO & AML Screening
-     4. Source of Funds Declaration
-     5. Verification Summary
+     3. UBO Declaration (dynamic array)
+     4. AML Screening (auto-run)
+     5. Source of Funds Declaration
      6. Maker-Checker Role Assignment
-     7. TOTP Authenticator Enrollment
-     8. WebAuthn & SSO Enrollment
-     9. DocuSign CLM & MCA Execution
+     7. DocuSign CLM & MCA Execution
    ================================================================ */
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -47,11 +48,9 @@ import {
 import { StepCorporateIdentity } from "./StepCorporateIdentity";
 import { StepKYBEntityVerification } from "./StepKYBEntityVerification";
 import { StepUBODocuments } from "./StepUBODocuments";
+import { StepAMLScreening } from "./StepAMLScreening";
 import { StepSourceOfFunds } from "./StepSourceOfFunds";
-import { StepVerificationSummary } from "./StepVerificationSummary";
 import { StepMakerChecker } from "./StepMakerChecker";
-import { StepTOTPEnrollment } from "./StepTOTPEnrollment";
-import { StepWebAuthnEnrollment } from "./StepWebAuthnEnrollment";
 import { StepDocuSignCLM } from "./StepDocuSignCLM";
 
 import {
@@ -64,17 +63,17 @@ import {
    ---------------------------------------------------------------- */
 
 /** Total number of steps in the wizard. */
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 7;
 
 /** Step index (1-based) of the DocuSign CLM / MCA gate. */
-const MCA_STEP = 9;
+const MCA_STEP = 7;
 
 /** Fatal error copy — displayed if a user attempts to bypass MCA signing. */
 const MCA_FATAL_MESSAGE =
   "Legal indemnification required. The Master Commercial Agreement must be executed by an authorized corporate officer before treasury routing is enabled.";
 
 /* ----------------------------------------------------------------
-   Progress Bar — 9-step
+   Progress Bar — 7-step
    ---------------------------------------------------------------- */
 
 function ProgressBar({ currentStep }: { currentStep: number }) {
@@ -142,6 +141,7 @@ export function OnboardingWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
   const [fatalMcaError, setFatalMcaError] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const router = useRouter();
   const hasRestoredRef = useRef(false);
 
@@ -160,18 +160,13 @@ export function OnboardingWizard() {
       contactEmail: "",
       contactPhone: "",
       kybVerificationPassed: false as unknown as true,
-      uboDocumentName: "",
+      ubos: [{ name: "", ownershipPercentage: "" }],
       uboDeclarationAccepted: false as unknown as true,
       sanctionsScreeningPassed: false as unknown as true,
       sourceOfFundsType: undefined,
-      sourceOfFundsDocumentUrl: "",
       sourceOfFundsAttested: false as unknown as true,
-      verificationAcknowledged: false as unknown as true,
       primaryRole: undefined,
       dualAuthAcknowledged: false as unknown as true,
-      totpEnrolled: false as unknown as true,
-      webauthnEnrolled: false as unknown as true,
-      ssoProvider: "none",
       agreementSigned: false as unknown as true,
       complianceAttested: false as unknown as true,
     },
@@ -180,10 +175,10 @@ export function OnboardingWizard() {
 
   const { trigger, handleSubmit, reset, getValues } = methods;
 
-  /* ── Restore saved state on mount ── 
-     Uses queueMicrotask to avoid synchronous setState inside the 
-     effect body, which the React compiler flags as a cascading 
-     render hazard. The microtask fires after the effect commit 
+  /* ── Restore saved state on mount ──
+     Uses queueMicrotask to avoid synchronous setState inside the
+     effect body, which the React compiler flags as a cascading
+     render hazard. The microtask fires after the effect commit
      but before paint, so there is no visible flash. ── */
   useEffect(() => {
     if (hasRestoredRef.current) return;
@@ -212,18 +207,13 @@ export function OnboardingWizard() {
             contactEmail: meta.contactEmail ?? "",
             contactPhone: meta.contactPhone ?? "",
             kybVerificationPassed: (meta.kybVerificationPassed ?? false) as unknown as true,
-            uboDocumentName: meta.uboDocumentName ?? "",
+            ubos: meta.ubos ?? [{ name: "", ownershipPercentage: "" }],
             uboDeclarationAccepted: (meta.uboDeclarationAccepted ?? false) as unknown as true,
             sanctionsScreeningPassed: (meta.sanctionsScreeningPassed ?? false) as unknown as true,
             sourceOfFundsType: meta.sourceOfFundsType,
-            sourceOfFundsDocumentUrl: meta.sourceOfFundsDocumentUrl ?? "",
             sourceOfFundsAttested: (meta.sourceOfFundsAttested ?? false) as unknown as true,
-            verificationAcknowledged: (meta.verificationAcknowledged ?? false) as unknown as true,
             primaryRole: meta.primaryRole,
             dualAuthAcknowledged: (meta.dualAuthAcknowledged ?? false) as unknown as true,
-            totpEnrolled: (meta.totpEnrolled ?? false) as unknown as true,
-            webauthnEnrolled: (meta.webauthnEnrolled ?? false) as unknown as true,
-            ssoProvider: meta.ssoProvider ?? "none",
             agreementSigned: (meta.agreementSigned ?? false) as unknown as true,
             complianceAttested: (meta.complianceAttested ?? false) as unknown as true,
           });
@@ -255,7 +245,7 @@ export function OnboardingWizard() {
     const valid = await trigger(stepFields as unknown as (keyof OnboardingFormData)[]);
     if (!valid) return;
 
-    /* ── MCA HARD GATE — Step 9 (DocuSign CLM) ── */
+    /* ── MCA HARD GATE — Step 7 (DocuSign CLM) ── */
     if (currentStep === MCA_STEP) {
       const mcaSigned = getValues("agreementSigned");
       if (mcaSigned !== true) {
@@ -282,7 +272,7 @@ export function OnboardingWizard() {
   /* ── Resume Later ── */
   const handleResumeLater = useCallback(() => {
     saveProgress(currentStep);
-    router.push("/buyer");
+    router.push("/offtaker");
   }, [currentStep, saveProgress, router]);
 
   /* ── Final submission ── */
@@ -305,7 +295,12 @@ export function OnboardingWizard() {
       saveProgress(TOTAL_STEPS, "COMPLETED");
 
       setIsSubmitting(false);
-      router.push("/buyer");
+      setSubmitSuccess(true);
+
+      // Route into the portal after a brief success state
+      setTimeout(() => {
+        router.push("/offtaker");
+      }, 2000);
     },
     [router, saveProgress],
   );
@@ -321,16 +316,12 @@ export function OnboardingWizard() {
       case 3:
         return <StepUBODocuments />;
       case 4:
-        return <StepSourceOfFunds />;
+        return <StepAMLScreening />;
       case 5:
-        return <StepVerificationSummary />;
+        return <StepSourceOfFunds />;
       case 6:
         return <StepMakerChecker />;
       case 7:
-        return <StepTOTPEnrollment />;
-      case 8:
-        return <StepWebAuthnEnrollment />;
-      case 9:
         return <StepDocuSignCLM />;
       default:
         return null;
@@ -343,6 +334,26 @@ export function OnboardingWizard() {
       <div className="flex flex-col items-center justify-center py-16 gap-3">
         <Loader2 className="h-8 w-8 text-color-2 animate-spin" />
         <p className="text-sm text-color-3/50">Restoring your progress…</p>
+      </div>
+    );
+  }
+
+  /* ── Success state after submission ── */
+  if (submitSuccess) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-[#3fae7a]/30 bg-[#3fae7a]/5">
+          <CheckCircle2 className="h-8 w-8 text-[#3fae7a]" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-[#3fae7a]">
+            Onboarding Complete
+          </h2>
+          <p className="text-sm text-color-3/50 mt-1">
+            Your institutional enrollment has been submitted. Redirecting to the portal…
+          </p>
+        </div>
+        <Loader2 className="h-5 w-5 text-color-2 animate-spin mt-2" />
       </div>
     );
   }
@@ -360,7 +371,7 @@ export function OnboardingWizard() {
               Institutional Onboarding
             </h1>
             <p className="text-xs text-color-3/50">
-              Enterprise KYB · GLEIF LEI · Source of Funds · MFA · DocuSign CLM
+              Enterprise KYB · GLEIF LEI · Source of Funds · DocuSign CLM
             </p>
           </div>
         </div>
@@ -368,7 +379,6 @@ export function OnboardingWizard() {
         {/* Progress */}
         <ProgressBar currentStep={currentStep} />
 
-        {/* Active step */}
         {/* Active step — scrollable content area */}
         <div className="flex-1 overflow-y-auto px-1 pb-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent" data-tour="onboarding-lei">
           <div className="min-h-[280px]">{renderStep()}</div>

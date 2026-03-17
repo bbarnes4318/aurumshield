@@ -1,38 +1,26 @@
 "use client";
 
 /* ================================================================
-   STEP 2: KYB & Sanctions Screening
+   STEP 3: UBO Declaration (Dynamic Field Array)
    ================================================================
-   UBO document upload + simulated OpenSanctions AML screening
-   against OFAC, EU, UN, HMT, and DFAT watchlists.
+   Collects Ultimate Beneficial Owner (UBO) information via a
+   dynamic field array. Users can add multiple UBOs with Name and
+   Ownership Percentage (≥25%).
+
+   No document upload — file dropzone removed per directive.
+   AML screening has moved to its own dedicated auto-run step.
    ================================================================ */
 
-import { useState, useCallback, useRef } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useFieldArray } from "react-hook-form";
 import {
-  Upload,
-  FileCheck2,
-  X,
+  Users,
+  Plus,
+  Trash2,
   Info,
   ShieldCheck,
-  CheckCircle2,
-  Loader2,
-  Search,
 } from "lucide-react";
 
 import type { OnboardingFormData } from "@/lib/schemas/onboarding-schema";
-
-/* ----------------------------------------------------------------
-   Watchlist results
-   ---------------------------------------------------------------- */
-
-const WATCHLISTS = [
-  { key: "OFAC", label: "OFAC (US Treasury)", flag: "🇺🇸" },
-  { key: "EU", label: "EU Consolidated List", flag: "🇪🇺" },
-  { key: "UN", label: "UN Security Council", flag: "🇺🇳" },
-  { key: "HMT", label: "HMT (UK Treasury)", flag: "🇬🇧" },
-  { key: "DFAT", label: "DFAT (Australia)", flag: "🇦🇺" },
-] as const;
 
 /* ----------------------------------------------------------------
    Step Component
@@ -40,74 +28,23 @@ const WATCHLISTS = [
 
 export function StepUBODocuments() {
   const {
-    setValue,
-    watch,
     register,
+    control,
     formState: { errors },
   } = useFormContext<OnboardingFormData>();
 
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [screeningState, setScreeningState] = useState<
-    "idle" | "screening" | "passed"
-  >(() => (watch("sanctionsScreeningPassed") ? "passed" : "idle"));
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const documentName = watch("uboDocumentName");
-
-  /* ── File handling ── */
-
-  const handleFile = useCallback(
-    (file: File) => {
-      setValue("uboDocumentName", file.name, { shouldValidate: true });
-    },
-    [setValue],
-  );
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
-    },
-    [handleFile],
-  );
-
-  const handleBrowse = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) handleFile(file);
-    },
-    [handleFile],
-  );
-
-  const clearFile = useCallback(() => {
-    setValue("uboDocumentName", "", { shouldValidate: true });
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [setValue]);
-
-  /* ── Simulated Sanctions Screening ── */
-  const runScreening = useCallback(() => {
-    setScreeningState("screening");
-    setTimeout(() => {
-      setScreeningState("passed");
-      setValue("sanctionsScreeningPassed", true as unknown as true, {
-        shouldValidate: true,
-      });
-    }, 3000);
-  }, [setValue]);
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "ubos",
+  });
 
   return (
     <div className="space-y-5">
       {/* Section header */}
       <div className="flex items-center gap-2 mb-1">
-        <FileCheck2 className="h-4 w-4 text-color-2" />
+        <Users className="h-4 w-4 text-color-2" />
         <h2 className="text-sm font-semibold text-color-3">
-          KYB & Sanctions Screening
+          UBO Declaration
         </h2>
       </div>
 
@@ -120,91 +57,125 @@ export function StepUBODocuments() {
           </strong>{" "}
           Regulatory requirement under EU AMLD / BSA AML. AurumShield verifies
           all entities and Ultimate Beneficial Owners (UBOs) with 25%+
-          ownership via Veriff KYB. OpenSanctions screens against 5 global
-          watchlists in real time.
+          ownership. Global screening runs against 5 global watchlists in
+          real time.
         </p>
       </div>
 
-      {/* Upload zone */}
-      <div
-        role="button"
-        tabIndex={0}
-        onDrop={handleDrop}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragOver(true);
-        }}
-        onDragLeave={() => setIsDragOver(false)}
-        onClick={handleBrowse}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") handleBrowse();
-        }}
-        className={`
-          relative flex flex-col items-center justify-center
-          rounded-lg border-2 border-dashed py-8 px-6
-          cursor-pointer transition-all duration-200
-          ${
-            isDragOver
-              ? "border-color-2/60 bg-color-2/8"
-              : documentName
-                ? "border-color-2/30 bg-color-2/5"
-                : "border-color-5/30 bg-color-1/50 hover:border-color-5/50 hover:bg-color-1/70"
-          }
-          ${errors.uboDocumentName ? "border-color-4/50" : ""}
-        `}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png"
-          onChange={handleInputChange}
-          className="hidden"
-          aria-label="Upload UBO document"
-        />
+      {/* ── Dynamic UBO rows ── */}
+      <div className="space-y-3">
+        <label className="text-[11px] font-semibold uppercase tracking-widest text-color-3/60">
+          Ultimate Beneficial Owners (25%+ Ownership)
+          <span className="text-color-4 ml-0.5">*</span>
+        </label>
 
-        {documentName ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-color-2/15">
-              <FileCheck2 className="h-5 w-5 text-color-2" />
+        {fields.map((field, index) => (
+          <div
+            key={field.id}
+            className="rounded-lg border border-color-5/20 bg-color-1/50 p-4"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-color-3/40">
+                UBO #{index + 1}
+              </span>
+              {fields.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  className="inline-flex items-center gap-1 text-[10px] text-color-4/60 hover:text-color-4 transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Remove
+                </button>
+              )}
             </div>
-            <p className="text-sm font-medium text-color-3">{documentName}</p>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                clearFile();
-              }}
-              className="
-                inline-flex items-center gap-1 text-[11px] text-color-4/70
-                hover:text-color-4 transition-colors
-              "
-            >
-              <X className="h-3 w-3" />
-              Remove
-            </button>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* UBO Name */}
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor={`ubos.${index}.name`}
+                  className="text-[11px] font-semibold uppercase tracking-widest text-color-3/60"
+                >
+                  Full Legal Name
+                </label>
+                <input
+                  id={`ubos.${index}.name`}
+                  type="text"
+                  placeholder="e.g. John W. Doe"
+                  {...register(`ubos.${index}.name`)}
+                  className={`
+                    w-full rounded-lg border px-3.5 py-2.5
+                    bg-color-1/80 text-sm text-color-3
+                    placeholder:text-color-5/30
+                    transition-all duration-150
+                    focus:outline-none focus:ring-2 focus:ring-color-2/40 focus:border-color-2/50
+                    ${errors.ubos?.[index]?.name ? "border-color-4/60" : "border-color-5/30"}
+                  `}
+                />
+                {errors.ubos?.[index]?.name && (
+                  <p className="text-[11px] text-color-4">
+                    {errors.ubos[index].name?.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Ownership Percentage */}
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor={`ubos.${index}.ownershipPercentage`}
+                  className="text-[11px] font-semibold uppercase tracking-widest text-color-3/60"
+                >
+                  Ownership %
+                </label>
+                <input
+                  id={`ubos.${index}.ownershipPercentage`}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="e.g. 51"
+                  {...register(`ubos.${index}.ownershipPercentage`)}
+                  className={`
+                    w-full rounded-lg border px-3.5 py-2.5
+                    bg-color-1/80 text-sm text-color-3 font-mono
+                    placeholder:text-color-5/30
+                    transition-all duration-150
+                    focus:outline-none focus:ring-2 focus:ring-color-2/40 focus:border-color-2/50
+                    ${errors.ubos?.[index]?.ownershipPercentage ? "border-color-4/60" : "border-color-5/30"}
+                  `}
+                />
+                {errors.ubos?.[index]?.ownershipPercentage && (
+                  <p className="text-[11px] text-color-4">
+                    {errors.ubos[index].ownershipPercentage?.message}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-color-5/10">
-              <Upload className="h-5 w-5 text-color-5" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-color-3/80">
-                Drop your UBO document here
-              </p>
-              <p className="text-[11px] text-color-3/40 mt-0.5">
-                PDF, JPG, or PNG · Max 10 MB
-              </p>
-            </div>
-          </div>
+        ))}
+
+        {/* Array-level errors */}
+        {errors.ubos && !Array.isArray(errors.ubos) && (
+          <p className="text-[11px] text-color-4">
+            {(errors.ubos as { message?: string }).message}
+          </p>
         )}
-      </div>
 
-      {errors.uboDocumentName && (
-        <p className="text-[11px] text-color-4 -mt-3">
-          {errors.uboDocumentName.message as string}
-        </p>
-      )}
+        {/* + Add Another UBO button */}
+        <button
+          type="button"
+          onClick={() => append({ name: "", ownershipPercentage: "" })}
+          className="
+            w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
+            bg-color-2/8 text-color-2 text-xs font-medium
+            border border-dashed border-color-2/25
+            hover:bg-color-2/15 hover:border-color-2/40
+            transition-colors duration-150
+          "
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add Another UBO
+        </button>
+      </div>
 
       {/* Declaration checkbox */}
       <label className="flex items-start gap-3 cursor-pointer group">
@@ -219,7 +190,7 @@ export function StepUBODocuments() {
           "
         />
         <span className="text-xs leading-relaxed text-color-3/60 group-hover:text-color-3/80 transition-colors">
-          I confirm this document accurately represents the beneficial
+          I confirm this declaration accurately represents the beneficial
           ownership structure and all UBOs with 25%+ ownership are disclosed.
         </span>
       </label>
@@ -230,89 +201,10 @@ export function StepUBODocuments() {
         </p>
       )}
 
-      {/* ── AML / Sanctions Screening Panel ── */}
-      <div className="rounded-lg border border-color-5/20 bg-color-1/50 p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold text-color-3/70 uppercase tracking-wider">
-            OpenSanctions AML Screening
-          </h3>
-          {screeningState === "idle" && (
-            <button
-              type="button"
-              onClick={runScreening}
-              className="
-                inline-flex items-center gap-1.5 rounded-md px-3 py-1.5
-                bg-color-2/15 text-color-2 text-[11px] font-medium
-                border border-color-2/25
-                hover:bg-color-2/25 transition-colors
-              "
-            >
-              <Search className="h-3 w-3" />
-              Run Screening
-            </button>
-          )}
-          {screeningState === "screening" && (
-            <div className="flex items-center gap-1.5 text-[11px] text-color-2 font-medium">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Screening…
-            </div>
-          )}
-          {screeningState === "passed" && (
-            <div className="flex items-center gap-1.5 text-[11px] text-[#3fae7a] font-semibold">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              All Clear
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          {WATCHLISTS.map((wl, i) => (
-            <div
-              key={wl.key}
-              className="flex items-center justify-between rounded-md bg-color-1/60 px-3 py-2"
-            >
-              <div className="flex items-center gap-2 text-xs text-color-3/60">
-                <span>{wl.flag}</span>
-                <span>{wl.label}</span>
-              </div>
-              {screeningState === "idle" && (
-                <span className="text-[10px] text-color-3/30">Pending</span>
-              )}
-              {screeningState === "screening" && (
-                <span
-                  className="text-[10px] text-color-2"
-                  style={{
-                    animation: `fadeIn 0.3s ${i * 0.4}s both`,
-                  }}
-                >
-                  {i * 0.4 < 2.5 ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    "Queued"
-                  )}
-                </span>
-              )}
-              {screeningState === "passed" && (
-                <span className="flex items-center gap-1 text-[10px] text-[#3fae7a] font-medium">
-                  <CheckCircle2 className="h-3 w-3" />
-                  No Match
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {errors.sanctionsScreeningPassed && screeningState !== "screening" && (
-        <p className="text-[11px] text-color-4">
-          {errors.sanctionsScreeningPassed.message as string}
-        </p>
-      )}
-
       {/* Trust badge */}
       <div className="flex items-center gap-2 pt-1 text-[10px] text-color-3/30">
         <ShieldCheck className="h-3.5 w-3.5 text-color-2/40" />
-        <span>Veriff KYB · OpenSanctions · AES-256 at rest</span>
+        <span>EU AMLD · BSA AML · AES-256 at rest</span>
       </div>
     </div>
   );

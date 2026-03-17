@@ -136,9 +136,10 @@ export function StepKYBEntityVerification() {
       </div>
 
       <p className="text-xs text-color-3/50 leading-relaxed -mt-2">
-        Veriff KYB verifies your business entity through parallel sub-checks
-        against corporate registries, beneficial ownership databases, and
-        global sanctions lists.
+        Know-Your-Business (KYB) Verification: Regulatory requirement under
+        EU AMLD / BSA AML. AurumShield verifies all entities and Ultimate
+        Beneficial Owners (UBOs) with 25%+ ownership. Global screening runs
+        against 5 global watchlists in real time.
       </p>
 
       {/* ── Sub-check cards ── */}
@@ -276,7 +277,7 @@ export function StepKYBEntityVerification() {
       {/* Trust badge */}
       <div className="flex items-center gap-2 pt-1 text-[10px] text-color-3/30">
         <ShieldCheck className="h-3.5 w-3.5 text-color-2/40" />
-        <span>Veriff KYB · OpenSanctions AML · Parallel Processing</span>
+        <span>KYB Verification · AML Screening · Parallel Processing</span>
       </div>
     </div>
   );

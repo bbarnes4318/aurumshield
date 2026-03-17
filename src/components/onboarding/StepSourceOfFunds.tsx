@@ -1,24 +1,18 @@
 "use client";
 
 /* ================================================================
-   STEP 4: Institutional Source of Funds Declaration
+   STEP 5: Institutional Source of Funds Declaration
    ================================================================
    Mandatory financial crime safeguard. Forces the user to:
      1. Select the origin of capital (enum)
-     2. Upload supporting documentary evidence
-     3. Attest under penalty of perjury to AML compliance
+     2. Attest under penalty of perjury to AML compliance
 
-   The user CANNOT proceed to biometrics until all three conditions
-   are satisfied.
+   No document upload — vendors handle evidence collection.
    ================================================================ */
 
-import { useState, useCallback, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import {
   Landmark,
-  Upload,
-  FileCheck2,
-  X,
   ShieldAlert,
   ShieldCheck,
   Scale,
@@ -36,56 +30,11 @@ import {
 export function StepSourceOfFunds() {
   const {
     register,
-    setValue,
     watch,
     formState: { errors },
   } = useFormContext<OnboardingFormData>();
 
-  const [isDragOver, setIsDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const documentUrl = watch("sourceOfFundsDocumentUrl");
   const sofType = watch("sourceOfFundsType");
-
-  /* ── File handling ── */
-
-  const handleFile = useCallback(
-    (file: File) => {
-      // In production this would upload to S3/R2 and return the URL.
-      // For now we store the filename as the document reference.
-      setValue("sourceOfFundsDocumentUrl", file.name, {
-        shouldValidate: true,
-      });
-    },
-    [setValue],
-  );
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
-    },
-    [handleFile],
-  );
-
-  const handleBrowse = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) handleFile(file);
-    },
-    [handleFile],
-  );
-
-  const clearFile = useCallback(() => {
-    setValue("sourceOfFundsDocumentUrl", "", { shouldValidate: true });
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [setValue]);
 
   return (
     <div className="space-y-5">
@@ -104,10 +53,11 @@ export function StepSourceOfFunds() {
           <strong className="text-color-3/80">
             Regulatory Requirement — FATF Recommendation 10 / EU AMLD Art. 13
           </strong>{" "}
-          All institutional counterparties must declare and evidence the
-          origin of capital prior to settlement enablement. Documentary proof
-          is archived in the immutable compliance ledger for a minimum of 7
-          years per BSA/AML retention mandates.
+          All institutional counterparties must declare the origin of capital
+          prior to settlement enablement. Documentary evidence is collected
+          separately by our compliance vendors and archived in the immutable
+          compliance ledger for a minimum of 7 years per BSA/AML retention
+          mandates.
         </p>
       </div>
 
@@ -157,100 +107,11 @@ export function StepSourceOfFunds() {
             </span>
           </div>
           <p className="text-[10px] text-color-3/40 mt-1">
-            Documentary evidence required below to substantiate this declaration.
+            Documentary evidence will be collected separately by our compliance
+            vendors.
           </p>
         </div>
       )}
-
-      {/* ── Document Upload Dropzone ── */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-semibold uppercase tracking-widest text-color-3/60">
-          Supporting Documentation
-          <span className="text-color-4 ml-0.5">*</span>
-        </label>
-
-        <div
-          role="button"
-          tabIndex={0}
-          onDrop={handleDrop}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDragOver(true);
-          }}
-          onDragLeave={() => setIsDragOver(false)}
-          onClick={handleBrowse}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") handleBrowse();
-          }}
-          className={`
-            relative flex flex-col items-center justify-center
-            rounded-lg border-2 border-dashed py-8 px-6
-            cursor-pointer transition-all duration-200
-            ${
-              isDragOver
-                ? "border-color-2/60 bg-color-2/8"
-                : documentUrl
-                  ? "border-color-2/30 bg-color-2/5"
-                  : "border-color-5/30 bg-color-1/50 hover:border-color-5/50 hover:bg-color-1/70"
-            }
-            ${errors.sourceOfFundsDocumentUrl ? "border-color-4/50" : ""}
-          `}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.csv"
-            onChange={handleInputChange}
-            className="hidden"
-            aria-label="Upload source of funds document"
-          />
-
-          {documentUrl ? (
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-color-2/15">
-                <FileCheck2 className="h-5 w-5 text-color-2" />
-              </div>
-              <p className="text-sm font-medium text-color-3">
-                {documentUrl}
-              </p>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  clearFile();
-                }}
-                className="
-                  inline-flex items-center gap-1 text-[11px] text-color-4/70
-                  hover:text-color-4 transition-colors
-                "
-              >
-                <X className="h-3 w-3" />
-                Remove
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-color-5/10">
-                <Upload className="h-5 w-5 text-color-5" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-color-3/80">
-                  Upload Audited Financials or Bank Letter of Credit
-                </p>
-                <p className="text-[11px] text-color-3/40 mt-0.5">
-                  PDF, XLSX, JPG, or PNG · Max 25 MB
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {errors.sourceOfFundsDocumentUrl && (
-          <p className="text-[11px] text-color-4 mt-0.5">
-            {errors.sourceOfFundsDocumentUrl.message as string}
-          </p>
-        )}
-      </div>
 
       {/* ── AML Attestation Toggle ── */}
       <div className="rounded-lg border border-color-4/15 bg-color-4/3 px-4 py-3">

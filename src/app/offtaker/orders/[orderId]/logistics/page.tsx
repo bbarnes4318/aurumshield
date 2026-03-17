@@ -10,6 +10,8 @@
 
    Aesthetic: Heavy, dark, military/terminal feel (bg-slate-950).
    Think Bloomberg terminal tracking an armored convoy.
+
+   ZERO-SCROLL POLICY: The entire page must fit within the viewport.
    ================================================================ */
 
 import { useParams } from "next/navigation";
@@ -157,14 +159,14 @@ export default function LogisticsRadarPage() {
   const orderId = params?.orderId as string;
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-14">
-      <div className="max-w-7xl mx-auto p-8 pt-12">
+    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col max-w-7xl w-full mx-auto px-5 py-3">
         {/* ════════════════════════════════════════════════════════
             NAVIGATION
             ════════════════════════════════════════════════════════ */}
         <Link
           href={`/offtaker/orders/${orderId}`}
-          className="inline-flex items-center gap-2 font-mono text-xs text-slate-500 hover:text-slate-300 transition-colors mb-8 group"
+          className="inline-flex items-center gap-2 font-mono text-xs text-slate-500 hover:text-slate-300 transition-colors mb-2 group shrink-0"
         >
           <ArrowLeft className="h-3 w-3 group-hover:-translate-x-1 transition-transform" />
           SETTLEMENT LEDGER
@@ -173,10 +175,10 @@ export default function LogisticsRadarPage() {
         {/* ════════════════════════════════════════════════════════
             HEADER RIBBON
             ════════════════════════════════════════════════════════ */}
-        <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-4 mb-2 shrink-0">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
             <div>
-              <span className="font-mono text-slate-500 uppercase text-[10px] tracking-[0.3em] block mb-2">
+              <span className="font-mono text-slate-500 uppercase text-[10px] tracking-[0.3em] block mb-1">
                 Armored Logistics Radar
               </span>
               <div className="flex items-center gap-3">
@@ -185,7 +187,7 @@ export default function LogisticsRadarPage() {
                   {SHIPMENT.trackingNumber}
                 </span>
               </div>
-              <span className="font-mono text-[10px] text-slate-600 mt-1 block">
+              <span className="font-mono text-[10px] text-slate-600 mt-0.5 block">
                 Carrier: {SHIPMENT.carrier} · Settlement: {SHIPMENT.settlementId}
               </span>
             </div>
@@ -207,15 +209,15 @@ export default function LogisticsRadarPage() {
         </div>
 
         {/* ════════════════════════════════════════════════════════
-            2-COLUMN RADAR GRID
+            2-COLUMN RADAR GRID — flex-1 min-h-0 to fill remaining space
             ════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3">
           {/* ──────────────────────────────────────────────────────
               LEFT COLUMN — Chain of Custody Ledger
               ────────────────────────────────────────────────────── */}
-          <div className="lg:col-span-5">
-            <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 h-full">
-              <span className="font-mono text-gold-primary text-xs tracking-[0.2em] uppercase block mb-6">
+          <div className="lg:col-span-5 min-h-0 overflow-y-auto">
+            <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-4 h-full">
+              <span className="font-mono text-gold-primary text-xs tracking-[0.2em] uppercase block mb-4">
                 Chain of Custody
               </span>
 
@@ -223,7 +225,7 @@ export default function LogisticsRadarPage() {
                 {/* Vertical timeline connector */}
                 <div className="absolute left-[5px] top-0 bottom-0 border-l border-slate-800" />
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {CUSTODY_EVENTS.map((event, idx) => (
                     <CustodyEventNode
                       key={event.id}
@@ -235,8 +237,8 @@ export default function LogisticsRadarPage() {
               </div>
 
               {/* Legend */}
-              <div className="border-t border-slate-800 mt-6 pt-4">
-                <span className="font-mono text-[9px] text-slate-700 tracking-wider uppercase block mb-2">
+              <div className="border-t border-slate-800 mt-4 pt-3">
+                <span className="font-mono text-[9px] text-slate-700 tracking-wider uppercase block mb-1">
                   Custodian Signature = Cryptographic Handoff Proof
                 </span>
                 <span className="font-mono text-[9px] text-slate-700 block">
@@ -250,40 +252,40 @@ export default function LogisticsRadarPage() {
           {/* ──────────────────────────────────────────────────────
               RIGHT COLUMN — Geospatial Radar
               ────────────────────────────────────────────────────── */}
-          <div className="lg:col-span-7">
-            <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-6 h-full flex flex-col">
-              <span className="font-mono text-gold-primary text-xs tracking-[0.2em] uppercase block mb-6">
+          <div className="lg:col-span-7 min-h-0">
+            <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-4 h-full flex flex-col">
+              <span className="font-mono text-gold-primary text-xs tracking-[0.2em] uppercase block mb-4">
                 Geospatial Radar
               </span>
 
               {/* ── Radar Display ── */}
-              <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] relative">
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative">
                 {/* Concentric radar rings */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-[320px] h-[320px] rounded-full border border-slate-800/40" />
-                  <div className="absolute w-[240px] h-[240px] rounded-full border border-slate-800/30" />
-                  <div className="absolute w-[160px] h-[160px] rounded-full border border-slate-800/20" />
-                  <div className="absolute w-[80px] h-[80px] rounded-full border border-slate-800/20" />
+                  <div className="w-[280px] h-[280px] rounded-full border border-slate-800/40" />
+                  <div className="absolute w-[210px] h-[210px] rounded-full border border-slate-800/30" />
+                  <div className="absolute w-[140px] h-[140px] rounded-full border border-slate-800/20" />
+                  <div className="absolute w-[70px] h-[70px] rounded-full border border-slate-800/20" />
                   {/* Crosshairs */}
-                  <div className="absolute w-[320px] h-px bg-slate-800/30" />
-                  <div className="absolute w-px h-[320px] bg-slate-800/30" />
+                  <div className="absolute w-[280px] h-px bg-slate-800/30" />
+                  <div className="absolute w-px h-[280px] bg-slate-800/30" />
                 </div>
 
                 {/* Live beacon pulse */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="relative mb-6">
-                    <span className="absolute inline-flex h-6 w-6 rounded-full bg-cyan-400 opacity-75 animate-ping" />
-                    <span className="relative inline-flex h-6 w-6 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.6)]" />
+                  <div className="relative mb-4">
+                    <span className="absolute inline-flex h-5 w-5 rounded-full bg-cyan-400 opacity-75 animate-ping" />
+                    <span className="relative inline-flex h-5 w-5 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.6)]" />
                   </div>
 
                   {/* Location Name */}
-                  <span className="font-mono text-sm text-cyan-400 text-center mb-4 max-w-md leading-relaxed">
+                  <span className="font-mono text-sm text-cyan-400 text-center mb-3 max-w-md leading-relaxed">
                     {SHIPMENT.currentLocation.name}
                   </span>
 
                   {/* Coordinates */}
-                  <div className="bg-slate-900/80 border border-slate-800 px-6 py-4 min-w-[320px]">
-                    <div className="flex justify-between items-center mb-2">
+                  <div className="bg-slate-900/80 border border-slate-800 px-5 py-3 min-w-[280px]">
+                    <div className="flex justify-between items-center mb-1.5">
                       <span className="font-mono text-[9px] text-slate-600 tracking-[0.15em] uppercase">
                         Latitude
                       </span>
@@ -310,7 +312,7 @@ export default function LogisticsRadarPage() {
               </div>
 
               {/* ── Carrier Telemetry Strip ── */}
-              <div className="border-t border-slate-800 mt-6 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="border-t border-slate-800 mt-3 pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
                 <TelemetryField label="Carrier" value={SHIPMENT.carrier} />
                 <TelemetryField
                   label="Tracking"
@@ -334,7 +336,7 @@ export default function LogisticsRadarPage() {
         </div>
 
         {/* ── Security Footer ── */}
-        <p className="mt-12 text-center font-mono text-[10px] text-slate-700 tracking-wider">
+        <p className="mt-2 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
           AurumShield Clearing · Sovereign Carrier Logistics · HMAC-SHA256
           Verified · Immutable Chain of Custody
         </p>
@@ -374,7 +376,7 @@ function CustodyEventNode({
       {/* Event content */}
       <div>
         {/* Status + Timestamp */}
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-0.5">
           <span
             className={`font-mono text-[10px] font-semibold tracking-wider uppercase ${statusColor(event.status)}`}
           >
@@ -401,7 +403,7 @@ function CustodyEventNode({
         </span>
 
         {/* Custodian Signature Hash */}
-        <div className="mt-1.5 flex items-center gap-2">
+        <div className="mt-1 flex items-center gap-2">
           <Lock className="h-[9px] w-[9px] text-slate-700" />
           <span className="font-mono text-[9px] text-gold-primary tabular-nums">
             {truncateHash(event.custodianSignatureHash)}

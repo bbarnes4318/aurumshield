@@ -15,6 +15,8 @@
 
    Safety: If Clerk is not configured (missing NEXT_PUBLIC key),
    a fallback UI is shown instead of crashing.
+
+   ZERO-SCROLL POLICY: The entire page must fit in the viewport.
    ================================================================ */
 
 import { SignIn } from "@clerk/nextjs";
@@ -31,10 +33,10 @@ const CLERK_AVAILABLE =
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-12">
+    <div className="h-screen w-screen overflow-hidden bg-bg flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* ── Back to Home ── */}
-        <div className="mb-6 text-center">
+        <div className="mb-3 text-center">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-xs text-text-faint hover:text-gold transition-colors"
@@ -45,8 +47,8 @@ export default function LoginPage() {
         </div>
 
         {/* ── Brand ── */}
-        <div className="mb-8 flex flex-col items-center">
-          <div className="mb-3">
+        <div className="mb-4 flex flex-col items-center">
+          <div className="mb-2">
             <AppLogo className="h-10 w-auto" variant="dark" />
           </div>
           <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-faint">
@@ -83,12 +85,12 @@ export default function LoginPage() {
           </div>
         ) : (
           /* Fallback when Clerk is not configured */
-          <div className="rounded-lg border border-[#1e293b] bg-[#0f1a2b] p-8 text-center">
-            <ShieldAlert className="mx-auto mb-4 h-10 w-10 text-amber-400/80" />
+          <div className="rounded-lg border border-[#1e293b] bg-[#0f1a2b] p-6 text-center">
+            <ShieldAlert className="mx-auto mb-3 h-10 w-10 text-amber-400/80" />
             <h2 className="mb-2 text-lg font-semibold text-[#cbd5e1]">
               Authentication Unavailable
             </h2>
-            <p className="mb-6 text-sm text-[#94a3b8]">
+            <p className="mb-4 text-sm text-[#94a3b8]">
               The authentication service is currently being configured. Please
               use the demo portal to access the platform.
             </p>
@@ -102,7 +104,7 @@ export default function LoginPage() {
         )}
 
         {/* ── Footer ── */}
-        <p className="mt-8 text-center text-[10px] text-text-faint/50">
+        <p className="mt-4 text-center text-[10px] text-text-faint/50">
           © 2026 AurumShield. All rights reserved.
         </p>
       </div>
