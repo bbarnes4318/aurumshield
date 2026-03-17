@@ -317,6 +317,7 @@ export default function OfftakerMarketplacePage() {
               return (
                 <button
                   key={asset.id}
+                  data-tour={asset.id === "lbma-400oz" ? "cinematic-lbma-400oz" : undefined}
                   onClick={() => handleSelectAsset(asset)}
                   className={`
                     bg-black border rounded-none text-left transition-all duration-200 cursor-pointer overflow-hidden flex flex-col

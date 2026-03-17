@@ -5,6 +5,9 @@
    transitions, target resolution with retry. State persisted to 
    localStorage and synced with URL params.
    
+   Cinematic Mode: When tour.cinematic is true, dispatches Vapi
+   voice scripts on step change via useVapiSync.
+   
    Exposes: startTour, nextStep, prevStep, jumpToStep, 
    pauseTour, resumeTour, exitTour, restartTour.
    ================================================================ */
@@ -29,6 +32,7 @@ import type {
 } from "./tourTypes";
 import { INITIAL_TOUR_STATE } from "./tourTypes";
 import { getTourForRole } from "../tours";
+import { useVapiSync } from "../autopilot/useVapiSync";
 
 /* ---------- Context Shape ---------- */
 
@@ -59,6 +63,10 @@ interface TourContextValue {
   restartTour: () => void;
   /** Mark current step as completed (used by click/element observers) */
   completeCurrentStep: () => void;
+  /** Whether Vapi is currently speaking */
+  isSpeaking: boolean;
+  /** Vapi volume level for waveform displays */
+  volumeLevel: number;
 }
 
 const TourContext = createContext<TourContextValue | null>(null);
@@ -145,6 +153,15 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Vapi sync for cinematic voice dispatch
+  const {
+    isSpeaking,
+    speak,
+    ensureCallActive,
+    volumeLevel,
+    stopCall,
+  } = useVapiSync();
+
   // Initialize from localStorage or URL
   const initialState = useMemo(() => {
     const persisted = loadPersistedState();
@@ -164,6 +181,8 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
   const [state, dispatch] = useReducer(tourReducer, initialState);
   const navigatingRef = useRef(false);
+  const vapiStartedRef = useRef(false);
+  const lastSpokenStepRef = useRef<string | null>(null);
 
   // Resolve current tour & step
   const tour = state.tourId ? (getTourForRole(state.tourId) ?? null) : null;
@@ -173,13 +192,18 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       ? tour.steps[state.stepIndex]
       : null;
 
+  const isCinematic = tour?.cinematic === true;
+
   // Detect tour completion
   useEffect(() => {
     if (tour && state.stepIndex >= totalSteps && state.status === "active") {
       dispatch({ type: "COMPLETE" });
       console.info(`[Tour] Completed: ${tour.id}`);
+      if (isCinematic) {
+        stopCall();
+      }
     }
-  }, [tour, state.stepIndex, totalSteps, state.status]);
+  }, [tour, state.stepIndex, totalSteps, state.status, isCinematic, stopCall]);
 
   // Persist state changes
   useEffect(() => {
@@ -206,6 +230,55 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentStep, pathname, router, state.status]);
 
+  /* ── Cinematic Vapi Dispatch: fire voice script on step change ── */
+  useEffect(() => {
+    if (!isCinematic || state.status !== "active" || !currentStep) return;
+    if (!currentStep.vapiScript) return;
+
+    // Prevent re-speaking the same step
+    const stepKey = `${state.tourId}-${state.stepIndex}`;
+    if (lastSpokenStepRef.current === stepKey) return;
+    lastSpokenStepRef.current = stepKey;
+
+    // Ensure Vapi is started, then speak
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const run = async () => {
+      if (!vapiStartedRef.current) {
+        vapiStartedRef.current = true;
+        try {
+          await ensureCallActive(signal);
+        } catch {
+          // Vapi unavailable — fallback will handle it
+        }
+      }
+
+      // Apply delay if specified (e.g. KYB step waits 3 seconds)
+      if (currentStep.delayMs) {
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, currentStep.delayMs);
+          signal.addEventListener("abort", () => clearTimeout(timer), { once: true });
+        });
+      }
+
+      if (signal.aborted) return;
+
+      try {
+        await speak(currentStep.vapiScript!, signal);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        console.warn("[Tour] Vapi speech failed:", err);
+      }
+    };
+
+    run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [isCinematic, state.status, state.stepIndex, state.tourId, currentStep, speak, ensureCallActive]);
+
   /* ---------- Actions ---------- */
 
   const startTour = useCallback(
@@ -216,6 +289,8 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       console.info(`[Tour] Started: ${roleId}`);
+      lastSpokenStepRef.current = null;
+      vapiStartedRef.current = false;
       dispatch({ type: "START", tourId: roleId });
       // Navigate to start route
       const separator = tourDef.startRoute.includes("?") ? "&" : "?";
@@ -256,11 +331,16 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const exitTour = useCallback(() => {
     console.info("[Tour] Exited");
     dispatch({ type: "EXIT" });
-  }, []);
+    if (isCinematic) {
+      stopCall();
+      vapiStartedRef.current = false;
+    }
+  }, [isCinematic, stopCall]);
 
   const restartTour = useCallback(() => {
     if (!state.tourId) return;
     console.info(`[Tour] Restarted: ${state.tourId}`);
+    lastSpokenStepRef.current = null;
     dispatch({ type: "START", tourId: state.tourId, stepIndex: 0 });
   }, [state.tourId]);
 
@@ -290,6 +370,8 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       exitTour,
       restartTour,
       completeCurrentStep,
+      isSpeaking,
+      volumeLevel,
     }),
     [
       state,
@@ -305,6 +387,8 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       exitTour,
       restartTour,
       completeCurrentStep,
+      isSpeaking,
+      volumeLevel,
     ],
   );
 

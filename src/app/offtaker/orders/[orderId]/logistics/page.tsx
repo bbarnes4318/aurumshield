@@ -253,7 +253,7 @@ export default function LogisticsRadarPage() {
               RIGHT COLUMN — Geospatial Radar
               ────────────────────────────────────────────────────── */}
           <div className="lg:col-span-7 min-h-0">
-            <div className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-4 h-full flex flex-col">
+            <div data-tour="cinematic-transit-map" className="bg-black border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] p-4 h-full flex flex-col">
               <span className="font-mono text-gold-primary text-xs tracking-[0.2em] uppercase block mb-4">
                 Geospatial Radar
               </span>

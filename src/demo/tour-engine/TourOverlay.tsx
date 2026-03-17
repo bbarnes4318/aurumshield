@@ -1,15 +1,16 @@
 /* ================================================================
-   TOUR OVERLAY — Institutional step panel
+   TOUR OVERLAY — Cinematic HUD Panel
    
    Fixed overlay panel showing:
-   - Step counter (3 / 18)
+   - Act label + step counter (ACT I — 3 / 9)
    - Title + body
-   - Structured Risk / Control / Why block
+   - Click-to-continue indicator
    - Back / Next buttons (Next disabled if click-gated)
-   - "Click target to continue" label
    - Jump dropdown, Pause/Resume/Restart/Exit controls
+   - Vapi speaking indicator with volume bars
    
-   Calm institutional styling. No gradients.
+   In cinematic mode: institutional dark glassmorphism styling.
+   In standard mode: calm institutional card styling.
    ================================================================ */
 
 "use client";
@@ -26,14 +27,15 @@ import {
   ChevronDown,
   MousePointerClick,
   CheckCircle2,
+  Radio,
 } from "lucide-react";
 import { useTour } from "./TourProvider";
 import { useTourTarget } from "./useTourTarget";
 import { ROLE_DISPLAY } from "./tourTypes";
 import type { UserRole } from "@/lib/mock-data";
 
-/** Z-index for the overlay panel */
-const OVERLAY_Z = 9995;
+/** Z-index for the overlay panel — above the Glass Shield */
+const OVERLAY_Z = 100000;
 
 export function TourOverlay() {
   const {
@@ -49,12 +51,16 @@ export function TourOverlay() {
     exitTour,
     restartTour,
     completeCurrentStep,
+    isSpeaking,
+    volumeLevel,
   } = useTour();
 
   const [mounted, setMounted] = useState(false);
   const [showJump, setShowJump] = useState(false);
   const [stepCompleted, setStepCompleted] = useState(false);
   const jumpRef = useRef<HTMLDivElement>(null);
+
+  const isCinematic = tour?.cinematic === true;
 
   // Client mount
   useEffect(() => {
@@ -119,9 +125,6 @@ export function TourOverlay() {
     requestAnimationFrame(check);
   }, [state.status, currentStep, completeCurrentStep]);
 
-  // Route completion: watch for pathname changes
-  // (Handled in TourProvider's route navigation logic)
-
   // Close jump dropdown on outside click
   useEffect(() => {
     if (!showJump) return;
@@ -156,28 +159,81 @@ export function TourOverlay() {
             width: 380,
           }}
         >
-          <div className="card-base border border-border p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <CheckCircle2 className="h-5 w-5 text-success" />
-              <span className="text-sm font-semibold text-text">
-                Tour Complete
+          <div
+            style={isCinematic ? {
+              background: "rgba(10, 17, 40, 0.95)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(63, 174, 122, 0.4)",
+              borderRadius: 12,
+              padding: "20px 24px",
+            } : undefined}
+            className={isCinematic ? undefined : "card-base border border-border p-5"}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <CheckCircle2
+                style={{ width: 20, height: 20, color: "#3fae7a" }}
+              />
+              <span
+                style={{
+                  fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#3fae7a",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                Demonstration Complete
               </span>
             </div>
-            <p className="text-xs text-text-muted leading-relaxed mb-4">
-              You have completed the{" "}
-              {ROLE_DISPLAY[tour.role as UserRole] ?? tour.role} guided tour.
+            <p
+              style={{
+                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                fontSize: 11,
+                color: "#7f8ca3",
+                lineHeight: "1.6",
+                marginBottom: 16,
+              }}
+            >
+              {totalSteps} steps executed across the AurumShield sovereign ecosystem.
             </p>
-            <div className="flex items-center gap-2">
+            <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={restartTour}
-                className="flex items-center gap-1.5 rounded-sm border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-muted hover:bg-surface-3 hover:text-text transition-colors"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 14px",
+                  background: "rgba(36, 54, 83, 0.5)",
+                  border: "1px solid rgba(36, 54, 83, 0.8)",
+                  borderRadius: 6,
+                  color: "#aab6c8",
+                  fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                  fontSize: 10,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
               >
-                <RotateCcw className="h-3 w-3" />
+                <RotateCcw style={{ width: 12, height: 12 }} />
                 Restart
               </button>
               <button
                 onClick={exitTour}
-                className="flex items-center gap-1.5 rounded-sm bg-gold px-3 py-1.5 text-xs font-medium text-bg hover:bg-gold-hover transition-colors"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 14px",
+                  background: "#c6a86b",
+                  border: "none",
+                  borderRadius: 6,
+                  color: "#0a1128",
+                  fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
               >
                 Done
               </button>
@@ -202,26 +258,63 @@ export function TourOverlay() {
           width: 300,
         }}
       >
-        <div className="card-base border border-border p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-text-faint uppercase tracking-wider">
+        <div
+          style={isCinematic ? {
+            background: "rgba(10, 17, 40, 0.95)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(198, 168, 107, 0.25)",
+            borderRadius: 12,
+            padding: "14px 18px",
+          } : undefined}
+          className={isCinematic ? undefined : "card-base border border-border p-4"}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span
+              style={{
+                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                fontSize: 10,
+                fontWeight: 700,
+                color: "#c6a86b",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+              }}
+            >
               Tour Paused
             </span>
-            <div className="flex items-center gap-1.5">
+            <div style={{ display: "flex", gap: 6 }}>
               <button
                 onClick={resumeTour}
-                className="flex items-center gap-1 rounded-sm border border-border bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-text-muted hover:text-text hover:bg-surface-3 transition-colors"
-                title="Resume"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "5px 12px",
+                  background: "rgba(36, 54, 83, 0.5)",
+                  border: "1px solid rgba(36, 54, 83, 0.8)",
+                  borderRadius: 6,
+                  color: "#aab6c8",
+                  fontSize: 10,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
               >
-                <Play className="h-3 w-3" />
+                <Play style={{ width: 10, height: 10 }} />
                 Resume
               </button>
               <button
                 onClick={exitTour}
-                className="flex items-center rounded-sm border border-border bg-surface-2 p-1 text-text-faint hover:text-text hover:bg-surface-3 transition-colors"
-                title="Exit Tour"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "5px 8px",
+                  background: "rgba(36, 54, 83, 0.5)",
+                  border: "1px solid rgba(36, 54, 83, 0.8)",
+                  borderRadius: 6,
+                  color: "#7f8ca3",
+                  cursor: "pointer",
+                }}
               >
-                <X className="h-3 w-3" />
+                <X style={{ width: 12, height: 12 }} />
               </button>
             </div>
           </div>
@@ -231,10 +324,283 @@ export function TourOverlay() {
     );
   }
 
-  // Active step overlay
-  const hasStructure = currentStep.structure && currentStep.structure.length > 0;
+  /* ── Volume bars for speaking indicator ── */
+  const bars = Array.from({ length: 5 }, (_, i) => {
+    const threshold = (i + 1) * 0.15;
+    const active = isSpeaking && volumeLevel > threshold;
+    return (
+      <div
+        key={i}
+        style={{
+          width: 3,
+          height: active ? 12 + i * 2 : 4,
+          borderRadius: 2,
+          background: active ? "#c6a86b" : "#243653",
+          transition: "height 0.15s ease, background 0.15s ease",
+        }}
+      />
+    );
+  });
 
-  // Compute overlay position based on target and placement
+  /* ═══════════════════════════════════════════════════════════
+     CINEMATIC OVERLAY — Dark glassmorphism institutional HUD
+     ═══════════════════════════════════════════════════════════ */
+  if (isCinematic) {
+    return createPortal(
+      <div
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          zIndex: OVERLAY_Z,
+          width: 380,
+        }}
+      >
+        <div
+          style={{
+            background: "rgba(10, 17, 40, 0.95)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(198, 168, 107, 0.25)",
+            borderRadius: 12,
+            overflow: "hidden",
+          }}
+        >
+          {/* Top bar — act label + step counter */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "10px 16px",
+              borderBottom: "1px solid rgba(36, 54, 83, 0.6)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Radio style={{ width: 14, height: 14, color: "#c6a86b" }} />
+              <span
+                style={{
+                  fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: "#c6a86b",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                {currentStep.actLabel ?? "Cinematic Demo"}
+              </span>
+            </div>
+            <span
+              style={{
+                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                fontSize: 10,
+                fontWeight: 600,
+                color: "#7f8ca3",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {state.stepIndex + 1} / {totalSteps}
+            </span>
+          </div>
+
+          {/* Step content */}
+          <div style={{ padding: "12px 16px" }}>
+            <h3
+              style={{
+                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                fontSize: 13,
+                fontWeight: 700,
+                color: "#e7ecf4",
+                marginBottom: 6,
+              }}
+            >
+              {currentStep.title}
+            </h3>
+            <p
+              style={{
+                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                fontSize: 11,
+                color: "#7f8ca3",
+                lineHeight: "1.6",
+                marginBottom: 10,
+              }}
+            >
+              {currentStep.body}
+            </p>
+
+            {/* Click-to-continue indicator */}
+            {isClickGated && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background: "rgba(198, 168, 107, 0.08)",
+                  border: "1px solid rgba(198, 168, 107, 0.2)",
+                  borderRadius: 6,
+                  padding: "8px 12px",
+                }}
+              >
+                <MousePointerClick style={{ width: 14, height: 14, color: "#c6a86b" }} />
+                <span
+                  style={{
+                    fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                    fontSize: 10,
+                    color: "rgba(198, 168, 107, 0.8)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Click the highlighted element to continue
+                </span>
+              </div>
+            )}
+
+            {/* Speaking indicator */}
+            {isSpeaking && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#c6a86b",
+                    boxShadow: "0 0 6px rgba(198, 168, 107, 0.5)",
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                    fontSize: 9,
+                    color: "#7f8ca3",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Speaking
+                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-end",
+                    gap: 2,
+                    marginLeft: "auto",
+                    height: 20,
+                  }}
+                >
+                  {bars}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom controls */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              padding: "8px 16px 12px",
+              borderTop: "1px solid rgba(36, 54, 83, 0.4)",
+            }}
+          >
+            <div style={{ display: "flex", gap: 6 }}>
+              <button
+                onClick={prevStep}
+                disabled={state.stepIndex <= 0}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "5px 12px",
+                  background: "rgba(36, 54, 83, 0.5)",
+                  border: "1px solid rgba(36, 54, 83, 0.8)",
+                  borderRadius: 6,
+                  color: state.stepIndex <= 0 ? "#3a4a5f" : "#aab6c8",
+                  fontSize: 10,
+                  fontWeight: 600,
+                  cursor: state.stepIndex <= 0 ? "not-allowed" : "pointer",
+                  opacity: state.stepIndex <= 0 ? 0.4 : 1,
+                }}
+              >
+                <ChevronLeft style={{ width: 10, height: 10 }} />
+                Back
+              </button>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button
+                onClick={pauseTour}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "5px 8px",
+                  background: "rgba(36, 54, 83, 0.5)",
+                  border: "1px solid rgba(36, 54, 83, 0.8)",
+                  borderRadius: 6,
+                  color: "#7f8ca3",
+                  cursor: "pointer",
+                }}
+                title="Pause"
+              >
+                <Pause style={{ width: 10, height: 10 }} />
+              </button>
+              <button
+                onClick={exitTour}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "5px 8px",
+                  background: "rgba(209, 106, 93, 0.1)",
+                  border: "1px solid rgba(209, 106, 93, 0.3)",
+                  borderRadius: 6,
+                  color: "#d16a5d",
+                  cursor: "pointer",
+                }}
+                title="Exit"
+              >
+                <X style={{ width: 10, height: 10 }} />
+              </button>
+              <button
+                onClick={nextStep}
+                disabled={nextDisabled}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "5px 14px",
+                  background: nextDisabled ? "rgba(36, 54, 83, 0.5)" : "#c6a86b",
+                  border: nextDisabled ? "1px solid rgba(36, 54, 83, 0.8)" : "none",
+                  borderRadius: 6,
+                  color: nextDisabled ? "#3a4a5f" : "#0a1128",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  cursor: nextDisabled ? "not-allowed" : "pointer",
+                  opacity: nextDisabled ? 0.4 : 1,
+                }}
+              >
+                Next
+                <ChevronRight style={{ width: 10, height: 10 }} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     STANDARD OVERLAY — Classic institutional step panel
+     ═══════════════════════════════════════════════════════════ */
+
+  const hasStructure = currentStep.structure && currentStep.structure.length > 0;
   const overlayStyle = getOverlayPositionStyle(currentStep.placement);
 
   return createPortal(
@@ -283,15 +649,9 @@ export function TourOverlay() {
 
         {/* Step content */}
         <div className="px-4 py-3.5 space-y-3 overflow-y-auto" style={{ maxHeight: "60vh" }}>
-          {/* Title */}
           <h3 className="text-sm font-semibold text-text">{currentStep.title}</h3>
+          <p className="text-xs text-text-muted leading-relaxed">{currentStep.body}</p>
 
-          {/* Body */}
-          <p className="text-xs text-text-muted leading-relaxed">
-            {currentStep.body}
-          </p>
-
-          {/* Structured Risk / Control / Why block */}
           {hasStructure && (
             <div className="space-y-2 pt-1">
               {currentStep.structure!.map((item, idx) => (
@@ -307,7 +667,6 @@ export function TourOverlay() {
             </div>
           )}
 
-          {/* Click-to-continue indicator */}
           {isClickGated && (
             <div className="flex items-center gap-2 rounded-sm border border-gold/20 bg-gold/5 px-3 py-2">
               <MousePointerClick className="h-3.5 w-3.5 text-gold/70" />
@@ -394,15 +753,9 @@ export function TourOverlay() {
   );
 }
 
-/**
- * Compute overlay position style. For center placement, use center of screen.
- * For directional placements, anchor to bottom-right for stability.
- */
 function getOverlayPositionStyle(
   placement: string,
 ): React.CSSProperties {
-  // For institutional demo, always anchor overlay to bottom-right for stability
-  // This prevents the overlay from jumping around and maintains a professional feel
   switch (placement) {
     case "center":
       return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };

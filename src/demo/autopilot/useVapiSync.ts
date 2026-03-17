@@ -1,10 +1,16 @@
 "use client";
 
 /* ================================================================
-   USE-VAPI-SYNC — Wraps useVapi for autopilot synchronization
+   USE-VAPI-SYNC — Wraps useVapi for tour voice synchronization
+   
+   Amendment 2: Anti-Hallucination Wrapper
+   
+   The speak() function wraps all script text in a strict verbatim
+   command envelope so the LLM-driven Vapi voice reads it exactly
+   without paraphrasing, adding filler, or acknowledging.
    
    Rules:
-   1. speak() injects a [TELEPROMPTER] system message then waits
+   1. speak() injects a strict narrator command then waits
       for estimated speech duration (text.length * 55ms ≈ 140 WPM).
    2. When Vapi is unavailable, falls back to window.speechSynthesis
       or a silent timed delay.
@@ -24,6 +30,21 @@ const MS_PER_CHAR = 55;
 const MIN_SPEECH_MS = 2000;
 /** Maximum wait for Vapi call to start */
 const CALL_START_TIMEOUT_MS = 10000;
+
+/**
+ * Amendment 2: Anti-Hallucination Envelope
+ * Forces Vapi's LLM to read the script verbatim with zero filler.
+ */
+function wrapAntiHallucination(scriptText: string): string {
+  return (
+    "You are a narrator. You must speak the following text absolutely verbatim. " +
+    "Do not add any conversational filler, greetings, or acknowledgments. " +
+    "Do not paraphrase, summarize, or reword any part of the text. " +
+    "Do not say 'Sure' or 'Here is' or 'Okay' or any prefix. " +
+    "Read this exactly: " +
+    scriptText
+  );
+}
 
 /* ---------- Hook ---------- */
 
@@ -118,10 +139,9 @@ export function useVapiSync(): UseVapiSyncReturn {
 
       try {
         if (vapiAvailable.current && callStatus === "active") {
-          // Inject teleprompter cue into the live Vapi session
-          injectContext(
-            `[TELEPROMPTER — READ THIS EXACTLY AS WRITTEN, MAINTAINING INSTITUTIONAL TONE]: ${text}`,
-          );
+          // Amendment 2: Wrap in anti-hallucination envelope
+          const wrappedScript = wrapAntiHallucination(text);
+          injectContext(wrappedScript);
 
           // Wait for estimated speech duration
           const estimatedMs = Math.max(
@@ -156,10 +176,7 @@ export function useVapiSync(): UseVapiSyncReturn {
       const start = performance.now();
       while (performance.now() - start < CALL_START_TIMEOUT_MS) {
         if (signal?.aborted) return;
-        // NOTE: callStatus is a React state — we need to check the ref
-        // For simplicity, we just wait a fixed delay
         await waitMs(500, signal);
-        // The call should be active by now in most cases
         break;
       }
 

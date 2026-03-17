@@ -54,11 +54,11 @@ function LedgerContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {(entries ?? []).map((e) => {
+              {(entries ?? []).map((e, idx) => {
                 const statusClass = STATUS_COLORS[e.status] ?? "bg-surface-3 text-text-faint border-border";
                 const integrityOk = e.entryCount >= 1;
                 return (
-                  <tr key={e.settlementId} className="hover:bg-surface-2/50 transition-colors">
+                  <tr key={e.settlementId} data-tour={idx === 0 ? "cinematic-receipt-row" : undefined} className="hover:bg-surface-2/50 transition-colors">
                     <td className="px-3 py-2">
                       <Link href={`/settlements/${e.settlementId}`} className="font-mono text-gold hover:underline">{e.settlementId}</Link>
                     </td>

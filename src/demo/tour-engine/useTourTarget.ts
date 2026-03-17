@@ -1,9 +1,13 @@
 /* ================================================================
    USE TOUR TARGET — Resolves a CSS selector to a DOM element
    
-   Uses requestAnimationFrame loop for up to 1500ms.
-   Returns { element, found, searching }.
-   Logs console.warn if target not found.
+   Uses MutationObserver + rAF polling for resilient element
+   resolution across Next.js route changes.
+   
+   Amendment 3: Route-Change Resilience
+   - MutationObserver watches for DOM additions after navigation
+   - Safe retry with configurable timeout (5s for route transitions)
+   - Never crashes if target doesn't exist — gracefully waits
    ================================================================ */
 
 "use client";
@@ -17,11 +21,12 @@ interface TourTargetResult {
 }
 
 /** Maximum time (ms) to search for a target element */
-const MAX_SEARCH_MS = 1500;
+const MAX_SEARCH_MS = 5000;
 
 /**
  * Resolve a target selector string to a DOM element.
- * Retries via rAF loop for up to MAX_SEARCH_MS.
+ * Uses MutationObserver for resilient detection across route changes,
+ * with rAF polling as a fallback.
  */
 export function useTourTarget(
   selector: string | undefined,
@@ -32,52 +37,93 @@ export function useTourTarget(
     found: false,
     searching: !!selector,
   });
+  const observerRef = useRef<MutationObserver | null>(null);
   const rafRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const search = useCallback(() => {
-    if (!selector) {
-      setResult({ element: null, found: false, searching: false });
-      return;
+  const cleanup = useCallback(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
     }
-
-    startTimeRef.current = performance.now();
-
-    const tick = () => {
-      const el = document.querySelector<HTMLElement>(selector);
-      if (el) {
-        setResult({ element: el, found: true, searching: false });
-        return;
-      }
-
-      const elapsed = performance.now() - startTimeRef.current;
-      if (elapsed >= MAX_SEARCH_MS) {
-        console.warn(`[Tour] Target not found: "${selector}" (step: ${stepId})`);
-        setResult({ element: null, found: false, searching: false });
-        return;
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-  }, [selector, stepId]);
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (!selector) {
       setResult({ element: null, found: false, searching: false });
+      cleanup();
       return;
     }
 
     setResult({ element: null, found: false, searching: true });
-    search();
+
+    // Immediate check
+    const immediateEl = document.querySelector<HTMLElement>(selector);
+    if (immediateEl) {
+      setResult({ element: immediateEl, found: true, searching: false });
+      return;
+    }
+
+    // Strategy: MutationObserver + rAF polling for maximum resilience
+    let resolved = false;
+
+    const resolve = (el: HTMLElement) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      setResult({ element: el, found: true, searching: false });
+    };
+
+    const fail = () => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      console.warn(`[Tour] Target not found: "${selector}" (step: ${stepId})`);
+      setResult({ element: null, found: false, searching: false });
+    };
+
+    // MutationObserver: watch for new DOM nodes
+    const observer = new MutationObserver(() => {
+      if (resolved) return;
+      const el = document.querySelector<HTMLElement>(selector);
+      if (el) resolve(el);
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+    observerRef.current = observer;
+
+    // rAF polling fallback (catches cases MutationObserver misses)
+    const poll = () => {
+      if (resolved) return;
+      const el = document.querySelector<HTMLElement>(selector);
+      if (el) {
+        resolve(el);
+        return;
+      }
+      rafRef.current = requestAnimationFrame(poll);
+    };
+    rafRef.current = requestAnimationFrame(poll);
+
+    // Hard timeout — give up after MAX_SEARCH_MS
+    timeoutRef.current = setTimeout(() => {
+      if (!resolved) fail();
+    }, MAX_SEARCH_MS);
 
     return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
+      resolved = true;
+      cleanup();
     };
-  }, [selector, search]);
+  }, [selector, stepId, cleanup]);
 
   return result;
 }

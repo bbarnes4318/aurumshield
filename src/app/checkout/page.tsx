@@ -279,6 +279,7 @@ export default function CheckoutPage() {
             </div>
             <button
               type="button"
+              data-tour="cinematic-dvp-confirm"
               onClick={handlePriceLock}
               className={`flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-4 text-sm font-bold text-bg transition-all hover:bg-gold-hover active:scale-[0.98] ${isDemoActive ? DEMO_SPOTLIGHT_CLASSES : ""}`}
             >

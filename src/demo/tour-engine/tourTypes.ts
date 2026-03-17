@@ -1,8 +1,11 @@
 /* ================================================================
-   TOUR TYPES — Structured step definitions for institutional tours
+   TOUR TYPES — Structured step definitions for cinematic tours
    
-   All tours keyed by real UserRole IDs.
-   No separate demo role system.
+   Extended for the Glass Shield cinematic engine:
+   - vapiScript: Exact narration text for Vapi voice
+   - actLabel: Act heading (e.g. "ACT I — THE SOVEREIGN OFFTAKER")
+   - delayMs: Delay before highlighting target
+   - tooltipText: On-screen subtitle mirroring voice
    ================================================================ */
 
 import type { UserRole } from "@/lib/mock-data";
@@ -88,6 +91,17 @@ export interface TourStep {
     /** Only show for these roles */
     roles?: UserRole[];
   };
+
+  /* ─── Cinematic Extensions ─── */
+
+  /** Exact TTS script for Vapi to speak verbatim. No hallucination. */
+  vapiScript?: string;
+  /** Act heading (e.g. "ACT I — THE SOVEREIGN OFFTAKER") */
+  actLabel?: string;
+  /** Delay (ms) before highlighting the target (e.g. KYB wait) */
+  delayMs?: number;
+  /** On-screen subtitle text that mirrors the voice narration */
+  tooltipText?: string;
 }
 
 /* ---------- Tour Definition ---------- */
@@ -107,6 +121,8 @@ export interface TourDefinition {
   steps: TourStep[];
   /** Preview path labels shown on demo console */
   previewPath: string[];
+  /** Whether this is a cinematic (Glass Shield) tour */
+  cinematic?: boolean;
 }
 
 /* ---------- Tour Runtime State ---------- */

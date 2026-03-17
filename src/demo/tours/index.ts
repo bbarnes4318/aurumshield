@@ -4,7 +4,7 @@
    Tours are keyed by the actual UserRole values:
    sender, recipient, treasury, compliance, vault_ops, admin
    
-   No separate demo role system.
+   Plus the cinematic demo tour for investor presentations.
    ================================================================ */
 
 import type { TourDefinition } from "../tour-engine/tourTypes";
@@ -14,8 +14,9 @@ import { opsTour } from "./ops";
 import { riskTour } from "./risk";
 import { treasuryTour } from "./treasury";
 import { adminTour } from "./admin";
+import { cinematicTour } from "./cinematic";
 
-/** Registry of all available tours, keyed by UserRole */
+/** Registry of all available tours, keyed by UserRole or tour ID */
 export const TOUR_REGISTRY: Record<string, TourDefinition> = {
   buyer: senderTour,       // Legacy alias → new sender tour
   seller: recipientTour,   // Legacy alias → new recipient tour
@@ -25,6 +26,7 @@ export const TOUR_REGISTRY: Record<string, TourDefinition> = {
   compliance: riskTour,
   treasury: treasuryTour,
   admin: adminTour,
+  cinematic: cinematicTour,
 };
 
 /** Get a tour definition for a given role ID */

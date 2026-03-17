@@ -179,6 +179,7 @@ export default function ProducerAccreditationPage() {
           <div>
             <button
               type="submit"
+              data-tour="cinematic-mine-provenance"
               disabled={isSubmitting}
               className={`w-full font-bold text-sm tracking-wide py-4 flex items-center justify-center gap-2 transition-colors font-mono ${
                 isSubmitting
