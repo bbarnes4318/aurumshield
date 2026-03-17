@@ -20,8 +20,6 @@ import {
   ArrowUpRight,
   Eye,
   Radio,
-  LayoutGrid,
-  Activity,
 } from "lucide-react";
 import ProducerTelemetryFooter from "@/components/producer/ProducerTelemetryFooter";
 
@@ -136,7 +134,6 @@ export default function CommandCenterUI({
 }: CommandCenterUIProps) {
   /* Toggle between populated and empty state for demonstration */
   const [showZeroState, setShowZeroState] = useState(false);
-  const [activeTab, setActiveTab] = useState<"inventory" | "radar">("inventory");
 
   /* ── Dual-mode data resolution ── */
   const inventory = isDemo
@@ -158,8 +155,8 @@ export default function CommandCenterUI({
     : liveMetrics;
 
   return (
-    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
-      <div className="flex-1 min-h-0 flex flex-col max-w-7xl w-full mx-auto px-4 py-3">
+    <div className="min-h-screen bg-slate-950 pb-14">
+      <div className="max-w-7xl mx-auto p-6 pt-10">
 
         {/* ── Page Header ── */}
         <div className="flex items-center justify-between mb-1">
@@ -187,14 +184,14 @@ export default function CommandCenterUI({
         <h1 className="font-mono text-2xl text-white font-bold tracking-tight mb-1">
           Industrial Operations Overview
         </h1>
-        <p className="font-mono text-[11px] text-slate-600 mb-3">
+        <p className="font-mono text-[11px] text-slate-600 mb-8">
           REAL-TIME VAULTING · REFINERY PIPELINE · SETTLEMENT RADAR
         </p>
 
         {/* ════════════════════════════════════════════════════════
            METRICS STRIP (4 blocks)
            ════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-slate-800 border border-slate-800 mb-3 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-slate-800 border border-slate-800 mb-8">
           <MetricBlock
             icon={<Vault className="h-4 w-4 text-emerald-400" />}
             label="Vaulted Good Delivery"
@@ -228,40 +225,13 @@ export default function CommandCenterUI({
           <ZeroState />
         ) : (
           /* ════════════════════════════════════════════════════════
-             TAB BAR
+             TWO-COLUMN LAYOUT: Inventory Grid + Capital Radar
              ════════════════════════════════════════════════════════ */
-          <>
-            <div className="shrink-0 flex items-center gap-0 border border-slate-800 bg-black mb-3">
-              <button
-                type="button"
-                onClick={() => setActiveTab("inventory")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 font-mono text-[10px] tracking-[0.15em] uppercase transition-colors cursor-pointer border-r border-slate-800 ${
-                  activeTab === "inventory"
-                    ? "bg-gold-primary/10 text-gold-primary border-b-2 border-b-gold-primary"
-                    : "text-slate-600 hover:text-slate-400 hover:bg-slate-900/50"
-                }`}
-              >
-                <LayoutGrid className="h-3 w-3" />
-                Active Inventory
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("radar")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 font-mono text-[10px] tracking-[0.15em] uppercase transition-colors cursor-pointer ${
-                  activeTab === "radar"
-                    ? "bg-gold-primary/10 text-gold-primary border-b-2 border-b-gold-primary"
-                    : "text-slate-600 hover:text-slate-400 hover:bg-slate-900/50"
-                }`}
-              >
-                <Activity className="h-3 w-3" />
-                Inbound Capital Radar
-              </button>
-            </div>
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
 
-            {/* ═══ TAB: INVENTORY ═══ */}
-            {activeTab === "inventory" && (
-            <div className="flex-1 min-h-0 flex flex-col">
-              <div className="bg-slate-900 border border-slate-800 flex-1 min-h-0 flex flex-col">
+            {/* ─── INVENTORY & YIELD GRID (Left — 3/5) ─── */}
+            <div className="xl:col-span-3">
+              <div className="bg-slate-900 border border-slate-800">
                 {/* Grid Header */}
                 <div className="flex items-center justify-between p-4 border-b border-slate-800">
                   <h2 className="font-mono text-xs text-slate-400 tracking-[0.15em] uppercase">
@@ -280,7 +250,7 @@ export default function CommandCenterUI({
                 </div>
 
                 {/* Dense Data Table */}
-                <div className="overflow-x-auto flex-1 min-h-0 overflow-y-auto">
+                <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-800">
@@ -381,11 +351,9 @@ export default function CommandCenterUI({
                 </div>
               </div>
             </div>
-            )}
 
-            {/* ═══ TAB: CAPITAL RADAR ═══ */}
-            {activeTab === "radar" && (
-            <div className="flex-1 min-h-0">
+            {/* ─── INBOUND CAPITAL RADAR (Right — 2/5) ─── */}
+            <div className="xl:col-span-2">
               <div className="bg-slate-900 border border-slate-800 h-full flex flex-col">
                 {/* Radar Header */}
                 <div className="p-4 border-b border-slate-800">
@@ -473,11 +441,11 @@ export default function CommandCenterUI({
                 </div>
               </div>
             </div>
-            )}
-          </>
+          </div>
         )}
 
-        <p className="mt-3 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
+        {/* ── Footer trust line ── */}
+        <p className="mt-10 text-center font-mono text-[10px] text-slate-700 tracking-wider">
           AurumShield Clearing · Producer Command Center · LBMA Fire-Assay Pipeline · Goldwire Settlement Engine
         </p>
       </div>

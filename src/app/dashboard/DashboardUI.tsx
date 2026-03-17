@@ -643,17 +643,8 @@ export interface DashboardUIProps {
 /* ================================================================
    MAIN DASHBOARD UI
    ================================================================ */
-const DASHBOARD_TABS = [
-  { key: "capital", label: "Capital" },
-  { key: "risk", label: "Risk" },
-  { key: "evidence", label: "Evidence" },
-] as const;
-
-type DashboardTab = (typeof DASHBOARD_TABS)[number]["key"];
-
 export default function DashboardUI({ initialData, isDemo }: DashboardUIProps) {
   const [scenario, setScenario] = useState<DashboardScenario>(initialData.scenario);
-  const [activeTab, setActiveTab] = useState<DashboardTab>("capital");
 
   // In demo mode, allow scenario switching with mock data
   // In live mode, use the server-provided data
@@ -662,165 +653,143 @@ export default function DashboardUI({ initialData, isDemo }: DashboardUIProps) {
 
   return (
     <RequireRole allowedRoles={["admin", "compliance", "treasury", "vault_ops"]}>
-    <div className="flex h-full flex-col overflow-hidden">
+    <>
       {/* Header */}
-      <div className="shrink-0">
-        <PageHeader
-          title="Risk Dashboard"
-          description="AurumShield capital adequacy, risk distribution, and evidence integrity monitor."
-          actions={
-            <div className="flex items-center gap-3">
-              {/* Scenario toggle — restrained system-version pills */}
-              {isDemo && (
-                <div className="flex items-center gap-1 rounded-(--radius-sm) border border-border bg-surface-2 p-0.5">
-                  <button
-                    onClick={() => setScenario("phase1")}
-                    className={cn(
-                      "rounded-[calc(var(--radius-sm)-2px)] px-3 py-1 text-[11px] font-medium transition-colors duration-100",
-                      scenario === "phase1"
-                        ? "border border-gold-muted/40 bg-gold-muted/8 text-gold-muted"
-                        : "text-text-faint hover:text-text-muted"
-                    )}
-                  >
-                    Phase 1
-                  </button>
-                  <button
-                    onClick={() => setScenario("scaleUp")}
-                    className={cn(
-                      "rounded-[calc(var(--radius-sm)-2px)] px-3 py-1 text-[11px] font-medium transition-colors duration-100",
-                      scenario === "scaleUp"
-                        ? "border border-gold-muted/40 bg-gold-muted/8 text-gold-muted"
-                        : "text-text-faint hover:text-text-muted"
-                    )}
-                  >
-                    Scale-Up
-                  </button>
-                </div>
-              )}
-
-              {/* Export — institutional outlined button */}
-              <button
-                onClick={() => window.print()}
-                className="flex items-center gap-2 rounded-(--radius-sm) border border-border bg-surface-2 px-5 py-2 text-sm font-medium text-text-muted transition-colors duration-100 hover:bg-surface-3 hover:text-text"
-              >
-                <Download className="h-4 w-4" />
-                Export
-              </button>
-            </div>
-          }
-        />
-      </div>
-
-      {/* Tab Bar */}
-      <div className="shrink-0 flex items-center gap-1 border-b border-border px-1">
-        {DASHBOARD_TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setActiveTab(t.key)}
-            className={cn(
-              "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
-              activeTab === t.key
-                ? "border-gold text-gold"
-                : "border-transparent text-text-muted hover:text-text hover:border-border"
+      <PageHeader
+        title="Risk Dashboard"
+        description="AurumShield capital adequacy, risk distribution, and evidence integrity monitor."
+        actions={
+          <div className="flex items-center gap-3">
+            {/* Scenario toggle — restrained system-version pills */}
+            {isDemo && (
+              <div className="flex items-center gap-1 rounded-(--radius-sm) border border-border bg-surface-2 p-0.5">
+                <button
+                  onClick={() => setScenario("phase1")}
+                  className={cn(
+                    "rounded-[calc(var(--radius-sm)-2px)] px-3 py-1 text-[11px] font-medium transition-colors duration-100",
+                    scenario === "phase1"
+                      ? "border border-gold-muted/40 bg-gold-muted/8 text-gold-muted"
+                      : "text-text-faint hover:text-text-muted"
+                  )}
+                >
+                  Phase 1
+                </button>
+                <button
+                  onClick={() => setScenario("scaleUp")}
+                  className={cn(
+                    "rounded-[calc(var(--radius-sm)-2px)] px-3 py-1 text-[11px] font-medium transition-colors duration-100",
+                    scenario === "scaleUp"
+                      ? "border border-gold-muted/40 bg-gold-muted/8 text-gold-muted"
+                      : "text-text-faint hover:text-text-muted"
+                  )}
+                >
+                  Scale-Up
+                </button>
+              </div>
             )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
 
-      {/* Tab Content — fills remaining viewport */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-        {/* ── CAPITAL TAB ── */}
-        {activeTab === "capital" && (
-          <>
-            <section data-tour="dashboard-capital">
-              <div className="mb-2 flex items-center gap-2">
-                <h2 className="typo-label">Capital Adequacy</h2>
-                <InfoTooltip content={TOOLTIPS.capitalPanel} />
-              </div>
+            {/* Export — institutional outlined button */}
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 rounded-(--radius-sm) border border-border bg-surface-2 px-5 py-2 text-sm font-medium text-text-muted transition-colors duration-100 hover:bg-surface-3 hover:text-text"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+          </div>
+        }
+      />
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                <CapitalCell
-                  label="Capital Base"
-                  value={fmtUSD(cap.capitalBase, true)}
-                  sub={`Tier-1 + Tier-2 instruments`}
-                  tooltip={TOOLTIPS.capitalBase}
-                  highlight="gold"
-                />
-                <CapitalCell
-                  label="Active Exposure"
-                  value={fmtUSD(cap.activeExposure, true)}
-                  sub={`Net MTM across all counterparties`}
-                  tooltip={TOOLTIPS.activeExposure}
-                />
-                <CapitalCell
-                  label="ECR"
-                  value={`${cap.ecr.toFixed(2)}x`}
-                  sub={`${fmtUSD(cap.activeExposure, true)} ÷ ${fmtUSD(cap.capitalBase, true)}`}
-                  tooltip={TOOLTIPS.ecr}
-                  highlight={cap.ecr > 8 ? "danger" : cap.ecr > 6 ? "warning" : "success"}
-                />
-                <CapitalCell
-                  label="Buffer vs TVaR₉₉"
-                  value={`${cap.bufferVsTvar99 >= 0 ? "+" : ""}${fmtUSD(cap.bufferVsTvar99, true)}`}
-                  sub={`TVaR₉₉: ${fmtUSD(cap.tvar99, true)} · VaR₉₉: ${fmtUSD(cap.var99, true)}`}
-                  tooltip={TOOLTIPS.bufferVsTvar}
-                  highlight={cap.bufferVsTvar99 >= 0 ? "success" : "danger"}
-                />
-                <HardstopCell capital={cap} />
-              </div>
+      {/* ============================================================
+         SECTION 1: CAPITAL ADEQUACY
+         ============================================================ */}
+      <section data-tour="dashboard-capital">
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="typo-label">Capital Adequacy</h2>
+          <InfoTooltip content={TOOLTIPS.capitalPanel} />
+        </div>
 
-              <p className="mt-1.5 text-[10px] tabular-nums text-text-faint">
-                As of{" "}
-                {new Date(cap.asOf).toLocaleString("en-US", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  timeZone: "UTC",
-                  timeZoneName: "short",
-                })}
-              </p>
-            </section>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <CapitalCell
+            label="Capital Base"
+            value={fmtUSD(cap.capitalBase, true)}
+            sub={`Tier-1 + Tier-2 instruments`}
+            tooltip={TOOLTIPS.capitalBase}
+            highlight="gold"
+          />
+          <CapitalCell
+            label="Active Exposure"
+            value={fmtUSD(cap.activeExposure, true)}
+            sub={`Net MTM across all counterparties`}
+            tooltip={TOOLTIPS.activeExposure}
+          />
+          <CapitalCell
+            label="ECR"
+            value={`${cap.ecr.toFixed(2)}x`}
+            sub={`${fmtUSD(cap.activeExposure, true)} ÷ ${fmtUSD(cap.capitalBase, true)}`}
+            tooltip={TOOLTIPS.ecr}
+            highlight={cap.ecr > 8 ? "danger" : cap.ecr > 6 ? "warning" : "success"}
+          />
+          <CapitalCell
+            label="Buffer vs TVaR₉₉"
+            value={`${cap.bufferVsTvar99 >= 0 ? "+" : ""}${fmtUSD(cap.bufferVsTvar99, true)}`}
+            sub={`TVaR₉₉: ${fmtUSD(cap.tvar99, true)} · VaR₉₉: ${fmtUSD(cap.var99, true)}`}
+            tooltip={TOOLTIPS.bufferVsTvar}
+            highlight={cap.bufferVsTvar99 >= 0 ? "success" : "danger"}
+          />
+          <HardstopCell capital={cap} />
+        </div>
 
-            <IntradayControlCard />
-          </>
-        )}
+        {/* Capital panel timestamp */}
+        <p className="mt-2 text-[10px] tabular-nums text-text-faint">
+          As of{" "}
+          {new Date(cap.asOf).toLocaleString("en-US", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "UTC",
+            timeZoneName: "short",
+          })}
+        </p>
+      </section>
 
-        {/* ── RISK TAB ── */}
-        {activeTab === "risk" && (
-          <section data-tour="dashboard-risk">
-            <h2 className="typo-label mb-2">Systemic Risk & Exposure Distribution</h2>
+      {/* ============================================================
+         SECTION 1.5: INTRADAY CAPITAL + CONTROL MODE (compact card)
+         ============================================================ */}
+      <IntradayControlCard />
 
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              <TRIBandPanel bands={d.triBands.bands} asOf={d.triBands.asOf} />
-              <CorridorTierPanel tiers={d.corridorTiers.tiers} asOf={d.corridorTiers.asOf} />
-              <HubConcentrationPanel hubs={d.hubConcentration.hubs} totalHHI={d.hubConcentration.totalHHI} asOf={d.hubConcentration.asOf} />
-              <TxnByStatePanel states={d.txnByState.states} asOf={d.txnByState.asOf} />
-            </div>
+      {/* ============================================================
+         SECTION 2: RISK DISTRIBUTION
+         ============================================================ */}
+      <section data-tour="dashboard-risk">
+        <h2 className="typo-label mb-3">Systemic Risk & Exposure Distribution</h2>
 
-            <div className="mt-3">
-              <BlockedTransitionsPanel transitions={d.blockedTransitions.transitions} asOf={d.blockedTransitions.asOf} />
-            </div>
-          </section>
-        )}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <TRIBandPanel bands={d.triBands.bands} asOf={d.triBands.asOf} />
+          <CorridorTierPanel tiers={d.corridorTiers.tiers} asOf={d.corridorTiers.asOf} />
+          <HubConcentrationPanel hubs={d.hubConcentration.hubs} totalHHI={d.hubConcentration.totalHHI} asOf={d.hubConcentration.asOf} />
+          <TxnByStatePanel states={d.txnByState.states} asOf={d.txnByState.asOf} />
+        </div>
 
-        {/* ── EVIDENCE TAB ── */}
-        {activeTab === "evidence" && (
-          <section data-tour="dashboard-evidence">
-            <h2 className="typo-label mb-2">Cryptographic Provenance Health</h2>
+        <div className="mt-4">
+          <BlockedTransitionsPanel transitions={d.blockedTransitions.transitions} asOf={d.blockedTransitions.asOf} />
+        </div>
+      </section>
 
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              <EvidenceValidationsPanel validations={d.evidenceValidations.validations} asOf={d.evidenceValidations.asOf} />
-              <WORMStatusPanel segments={d.wormStatus.segments} totalDocuments={d.wormStatus.totalDocuments} asOf={d.wormStatus.asOf} />
-            </div>
-          </section>
-        )}
-      </div>
-    </div>
+      {/* ============================================================
+         SECTION 3: EVIDENCE HEALTH
+         ============================================================ */}
+      <section data-tour="dashboard-evidence">
+        <h2 className="typo-label mb-3">Cryptographic Provenance Health</h2>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <EvidenceValidationsPanel validations={d.evidenceValidations.validations} asOf={d.evidenceValidations.asOf} />
+          <WORMStatusPanel segments={d.wormStatus.segments} totalDocuments={d.wormStatus.totalDocuments} asOf={d.wormStatus.asOf} />
+        </div>
+      </section>
+    </>
     </RequireRole>
   );
 }

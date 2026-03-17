@@ -96,7 +96,7 @@ export default function LoginPage() {
             </p>
             <Link
               href="/demo/login?demo=true"
-              className="inline-flex items-center gap-2 rounded-md bg-[#c6a86b] px-6 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-[#d3b77d]"
+              className="inline-flex items-center gap-2 rounded-md bg-gold-primary px-6 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-[#d3b77d]"
             >
               Access Demo Portal
             </Link>
