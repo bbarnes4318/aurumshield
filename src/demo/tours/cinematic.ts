@@ -1,15 +1,23 @@
 /* ================================================================
-   CINEMATIC TOUR — 3-Act, 9-Step Narrative-Driven Demo
+   CINEMATIC TOUR — 3-Act, 11-Step Narrative-Driven Demo
    
-   Act 1: The Sovereign Offtaker (Steps 1–5)
+   Act 1: The Sovereign Offtaker (Steps 1–7)
+     1. The Gate (Org Select)
+     2a. Identity Scan (KYB - launch verification)
+     2b. Terminal Checks (KYB - watch automated checks)
+     2c. Enter Marketplace (KYB - proceed)
+     3. The Marketplace
+     4. Delivery Versus Payment
+     5. Transit Radar
    Act 2: The Institutional Producer (Steps 6–7)
+     6. The Pivot (Accreditation)
+     7. The Assay Gauntlet
    Act 3: Absolute Truth (Steps 8–9)
+     8. Central Command (Dashboard)
+     9. The Immutable Audit
    
-   Each step maps to: route, DOM target, Vapi voice script,
-   on-screen tooltip text, and act label.
-   
-   The Glass Shield engine blocks all clicks except the
-   spotlighted target element.
+   Fix 5: Expanded KYB choreography with identity scan,
+   terminal checks, and enter marketplace sub-steps.
    ================================================================ */
 
 import type { TourDefinition } from "../tour-engine/tourTypes";
@@ -18,13 +26,15 @@ export const cinematicTour: TourDefinition = {
   id: "cinematic",
   name: "Cinematic Demo — The Sovereign Allocation",
   description:
-    "A tightly controlled, narrative-driven experience across the Offtaker Portal, Producer Portal, and Global Dashboard. Nine steps. Three acts. Zero dead ends.",
+    "A tightly controlled, narrative-driven experience across the Offtaker Portal, Producer Portal, and Global Dashboard. Eleven steps. Three acts. Zero dead ends.",
   role: "offtaker",
   startRoute: "/offtaker/org/select?demo=true",
   cinematic: true,
   previewPath: [
     "The Gate",
-    "KYB Engine",
+    "Identity Scan",
+    "Terminal Checks",
+    "Enter Marketplace",
     "Marketplace",
     "DVP Escrow",
     "Transit Radar",
@@ -57,24 +67,63 @@ export const cinematicTour: TourDefinition = {
         "Welcome to AurumShield. You are acting as the Chief Investment Officer for a sovereign wealth fund. We are executing a fifty-million-dollar physical gold allocation. Click 'Establish Corporate Custody' to initiate the cryptographic handshake.",
     },
 
-    /* ── Step 2: The KYB Engine ── */
+    /* ── Step 2a: Identity Scan (Fix 5) ── */
     {
-      id: "cinematic-kyb",
-      title: "The KYB Engine",
-      body: "Your corporate identity, UBOs, and Source of Funds are verified deterministically against global watchlists.",
+      id: "cinematic-kyb-scan",
+      title: "Identity Verification",
+      body: "Before entering the marketplace, your corporate identity must be cryptographically verified. Launch the secure identity scan to begin the KYB flow.",
+      actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
+      route: "/offtaker/onboarding/kyb?demo=true",
+      target: '[data-tour="cinematic-kyb-launch-scan"]',
+      placement: "right",
+      delayMs: 2000,
+      next: {
+        type: "click",
+        target: '[data-tour="cinematic-kyb-launch-scan"]',
+      },
+      vapiScript:
+        "Your corporate identity must be cryptographically verified before entering the marketplace. Click 'Launch Secure Identity Scan' to initiate the deterministic KYB verification.",
+      tooltipText:
+        "Your corporate identity must be cryptographically verified before entering the marketplace. Click 'Launch Secure Identity Scan' to initiate the deterministic KYB verification.",
+    },
+
+    /* ── Step 2b: Terminal Checks (Fix 5) ── */
+    {
+      id: "cinematic-kyb-checks",
+      title: "Automated Verification",
+      body: "Watch the terminal execute automated compliance checks. UBO verification, sanctions screening, and source-of-funds analysis running in real-time.",
+      actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
+      route: "/offtaker/onboarding/kyb?demo=true",
+      target: '[data-tour="cinematic-kyb-terminal"]',
+      placement: "right",
+      delayMs: 1500,
+      next: {
+        type: "element",
+        target: '[data-tour="cinematic-kyb-checks-complete"]',
+      },
+      vapiScript:
+        "Notice the complete elimination of manual brokerage. Your corporate identity, UBOs, and Source of Funds are verified deterministically against global watchlists. Watch the checks execute in real-time.",
+      tooltipText:
+        "Notice the complete elimination of manual brokerage. Your corporate identity, UBOs, and Source of Funds are verified deterministically against global watchlists. Watch the checks execute in real-time.",
+    },
+
+    /* ── Step 2c: Enter Marketplace (Fix 5) ── */
+    {
+      id: "cinematic-kyb-enter",
+      title: "Verification Complete",
+      body: "All checks have passed. Your entity is cleared. Enter the institutional marketplace.",
       actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
       route: "/offtaker/onboarding/kyb?demo=true",
       target: '[data-tour="cinematic-kyb-enter"]',
       placement: "right",
-      delayMs: 3000,
       next: {
         type: "click",
         target: '[data-tour="cinematic-kyb-enter"]',
       },
       vapiScript:
-        "Notice the complete elimination of manual brokerage. Your corporate identity, UBOs, and Source of Funds are verified deterministically against global watchlists. We are clear. Enter the marketplace.",
+        "All verification checks have passed. Your entity is cleared for institutional marketplace access. Click 'Enter Marketplace' to proceed.",
       tooltipText:
-        "Notice the complete elimination of manual brokerage. Your corporate identity, UBOs, and Source of Funds are verified deterministically against global watchlists. We are clear. Enter the marketplace.",
+        "All verification checks have passed. Your entity is cleared for institutional marketplace access. Click 'Enter Marketplace' to proceed.",
     },
 
     /* ── Step 3: The Marketplace ── */

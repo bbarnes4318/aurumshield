@@ -423,11 +423,12 @@ export default function KYBConsolePage() {
                       {isActive && (
                         <div>
                           <button
+                            data-tour="cinematic-kyb-launch-scan"
                             onClick={handleLaunchVeriff}
                             disabled={veriffRunning}
                             className={`bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-5 py-2.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait ${veriffRunning ? 'animate-pulse' : ''}`}
                           >
-                            Launch Veriff Secure Session
+                            Launch Secure Identity Scan
                             <ChevronRight className="h-3.5 w-3.5" />
                           </button>
                           <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wide mt-2 text-center block">
@@ -500,7 +501,10 @@ export default function KYBConsolePage() {
           </div>
 
           {/* ── Status Readout (Terminal) ── */}
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4">
+          <div
+            data-tour="cinematic-kyb-terminal"
+            className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4"
+          >
             <div className="flex items-center gap-2 mb-3">
               <Terminal className="h-3.5 w-3.5 text-slate-500" />
               <h2 className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
@@ -531,6 +535,11 @@ export default function KYBConsolePage() {
                 blink
               />
             </div>
+
+            {/* Cinematic tour sentinel: mounts when ALL checks complete */}
+            {steps.every(s => s.status === "COMPLETE") && (
+              <div data-tour="cinematic-kyb-checks-complete" className="hidden" aria-hidden="true" />
+            )}
           </div>
         </div>
       </div>

@@ -1,16 +1,15 @@
 /* ================================================================
-   TOUR HIGHLIGHTER — Glass Shield Engine
+   TOUR HIGHLIGHTER — Glass Shield Engine (v2)
    
-   Amendment 1: Bulletproof Click Control via Z-Index Method
+   Fix 1: Transparent Click-Blocking Overlay
    
    Architecture:
-   1. Full-screen dark overlay at z-index 99998 with pointer-events: auto
-      → Physically blocks all clicks on the page
-   2. Target element gets dynamically injected inline styles:
-      position: relative; z-index: 99999; pointer-events: auto;
-      → The ONLY clickable element on the page
-   3. Pulsing gold glow ring + animated arrow pointing at target
-   4. On-screen script tooltip mirroring Vapi voice
+   1. Full-screen TRANSPARENT overlay at z-index 99998 with 
+      pointer-events: auto → Physically blocks all clicks on page
+   2. Target element gets z-index: 99999 → ONLY clickable element
+   3. Sidebar + Topbar get blur/dim via CSS class injection
+   4. Main content area remains at FULL BRIGHTNESS
+   5. Pulsing gold glow ring + animated arrow on target
    ================================================================ */
 
 "use client";
@@ -22,10 +21,13 @@ import { useTourTarget, getScrollParent, ensureElementVisible } from "./useTourT
 
 /** Padding around the highlighted element (px) */
 const HIGHLIGHT_PAD = 8;
-/** Z-index for the dark blocking overlay */
+/** Z-index for the transparent blocking overlay */
 const SHIELD_Z = 99998;
 /** Z-index applied to the target element itself */
 const TARGET_Z = 99999;
+
+/** CSS class applied to sidebar/topbar during cinematic tour */
+const CINEMATIC_DIM_CLASS = "tour-chrome-dimmed";
 
 interface HighlightRect {
   top: number;
@@ -34,7 +36,7 @@ interface HighlightRect {
   height: number;
 }
 
-/* ── Keyframe injection (runs once) ── */
+/* ── Keyframe + dim class injection (runs once) ── */
 const STYLE_ID = "glass-shield-keyframes";
 function ensureKeyframes() {
   if (typeof document === "undefined") return;
@@ -53,6 +55,11 @@ function ensureKeyframes() {
     @keyframes glassShieldFadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
+    }
+    .${CINEMATIC_DIM_CLASS} {
+      filter: blur(2px) brightness(0.4) !important;
+      pointer-events: none !important;
+      transition: filter 0.3s ease !important;
     }
   `;
   document.head.appendChild(style);
@@ -78,7 +85,7 @@ export function TourHighlighter() {
     currentStep?.id ?? "none",
   );
 
-  // Sync hook return into mutable ref via effect (React compiler forbids ref writes during render)
+  // Sync hook return into mutable ref via effect
   useEffect(() => {
     elementRef.current = element;
   }, [element]);
@@ -89,6 +96,28 @@ export function TourHighlighter() {
   useEffect(() => {
     ensureKeyframes();
   }, []);
+
+  /* ── Fix 1: Sidebar/Topbar dim during cinematic tour ── */
+  useEffect(() => {
+    if (!isCinematic || state.status !== "active") {
+      // Remove dim classes when tour is not active
+      document
+        .querySelectorAll(`[data-tour-sidebar], [data-tour-topbar]`)
+        .forEach((el) => el.classList.remove(CINEMATIC_DIM_CLASS));
+      return;
+    }
+
+    // Apply dim to sidebar and topbar
+    document
+      .querySelectorAll(`[data-tour-sidebar], [data-tour-topbar]`)
+      .forEach((el) => el.classList.add(CINEMATIC_DIM_CLASS));
+
+    return () => {
+      document
+        .querySelectorAll(`[data-tour-sidebar], [data-tour-topbar]`)
+        .forEach((el) => el.classList.remove(CINEMATIC_DIM_CLASS));
+    };
+  }, [isCinematic, state.status]);
 
   // Calculate and track element position
   const updateRect = useCallback(() => {
@@ -105,7 +134,7 @@ export function TourHighlighter() {
     });
   }, [element]);
 
-  /* ── Amendment 1: Z-Index injection on target element ── */
+  /* ── Z-Index injection on target element ── */
   useEffect(() => {
     // Restore previous target styles
     if (lastTargetRef.current && targetStyleBackupRef.current) {
@@ -131,14 +160,13 @@ export function TourHighlighter() {
     };
     lastTargetRef.current = el;
 
-    // Inject z-index elevation
+    // Inject z-index elevation — target pokes above the transparent shield
     el.style.position = "relative";
     el.style.zIndex = String(TARGET_Z);
     el.style.pointerEvents = "auto";
     el.style.isolation = "isolate";
 
     return () => {
-      // Cleanup on unmount or element change
       if (lastTargetRef.current && targetStyleBackupRef.current) {
         const el = lastTargetRef.current;
         const backup = targetStyleBackupRef.current;
@@ -158,24 +186,20 @@ export function TourHighlighter() {
       return;
     }
 
-    // Auto-scroll into view
     ensureElementVisible(element).then(() => {
       updateRect();
     });
 
-    // Find nearest scroll parent and attach listener
     const scrollParent = getScrollParent(element);
 
     const handleUpdate = () => {
       updateRect();
     };
 
-    // Scroll listener on scroll parent + window
     scrollParent.addEventListener("scroll", handleUpdate, { passive: true });
     window.addEventListener("scroll", handleUpdate, { passive: true });
     window.addEventListener("resize", handleUpdate, { passive: true });
 
-    // ResizeObserver for element size changes
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver(handleUpdate);
@@ -239,23 +263,25 @@ export function TourHighlighter() {
 
   /* ═══════════════════════════════════════════════════════════
      CINEMATIC GLASS SHIELD MODE
+     
+     Fix 1: Overlay is TRANSPARENT (no dark bg) but retains
+     pointer-events:auto to block all clicks. Target element
+     at z-index 99999 is the ONLY clickable element.
      ═══════════════════════════════════════════════════════════ */
 
-  // Compute arrow position
   const arrowTop = rect ? rect.top - 40 : -100;
   const arrowLeft = rect ? rect.left + rect.width / 2 - 12 : -100;
 
   return createPortal(
     <>
-      {/* ── Full-screen dark overlay — blocks ALL clicks ── */}
+      {/* ── Full-screen TRANSPARENT overlay — blocks ALL clicks ── */}
       <div
         style={{
           position: "fixed",
           inset: 0,
           zIndex: SHIELD_Z,
-          backgroundColor: "rgba(2, 6, 23, 0.75)",
+          backgroundColor: "transparent",
           pointerEvents: "auto",
-          animation: "glassShieldFadeIn 0.3s ease forwards",
         }}
         aria-hidden="true"
       />

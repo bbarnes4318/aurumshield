@@ -63,10 +63,12 @@ export function AppShell({ children }: AppShellProps) {
       {/* Sidebar: hidden in presentation mode ONLY if tour is NOT active.
           When tour is active, sidebar must remain accessible so click targets work. */}
       {!(presentationMode && !isTourActive) && (
-        <Sidebar
-          collapsed={collapsed}
-          onToggle={() => setCollapsed((c) => !c)}
-        />
+        <div data-tour-sidebar>
+          <Sidebar
+            collapsed={collapsed}
+            onToggle={() => setCollapsed((c) => !c)}
+          />
+        </div>
       )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -80,11 +82,13 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         )}
 
-        <Topbar
-          collapsed={collapsed}
-          onToggleSidebar={() => setCollapsed((c) => !c)}
-          onOpenMobileMenu={() => setMobileMenuOpen(true)}
-        />
+        <div data-tour-topbar>
+          <Topbar
+            collapsed={collapsed}
+            onToggleSidebar={() => setCollapsed((c) => !c)}
+            onOpenMobileMenu={() => setMobileMenuOpen(true)}
+          />
+        </div>
 
         <main
           id="main-content"

@@ -120,12 +120,12 @@ function tourReducer(state: TourState, action: TourAction): TourState {
 
 /* ---------- Persistence Keys ---------- */
 
-const LS_KEY = "aurumshield:tour-state";
+const SS_KEY = "aurumshield:tour-state";
 
 function loadPersistedState(): TourState {
   if (typeof window === "undefined") return INITIAL_TOUR_STATE;
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = sessionStorage.getItem(SS_KEY);
     if (!raw) return INITIAL_TOUR_STATE;
     const parsed = JSON.parse(raw) as TourState;
     if (parsed.tourId && typeof parsed.stepIndex === "number") {
@@ -140,9 +140,9 @@ function loadPersistedState(): TourState {
 function persistState(state: TourState): void {
   if (typeof window === "undefined") return;
   if (state.status === "idle") {
-    localStorage.removeItem(LS_KEY);
+    sessionStorage.removeItem(SS_KEY);
   } else {
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    sessionStorage.setItem(SS_KEY, JSON.stringify(state));
   }
 }
 
@@ -210,23 +210,22 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     persistState(state);
   }, [state]);
 
-  // Handle route navigation for current step
+  // Handle route navigation for current step (Fix 4: no magic timeouts)
   useEffect(() => {
     if (!currentStep?.route || state.status !== "active") return;
-    // Only navigate if we're not already on the correct route
     const targetPath = currentStep.route.split("?")[0];
     if (pathname !== targetPath && !navigatingRef.current) {
       navigatingRef.current = true;
-      // Preserve demo=true in navigation
       const separator = currentStep.route.includes("?") ? "&" : "?";
       const url = currentStep.route.includes("demo=true")
         ? currentStep.route
         : `${currentStep.route}${separator}demo=true`;
       router.push(url);
-      // Reset nav flag after a short delay
-      setTimeout(() => {
-        navigatingRef.current = false;
-      }, 500);
+      // navigatingRef resets deterministically when pathname matches
+    }
+    // Reset navigation flag when we arrive at the correct route
+    if (pathname === targetPath && navigatingRef.current) {
+      navigatingRef.current = false;
     }
   }, [currentStep, pathname, router, state.status]);
 

@@ -3,22 +3,20 @@
 /* ================================================================
    USE-VAPI-SYNC — Wraps useVapi for tour voice synchronization
    
-   Amendment 2: Anti-Hallucination Wrapper
-   
-   The speak() function wraps all script text in a strict verbatim
-   command envelope so the LLM-driven Vapi voice reads it exactly
-   without paraphrasing, adding filler, or acknowledging.
+   Fix 2: Race-Condition-Proof Dispatch
    
    Rules:
-   1. speak() injects a strict narrator command then waits
-      for estimated speech duration (text.length * 55ms ≈ 140 WPM).
-   2. When Vapi is unavailable, falls back to window.speechSynthesis
+   1. speak() wraps script in anti-hallucination envelope then
+      waits for estimated speech duration (text.length * 55ms).
+   2. ensureCallActive() uses a ref-based status polling loop
+      that deterministically waits for callStatus === "active"
+      before resolving. No premature breaks.
+   3. When Vapi is unavailable, falls back to speechSynthesis
       or a silent timed delay.
-   3. ensureCallActive() starts a Vapi call if not already active.
    4. All functions are abort-aware via AbortSignal.
    ================================================================ */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import { useVapi } from "@/hooks/use-vapi";
 import type { VapiCallStatus } from "@/hooks/use-vapi";
 
@@ -30,9 +28,11 @@ const MS_PER_CHAR = 55;
 const MIN_SPEECH_MS = 2000;
 /** Maximum wait for Vapi call to start */
 const CALL_START_TIMEOUT_MS = 10000;
+/** Polling interval for call status checks */
+const STATUS_POLL_MS = 300;
 
 /**
- * Amendment 2: Anti-Hallucination Envelope
+ * Anti-Hallucination Envelope
  * Forces Vapi's LLM to read the script verbatim with zero filler.
  */
 function wrapAntiHallucination(scriptText: string): string {
@@ -74,6 +74,12 @@ export function useVapiSync(): UseVapiSyncReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const vapiAvailable = useRef(!!process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY);
 
+  /* ── Fix 2: Track callStatus in a ref so polling loops see latest value ── */
+  const callStatusRef = useRef<VapiCallStatus>(callStatus);
+  useEffect(() => {
+    callStatusRef.current = callStatus;
+  }, [callStatus]);
+
   /* ---- Timed wait with abort support ---- */
   const waitMs = useCallback(
     (ms: number, signal?: AbortSignal): Promise<void> =>
@@ -98,7 +104,6 @@ export function useVapiSync(): UseVapiSyncReturn {
   /* ---- Speech Synthesis Fallback ---- */
   const speakFallback = useCallback(
     async (text: string, signal?: AbortSignal): Promise<void> => {
-      // Try browser speechSynthesis
       if (typeof window !== "undefined" && window.speechSynthesis) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 0.95;
@@ -138,8 +143,8 @@ export function useVapiSync(): UseVapiSyncReturn {
       setIsSpeaking(true);
 
       try {
-        if (vapiAvailable.current && callStatus === "active") {
-          // Amendment 2: Wrap in anti-hallucination envelope
+        if (vapiAvailable.current && callStatusRef.current === "active") {
+          // Wrap in anti-hallucination envelope
           const wrappedScript = wrapAntiHallucination(text);
           injectContext(wrappedScript);
 
@@ -157,10 +162,10 @@ export function useVapiSync(): UseVapiSyncReturn {
         setIsSpeaking(false);
       }
     },
-    [callStatus, injectContext, speakFallback, waitMs],
+    [injectContext, speakFallback, waitMs],
   );
 
-  /* ---- Ensure Call Active ---- */
+  /* ── Fix 2: Deterministic ensureCallActive with ref-based polling ── */
   const ensureCallActive = useCallback(
     async (signal?: AbortSignal): Promise<void> => {
       if (!vapiAvailable.current) {
@@ -168,22 +173,32 @@ export function useVapiSync(): UseVapiSyncReturn {
         return;
       }
 
-      if (callStatus === "active") return;
+      // Already active — nothing to do
+      if (callStatusRef.current === "active") return;
 
+      // Start the call
       startCall();
 
-      // Poll for call-start with timeout
+      // Poll until callStatus === "active" or timeout
       const start = performance.now();
       while (performance.now() - start < CALL_START_TIMEOUT_MS) {
         if (signal?.aborted) return;
-        await waitMs(500, signal);
-        break;
+
+        // Check ref — cast needed because TS narrows after early return above,
+        // but the ref mutates asynchronously via useEffect between awaits
+        if ((callStatusRef.current as VapiCallStatus) === "active") {
+          // Extra buffer for Vapi internals to fully initialize
+          await waitMs(500, signal).catch(() => {});
+          return;
+        }
+
+        // Wait before next poll
+        await waitMs(STATUS_POLL_MS, signal).catch(() => {});
       }
 
-      // Extra buffer for Vapi to connect
-      await waitMs(1500, signal).catch(() => {});
+      console.warn("[useVapiSync] Vapi call did not reach active status within timeout.");
     },
-    [callStatus, startCall, waitMs],
+    [startCall, waitMs],
   );
 
   return {

@@ -57,20 +57,25 @@ export function TourOverlay() {
 
   const [showJump, setShowJump] = useState(false);
   const [stepCompleted, setStepCompleted] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const jumpRef = useRef<HTMLDivElement>(null);
   const mounted = typeof window !== "undefined";
 
   const isCinematic = tour?.cinematic === true;
 
-  // Reset step completion on step change — use ref to track previous step
-  const prevStepKeyRef = useRef(`${state.tourId}-${state.stepIndex}`);
+  // Reset step completion and dropdown on step change
   const stepKey = `${state.tourId}-${state.stepIndex}`;
-  if (stepKey !== prevStepKeyRef.current) {
-    prevStepKeyRef.current = stepKey;
-    // These are render-phase resets (not in effect), which is valid React
-    if (stepCompleted) setStepCompleted(false);
-    if (showJump) setShowJump(false);
-  }
+  const prevStepKeyRef = useRef(stepKey);
+  useEffect(() => {
+    if (stepKey !== prevStepKeyRef.current) {
+      prevStepKeyRef.current = stepKey;
+      // Intentional sync reset when step changes — not a cascading side-effect
+      // eslint-disable-next-line
+      setStepCompleted(false);
+      setShowJump(false);
+      setMinimized(false);
+    }
+  }, [stepKey]);
 
   // Resolve target for click gating
   const targetSelector =
@@ -344,12 +349,73 @@ export function TourOverlay() {
      CINEMATIC OVERLAY — Dark glassmorphism institutional HUD
      ═══════════════════════════════════════════════════════════ */
   if (isCinematic) {
+    /* ── Fix 3: Minimized pill view ── */
+    if (minimized) {
+      return createPortal(
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 24,
+            zIndex: OVERLAY_Z,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "rgba(10, 17, 40, 0.95)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(198, 168, 107, 0.25)",
+              borderRadius: 20,
+              padding: "6px 14px",
+            }}
+          >
+            <Radio style={{ width: 12, height: 12, color: "#c6a86b" }} />
+            <span
+              style={{
+                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                fontSize: 10,
+                fontWeight: 700,
+                color: "#c6a86b",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {state.stepIndex + 1}/{totalSteps}
+            </span>
+            <button
+              onClick={() => setMinimized(false)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 10px",
+                background: "rgba(36, 54, 83, 0.5)",
+                border: "1px solid rgba(36, 54, 83, 0.8)",
+                borderRadius: 12,
+                color: "#aab6c8",
+                fontSize: 9,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <Play style={{ width: 9, height: 9 }} />
+              Expand
+            </button>
+          </div>
+        </div>,
+        document.body,
+      );
+    }
+
+    /* ── Fix 3: Cinematic HUD — positioned top-left (below topbar) ── */
     return createPortal(
       <div
         style={{
           position: "fixed",
-          bottom: 24,
-          right: 24,
+          top: 72,
+          left: 24,
           zIndex: OVERLAY_Z,
           width: 380,
         }}
@@ -363,7 +429,7 @@ export function TourOverlay() {
             overflow: "hidden",
           }}
         >
-          {/* Top bar — act label + step counter */}
+          {/* Top bar — act label + step counter + minimize */}
           <div
             style={{
               display: "flex",
@@ -388,17 +454,35 @@ export function TourOverlay() {
                 {currentStep.actLabel ?? "Cinematic Demo"}
               </span>
             </div>
-            <span
-              style={{
-                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-                fontSize: 10,
-                fontWeight: 600,
-                color: "#7f8ca3",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {state.stepIndex + 1} / {totalSteps}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{
+                  fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: "#7f8ca3",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {state.stepIndex + 1} / {totalSteps}
+              </span>
+              {/* Fix 3: X → minimize, NOT exit */}
+              <button
+                onClick={() => setMinimized(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: 2,
+                  background: "transparent",
+                  border: "none",
+                  color: "#7f8ca3",
+                  cursor: "pointer",
+                }}
+                title="Minimize"
+              >
+                <X style={{ width: 12, height: 12 }} />
+              </button>
+            </div>
           </div>
 
           {/* Step content */}
@@ -549,6 +633,7 @@ export function TourOverlay() {
               >
                 <Pause style={{ width: 10, height: 10 }} />
               </button>
+              {/* Exit button — the ACTUAL kill switch */}
               <button
                 onClick={exitTour}
                 style={{
@@ -561,7 +646,7 @@ export function TourOverlay() {
                   color: "#d16a5d",
                   cursor: "pointer",
                 }}
-                title="Exit"
+                title="Exit Tour"
               >
                 <X style={{ width: 10, height: 10 }} />
               </button>
