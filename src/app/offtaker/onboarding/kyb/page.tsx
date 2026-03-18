@@ -141,67 +141,6 @@ const INITIAL_STEPS: VerificationStep[] = [
   },
 ];
 
-/* ----------------------------------------------------------------
-   REUSABLE COMPONENTS
-   ---------------------------------------------------------------- */
-
-/* ── Cryptographic Hash Badge ── */
-function HashBadge({ value }: { value: string }) {
-  const handleCopy = () => {
-    navigator.clipboard.writeText(value);
-  };
-  return (
-    <span className="bg-black border border-slate-800 px-2 py-1 text-gold-primary font-mono text-sm flex items-center gap-2 w-fit">
-      {value}
-      <button
-        onClick={handleCopy}
-        className="text-slate-600 text-[9px] hover:text-slate-400 transition-colors cursor-pointer"
-      >
-        [ COPY ]
-      </button>
-    </span>
-  );
-}
-
-/* ── Status Badge ── */
-function StatusBadge({ status }: { status: StepStatus | string }) {
-  const config: Record<string, { bg: string; text: string; label: string }> = {
-    ACTIVE: {
-      bg: "bg-gold-primary/15",
-      text: "text-gold-primary",
-      label: "ACTIVE",
-    },
-    PENDING: {
-      bg: "bg-amber-500/10",
-      text: "text-amber-400",
-      label: "PENDING",
-    },
-    LOCKED: {
-      bg: "bg-slate-800",
-      text: "text-slate-500",
-      label: "LOCKED",
-    },
-    COMPLETE: {
-      bg: "bg-emerald-500/10",
-      text: "text-emerald-400",
-      label: "COMPLETE",
-    },
-  };
-  const c = config[status] ?? config.PENDING;
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm font-mono text-[10px] tracking-[0.15em] uppercase ${c.bg} ${c.text}`}
-    >
-      {status === "LOCKED" && <Lock className="h-2.5 w-2.5" />}
-      {status === "ACTIVE" && <Clock className="h-2.5 w-2.5" />}
-      {status === "COMPLETE" && <CheckCircle2 className="h-2.5 w-2.5" />}
-      {status === "PENDING" && <AlertTriangle className="h-2.5 w-2.5" />}
-      {c.label}
-    </span>
-  );
-}
-
 /* ================================================================
    PAGE COMPONENT
    ================================================================ */
@@ -218,6 +157,9 @@ export default function KYBConsolePage() {
   const router = useRouter();
   const { isDemoActive } = useDemoTour();
   const demoParam = isDemoActive ? "?demo=active" : "";
+
+  const allCleared = steps.every(s => s.status === "COMPLETE");
+  const clearedCount = steps.filter(s => s.status === "COMPLETE").length;
 
   const handleLaunchIdentityScan = useCallback(async () => {
     if (scanLoading) return;
@@ -250,13 +192,11 @@ export default function KYBConsolePage() {
 
       switch (result.status) {
         case "REDIRECT":
-          // Open iDenfy/Veriff verification URL in a new tab
           setScanProvider(result.provider ?? null);
           setScanSessionId(result.sessionId ?? null);
           if (result.redirectUrl) {
             window.open(result.redirectUrl, "_blank", "noopener,noreferrer");
           }
-          // Mark step 1 as complete, step 2 as active (awaiting verification)
           setSteps(prev => prev.map((s, i) => {
             if (i === 0) return { ...s, status: "COMPLETE" as StepStatus };
             if (i === 1) return { ...s, status: "ACTIVE" as StepStatus };
@@ -265,13 +205,11 @@ export default function KYBConsolePage() {
           break;
 
         case "ALREADY_CLEARED":
-          // All checks passed — unlock everything
           setScanProvider("CLEARED");
           setSteps(prev => prev.map(s => ({ ...s, status: "COMPLETE" as StepStatus })));
           break;
 
         case "IN_PROGRESS":
-          // Verification submitted but not yet decided
           setScanProvider("PENDING");
           setSteps(prev => prev.map((s, i) => {
             if (i === 0) return { ...s, status: "COMPLETE" as StepStatus };
@@ -296,12 +234,10 @@ export default function KYBConsolePage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    // Only poll when a scan session is active (user redirected to iDenfy)
-    // and not in demo mode
     if (!scanSessionId || isDemoActive) return;
 
-    const POLL_INTERVAL_MS = 5000; // 5 seconds
-    const MAX_POLLS = 120; // 10 minutes max
+    const POLL_INTERVAL_MS = 5000;
+    const MAX_POLLS = 120;
     let pollCount = 0;
 
     pollRef.current = setInterval(async () => {
@@ -317,7 +253,6 @@ export default function KYBConsolePage() {
 
         switch (result.status) {
           case "APPROVED":
-            // iDenfy webhook fired — user is verified!
             if (pollRef.current) clearInterval(pollRef.current);
             setScanProvider("CLEARED");
             setScanSessionId(null);
@@ -332,16 +267,13 @@ export default function KYBConsolePage() {
             break;
 
           case "REVIEWING":
-            // Still under manual review — keep polling but update terminal
             setScanProvider("REVIEWING");
             break;
 
           case "PENDING":
-            // Still waiting — do nothing
             break;
 
           case "ERROR":
-            // Don't stop polling on transient errors, just log
             console.warn("[KYB-POLL] Error:", result.error);
             break;
         }
@@ -370,7 +302,6 @@ export default function KYBConsolePage() {
         setScanLoading(false);
         return;
       }
-      // Now re-launch the identity scan
       const result = await serverLaunchIdentityScan(caseFile.caseId);
       if (result.status === "REDIRECT" && result.redirectUrl) {
         setScanProvider(result.provider ?? null);
@@ -417,105 +348,96 @@ export default function KYBConsolePage() {
   }, []);
 
   return (
-    <div className="h-full bg-slate-950 p-4 md:p-5 flex flex-col overflow-hidden">
+    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
       {/* ── Header ── */}
-      <div className="mb-4 shrink-0">
-        <div className="flex items-center gap-3 mb-3">
-          <Shield className="h-4 w-4 text-gold-primary" />
-          <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
-            Step 2 of 3: Identity &amp; AML Perimeter
+      <div className="shrink-0 border-b border-slate-800/60 bg-black/30 px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className="h-4 w-4 text-gold-primary" />
+            <span className="font-mono text-gold-primary text-[10px] tracking-[0.3em] uppercase font-bold">
+              Step 2 of 3 — Identity &amp; AML Perimeter
+            </span>
+          </div>
+          <span className="font-mono text-[10px] text-slate-600 tracking-wider">
+            {clearedCount} / {steps.length} CLEARED
           </span>
         </div>
-
-        <h1 className="text-2xl font-bold tracking-tight text-white">
+        <h1 className="text-lg font-bold tracking-tight text-white mt-1.5">
           Offtaker Verification Console
         </h1>
       </div>
 
-      {/* ── 3-Column Grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
-        {/* ─────────────────────────────────────────────────────────
-           COLUMN 1 — Case File Summary (col-span-3)
-           ───────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-3">
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4">
+      {/* ── 2-Column Main Content ── */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-5 gap-4 px-6 py-4 overflow-y-auto">
+
+        {/* ═══════════════════════════════════════════════════════════
+           LEFT COLUMN — Case Summary + Verification Ladder (3/5)
+           ═══════════════════════════════════════════════════════════ */}
+        <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
+
+          {/* ── Case File Summary (compact horizontal strip) ── */}
+          <div className="shrink-0 bg-slate-900/50 border border-slate-800/50 rounded-sm p-4">
             <div className="flex items-center gap-2 mb-3">
               <FileText className="h-3.5 w-3.5 text-slate-500" />
-              <h2 className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
+              <h2 className="font-mono text-slate-500 text-[10px] tracking-[0.15em] uppercase">
                 Case File Summary
               </h2>
             </div>
 
-            <div className="space-y-3">
-              {/* Case ID — Hash Badge */}
-              <div>
-                <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
-                  Case ID
-                </span>
-                <HashBadge value={caseFile.caseId} />
-              </div>
-              <DataRow
-                label="Legal Entity"
-                value={caseFile.legalEntityName}
-              />
-              {/* LEI — Hash Badge */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <DataRow label="Legal Entity" value={caseFile.legalEntityName} />
               <div>
                 <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
                   LEI
                 </span>
-                <HashBadge value={caseFile.lei} />
+                <span className="font-mono text-xs text-gold-primary bg-black/40 border border-slate-800/50 px-2 py-0.5 inline-block">
+                  {caseFile.lei}
+                </span>
               </div>
-              <DataRow
-                label="Jurisdiction"
-                value={caseFile.jurisdiction}
-              />
-              <DataRow
-                label="Registration"
-                value={caseFile.registrationDate}
-                mono
-              />
+              <DataRow label="Jurisdiction" value={caseFile.jurisdiction} />
+              <DataRow label="Registration" value={caseFile.registrationDate} mono />
+            </div>
 
-              {/* Risk Tier Badge */}
-              <div className="pt-3 border-t border-slate-800">
-                <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-2">
-                  Risk Assessment
+            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-800/40">
+              <div>
+                <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
+                  Case ID
+                </span>
+                <span className="font-mono text-[11px] text-gold-primary bg-black/40 border border-slate-800/50 px-2 py-0.5 inline-block">
+                  {caseFile.caseId}
+                </span>
+              </div>
+              <div>
+                <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
+                  Risk Tier
                 </span>
                 <StatusBadge status={caseFile.riskTier} />
               </div>
-
-              {/* Timestamp */}
-              <div className="pt-3 border-t border-slate-800">
+              <div>
                 <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
-                  Dossier Submitted
+                  Submitted
                 </span>
                 <span className="font-mono text-xs text-slate-400">
-                  {new Date(caseFile.submittedAt).toLocaleString(
-                    "en-US",
-                    {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    },
-                  )}
+                  {new Date(caseFile.submittedAt).toLocaleString("en-US", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </span>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ─────────────────────────────────────────────────────────
-           COLUMN 2 — Verification Ladder (col-span-6)
-           ───────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-6">
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4">
-            <div className="flex items-center justify-between mb-4">
+          {/* ── Verification Ladder — FOCAL ELEMENT ── */}
+          <div className="flex-1 min-h-0 bg-slate-900/50 border border-slate-800/50 rounded-sm p-5">
+            <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="h-3.5 w-3.5 text-gold-primary" />
-                <h2 className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
+                <ShieldAlert className="h-4 w-4 text-gold-primary" />
+                <h2 className="font-mono text-white text-xs tracking-[0.15em] uppercase font-semibold">
                   Verification Sequence
                 </h2>
               </div>
-              <span className="font-mono text-[10px] text-slate-600 tracking-wider">
-                0 / {steps.length} CLEARED
+              <span className="font-mono text-[10px] text-slate-500 tracking-wider">
+                {clearedCount} / {steps.length} CLEARED
               </span>
             </div>
 
@@ -525,49 +447,52 @@ export default function KYBConsolePage() {
                 const isLast = idx === steps.length - 1;
                 const isActive = step.status === "ACTIVE";
                 const isLocked = step.status === "LOCKED";
+                const isComplete = step.status === "COMPLETE";
 
                 return (
                   <div key={step.id} className="flex gap-4">
                     {/* ── Vertical connector line + icon ── */}
                     <div className="flex flex-col items-center">
                       <div
-                        className={`h-9 w-9 rounded-sm flex items-center justify-center shrink-0 ${
+                        className={`h-10 w-10 rounded-sm flex items-center justify-center shrink-0 transition-all duration-300 ${
                           isActive
-                            ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/30"
-                            : isLocked
-                              ? "bg-slate-800 text-slate-600 border border-slate-700"
-                              : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                            ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40 shadow-[0_0_12px_rgba(198,168,107,0.15)]"
+                            : isComplete
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : "bg-slate-800/50 text-slate-600 border border-slate-700/50"
                         }`}
                       >
                         {isLocked ? (
                           <Lock className="h-3.5 w-3.5" />
+                        ) : isComplete ? (
+                          <CheckCircle2 className="h-4 w-4" />
                         ) : (
                           step.icon
                         )}
                       </div>
                       {!isLast && (
                         <div
-                          className={`w-px flex-1 min-h-6 ${
-                            isActive
-                              ? "bg-gold-primary/20"
-                              : "bg-slate-800"
+                          className={`w-px flex-1 min-h-6 transition-colors duration-300 ${
+                            isComplete
+                              ? "bg-emerald-500/20"
+                              : isActive
+                                ? "bg-gold-primary/20"
+                                : "bg-slate-800/30"
                           }`}
                         />
                       )}
                     </div>
 
                     {/* ── Step content ── */}
-                    <div
-                      className={`pb-6 flex-1 ${isLast ? "pb-0" : ""} ${
-                        isLocked
-                          ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.02)_10px,rgba(255,255,255,0.02)_20px)]"
-                          : ""
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
+                    <div className={`flex-1 ${isLast ? "pb-0" : "pb-5"}`}>
+                      <div className="flex items-center justify-between mb-1">
                         <span
-                          className={`font-mono text-sm ${
-                            isLocked ? "text-slate-600" : "text-white"
+                          className={`font-mono text-sm transition-colors duration-300 ${
+                            isActive
+                              ? "text-gold-primary font-semibold"
+                              : isComplete
+                                ? "text-emerald-400"
+                                : "text-slate-600"
                           }`}
                         >
                           {step.label}
@@ -575,8 +500,12 @@ export default function KYBConsolePage() {
                         <StatusBadge status={step.status} />
                       </div>
                       <p
-                        className={`text-xs leading-relaxed mb-3 ${
-                          isLocked ? "text-slate-700" : "text-slate-500"
+                        className={`text-xs leading-relaxed transition-colors duration-300 ${
+                          isActive
+                            ? "text-slate-400"
+                            : isComplete
+                              ? "text-slate-500"
+                              : "text-slate-700"
                         }`}
                       >
                         {step.description}
@@ -584,7 +513,7 @@ export default function KYBConsolePage() {
 
                       {/* Action button — only on ACTIVE step */}
                       {isActive && (
-                        <div>
+                        <div className="mt-3">
                           <button
                             data-tour="cinematic-kyb-launch-scan"
                             onClick={handleLaunchIdentityScan}
@@ -594,9 +523,6 @@ export default function KYBConsolePage() {
                             {scanLoading ? 'Initiating Secure Session…' : 'Launch Secure Identity Scan'}
                             {scanLoading ? <Clock className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
                           </button>
-                          <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wide mt-2 text-center block">
-                            EXECUTION IS CRYPTOGRAPHICALLY BINDING. IP ADDRESS LOGGED UNDER BSA/AML PROTOCOLS.
-                          </span>
                         </div>
                       )}
                     </div>
@@ -607,15 +533,16 @@ export default function KYBConsolePage() {
           </div>
         </div>
 
-        {/* ─────────────────────────────────────────────────────────
-           COLUMN 3 — Decision & Evidence Panel (col-span-3)
-           ───────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-3 space-y-4">
+        {/* ═══════════════════════════════════════════════════════════
+           RIGHT COLUMN — Evidence + Terminal (2/5)
+           ═══════════════════════════════════════════════════════════ */}
+        <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
+
           {/* ── Document Upload Zone ── */}
-          <div className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4">
+          <div className="shrink-0 bg-slate-900/50 border border-slate-800/50 rounded-sm p-4">
             <div className="flex items-center gap-2 mb-3">
               <Upload className="h-3.5 w-3.5 text-slate-500" />
-              <h2 className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
+              <h2 className="font-mono text-slate-500 text-[10px] tracking-[0.15em] uppercase">
                 Evidence Upload
               </h2>
             </div>
@@ -624,18 +551,18 @@ export default function KYBConsolePage() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-sm p-6 text-center transition-colors ${
+              className={`border border-dashed rounded-sm p-5 text-center transition-colors ${
                 isDragOver
                   ? "border-gold-primary/50 bg-gold-primary/5"
-                  : "border-slate-700 bg-slate-950"
+                  : "border-slate-700/50 bg-slate-950/50"
               }`}
             >
               <Upload
-                className={`h-6 w-6 mx-auto mb-3 ${
+                className={`h-5 w-5 mx-auto mb-2 ${
                   isDragOver ? "text-gold-primary" : "text-slate-600"
                 }`}
               />
-              <p className="font-mono text-[10px] tracking-widest uppercase text-slate-500 mb-1">
+              <p className="font-mono text-[10px] tracking-widest uppercase text-slate-500 mb-0.5">
                 Registry Extracts &amp; Incorporation Docs
               </p>
               <p className="font-mono text-[10px] text-slate-700">
@@ -643,39 +570,39 @@ export default function KYBConsolePage() {
               </p>
             </div>
 
-            <div className="mt-3 space-y-1.5">
-              <p className="font-mono text-[10px] text-slate-600">
-                Accepted: PDF, PNG, JPG · Max 25MB per file
+            <div className="mt-2 flex items-center justify-between">
+              <p className="font-mono text-[9px] text-slate-600">
+                PDF, PNG, JPG · Max 25MB
               </p>
-              <p className="font-mono text-[10px] text-slate-700">
-                {uploadedFiles.length} document{uploadedFiles.length !== 1 ? 's' : ''} uploaded
+              <p className="font-mono text-[9px] text-slate-600">
+                {uploadedFiles.length} uploaded
               </p>
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-1 mt-2">
-                  {uploadedFiles.map((f, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-sm">
-                      <span className="font-mono text-[10px] text-slate-400 truncate">{f.name}</span>
-                      <span className="font-mono text-[9px] text-slate-600 ml-2 shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-1 mt-2">
+                {uploadedFiles.map((f, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-black/30 border border-slate-800/40 px-2.5 py-1.5 rounded-sm">
+                    <span className="font-mono text-[10px] text-slate-400 truncate">{f.name}</span>
+                    <span className="font-mono text-[9px] text-slate-600 ml-2 shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── Status Readout (Terminal) ── */}
           <div
             data-tour="cinematic-kyb-terminal"
-            className="bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4"
+            className="flex-1 min-h-0 bg-slate-900/50 border border-slate-800/50 rounded-sm p-4 flex flex-col"
           >
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 shrink-0">
               <Terminal className="h-3.5 w-3.5 text-slate-500" />
-              <h2 className="font-mono text-slate-500 text-xs tracking-[0.15em] uppercase">
+              <h2 className="font-mono text-slate-500 text-[10px] tracking-[0.15em] uppercase">
                 System Readout
               </h2>
             </div>
 
-            <div className="bg-slate-950 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm p-4 space-y-2">
+            <div className="flex-1 min-h-0 bg-black/40 border border-slate-800/40 rounded-sm p-3 space-y-1.5 overflow-y-auto">
               <TerminalLine
                 prefix="SYS"
                 text="Dossier ingested. Case ID assigned."
@@ -706,7 +633,7 @@ export default function KYBConsolePage() {
                       color="text-red-300"
                     />
                   ))}
-                  <div className="mt-3">
+                  <div className="mt-2">
                     <button
                       onClick={handleRetry}
                       disabled={scanLoading}
@@ -715,7 +642,7 @@ export default function KYBConsolePage() {
                       {scanLoading ? 'Resetting...' : 'Retry Verification'}
                       <ExternalLink className="h-3.5 w-3.5" />
                     </button>
-                    <span className="font-mono text-[9px] text-slate-600 mt-1.5 block">
+                    <span className="font-mono text-[9px] text-slate-600 mt-1 block">
                       A new identity scan session will be created.
                     </span>
                   </div>
@@ -762,73 +689,62 @@ export default function KYBConsolePage() {
               )}
             </div>
 
-            {/* Cinematic tour sentinel: mounts when ALL checks complete */}
-            {steps.every(s => s.status === "COMPLETE") && (
+            {/* Cinematic tour sentinel */}
+            {allCleared && (
               <div data-tour="cinematic-kyb-checks-complete" className="hidden" aria-hidden="true" />
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Marketplace Gate (Bottom Footer) ── */}
-      <div className="mt-4 shrink-0">
+      {/* ── Marketplace Gate — Anchored Footer ── */}
+      <div className="shrink-0 border-t border-slate-800/60 bg-black/30 px-6 py-3">
         {isDemoActive ? (
-          /* Demo mode: enabled button to proceed */
           <div className="relative">
             <DemoTooltip text="Verify Corporate Identity to access the Marketplace →" position="top" />
             <button
               data-tour="cinematic-kyb-enter"
               onClick={() => router.push(`/offtaker/marketplace${demoParam}`)}
-              className={`w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-4 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2 font-mono cursor-pointer ${DEMO_SPOTLIGHT_CLASSES}`}
+              className={`w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-3.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2 font-mono cursor-pointer ${DEMO_SPOTLIGHT_CLASSES}`}
             >
               <ChevronRight className="h-4 w-4" />
               Proceed to Marketplace
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
+        ) : allCleared ? (
+          <button
+            onClick={() => router.push(`/offtaker/marketplace${demoParam}`)}
+            className="w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-3.5 rounded-sm hover:bg-gold-hover transition-all duration-300 flex items-center justify-center gap-2 font-mono cursor-pointer shadow-[0_0_20px_rgba(198,168,107,0.2)]"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Enter AurumShield Marketplace
+            <ChevronRight className="h-4 w-4" />
+          </button>
         ) : (
-          /* Normal mode: marketplace gated */
-          <>
-            {steps.every(s => s.status === "COMPLETE") ? (
-              /* All steps complete — unlock marketplace */
-              <button
-                onClick={() => router.push(`/offtaker/marketplace${demoParam}`)}
-                className="w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-4 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2 font-mono cursor-pointer demo-cta-glow"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Enter AurumShield Marketplace
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            ) : (
-              /* Steps incomplete — gate locked */
-              <>
-                <div className="text-center mb-2">
-                  <span className="font-mono text-xs text-red-400/70 tracking-[0.15em] uppercase flex items-center justify-center gap-2">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Marketplace Access Restricted Until Identity Perimeter Is Cleared
-                  </span>
-                </div>
-                <button
-                  disabled
-                  className="w-full bg-slate-800 text-slate-500 font-bold text-sm tracking-wide py-4 rounded-sm cursor-not-allowed opacity-50 flex items-center justify-center gap-2 font-mono"
-                >
-                  <Lock className="h-4 w-4" />
-                  Enter AurumShield Marketplace
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
-            )}
-          </>
+          <div>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <AlertTriangle className="h-3 w-3 text-red-400/60" />
+              <span className="font-mono text-[10px] text-red-400/60 tracking-[0.15em] uppercase">
+                Marketplace Access Restricted Until Identity Perimeter Is Cleared
+              </span>
+            </div>
+            <button
+              disabled
+              className="w-full bg-slate-800/60 text-slate-500 font-bold text-sm tracking-wide py-3.5 rounded-sm cursor-not-allowed flex items-center justify-center gap-2 font-mono"
+            >
+              <Lock className="h-4 w-4" />
+              Enter AurumShield Marketplace
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </div>
 
-      {/* ── Footer trust line ── */}
-      <p className="mt-3 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
-        AurumShield Clearing · Identity Perimeter Enforcement · Veriff ·
-        GLEIF · OFAC / EU Sanctions
-      </p>
-
-      <TelemetryFooter />
+      {/* ── Telemetry ── */}
+      <div className="shrink-0 px-6 py-1.5">
+        <TelemetryFooter />
+      </div>
     </div>
   );
 }
@@ -854,6 +770,45 @@ function DataRow({
         {value}
       </span>
     </div>
+  );
+}
+
+/* ── Inline Helper: Status Badge ── */
+function StatusBadge({ status }: { status: StepStatus | string }) {
+  const config: Record<string, { bg: string; text: string; label: string }> = {
+    ACTIVE: {
+      bg: "bg-gold-primary/10",
+      text: "text-gold-primary",
+      label: "ACTIVE",
+    },
+    PENDING: {
+      bg: "bg-amber-500/10",
+      text: "text-amber-400",
+      label: "PENDING",
+    },
+    LOCKED: {
+      bg: "bg-slate-800/50",
+      text: "text-slate-600",
+      label: "LOCKED",
+    },
+    COMPLETE: {
+      bg: "bg-emerald-500/10",
+      text: "text-emerald-400",
+      label: "COMPLETE",
+    },
+  };
+  const c = config[status] ?? config.PENDING;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm font-mono text-[9px] tracking-[0.15em] uppercase ${c.bg} ${c.text}`}
+    >
+      {status === "LOCKED" && <Lock className="h-2.5 w-2.5" />}
+      {status === "ACTIVE" && <Clock className="h-2.5 w-2.5" />}
+      {status === "COMPLETE" && <CheckCircle2 className="h-2.5 w-2.5" />}
+      {status === "PENDING" && <AlertTriangle className="h-2.5 w-2.5" />}
+      {c.label}
+    </span>
   );
 }
 

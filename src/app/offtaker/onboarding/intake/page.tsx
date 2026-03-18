@@ -80,7 +80,7 @@ export default function IntakeDossierPage() {
   };
 
   return (
-    <div className="h-screen bg-slate-950 flex flex-col overflow-hidden">
+    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
       {/* ── Header Bar ── */}
       <div className="shrink-0 border-b border-slate-800 bg-black/40 px-6 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -97,22 +97,22 @@ export default function IntakeDossierPage() {
         </span>
       </div>
 
-      {/* ── Form Body ── */}
-      <div className="flex-1 min-h-0 flex flex-col px-6 py-4">
-        {/* Title + Context */}
-        <div className="shrink-0 mb-3">
-          <h1 className="text-xl font-bold tracking-tight text-white mb-1">
-            Offtaker Entity Onboarding
-          </h1>
-          <p className="text-slate-500 text-xs font-mono leading-snug max-w-2xl">
-            Complete the compliance intake dossier for your legal entity.
-            Required fields must be filled prior to biometric identity verification.
-          </p>
-        </div>
+      {/* ── Form Body (scrollable) ── */}
+      <form onSubmit={handleSubmit(onSubmit)} className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+          {/* Title + Context */}
+          <div className="mb-3">
+            <h1 className="text-xl font-bold tracking-tight text-white mb-1">
+              Offtaker Entity Onboarding
+            </h1>
+            <p className="text-slate-500 text-xs font-mono leading-snug max-w-2xl">
+              Complete the compliance intake dossier for your legal entity.
+              Required fields must be filled prior to biometric identity verification.
+            </p>
+          </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 min-h-0 flex flex-col">
           {/* ── 2×2 Identity Grid ── */}
-          <div className="shrink-0 grid grid-cols-2 gap-x-4 gap-y-2.5 mb-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mb-4">
             {/* Field 1: Legal Entity Name */}
             <div>
               <label
@@ -203,9 +203,9 @@ export default function IntakeDossierPage() {
           </div>
 
           {/* ── Side-by-Side Textareas ── */}
-          <div className="flex-1 min-h-0 grid grid-cols-2 gap-x-4 mb-3">
+          <div className="grid grid-cols-2 gap-x-4 mb-3">
             {/* Field 5: Ultimate Beneficial Owners */}
-            <div className="flex flex-col min-h-0">
+            <div className="flex flex-col">
               <label
                 htmlFor="ultimateBeneficialOwners"
                 className="font-mono text-slate-500 text-[9px] tracking-[0.15em] uppercase block mb-1 shrink-0"
@@ -218,9 +218,9 @@ export default function IntakeDossierPage() {
               <textarea
                 id="ultimateBeneficialOwners"
                 {...register("ultimateBeneficialOwners")}
-                rows={2}
-                placeholder="e.g. John A. Smith — British National — 40% voting rights&#10;     Jane B. Doe — US National — 35% voting rights"
-                className="flex-1 min-h-0 w-full bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm px-3 py-1.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-gold-primary focus:ring-1 focus:ring-gold-primary/30 focus:outline-none transition-colors resize-none"
+                rows={4}
+                placeholder={"e.g. John A. Smith — British National — 40% voting rights\n     Jane B. Doe — US National — 35% voting rights"}
+                className="w-full bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm px-3 py-1.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-gold-primary focus:ring-1 focus:ring-gold-primary/30 focus:outline-none transition-colors resize-none"
               />
               {errors.ultimateBeneficialOwners && (
                 <FieldError message={errors.ultimateBeneficialOwners.message} />
@@ -228,7 +228,7 @@ export default function IntakeDossierPage() {
             </div>
 
             {/* Field 6: Source of Funds Declaration */}
-            <div className="flex flex-col min-h-0">
+            <div className="flex flex-col">
               <label
                 htmlFor="sourceOfFundsDeclaration"
                 className="font-mono text-slate-500 text-[9px] tracking-[0.15em] uppercase block mb-1 shrink-0"
@@ -241,9 +241,9 @@ export default function IntakeDossierPage() {
               <textarea
                 id="sourceOfFundsDeclaration"
                 {...register("sourceOfFundsDeclaration")}
-                rows={2}
+                rows={4}
                 placeholder="e.g. Funds originate from the operating revenue of Aureus Capital Partners Ltd., a UK-registered precious metals trading firm..."
-                className="flex-1 min-h-0 w-full bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm px-3 py-1.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-gold-primary focus:ring-1 focus:ring-gold-primary/30 focus:outline-none transition-colors resize-none"
+                className="w-full bg-slate-900 border border-slate-800 shadow-[inset_0_1px_0_0_rgba(198,168,107,0.15)] rounded-sm px-3 py-1.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-gold-primary focus:ring-1 focus:ring-gold-primary/30 focus:outline-none transition-colors resize-none"
               />
               {errors.sourceOfFundsDeclaration && (
                 <FieldError
@@ -252,34 +252,35 @@ export default function IntakeDossierPage() {
               )}
             </div>
           </div>
+        </div>
 
-          {/* ── Compact Footer Bar ── */}
-          <div className="shrink-0 border-t border-slate-800 pt-2.5 flex items-center justify-between gap-4">
+        {/* ── Sticky CTA Footer — ALWAYS visible ── */}
+        <div className="shrink-0 border-t border-slate-800 bg-slate-950 px-6 py-3">
+          <div className="flex items-center justify-between gap-4 mb-2">
             <div className="flex items-center gap-2 text-slate-600 shrink-0">
               <Building2 className="h-3.5 w-3.5" />
               <span className="font-mono text-[9px] tracking-widest uppercase">
                 Dossier — Step 1 of 3
               </span>
             </div>
-
             <span className="font-mono text-[8px] text-slate-700 tracking-wider uppercase hidden md:block">
               GLEIF · Veriff KYB · Encrypted in Transit &amp; at Rest
             </span>
-
-            <div className="relative shrink-0">
-              {isDemoActive && <DemoTooltip text="Complete the Initial Intake Form ↓" position="top" />}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-5 py-2 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${isDemoActive ? `${DEMO_SPOTLIGHT_CLASSES} demo-cta-glow` : ""}`}
-              >
-                {isSubmitting ? "Saving..." : "Save & Proceed"}
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
           </div>
-        </form>
-      </div>
+
+          <div className="relative">
+            {isDemoActive && <DemoTooltip text="Complete the Initial Intake Form ↓" position="top" />}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide px-5 py-3.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${isDemoActive ? `${DEMO_SPOTLIGHT_CLASSES} demo-cta-glow` : ""}`}
+            >
+              {isSubmitting ? "Saving..." : "Submit Dossier & Continue"}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </form>
 
       {/* ── Telemetry ── */}
       <div className="shrink-0 border-t border-slate-800/50 px-6 py-1.5">
