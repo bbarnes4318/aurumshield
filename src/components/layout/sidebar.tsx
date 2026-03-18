@@ -36,12 +36,14 @@ import {
   Fingerprint,
   Upload,
   Banknote,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import type { UserRole } from "@/lib/mock-data";
+import { useOnboardingState } from "@/hooks/use-onboarding-state";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -124,13 +126,20 @@ const OPERATOR_ADMIN: NavItem[] = [
   { label: "Labs",                href: "/labs",                   icon: FlaskConical,    allowedRoles: OPERATOR_ROLES },
 ];
 
-/* ── Offtaker-visible nav items (institutional buyers) ── */
-const OFFTAKER_NAV: NavItem[] = [
+/* ── Offtaker nav items — split by compliance state ── */
+
+/** State A: Shown when KYB is NOT complete */
+const OFFTAKER_ONBOARDING_NAV: NavItem[] = [
   { label: "Select Org",          href: "/offtaker/org/select",             icon: Building2,      allowedRoles: OFFTAKER_ROLES },
   { label: "Onboarding",          href: "/offtaker/onboarding/intake",      icon: ClipboardList,  allowedRoles: OFFTAKER_ROLES },
   { label: "KYB Console",         href: "/offtaker/onboarding/kyb",         icon: ShieldCheck,    allowedRoles: OFFTAKER_ROLES },
+];
+
+/** State B: Shown when KYB is COMPLETED */
+const OFFTAKER_CLEARED_NAV: NavItem[] = [
   { label: "Marketplace",         href: "/offtaker/marketplace",            icon: Package,        allowedRoles: OFFTAKER_ROLES },
   { label: "Orders",              href: "/offtaker/orders",                 icon: Truck,          allowedRoles: OFFTAKER_ROLES },
+  { label: "Entity Management",   href: "/offtaker/settings",               icon: Settings,       allowedRoles: OFFTAKER_ROLES },
 ];
 
 /* ── Producer-visible nav items (refineries / mines) ── */
@@ -246,6 +255,11 @@ function SidebarNav({
   const isOfftaker = OFFTAKER_ROLES.includes(role);
   const isProducer = PRODUCER_ROLES.includes(role);
 
+  /* ── Compliance state for offtaker sidebar gating ── */
+  const { data: onboardingState } = useOnboardingState(isOfftaker);
+  const isCleared = onboardingState?.status === "COMPLETED";
+  const offtakerNav = isCleared ? OFFTAKER_CLEARED_NAV : OFFTAKER_ONBOARDING_NAV;
+
   /* ── Pro Toggle State (offtaker roles only) ── */
   const [proMode, setProMode] = useState(() => {
     if (!isOfftaker) return false;
@@ -332,7 +346,7 @@ function SidebarNav({
         /* ══════ ADMIN → OFFTAKER IMPERSONATION ══════ */
         <>
           {renderReturnBanner()}
-          {renderPortalNav(OFFTAKER_NAV, "Offtaker Portal")}
+          {renderPortalNav(OFFTAKER_CLEARED_NAV, "Offtaker Portal")}
         </>
       ) : isOperator && impersonationMode === "producer" ? (
         /* ══════ ADMIN → PRODUCER IMPERSONATION ══════ */
@@ -421,9 +435,28 @@ function SidebarNav({
         /* ══════ OFFTAKER CLIENT MODE (default) ══════ */
         <>
           <ul className="space-y-0.5 flex-1">
-            {OFFTAKER_NAV.map((item) => (
+            {offtakerNav.map((item) => (
               <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
             ))}
+
+            {/* ── Locked Marketplace indicator (State A only) ── */}
+            {!isCleared && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => router.push("/offtaker/onboarding/kyb")}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] font-normal tracking-wide w-full text-left",
+                    "text-slate-600 cursor-not-allowed opacity-50",
+                    collapsed && "justify-center px-0"
+                  )}
+                  title="Complete KYB verification to unlock the Marketplace"
+                >
+                  <Lock className="h-4 w-4 shrink-0 text-slate-600" />
+                  {!collapsed && <span className="truncate">Marketplace</span>}
+                </button>
+              </li>
+            )}
           </ul>
         </>
       )}
