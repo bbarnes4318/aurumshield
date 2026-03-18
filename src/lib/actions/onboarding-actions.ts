@@ -12,6 +12,7 @@
    intake → KYB → marketplace onboarding pipeline.
    ================================================================ */
 
+import { auth } from "@clerk/nextjs/server";
 import { getPoolClient } from "@/lib/db";
 import {
   evaluateCounterpartyReadiness,
@@ -129,7 +130,14 @@ export async function serverLaunchIdentityScan(
   caseId: string,
 ): Promise<IdentityScanResult> {
   try {
-    // Attempt to update case status in DB
+    // Resolve the real Clerk user ID — the compliance engine keys on this,
+    // NOT the onboarding case ID (e.g. "AS-OFT-2026-xxxxx").
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return { status: "ERROR", error: "Authentication required — please sign in." };
+    }
+
+    // Attempt to update case status in DB (uses onboarding caseId)
     try {
       const client = await getPoolClient();
       try {
@@ -146,8 +154,8 @@ export async function serverLaunchIdentityScan(
       console.warn("[KYB] DB update failed for case:", caseId);
     }
 
-    // Call the real compliance engine — uses caseId as userId
-    const result = await evaluateCounterpartyReadiness(caseId);
+    // Call the real compliance engine with the Clerk user ID
+    const result = await evaluateCounterpartyReadiness(clerkUserId);
 
     // If we get here without throwing, the user is already cleared
     if (result.ready) {
@@ -274,9 +282,15 @@ export interface VerificationPollResult {
 }
 
 export async function serverPollVerificationStatus(
-  userId: string,
+  _caseId: string,
 ): Promise<VerificationPollResult> {
   try {
+    // Use the real Clerk user ID for all DB lookups
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return { status: "ERROR", error: "Authentication required." };
+    }
+
     const client = await getPoolClient();
     try {
       const { rows } = await client.query<{
@@ -286,7 +300,7 @@ export async function serverPollVerificationStatus(
       }>(
         `SELECT kyb_status, verified_by, marketplace_access
          FROM users WHERE id = $1 LIMIT 1`,
-        [userId],
+        [clerkUserId],
       );
 
       if (rows.length === 0) {
@@ -295,7 +309,7 @@ export async function serverPollVerificationStatus(
           status: string;
         }>(
           `SELECT status FROM onboarding_cases WHERE case_id = $1 LIMIT 1`,
-          [userId],
+          [_caseId],
         );
 
         if (caseRows.length > 0 && caseRows[0].status === "KYB_APPROVED") {
@@ -315,7 +329,7 @@ export async function serverPollVerificationStatus(
         };
       } else if (kybStatus === "KYB_DECLINED") {
         // Fetch decline reasons from webhook log
-        const declineReasons = await getDeclineReasons(client, userId);
+        const declineReasons = await getDeclineReasons(client, clerkUserId);
         return { status: "DECLINED", kybStatus, declineReasons };
       } else if (kybStatus === "KYB_UNDER_REVIEW") {
         return { status: "REVIEWING", kybStatus };
@@ -386,29 +400,36 @@ async function getDeclineReasons(
    ================================================================ */
 
 export async function serverResetForRetry(
-  userId: string,
+  caseId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Use the real Clerk user ID for users + compliance_cases tables,
+    // and the onboarding caseId for onboarding_cases table.
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return { success: false, error: "Authentication required." };
+    }
+
     const client = await getPoolClient();
     try {
       await client.query(
         `UPDATE users SET kyb_status = 'KYB_PENDING', marketplace_access = false
          WHERE id = $1`,
-        [userId],
+        [clerkUserId],
       );
 
       // Also reset onboarding case if it exists
       await client.query(
         `UPDATE onboarding_cases SET status = 'KYB_PENDING', updated_at = NOW()
          WHERE case_id = $1`,
-        [userId],
+        [caseId],
       );
 
       // Reset compliance case status to OPEN so the engine generates a new session
       await client.query(
         `UPDATE compliance_cases SET status = 'OPEN'
          WHERE user_id = $1 AND status = 'REJECTED'`,
-        [userId],
+        [clerkUserId],
       );
     } finally {
       client.release();

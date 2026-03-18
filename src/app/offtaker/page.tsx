@@ -40,7 +40,7 @@ interface MetricCardProps {
 
 function MetricCard({ icon: Icon, label, value, subtext, accent }: MetricCardProps) {
   return (
-    <div className="border border-slate-800 bg-slate-900/50 p-4 flex flex-col gap-1">
+    <div className="border border-slate-800 bg-slate-900/50 p-2.5 flex flex-col gap-0.5">
       <div className="flex items-center gap-2">
         <Icon className="h-3.5 w-3.5 text-slate-500" />
         <span className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500">
@@ -48,7 +48,7 @@ function MetricCard({ icon: Icon, label, value, subtext, accent }: MetricCardPro
         </span>
       </div>
       <span
-        className={`font-mono text-xl font-bold tabular-nums tracking-tight ${
+        className={`font-mono text-lg font-bold tabular-nums tracking-tight ${
           accent ? "text-[#C6A86B]" : "text-white"
         }`}
       >
@@ -129,7 +129,7 @@ function MiniSparkline({ data }: { data: number[] }) {
     .join(" ");
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-[60px]" preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-[35px]" preserveAspectRatio="none">
       <defs>
         <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#C6A86B" stopOpacity="0.3" />
@@ -161,9 +161,9 @@ export default function CommandCenterPage() {
   const spotDisplay = goldPrice ? formatSpotPrice(goldPrice.spotPriceUsd) : "—";
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-slate-950">
+    <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950">
       {/* ── Header Strip ── */}
-      <div className="shrink-0 border-b border-slate-800 px-6 py-4">
+      <div className="shrink-0 border-b border-slate-800 px-4 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C6A86B]/10">
@@ -198,7 +198,8 @@ export default function CommandCenterPage() {
       </div>
 
       {/* ── Top Metrics Strip ── */}
-      <div className="shrink-0 grid grid-cols-4 gap-px bg-slate-800/50 border-b border-slate-800">
+      <div className="shrink-0 flex flex-col gap-3 px-4 py-2">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard
           icon={DollarSign}
           label="Total Capital Deployed"
@@ -224,13 +225,14 @@ export default function CommandCenterPage() {
           value="T+0 14:00 UTC"
           subtext="ORD-8842-XAU · Fedwire"
         />
+        </div>
       </div>
 
       {/* ── Main Split: Operations + Market Telemetry ── */}
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-px bg-slate-800/30">
+      <div className="flex-1 min-h-0 flex flex-row gap-4 px-4 pb-4 overflow-hidden">
         {/* ═══ LEFT: Live Operations ═══ */}
-        <div className="bg-slate-950 flex flex-col overflow-hidden">
-          <div className="shrink-0 px-5 py-3 border-b border-slate-800">
+        <div className="w-1/2 flex flex-col border border-slate-800 bg-slate-900/50 rounded-xl overflow-hidden">
+          <div className="shrink-0 px-3 py-2 border-b border-slate-800 bg-slate-900">
             <div className="flex items-center gap-2">
               <Activity className="h-3.5 w-3.5 text-slate-500" />
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500">
@@ -243,13 +245,13 @@ export default function CommandCenterPage() {
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto p-0">
             {LIVE_OPERATIONS.map((op) => {
               const StateIcon = op.stateIcon;
               return (
                 <div
                   key={op.id}
-                  className="border-b border-slate-800/50 px-5 py-4 hover:bg-slate-900/50 transition-colors"
+                  className="border-b border-slate-800/50 px-3 py-2.5 hover:bg-slate-900/50 transition-colors"
                 >
                   {/* Row 1: ID + Notional */}
                   <div className="flex items-center justify-between mb-2">
@@ -290,8 +292,8 @@ export default function CommandCenterPage() {
         </div>
 
         {/* ═══ RIGHT: Market Telemetry ═══ */}
-        <div className="bg-slate-950 flex flex-col overflow-hidden border-l border-slate-800">
-          <div className="shrink-0 px-5 py-3 border-b border-slate-800">
+        <div className="w-1/2 flex flex-col border border-slate-800 bg-slate-900/50 rounded-xl overflow-hidden">
+          <div className="shrink-0 px-3 py-2 border-b border-slate-800 bg-slate-900">
             <div className="flex items-center gap-2">
               <Activity className="h-3.5 w-3.5 text-slate-500" />
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500">
@@ -300,9 +302,9 @@ export default function CommandCenterPage() {
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto p-5">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3">
             {/* Spot Price Display */}
-            <div className="border border-slate-800 bg-black/40 p-5 mb-4">
+            <div className="border border-slate-800 bg-black/40 p-3 mb-3">
               <div className="flex items-center gap-2 mb-3">
                 <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wider">
                   Spot Price
@@ -356,7 +358,7 @@ export default function CommandCenterPage() {
             </div>
 
             {/* Sparkline Chart */}
-            <div className="border border-slate-800 bg-black/40 p-4 mb-4">
+            <div className="border border-slate-800 bg-black/40 p-3 mb-3">
               <div className="flex items-center justify-between mb-3">
                 <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wider">
                   24h Price Action
@@ -386,7 +388,7 @@ export default function CommandCenterPage() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="bg-slate-950 border border-slate-800 p-3"
+                  className="bg-slate-950 border border-slate-800 p-2"
                 >
                   <span className="font-mono text-[8px] text-slate-600 uppercase tracking-wider block mb-1">
                     {item.label}
