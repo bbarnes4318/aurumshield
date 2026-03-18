@@ -121,10 +121,25 @@ export function middleware(request: NextRequest) {
 
   // Skip domain gating in local development
   if (isLocalhost(host)) {
+    // Redirect bare parent paths to their canonical children (prevents 404)
+    if (pathname === "/offtaker/org") {
+      return NextResponse.redirect(new URL("/offtaker/org/select", request.url));
+    }
+    if (pathname === "/offtaker/onboarding") {
+      return NextResponse.redirect(new URL("/offtaker/onboarding/intake", request.url));
+    }
     if (!CLERK_ENABLED) {
       return NextResponse.next();
     }
     return clerk(request, {} as never);
+  }
+
+  // ── Redirect bare parent paths (no page.tsx) to canonical children ──
+  if (pathname === "/offtaker/org") {
+    return NextResponse.redirect(new URL("/offtaker/org/select", request.url));
+  }
+  if (pathname === "/offtaker/onboarding") {
+    return NextResponse.redirect(new URL("/offtaker/onboarding/intake", request.url));
   }
 
   // Shared paths (health, webhooks) — always pass through

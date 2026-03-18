@@ -58,6 +58,12 @@ const GOLD_API_KEY = typeof window !== "undefined"
 
 const API_KEY_PRESENT = GOLD_API_KEY.length > 0;
 
+/** Demo mode: show simulated prices instead of [PRICING OFFLINE] */
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
+/** True if we can show pricing (either live API or demo simulation) */
+const CAN_SHOW_PRICE = API_KEY_PRESENT || DEMO_MODE;
+
 /* ── GoldAPI response shape ── */
 interface GoldApiResponse {
   /** XAU/USD spot price */
@@ -72,9 +78,23 @@ interface GoldApiResponse {
   timestamp: number;
 }
 
+/* ── Demo Simulator ── */
+async function fetchDemoPrice(): Promise<GoldPriceData> {
+  await new Promise((r) => setTimeout(r, 200));
+  const base = 2648.50;
+  const fluctuation = (Math.random() - 0.5) * base * 0.004;
+  return {
+    spotPriceUsd: Math.round((base + fluctuation) * 100) / 100,
+    change24h: +(Math.random() * 20 - 10).toFixed(2),
+    changePct24h: +(Math.random() * 0.8 - 0.4).toFixed(2),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 /* ── Fetcher ── */
 async function fetchGoldPrice(): Promise<GoldPriceData> {
   if (!API_KEY_PRESENT) {
+    if (DEMO_MODE) return fetchDemoPrice();
     console.error(
       "[GOLD-ORACLE] NEXT_PUBLIC_GOLD_API_KEY is not configured. " +
       "Live pricing is OFFLINE. Set the env var and redeploy."
@@ -167,11 +187,11 @@ export function useGoldPrice(): GoldPriceResult {
       // Retry transient errors up to 3 times
       return failureCount < 3;
     },
-    // Disable the query entirely if the key is missing (avoids noise)
-    enabled: API_KEY_PRESENT,
+    // Disable the query if key is missing AND not in demo mode
+    enabled: CAN_SHOW_PRICE,
   });
 
-  const errorMessage = !API_KEY_PRESENT
+  const errorMessage = !CAN_SHOW_PRICE
     ? "NEXT_PUBLIC_GOLD_API_KEY not configured"
     : isError && error instanceof Error
       ? error.message
@@ -189,10 +209,10 @@ export function useGoldPrice(): GoldPriceResult {
 
   return {
     data,
-    isLoading: API_KEY_PRESENT ? isLoading : false,
-    isError: !API_KEY_PRESENT || isError,
+    isLoading: CAN_SHOW_PRICE ? isLoading : false,
+    isError: !CAN_SHOW_PRICE || isError,
     errorMessage,
-    // Live = we have data AND no current error AND key is present
-    isLive: API_KEY_PRESENT && !isError && data !== undefined,
+    // Live = we have data AND no current error AND pricing is available
+    isLive: CAN_SHOW_PRICE && !isError && data !== undefined,
   };
 }
