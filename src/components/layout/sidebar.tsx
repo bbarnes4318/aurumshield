@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard,
+  Building,
   Building2,
   Send,
   ListTree,
@@ -31,12 +32,12 @@ import {
   Network,
   Map,
   CalendarClock,
-  Package,
-  Truck,
   Fingerprint,
   Upload,
   Banknote,
   Lock,
+  Coins,
+  ArrowRightLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -137,9 +138,11 @@ const OFFTAKER_ONBOARDING_NAV: NavItem[] = [
 
 /** State B: Shown when KYB is COMPLETED */
 const OFFTAKER_CLEARED_NAV: NavItem[] = [
-  { label: "Marketplace",         href: "/offtaker/marketplace",            icon: Package,        allowedRoles: OFFTAKER_ROLES },
-  { label: "Orders",              href: "/offtaker/orders",                 icon: Truck,          allowedRoles: OFFTAKER_ROLES },
-  { label: "Entity Management",   href: "/offtaker/settings",               icon: Settings,       allowedRoles: OFFTAKER_ROLES },
+  { label: "Command Center",      href: "/offtaker",                        icon: LayoutDashboard, allowedRoles: OFFTAKER_ROLES },
+  { label: "Liquidity Nexus",     href: "/offtaker/marketplace",            icon: Coins,           allowedRoles: OFFTAKER_ROLES },
+  { label: "Trade Blotter",       href: "/offtaker/orders",                 icon: ArrowRightLeft,  allowedRoles: OFFTAKER_ROLES },
+  { label: "Audit Vault",         href: "/offtaker/ledger",                 icon: ShieldCheck,     allowedRoles: OFFTAKER_ROLES },
+  { label: "Entity Management",   href: "/offtaker/settings",               icon: Building,        allowedRoles: OFFTAKER_ROLES },
 ];
 
 /* ── Producer-visible nav items (refineries / mines) ── */
@@ -172,8 +175,8 @@ function NavLink({
 }) {
   const Icon = item.icon;
   const isActive =
-    href === "/dashboard"
-      ? pathname === "/dashboard"
+    href === "/dashboard" || href === "/offtaker"
+      ? pathname === href
       : pathname === href || pathname.startsWith(href + "/");
 
   const classes = cn(
