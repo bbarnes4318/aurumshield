@@ -9,6 +9,10 @@
    In local development (localhost), no host gating is applied.
 
    Clerk auth is enforced on all non-public routes after domain gating.
+
+   CORS FIX: RSC prefetch requests and Next.js router prefetches are
+   NEVER cross-domain redirected. They receive a 204 No Content instead
+   to prevent the browser from issuing CORS-blocked cross-origin fetches.
    ================================================================ */
 
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
@@ -27,7 +31,10 @@ const CLERK_ENABLED =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "YOUR_PUBLISHABLE_KEY" &&
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
 
-/* ── Marketing-only routes (served on root domain) ── */
+/* ── Marketing-only routes (served on root domain) ──
+   NOTE: Root "/" is NOT included here. On the marketing host it is
+   handled explicitly. On the app host "/" passes through to Clerk
+   which redirects to /dashboard or /login — never cross-domain. */
 const MARKETING_PATHS = ["/platform-overview", "/technical-overview", "/demo", "/legal", "/investor"];
 
 /* ── Routes that are available on BOTH domains (never redirected) ── */
@@ -70,7 +77,7 @@ function isAppHost(host: string): boolean {
 }
 
 function isMarketingPath(pathname: string): boolean {
-  if (pathname === "/") return true;
+  // Root "/" is intentionally excluded — each domain handles it separately
   return MARKETING_PATHS.some(
     (p) => pathname === p || pathname.startsWith(p + "/"),
   );
@@ -80,6 +87,24 @@ function isSharedPath(pathname: string): boolean {
   return SHARED_PATHS.some(
     (p) => pathname === p || pathname.startsWith(p + "/"),
   );
+}
+
+/**
+ * Detect any form of Next.js internal prefetch / RSC request.
+ * These MUST NEVER be 307-redirected cross-domain because the
+ * browser's fetch will CORS-block the redirect response.
+ */
+function isPrefetchOrRSC(request: NextRequest): boolean {
+  // RSC header (server component fetch)
+  if (request.headers.get("RSC") === "1") return true;
+  // _rsc search param (RSC data fetch)
+  if (request.nextUrl.searchParams.has("_rsc")) return true;
+  // Next.js router prefetch header
+  if (request.headers.get("Next-Router-Prefetch") === "1") return true;
+  // Generic prefetch purpose header
+  if (request.headers.get("Purpose") === "prefetch") return true;
+  if (request.headers.get("Sec-Purpose") === "prefetch") return true;
+  return false;
 }
 
 /* ── Clerk middleware with auth enforcement ── */
@@ -94,14 +119,6 @@ export function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const { pathname } = request.nextUrl;
 
-  // Detect RSC (React Server Component) prefetch requests.
-  // These MUST NOT be 307-redirected cross-domain because the browser
-  // will fail the redirect with a CORS error (the target domain doesn't
-  // serve Access-Control-Allow-Origin for prefetch requests).
-  const isRSC =
-    request.headers.get("RSC") === "1" ||
-    request.nextUrl.searchParams.has("_rsc");
-
   // Skip domain gating in local development
   if (isLocalhost(host)) {
     if (!CLERK_ENABLED) {
@@ -115,15 +132,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── GLOBAL PREFETCH GUARD ──
+  // Detect RSC / prefetch requests BEFORE domain routing.
+  // If a prefetch would result in a cross-domain redirect, return 204.
+  const isPrefetch = isPrefetchOrRSC(request);
+
   // ── Marketing domain: aurumshield.vip / www.aurumshield.vip ──
   if (isMarketingHost(host)) {
-    if (isMarketingPath(pathname)) {
-      // Serve marketing page — no auth required
+    // Root "/" and marketing paths — serve directly, no auth
+    if (pathname === "/" || isMarketingPath(pathname)) {
       return NextResponse.next();
     }
     // App route on marketing domain → redirect to app subdomain
-    // (skip redirect for RSC prefetches to avoid CORS failures)
-    if (isRSC) {
+    // Block redirect for prefetches to prevent CORS
+    if (isPrefetch) {
       return new NextResponse(null, { status: 204 });
     }
     const target = new URL(pathname + request.nextUrl.search, APP_URL);
@@ -134,14 +156,15 @@ export function middleware(request: NextRequest) {
   if (isAppHost(host)) {
     if (isMarketingPath(pathname)) {
       // Marketing route on app domain → redirect to root domain
-      // (skip redirect for RSC prefetches to avoid CORS failures)
-      if (isRSC) {
+      // Block redirect for prefetches to prevent CORS
+      if (isPrefetch) {
         return new NextResponse(null, { status: 204 });
       }
       const target = new URL(pathname + request.nextUrl.search, ROOT_URL);
       return NextResponse.redirect(target, 307);
     }
-    // App route — enforce Clerk auth
+    // Root "/" and all app routes — enforce Clerk auth
+    // "/" will be handled by Clerk → redirects to /dashboard or /login
     if (!CLERK_ENABLED) {
       return NextResponse.next();
     }
