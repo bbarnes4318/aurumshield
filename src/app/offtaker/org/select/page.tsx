@@ -152,14 +152,14 @@ export default function OrgSelectPage() {
       {/* ══════════════════════════════════════════════════════════
          HEADER
          ══════════════════════════════════════════════════════════ */}
-      <div className="shrink-0 px-8 pt-5 pb-3">
-        <div className="flex items-center gap-3 mb-1">
-          <Shield className="h-4 w-4 text-gold-primary" />
-          <span className="font-mono text-gold-primary text-[10px] tracking-[0.3em] uppercase font-bold">
+      <div className="shrink-0 px-6 pt-3 pb-2">
+        <div className="flex items-center gap-2 mb-0.5">
+          <Shield className="h-3.5 w-3.5 text-gold-primary" />
+          <span className="font-mono text-gold-primary text-[9px] tracking-[0.3em] uppercase font-bold">
             AurumShield Terminal Gate
           </span>
         </div>
-        <h1 className="text-lg font-bold tracking-tight text-white">
+        <h1 className="text-base font-bold tracking-tight text-white">
           Corporate Custody Perimeter
         </h1>
       </div>
@@ -167,49 +167,49 @@ export default function OrgSelectPage() {
       {/* ══════════════════════════════════════════════════════════
          MAIN CONTENT — Centered Gate Card or Entity Grid
          ══════════════════════════════════════════════════════════ */}
-      <div className="flex-1 min-h-0 flex flex-col px-8 pb-4 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col px-6 pb-2 overflow-hidden">
 
         {!hasEntities ? (
           /* ═══════════════════════════════════════════════════════
              EMPTY STATE — "Establish Custody" Gate Card
              ═══════════════════════════════════════════════════════ */
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 min-h-0 flex items-center justify-center p-4">
             <div className="w-full max-w-2xl">
               {/* Gate Card */}
               <div className="bg-slate-900/50 border border-[#C6A86B]/30 rounded-sm shadow-[0_0_60px_-15px_rgba(198,168,107,0.1)] relative overflow-hidden">
                 {/* Subtle background glow */}
                 <div className="absolute inset-0 bg-linear-to-br from-[#C6A86B]/3 via-transparent to-transparent pointer-events-none" />
 
-                <div className="relative p-8">
+                <div className="relative p-6">
                   {/* Status */}
-                  <div className="flex items-center gap-2 mb-5">
-                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse" />
-                    <span className="font-mono text-[10px] text-emerald-400 tracking-wider uppercase">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] animate-pulse" />
+                    <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase">
                       Clearing Engine Online — Ready for Registration
                     </span>
                   </div>
 
                   {/* Title */}
-                  <h2 className="text-xl font-bold tracking-tight text-white mb-3">
+                  <h2 className="text-lg font-bold tracking-tight text-white mb-2">
                     Establish Corporate Custody
                   </h2>
 
                   {/* Institutional Microcopy */}
-                  <p className="font-mono text-xs text-slate-400 leading-relaxed mb-6 max-w-lg">
+                  <p className="font-mono text-[11px] text-slate-400 leading-relaxed mb-4 max-w-lg">
                     Welcome to AurumShield. To access the liquidity nexus and establish
                     physical custody, you must first register your corporate entity and
                     clear the AML/KYB perimeter.
                   </p>
 
                   {/* Parameter Readout */}
-                  <div className="bg-black/40 border border-slate-800/50 p-4 mb-6 rounded-sm">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div className="bg-black/40 border border-slate-800/50 p-3 mb-4 rounded-sm">
+                    <div className="flex items-center gap-2 mb-2">
                       <Lock className="h-3 w-3 text-slate-600" />
-                      <span className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase">
+                      <span className="font-mono text-[8px] text-slate-500 tracking-[0.15em] uppercase">
                         Entity Parameters
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-y-2">
+                    <div className="grid grid-cols-2 gap-y-1.5">
                       <span className="font-mono text-[10px] text-slate-600">role_assignment</span>
                       <span className="font-mono text-[10px] text-gold-primary text-right tabular-nums">TREASURY_ADMIN</span>
                       <span className="font-mono text-[10px] text-slate-600">perimeter_type</span>
@@ -232,7 +232,7 @@ export default function OrgSelectPage() {
                     <button
                       data-tour="cinematic-org-register"
                       onClick={handleInitializeOrg}
-                      className={`w-full bg-gold-primary text-slate-950 font-mono font-bold text-sm tracking-[0.15em] uppercase py-4 flex items-center justify-center gap-2.5 hover:bg-gold-hover transition-colors cursor-pointer rounded-sm ${isDemoActive ? `${DEMO_SPOTLIGHT_CLASSES} demo-cta-glow` : ""}`}
+                      className={`w-full bg-gold-primary text-slate-950 font-mono font-bold text-xs tracking-[0.15em] uppercase py-3 flex items-center justify-center gap-2 hover:bg-gold-hover transition-colors cursor-pointer rounded-sm ${isDemoActive ? `${DEMO_SPOTLIGHT_CLASSES} demo-cta-glow` : ""}`}
                     >
                       <Building2 className="h-4 w-4" />
                       Register Corporate Entity
@@ -241,7 +241,7 @@ export default function OrgSelectPage() {
                   </div>
 
                   {/* Collapsible: Join Existing */}
-                  <div className="border border-slate-800/50 mt-4 rounded-sm">
+                  <div className="border border-slate-800/50 mt-3 rounded-sm">
                     <button
                       onClick={() => setShowAttach(!showAttach)}
                       className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-slate-900/50 transition-colors cursor-pointer"
@@ -306,7 +306,7 @@ export default function OrgSelectPage() {
               </div>
 
               {/* Trust Line */}
-              <p className="mt-4 text-center font-mono text-[9px] text-slate-700 tracking-wider">
+              <p className="mt-2 text-center font-mono text-[9px] text-slate-700 tracking-wider">
                 AurumShield Clearing · Sovereign Financial Infrastructure · Multi-Tenant Isolation
               </p>
             </div>
