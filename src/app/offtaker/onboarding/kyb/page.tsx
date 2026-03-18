@@ -348,7 +348,7 @@ export default function KYBConsolePage() {
   }, []);
 
   return (
-    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
+    <div className="flex flex-col overflow-hidden bg-slate-950 -mx-6 -my-6 lg:-mx-8 h-[calc(100%+3rem)]">
       {/* ── Header ── */}
       <div className="shrink-0 border-b border-slate-800/60 bg-black/30 px-6 py-3">
         <div className="flex items-center justify-between">
@@ -371,13 +371,13 @@ export default function KYBConsolePage() {
         </p>
       </div>
 
-      {/* ── 2-Column Main Content ── */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-5 gap-4 px-6 py-4 overflow-y-auto">
+      {/* ── 2-Column Main Content — Locked Frame: only inner columns scroll ── */}
+      <div className="flex-1 min-h-0 flex gap-6 px-6 overflow-hidden">
 
         {/* ═══════════════════════════════════════════════════════════
            LEFT COLUMN — Case Summary + Verification Ladder (3/5)
            ═══════════════════════════════════════════════════════════ */}
-        <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
+        <div className="w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-6">
 
           {/* ── Case File Summary (compact horizontal strip) ── */}
           <div className="shrink-0 bg-slate-900/50 border border-slate-800/50 rounded-sm p-4">
@@ -552,7 +552,7 @@ export default function KYBConsolePage() {
         {/* ═══════════════════════════════════════════════════════════
            RIGHT COLUMN — Evidence + Terminal (2/5)
            ═══════════════════════════════════════════════════════════ */}
-        <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
+        <div className="w-2/3 flex flex-col gap-6 overflow-y-auto pr-2 pb-6">
 
           {/* ── Document Upload Zone ── */}
           <div className="shrink-0 bg-slate-900/50 border border-slate-800/50 rounded-sm p-4">
@@ -714,7 +714,7 @@ export default function KYBConsolePage() {
       </div>
 
       {/* ── Marketplace Gate — Anchored Footer ── */}
-      <div className="shrink-0 border-t border-slate-800/60 bg-black/30 px-6 py-3">
+      <div className="shrink-0 p-4 border-t border-slate-800 bg-slate-950 flex flex-col">
         {isDemoActive ? (
           <div className="relative">
             <DemoTooltip text="Verify Corporate Identity to access the Marketplace →" position="top" />

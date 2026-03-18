@@ -230,7 +230,7 @@ export default function TransactionsUI() {
   }, []);
 
   return (
-    <div className="relative flex h-full flex-col items-center justify-center overflow-hidden bg-slate-950 -mx-5 -mt-5 -mb-5 lg:-mx-8 px-4">
+    <div className="relative flex h-full flex-col items-center justify-center overflow-hidden bg-slate-950 -mx-6 -my-6 lg:-mx-8 px-4">
       {/* ─── A. Trust Perimeter Badge ─── */}
       <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10">
         <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-800/40 bg-emerald-950/30 px-5 py-2 backdrop-blur-sm">
