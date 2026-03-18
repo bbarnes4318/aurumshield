@@ -203,28 +203,20 @@ export default function EntityManagementPage() {
   if (isLoadingState) {
     return (
       <div className="h-full flex items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 text-gold animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 text-slate-600 animate-spin" />
+          <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
+            Syncing Telemetry...
+          </span>
+        </div>
       </div>
     );
   }
 
-  /* ── Guard: redirect if not cleared ── */
+  /* ── Hard Ejection: non-cleared users get pushed out ── */
   if (onboardingState?.status !== "COMPLETED") {
-    return (
-      <div className="h-full flex flex-col items-center justify-center bg-slate-950 gap-4">
-        <Shield className="h-10 w-10 text-slate-600" />
-        <p className="text-sm text-slate-400">
-          Entity management is available after KYB clearance.
-        </p>
-        <button
-          type="button"
-          onClick={() => router.push("/offtaker/onboarding/intake")}
-          className="text-xs text-gold hover:text-gold/80 transition-colors"
-        >
-          Go to Onboarding →
-        </button>
-      </div>
-    );
+    router.replace("/offtaker/org/select");
+    return <div className="h-full bg-slate-950" />;
   }
 
   return (

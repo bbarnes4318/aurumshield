@@ -12,6 +12,7 @@
    ================================================================ */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRightLeft,
   Search,
@@ -20,16 +21,12 @@ import {
   X,
   Clock,
   Shield,
-  Landmark,
-  Truck,
-  Coins,
-  CheckCircle2,
-  AlertTriangle,
   FileText,
   Activity,
-  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import { useOnboardingState } from "@/hooks/use-onboarding-state";
 import { DualAuthGate } from "@/components/checkout/DualAuthGate";
 import { WebAuthnModal } from "@/components/checkout/WebAuthnModal";
 import { ClearingCertificate } from "@/components/checkout/ClearingCertificate";
@@ -400,9 +397,15 @@ function TradeDrawer({
    ================================================================ */
 
 export default function TradeBlotterPage() {
+  const router = useRouter();
+  const { data: onboardingState, isLoading: complianceLoading } = useOnboardingState();
+  const isCleared = onboardingState?.status === "COMPLETED";
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<TradeStatus | "all">("all");
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+
+  /* ── All hooks MUST be above early returns ── */
 
   /* ── Merge any dynamically created order from marketplace ── */
   const allTrades = useMemo(() => {
@@ -425,7 +428,9 @@ export default function TradeBlotterPage() {
               dvpState: "PENDING_WIRE",
               logisticsState: "AWAITING_DISPATCH",
               status: "pending_execution",
-              date: new Date(exec.executedAt || Date.now()).toISOString().slice(0, 10),
+              date: exec.executedAt
+                ? new Date(exec.executedAt).toISOString().slice(0, 10)
+                : new Date().toISOString().slice(0, 10),
               counterparty: "Self-Directed",
               vault: "Zurich — Malca-Amit Hub 1",
               rail: "Fedwire RTGS",
@@ -439,7 +444,6 @@ export default function TradeBlotterPage() {
     return trades;
   }, []);
 
-  /* ── Filtered trades ── */
   const filteredTrades = useMemo(() => {
     return allTrades.filter((trade) => {
       const matchesSearch =
@@ -454,6 +458,28 @@ export default function TradeBlotterPage() {
   const handleRowClick = useCallback((trade: Trade) => {
     setSelectedTrade(trade);
   }, []);
+
+  /* ── Hard Ejection ── */
+  useEffect(() => {
+    if (!complianceLoading && !isCleared) {
+      router.replace("/offtaker/org/select");
+    }
+  }, [complianceLoading, isCleared, router]);
+
+  if (complianceLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 text-slate-600 animate-spin" />
+          <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">Syncing Telemetry...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isCleared) {
+    return <div className="h-full bg-slate-950" />;
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-slate-950">

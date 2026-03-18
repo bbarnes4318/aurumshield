@@ -11,6 +11,8 @@
    Aesthetic:           bg-slate-950, institutional, monospace data
    ================================================================ */
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   DollarSign,
@@ -24,8 +26,10 @@ import {
   Truck,
   Coins,
   CircleDot,
+  Loader2,
 } from "lucide-react";
 import { useGoldPrice, formatSpotPrice } from "@/hooks/use-gold-price";
+import { useOnboardingState } from "@/hooks/use-onboarding-state";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 
 /* ── MetricCard ── */
@@ -156,9 +160,38 @@ function MiniSparkline({ data }: { data: number[] }) {
    ================================================================ */
 
 export default function CommandCenterPage() {
+  const router = useRouter();
+  const { data: onboardingState, isLoading: complianceLoading } = useOnboardingState();
+  const isCleared = onboardingState?.status === "COMPLETED";
   const { data: goldPrice, isLoading, isError, isLive } = useGoldPrice();
 
   const spotDisplay = goldPrice ? formatSpotPrice(goldPrice.spotPriceUsd) : "—";
+
+  /* ── Hard Ejection: unverified users get pushed to onboarding ── */
+  useEffect(() => {
+    if (!complianceLoading && !isCleared) {
+      router.replace("/offtaker/org/select");
+    }
+  }, [complianceLoading, isCleared, router]);
+
+  /* ── Loading gate ── */
+  if (complianceLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 text-slate-600 animate-spin" />
+          <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
+            Syncing Telemetry...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Block render if not cleared (ejection in-flight) ── */
+  if (!isCleared) {
+    return <div className="h-full bg-slate-950" />;
+  }
 
   return (
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950">

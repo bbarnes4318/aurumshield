@@ -12,18 +12,19 @@
    Aesthetic:           bg-slate-950, 1px border-slate-800, font-mono
    ================================================================ */
 
-import { useState, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
   FileText,
   Download,
-  Landmark,
   Shield,
   CheckCircle2,
   Clock,
-  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
+import { useOnboardingState } from "@/hooks/use-onboarding-state";
 
 /* ── Tab Types ── */
 
@@ -200,9 +201,34 @@ function handleDownload(docId: string) {
    ================================================================ */
 
 export default function AuditVaultPage() {
-  const [activeTab, setActiveTab] = useState<AuditTab>("certificates");
+  const router = useRouter();
+  const { data: onboardingState, isLoading: complianceLoading } = useOnboardingState();
+  const isCleared = onboardingState?.status === "COMPLETED";
 
+  const [activeTab, setActiveTab] = useState<AuditTab>("certificates");
   const documents = TAB_DATA[activeTab];
+
+  /* ── Hard Ejection ── */
+  useEffect(() => {
+    if (!complianceLoading && !isCleared) {
+      router.replace("/offtaker/org/select");
+    }
+  }, [complianceLoading, isCleared, router]);
+
+  if (complianceLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 text-slate-600 animate-spin" />
+          <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">Syncing Telemetry...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isCleared) {
+    return <div className="h-full bg-slate-950" />;
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-slate-950">

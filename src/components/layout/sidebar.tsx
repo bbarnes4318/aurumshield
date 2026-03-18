@@ -259,8 +259,8 @@ function SidebarNav({
   const isProducer = PRODUCER_ROLES.includes(role);
 
   /* ── Compliance state for offtaker sidebar gating ── */
-  const { data: onboardingState } = useOnboardingState(isOfftaker);
-  const isCleared = onboardingState?.status === "COMPLETED";
+  const { data: onboardingState, isLoading: complianceLoading } = useOnboardingState(isOfftaker);
+  const isCleared = !complianceLoading && onboardingState?.status === "COMPLETED";
   const offtakerNav = isCleared ? OFFTAKER_CLEARED_NAV : OFFTAKER_ONBOARDING_NAV;
 
   /* ── Pro Toggle State (offtaker roles only) ── */
