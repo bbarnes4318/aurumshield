@@ -95,31 +95,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   /* ── 1. Read raw body ── */
   const rawBody = await request.text();
 
-  /* ── 2. Signature verification ── */
-  if (webhookSecret) {
-    const signature =
-      request.headers.get("x-carrier-signature") ??
-      request.headers.get("X-Carrier-Signature") ??
-      "";
+  /* ── 2. Signature verification (FAIL-CLOSED — no bypass in any environment) ── */
+  if (!webhookSecret) {
+    console.error(
+      "[LOGISTICS-WEBHOOK] CRITICAL: CARRIER_WEBHOOK_SECRET not configured — rejecting all payloads",
+    );
+    return NextResponse.json(
+      { error: "Webhook endpoint not configured" },
+      { status: 500 },
+    );
+  }
 
-    if (!signature) {
-      console.error("[LOGISTICS-WEBHOOK] Missing X-Carrier-Signature header");
-      return NextResponse.json(
-        { error: "Missing webhook signature" },
-        { status: 401 },
-      );
-    }
+  const signature =
+    request.headers.get("x-carrier-signature") ??
+    request.headers.get("X-Carrier-Signature") ??
+    "";
 
-    if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
-      console.error("[LOGISTICS-WEBHOOK] Invalid webhook signature — rejecting");
-      return NextResponse.json(
-        { error: "Invalid webhook signature" },
-        { status: 401 },
-      );
-    }
-  } else {
-    console.warn(
-      "[LOGISTICS-WEBHOOK] CARRIER_WEBHOOK_SECRET not set — signature validation SKIPPED (development mode only)",
+  if (!signature) {
+    console.error("[LOGISTICS-WEBHOOK] Missing X-Carrier-Signature header");
+    return NextResponse.json(
+      { error: "Missing webhook signature" },
+      { status: 401 },
+    );
+  }
+
+  if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+    console.error("[LOGISTICS-WEBHOOK] Invalid webhook signature — rejecting");
+    return NextResponse.json(
+      { error: "Invalid webhook signature" },
+      { status: 401 },
     );
   }
 

@@ -11,6 +11,8 @@
    ================================================================ */
 
 import { getPoolClient } from "@/lib/db";
+import { z } from "zod";
+import { requireAdmin } from "@/lib/authz";
 
 /* ----------------------------------------------------------------
    TYPES
@@ -27,6 +29,17 @@ export interface ResolutionResult {
   auditEventId: string;
   timestamp: string;
 }
+
+/* ================================================================
+   ZOD SCHEMAS — Server Action Input Validation
+   ================================================================ */
+
+const ResolveAmbiguousStateSchema = z.object({
+  settlementId: z.string().min(1, "Settlement ID is required").max(256),
+  resolution: z.enum(["FORCE_SETTLE", "REVERSE"], {
+    message: "Resolution must be FORCE_SETTLE or REVERSE",
+  }),
+});
 
 /* ================================================================
    resolveAmbiguousState — Manual treasury intervention
@@ -47,6 +60,15 @@ export async function resolveAmbiguousState(
   resolution: ResolutionAction,
   isDemo: boolean = false,
 ): Promise<ResolutionResult> {
+  /* ── Admin Auth: Only treasury operators can resolve ambiguous state ── */
+  await requireAdmin();
+
+  /* ── Zod Boundary Validation ── */
+  const parsed = ResolveAmbiguousStateSchema.safeParse({ settlementId, resolution });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+  }
+
   const timestamp = new Date().toISOString();
 
   /* ── Demo Branch: Simulated delay + success ── */

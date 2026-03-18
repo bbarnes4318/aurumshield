@@ -20,6 +20,7 @@ import { signCertificate } from "@/lib/certificates/kms-signer";
 import { canonicalDigest } from "@/lib/certificates/canonicalize";
 import { analyzeAssayReport, type AssayFieldExtractionResult } from "@/lib/services/textract-service";
 import { emitAuditEvent } from "@/lib/audit-logger";
+import { requireSession } from "@/lib/authz";
 import {
   sovereignAssayRecordSchema,
   transitHandoffRecordSchema,
@@ -125,6 +126,9 @@ export async function ingestAsset(
   _prevState: IngestAssetState,
   formData: FormData,
 ): Promise<IngestAssetState> {
+  /* ── Session Auth ── */
+  await requireSession();
+
   /* ── 1. Extract & Validate Inputs ── */
 
   const assetForm = (formData.get("assetForm") as string | null) ?? "GOOD_DELIVERY_BULLION";
@@ -361,6 +365,9 @@ export interface TextractAssayParseResult {
 export async function parseAssayDocument(
   formData: FormData,
 ): Promise<TextractAssayParseResult> {
+  /* ── Session Auth ── */
+  await requireSession();
+
   const file = formData.get("assayFile") as File | null;
 
   if (!file || file.size === 0) {
@@ -437,6 +444,9 @@ export async function submitAssetIntakeProof(
   transitData: TransitHandoffRecord,
   textractData: AssayFieldExtractionResult | null,
 ): Promise<AssetIntakeProofState> {
+  /* ── Session Auth ── */
+  await requireSession();
+
   /* ── 1. Input Validation ── */
 
   if (!listingId?.trim()) {
@@ -635,23 +645,27 @@ export interface DoreIntakeResult {
   error?: string;
 }
 
+/* ── Zod Schema for submitDoreIntake ── */
+
+const SubmitDoreIntakeSchema = z.object({
+  listingId: z.string().min(1, "Listing ID is required.").max(256),
+  estimatedWeight: z.number().positive("Estimated weight must be a positive number."),
+  refineryId: z.string().min(1, "Refinery ID is required.").max(256),
+});
+
 export async function submitDoreIntake(
   listingId: string,
   estimatedWeight: number,
   refineryId: string,
 ): Promise<DoreIntakeResult> {
-  /* ── 1. Input Validation ── */
+  /* ── Session Auth ── */
+  await requireSession();
 
-  if (!listingId?.trim()) {
-    return { success: false, error: "Listing ID is required." };
-  }
+  /* ── 1. Zod Boundary Validation ── */
 
-  if (!estimatedWeight || estimatedWeight <= 0) {
-    return { success: false, error: "Estimated weight must be a positive number." };
-  }
-
-  if (!refineryId?.trim()) {
-    return { success: false, error: "Refinery ID is required." };
+  const parsed = SubmitDoreIntakeSchema.safeParse({ listingId, estimatedWeight, refineryId });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   /* ── 2. Atomic DB Update ── */

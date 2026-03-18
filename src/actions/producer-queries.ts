@@ -12,6 +12,20 @@
    ================================================================ */
 
 import { getPoolClient } from "@/lib/db";
+import { z } from "zod";
+import { requireSession } from "@/lib/authz";
+
+/* ================================================================
+   ZOD SCHEMAS — Server Action Input Validation
+   ================================================================ */
+
+const ProducerIdSchema = z.object({
+  producerId: z.string().min(1, "Producer ID is required").max(256),
+});
+
+const OrderIdSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required").max(256),
+});
 
 /* ----------------------------------------------------------------
    TYPES — Serializable Row Shapes
@@ -97,6 +111,15 @@ function safeNumber(val: unknown): number {
 export async function getProducerInventory(
   producerId: string,
 ): Promise<LiveInventoryRow[]> {
+  /* ── Session Auth + ownership ── */
+  const session = await requireSession();
+  const parsed = ProducerIdSchema.safeParse({ producerId });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+  // Producers can only query their own data (admin bypass)
+  if (session.userId !== producerId && session.role !== "admin" && session.role !== "compliance") {
+    throw new Error("Forbidden: you may only query your own inventory.");
+  }
+
   const client = await getPoolClient();
 
   try {
@@ -174,6 +197,14 @@ export async function getProducerInventory(
 export async function getProducerSettlements(
   producerId: string,
 ): Promise<LiveProducerSettlement[]> {
+  /* ── Session Auth + ownership ── */
+  const session = await requireSession();
+  const parsed = ProducerIdSchema.safeParse({ producerId });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+  if (session.userId !== producerId && session.role !== "admin" && session.role !== "compliance") {
+    throw new Error("Forbidden: you may only query your own settlements.");
+  }
+
   const client = await getPoolClient();
 
   try {
@@ -245,6 +276,14 @@ export async function getProducerSettlements(
 export async function getProducerMetrics(
   producerId: string,
 ): Promise<ProducerMetrics> {
+  /* ── Session Auth + ownership ── */
+  const session = await requireSession();
+  const parsed = ProducerIdSchema.safeParse({ producerId });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+  if (session.userId !== producerId && session.role !== "admin" && session.role !== "compliance") {
+    throw new Error("Forbidden: you may only query your own metrics.");
+  }
+
   const client = await getPoolClient();
 
   try {
@@ -332,6 +371,11 @@ export async function getProducerMetrics(
 export async function getSettlementCaseForOrder(
   orderId: string,
 ): Promise<LiveSettlementOrder | null> {
+  /* ── Session Auth ── */
+  await requireSession();
+  const parsed = OrderIdSchema.safeParse({ orderId });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+
   const client = await getPoolClient();
 
   try {

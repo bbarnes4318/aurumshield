@@ -24,10 +24,9 @@ interface KycStatusRow {
 }
 
 export async function GET(request: NextRequest) {
-  let sessionUserId: string;
+  let session: Awaited<ReturnType<typeof requireSession>>;
   try {
-    const session = await requireSession();
-    sessionUserId = session.userId;
+    session = await requireSession();
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: err.statusCode });
@@ -35,8 +34,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Use session userId (secure) with optional override from query for admin lookup
-  const userId = request.nextUrl.searchParams.get("userId") || sessionUserId;
+  /* ── BOLA/IDOR FIX: userId always derived from session ──
+     Admin/compliance/treasury roles may override via query param.
+     All other users are locked to their own session userId. */
+  const ADMIN_ROLES = new Set(["admin", "compliance", "INSTITUTION_TREASURY", "vault_ops"]);
+  const queryUserId = request.nextUrl.searchParams.get("userId");
+  const userId =
+    queryUserId && ADMIN_ROLES.has(session.role)
+      ? queryUserId
+      : session.userId;
 
   if (!userId) {
     return NextResponse.json(

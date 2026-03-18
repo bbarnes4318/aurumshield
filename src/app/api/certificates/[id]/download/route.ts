@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sha256Hex } from "@/lib/certificate-engine";
 import { canonicalDigest } from "@/lib/certificates/canonicalize";
 import { signCertificate } from "@/lib/certificates/kms-signer";
+import { requireSession, AuthError } from "@/lib/authz";
 
 /* ---------- Serial Number Generator ---------- */
 
@@ -88,6 +89,16 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  /* ── Authentication ── */
+  try {
+    await requireSession();
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id: orderId } = await params;
 
   if (!orderId || typeof orderId !== "string") {

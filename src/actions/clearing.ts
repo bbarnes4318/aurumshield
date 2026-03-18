@@ -18,6 +18,9 @@
    to the client.
    ================================================================ */
 
+import { z } from "zod";
+import { requireAdmin } from "@/lib/authz";
+
 /* ---------- Brink's API Simulation ---------- */
 
 /**
@@ -100,6 +103,18 @@ export interface ClearFundsResult {
   dispatchResult?: DispatchResult;
 }
 
+/* ================================================================
+   ZOD SCHEMAS — Server Action Input Validation
+   ================================================================ */
+
+const ManuallyClearFundsSchema = z.object({
+  settlementId: z.string().min(1, "Settlement ID is required").max(256),
+  adminNotes: z.string().min(1, "Admin audit notes are required for compliance").max(2048),
+  notionalUsd: z.number().min(0).optional(),
+  freightCostUsd: z.number().min(0).optional(),
+  destinationZip: z.string().max(20).optional(),
+});
+
 /**
  * Manually clear funds for a settlement in AWAITING_FUNDS status.
  *
@@ -125,26 +140,21 @@ export async function manuallyClearFunds(
   freightCostUsd?: number,
   destinationZip?: string,
 ): Promise<ClearFundsResult> {
-  /* ── Validate inputs ── */
-  if (!settlementId?.trim()) {
-    return {
-      success: false,
-      settlementId: "",
-      newStatus: "SETTLED",
-      clearedAt: new Date().toISOString(),
-      adminNotes,
-      error: "Settlement ID is required.",
-    };
-  }
+  /* ── Admin Auth: Only operators can manually clear funds ── */
+  await requireAdmin();
 
-  if (!adminNotes?.trim()) {
+  /* ── Zod Boundary Validation ── */
+  const parsed = ManuallyClearFundsSchema.safeParse({
+    settlementId, adminNotes, notionalUsd, freightCostUsd, destinationZip,
+  });
+  if (!parsed.success) {
     return {
       success: false,
-      settlementId,
+      settlementId: settlementId ?? "",
       newStatus: "SETTLED",
       clearedAt: new Date().toISOString(),
-      adminNotes: "",
-      error: "Admin audit notes are required for compliance.",
+      adminNotes: adminNotes ?? "",
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
     };
   }
 

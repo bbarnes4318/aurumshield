@@ -31,6 +31,30 @@ import type {
   DeliveryAddress,
   DeliveryRateQuote,
 } from "@/lib/delivery/delivery-types";
+import { z } from "zod";
+import { requireSession } from "@/lib/authz";
+
+/* ================================================================
+   ZOD SCHEMAS — Server Action Input Validation
+   ================================================================ */
+
+const RouteAndCreateShipmentSchema = z.object({
+  settlementId: z.string().min(1, "Settlement ID is required").max(256),
+  orderId: z.string().min(1, "Order ID is required").max(256),
+  notionalCents: z.number().int().positive("Notional value must be positive"),
+  weightOz: z.number().positive("Weight must be positive"),
+});
+
+const VerifyAddressAndQuoteSchema = z.object({
+  address: z.object({
+    street: z.string().min(1, "Street is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    zipCode: z.string().min(1, "Zip code is required").max(20),
+    addressType: z.enum(["residential", "commercial", "bank_vault", "freeport"]),
+  }),
+  notionalUsd: z.number().positive("Notional USD must be positive"),
+});
 
 /* ---------- Types ---------- */
 
@@ -110,6 +134,23 @@ export async function routeAndCreateShipment(
   address: DeliveryAddress,
   entityType?: string,
 ): Promise<LogisticsRoutingResult> {
+  /* ── Session Auth ── */
+  await requireSession();
+
+  /* ── Zod Boundary Validation ── */
+  const parsed = RouteAndCreateShipmentSchema.safeParse({ settlementId, orderId, notionalCents, weightOz });
+  if (!parsed.success) {
+    return {
+      carrier: "brinks",
+      success: false,
+      trackingNumber: null,
+      externalId: null,
+      estimatedDays: null,
+      totalFeeUsd: null,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+
   // Enforce Broker-Dealer address rules
   validateBrokerDealerDestination(address, entityType);
 
@@ -514,6 +555,15 @@ export async function verifyAddressAndQuote(
   address: FreightAddress,
   notionalUsd: number,
 ): Promise<FreightQuoteResult> {
+  /* ── Session Auth ── */
+  await requireSession();
+
+  /* ── Zod Boundary Validation ── */
+  const parsed = VerifyAddressAndQuoteSchema.safeParse({ address, notionalUsd });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+  }
+
   // ── Business Rule: $100k Residential Cap ──
   if (
     address.addressType === "residential" &&

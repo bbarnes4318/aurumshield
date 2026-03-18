@@ -17,6 +17,8 @@
 
 import { createHash, randomUUID } from "crypto";
 import { getPoolClient } from "@/lib/db";
+import { z } from "zod";
+import { requireSession } from "@/lib/authz";
 
 /* ================================================================
    TYPES
@@ -205,6 +207,15 @@ async function routeOutboundStablecoin(
 }
 
 /* ================================================================
+   ZOD SCHEMAS — Server Action Input Validation
+   ================================================================ */
+
+const ExecuteAtomicSwapSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required").max(128),
+  producerId: z.string().min(1, "Producer ID is required").max(128),
+});
+
+/* ================================================================
    EXECUTE ATOMIC SWAP — Server Action
    ================================================================ */
 
@@ -212,11 +223,16 @@ export async function executeAtomicSwap(
   orderId: string,
   producerId: string,
 ): Promise<AtomicSwapResult> {
-  if (!orderId?.trim() || !producerId?.trim()) {
+  /* ── Session Auth: Only authenticated users can trigger DvP ── */
+  await requireSession();
+
+  /* ── Zod Boundary Validation ── */
+  const parsed = ExecuteAtomicSwapSchema.safeParse({ orderId, producerId });
+  if (!parsed.success) {
     return {
       success: false,
       orderId: orderId ?? "",
-      error: "Order ID and Producer ID are required.",
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
     };
   }
 

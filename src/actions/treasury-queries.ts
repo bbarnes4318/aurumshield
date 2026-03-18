@@ -18,6 +18,7 @@
    ================================================================ */
 
 import { getPoolClient } from "@/lib/db";
+import { requireAdmin } from "@/lib/authz";
 import type {
   DashboardCapital,
   DashboardData,
@@ -73,6 +74,9 @@ export interface TreasuryTransactionRow {
    ================================================================ */
 
 export async function getLiveDashboardMetrics(): Promise<DashboardData> {
+  /* ── Admin Auth: dashboard metrics are admin-only ── */
+  await requireAdmin();
+
   const client = await getPoolClient();
 
   try {
@@ -286,6 +290,8 @@ import {
  * for consistent import from the Treasury data access layer.
  */
 export async function getLiveTreasurySettlements(): Promise<LiveSettlementRow[]> {
+  /* ── Admin Auth (defense-in-depth — underlying query also requires admin) ── */
+  await requireAdmin();
   return _getLiveSettlements();
 }
 
@@ -300,6 +306,9 @@ export type { LiveSettlementRow } from "@/actions/settlement-queries";
    ================================================================ */
 
 export async function getLiveTransactions(): Promise<TreasuryTransactionRow[]> {
+  /* ── Admin Auth: transaction ledger is admin-only ── */
+  await requireAdmin();
+
   const client = await getPoolClient();
 
   try {

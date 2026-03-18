@@ -17,6 +17,29 @@ import {
   type ColumnWireDestination,
 } from "@/lib/banking/column-adapter";
 import { TurnkeyService } from "@/lib/banking/turnkey-adapter";
+import { z } from "zod";
+import { requireSession } from "@/lib/authz";
+
+/* ================================================================
+   ZOD SCHEMAS — Server Action Input Validation
+   ================================================================ */
+
+const TriggerSettlementPayoutsSchema = z.object({
+  settlementId: z.string().min(1, "Settlement ID is required").max(256),
+  sellerAccountId: z.string().min(1, "Seller account ID is required").max(256),
+  amount: z.number().int().positive("Amount must be a positive integer (cents)"),
+  fee: z.number().int().min(0, "Fee must be non-negative (cents)"),
+});
+
+const GenerateFiatDepositSchema = z.object({
+  counterpartyId: z.string().min(1, "Counterparty ID is required").max(256),
+  settlementDescription: z.string().max(512).optional(),
+});
+
+const GenerateDigitalDepositSchema = z.object({
+  amount: z.number().positive("Amount must be positive"),
+  settlementId: z.string().max(256).optional(),
+});
 
 /**
  * Execute a settlement payout via Column Bank (Fedwire).
@@ -37,6 +60,24 @@ export async function triggerSettlementPayouts(
   amount: number,
   fee: number,
 ): Promise<SettlementPayoutResult> {
+  /* ── Session Auth ── */
+  await requireSession();
+
+  /* ── Zod Boundary Validation ── */
+  const parsed = TriggerSettlementPayoutsSchema.safeParse({ settlementId, sellerAccountId, amount, fee });
+  if (!parsed.success) {
+    return {
+      success: false,
+      railUsed: "column",
+      externalIds: [],
+      sellerPayoutCents: 0,
+      platformFeeCents: fee,
+      isFallback: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+      idempotencyKey: `${settlementId}:validation-failed`,
+    };
+  }
+
   const sellerPayoutCents = amount - fee;
   const column = new ColumnBankService();
 
@@ -150,6 +191,15 @@ export async function generateFiatDepositInstructions(
   counterpartyId: string,
   settlementDescription?: string,
 ): Promise<FiatDepositInstructions> {
+  /* ── Session Auth ── */
+  await requireSession();
+
+  /* ── Zod Boundary Validation ── */
+  const parsed = GenerateFiatDepositSchema.safeParse({ counterpartyId, settlementDescription });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+  }
+
   const column = new ColumnBankService();
 
   /* ── Live mode: Column API is configured ── */
@@ -248,6 +298,15 @@ export async function generateDigitalDepositInstructions(
   amount: number,
   settlementId?: string,
 ): Promise<DigitalDepositInstructions> {
+  /* ── Session Auth ── */
+  await requireSession();
+
+  /* ── Zod Boundary Validation ── */
+  const parsed = GenerateDigitalDepositSchema.safeParse({ amount, settlementId });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+  }
+
   const effectiveSettlementId = settlementId ?? `adhoc-${Date.now()}`;
   const turnkey = new TurnkeyService();
 

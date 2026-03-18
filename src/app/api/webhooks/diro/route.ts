@@ -91,19 +91,21 @@ export async function POST(request: Request): Promise<NextResponse> {
   /* ── Step 2: Signature verification ── */
   const webhookSecret = process.env.DIRO_WEBHOOK_SECRET;
 
-  if (webhookSecret) {
-    // In production: enforce signature verification
-    if (!verifyDiroSignature(rawBody, signature, webhookSecret)) {
-      console.warn("[DIRO-WEBHOOK] Signature verification failed");
-      return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 401 },
-      );
-    }
-  } else {
-    // In demo mode: log warning but allow through
-    console.warn(
-      "[DIRO-WEBHOOK] DIRO_WEBHOOK_SECRET not set — signature verification skipped (demo mode)",
+  if (!webhookSecret) {
+    console.error(
+      "[DIRO-WEBHOOK] CRITICAL: DIRO_WEBHOOK_SECRET not configured — rejecting all payloads",
+    );
+    return NextResponse.json(
+      { error: "Webhook endpoint not configured" },
+      { status: 500 },
+    );
+  }
+
+  if (!verifyDiroSignature(rawBody, signature, webhookSecret)) {
+    console.warn("[DIRO-WEBHOOK] Signature verification failed");
+    return NextResponse.json(
+      { error: "Invalid signature" },
+      { status: 401 },
     );
   }
 

@@ -202,31 +202,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   /* ── 1. Read raw body ── */
   const rawBody = await request.text();
 
-  /* ── 2. Signature verification ── */
-  if (webhookSecret) {
-    const signature =
-      request.headers.get("x-turnkey-signature") ??
-      request.headers.get("X-Turnkey-Signature") ??
-      "";
+  /* ── 2. Signature verification (FAIL-CLOSED — no bypass in any environment) ── */
+  if (!webhookSecret) {
+    console.error(
+      "[TURNKEY-WEBHOOK] CRITICAL: TURNKEY_WEBHOOK_SECRET not configured — rejecting all payloads",
+    );
+    return NextResponse.json(
+      { error: "Webhook endpoint not configured" },
+      { status: 500 },
+    );
+  }
 
-    if (!signature) {
-      console.error("[TURNKEY-WEBHOOK] Missing X-Turnkey-Signature header");
-      return NextResponse.json(
-        { error: "Missing webhook signature" },
-        { status: 401 },
-      );
-    }
+  const signature =
+    request.headers.get("x-turnkey-signature") ??
+    request.headers.get("X-Turnkey-Signature") ??
+    "";
 
-    if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
-      console.error("[TURNKEY-WEBHOOK] Invalid webhook signature — rejecting");
-      return NextResponse.json(
-        { error: "Invalid webhook signature" },
-        { status: 401 },
-      );
-    }
-  } else {
-    console.warn(
-      "[TURNKEY-WEBHOOK] TURNKEY_WEBHOOK_SECRET not set — signature validation SKIPPED (development mode only)",
+  if (!signature) {
+    console.error("[TURNKEY-WEBHOOK] Missing X-Turnkey-Signature header");
+    return NextResponse.json(
+      { error: "Missing webhook signature" },
+      { status: 401 },
+    );
+  }
+
+  if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+    console.error("[TURNKEY-WEBHOOK] Invalid webhook signature — rejecting");
+    return NextResponse.json(
+      { error: "Invalid webhook signature" },
+      { status: 401 },
     );
   }
 

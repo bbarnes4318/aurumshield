@@ -12,6 +12,7 @@
    ================================================================ */
 
 import { getPoolClient } from "@/lib/db";
+import { requireAdmin } from "@/lib/authz";
 
 /* ----------------------------------------------------------------
    TYPES — Serializable Settlement Row
@@ -74,6 +75,9 @@ export interface LiveSettlementRow {
    ================================================================ */
 
 export async function getLiveSettlements(): Promise<LiveSettlementRow[]> {
+  /* ── Admin Auth: only admin/treasury can query all settlements ── */
+  await requireAdmin();
+
   const client = await getPoolClient();
 
   try {

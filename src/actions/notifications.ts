@@ -12,6 +12,19 @@
 
 
 import { sendEmail } from "@/lib/communications-adapter";
+import { z } from "zod";
+import { requireSession } from "@/lib/authz";
+
+/* ================================================================
+   ZOD SCHEMAS — Server Action Input Validation
+   ================================================================ */
+
+const NotifyPartiesSchema = z.object({
+  buyerEmail: z.string().email("Valid buyer email is required"),
+  sellerEmail: z.string().email("Valid seller email is required"),
+  settlementId: z.string().min(1, "Settlement ID is required").max(256),
+  certificateNumber: z.string().max(128).optional(),
+});
 
 /**
  * Notify buyer and seller that a DvP settlement has completed.
@@ -31,6 +44,15 @@ export async function notifyPartiesOfSettlement(
   settlementId: string,
   certificateNumber?: string,
 ) {
+  /* ── Session Auth ── */
+  await requireSession();
+
+  /* ── Zod Boundary Validation ── */
+  const parsed = NotifyPartiesSchema.safeParse({ buyerEmail, sellerEmail, settlementId, certificateNumber });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+  }
+
   const timestamp = new Date().toISOString();
 
   const certBlock = certificateNumber

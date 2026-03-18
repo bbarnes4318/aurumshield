@@ -73,29 +73,22 @@ export async function POST(request: Request): Promise<NextResponse> {
   /* ── Step 2: Signature verification ── */
   const webhookSecret = process.env.VERIFICATION_WEBHOOK_SECRET;
 
-  if (webhookSecret) {
-    if (!verifyVerificationSignature(rawBody, signature, webhookSecret)) {
-      console.warn("[VERIFICATION-WEBHOOK] Signature verification failed");
-      return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 401 },
-      );
-    }
-  } else {
-    // Graceful skip in development — only allow when NODE_ENV is development
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        "[VERIFICATION-WEBHOOK] VERIFICATION_WEBHOOK_SECRET not set — signature verification skipped (development mode)",
-      );
-    } else {
-      console.error(
-        "[VERIFICATION-WEBHOOK] VERIFICATION_WEBHOOK_SECRET not configured in non-development environment",
-      );
-      return NextResponse.json(
-        { error: "Webhook endpoint is not configured" },
-        { status: 500 },
-      );
-    }
+  if (!webhookSecret) {
+    console.error(
+      "[VERIFICATION-WEBHOOK] CRITICAL: VERIFICATION_WEBHOOK_SECRET not configured — rejecting all payloads",
+    );
+    return NextResponse.json(
+      { error: "Webhook endpoint not configured" },
+      { status: 500 },
+    );
+  }
+
+  if (!verifyVerificationSignature(rawBody, signature, webhookSecret)) {
+    console.warn("[VERIFICATION-WEBHOOK] Signature verification failed");
+    return NextResponse.json(
+      { error: "Invalid signature" },
+      { status: 401 },
+    );
   }
 
   /* ── Step 3: Parse + validate payload ── */

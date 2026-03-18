@@ -20,8 +20,9 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  let session: Awaited<ReturnType<typeof requireSession>>;
   try {
-    await requireSession();
+    session = await requireSession();
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: err.statusCode });
@@ -45,6 +46,26 @@ export async function GET(
     return NextResponse.json(
       { error: "Settlement not found", settlementId: id },
       { status: 404 },
+    );
+  }
+
+  /* ── BOLA/IDOR: Resource Ownership Enforcement ── */
+  const callerOwnsResource =
+    settlement.buyerUserId === session.userId ||
+    settlement.sellerUserId === session.userId ||
+    session.role === "admin" ||
+    session.role === "compliance" ||
+    session.role === "INSTITUTION_TREASURY";
+
+  if (!callerOwnsResource) {
+    console.warn(
+      `[SETTLEMENT-STATUS] BOLA BLOCKED: user=${session.userId} ` +
+        `attempted to read settlement=${id} owned by ` +
+        `buyer=${settlement.buyerUserId} seller=${settlement.sellerUserId}`,
+    );
+    return NextResponse.json(
+      { error: "Forbidden: you do not own this settlement" },
+      { status: 403 },
     );
   }
 
