@@ -79,8 +79,8 @@ export default function CheckoutPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemoActive = searchParams.get("demo") === "active";
-  const { data: priceData } = useGoldPrice();
-  const spotPrice = priceData?.spotPriceUsd ?? 2650.0;
+  const { data: priceData, isError: priceError } = useGoldPrice();
+  const spotPrice = priceData?.spotPriceUsd ?? 0;
 
   const [assayEnabled, setAssayEnabled] = useState(true);
   const [lockCountdown, setLockCountdown] = useState<number | null>(null);

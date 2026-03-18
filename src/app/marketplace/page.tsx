@@ -85,9 +85,9 @@ const PRODUCTS: Product[] = [
 
 export default function MarketplacePage() {
   const router = useRouter();
-  const { data: priceData, isLoading } = useGoldPrice();
+  const { data: priceData, isLoading, isError: priceError, isLive: priceLive } = useGoldPrice();
 
-  const spotPrice = priceData?.spotPriceUsd ?? 2650.0;
+  const spotPrice = priceData?.spotPriceUsd ?? 0;
 
   const handleSelect = useCallback(
     (product: Product) => {
@@ -123,9 +123,18 @@ export default function MarketplacePage() {
         <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-1 px-4 py-2.5">
           <TrendingUp className="h-4 w-4 text-gold" />
           <span className="text-xs text-slate-400">Spot:</span>
-          <span className="font-mono text-sm font-bold tabular-nums text-white">
-            {isLoading ? "---" : `$${fmtUSD(spotPrice)}`}
-          </span>
+          {priceError ? (
+            <span className="font-mono text-sm font-bold text-red-500">[PRICING OFFLINE]</span>
+          ) : isLoading ? (
+            <span className="font-mono text-sm font-bold tabular-nums text-white">---</span>
+          ) : (
+            <>
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+              <span className="font-mono text-sm font-bold tabular-nums text-white">
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(spotPrice)}
+              </span>
+            </>
+          )}
           <span className="text-xs text-slate-500">/oz</span>
         </div>
       </div>

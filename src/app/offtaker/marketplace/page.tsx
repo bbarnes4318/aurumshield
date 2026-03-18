@@ -166,7 +166,7 @@ export default function OfftakerMarketplacePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemoActive = searchParams.get("demo") === "active";
-  const { data: goldPrice, isLoading: priceLoading } = useGoldPrice();
+  const { data: goldPrice, isLoading: priceLoading, isError: priceError, isLive: priceLive } = useGoldPrice();
 
   /* ── Core state ── */
   const [selectedAsset, setSelectedAsset] = useState<AssetTier | null>(
@@ -186,7 +186,7 @@ export default function OfftakerMarketplacePage() {
   const [panelStep, setPanelStep] = useState<PanelStep>(1);
 
   /* ── Live spot price ── */
-  const spotPrice = goldPrice?.spotPriceUsd ?? 2650.0;
+  const spotPrice = goldPrice?.spotPriceUsd ?? 0;
 
   /* ── Derived values ── */
   const hasSelection = selectedAsset !== null;
@@ -303,18 +303,26 @@ export default function OfftakerMarketplacePage() {
           <div className="flex items-center gap-2">
             <Activity className="h-3 w-3 text-slate-500" />
             <span className="font-mono text-[10px] text-slate-500">XAU/USD:</span>
-            {priceLoading ? (
+            {priceError ? (
+              <span className="font-mono text-xs text-red-500 font-bold tracking-wider">[PRICING OFFLINE]</span>
+            ) : priceLoading ? (
               <span className="font-mono text-xs text-slate-600 animate-pulse">SYNCING...</span>
             ) : (
-              <span className="font-mono text-xs text-white font-bold tabular-nums">${fmt(spotPrice)}</span>
+              <>
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+                <span className="font-mono text-xs text-white font-bold tabular-nums">
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(spotPrice)}
+                </span>
+              </>
             )}
-            <span className="font-mono text-[9px] text-emerald-400 animate-pulse flex items-center gap-1">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              LIVE
-            </span>
+            {priceLive && (
+              <span className="font-mono text-[9px] text-emerald-400 animate-pulse flex items-center gap-1">
+                LIVE
+              </span>
+            )}
           </div>
           <div className="h-3 w-px bg-slate-800" />
-          {goldPrice && (
+          {goldPrice && !priceError && (
             <span className={`font-mono text-[10px] tabular-nums ${goldPrice.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
               {goldPrice.change24h >= 0 ? "+" : ""}{goldPrice.change24h} ({goldPrice.changePct24h}%)
             </span>

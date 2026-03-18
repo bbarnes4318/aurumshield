@@ -34,14 +34,7 @@
                     "name": "CLERK_SECRET_KEY",
                     "value": "MANAGED_VIA_SECRETS_MANAGER"
                 },
-                {
-                    "name": "MODERN_TREASURY_ORGANIZATION_ID",
-                    "value": "MANAGED_VIA_SECRETS_MANAGER"
-                },
-                {
-                    "name": "MODERN_TREASURY_API_KEY",
-                    "value": "MANAGED_VIA_SECRETS_MANAGER"
-                },
+
                 {
                     "name": "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL",
                     "value": "/dashboard"
@@ -90,10 +83,7 @@
                     "name": "NODE_ENV",
                     "value": "production"
                 },
-                {
-                    "name": "MODERN_TREASURY_WEBHOOK_KEY",
-                    "value": "MANAGED_VIA_SECRETS_MANAGER"
-                },
+
                 {
                     "name": "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
                     "value": "MANAGED_VIA_SECRETS_MANAGER"
@@ -105,6 +95,30 @@
                 {
                     "name": "DATABASE_CREDENTIALS",
                     "valueFrom": "arn:aws:secretsmanager:us-east-2:974789824146:secret:rds!db-a4173176-9cb7-4c1f-9f24-82ed8a2f3e1e-rHA5mw"
+                },
+                {
+                    "name": "TREASURY_GAS_PRIVATE_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-2:974789824146:secret:aurumshield/production/treasury-gas-private-key"
+                },
+                {
+                    "name": "COLUMN_API_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-2:974789824146:secret:aurumshield/production/column-api-key"
+                },
+                {
+                    "name": "TURNKEY_API_PUBLIC_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-2:974789824146:secret:aurumshield/production/turnkey-api-public-key"
+                },
+                {
+                    "name": "TURNKEY_API_PRIVATE_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-2:974789824146:secret:aurumshield/production/turnkey-api-private-key"
+                },
+                {
+                    "name": "TURNKEY_ORGANIZATION_ID",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-2:974789824146:secret:aurumshield/production/turnkey-organization-id"
+                },
+                {
+                    "name": "TURNKEY_WEBHOOK_SECRET",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-2:974789824146:secret:aurumshield/production/turnkey-webhook-secret"
                 }
             ],
             "logConfiguration": {

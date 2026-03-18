@@ -50,14 +50,14 @@ export default function OrgSelectPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemoActive = searchParams.get("demo") === "active";
-  const { data: goldPrice, isLoading: priceLoading } = useGoldPrice();
+  const { data: goldPrice, isLoading: priceLoading, isError: priceError } = useGoldPrice();
 
   const [invitationCode, setInvitationCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [showAttach, setShowAttach] = useState(false);
   const [entities] = useState<CustodyEntity[]>(MOCK_ENTITIES);
 
-  const spotPrice = goldPrice?.spotPriceUsd ?? 2650.0;
+  const spotPrice = goldPrice?.spotPriceUsd ?? 0;
   const hasEntities = entities.length > 0;
 
   const handleJoinOrg = () => {
@@ -108,12 +108,19 @@ export default function OrgSelectPage() {
         <div className="flex items-center gap-2">
           <Activity className="h-3 w-3 text-slate-500" />
           <span className="font-mono text-[9px] text-slate-500">XAU/USD:</span>
-          {priceLoading ? (
+          {priceError ? (
+            <span className="font-mono text-[10px] text-red-500 font-bold tracking-wider">[PRICING OFFLINE]</span>
+          ) : priceLoading ? (
             <span className="font-mono text-[10px] text-slate-600 animate-pulse">SYNCING...</span>
           ) : (
-            <span className="font-mono text-[10px] text-white font-bold tabular-nums">${spotPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <>
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+              <span className="font-mono text-[10px] text-white font-bold tabular-nums">
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(spotPrice)}
+              </span>
+            </>
           )}
-          {goldPrice && (
+          {goldPrice && !priceError && (
             <span className={`font-mono text-[9px] tabular-nums ${goldPrice.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
               {goldPrice.change24h >= 0 ? "+" : ""}{goldPrice.change24h}
             </span>
