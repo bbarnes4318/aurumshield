@@ -294,7 +294,7 @@ export default function OfftakerMarketplacePage() {
   }, [phase, isExecuting, isDemoActive, router, selectedAsset, deliveryMode, destination, settlementRail, limitWarning, limitBlocked]);
 
   return (
-    <div className="h-full w-full flex flex-col bg-slate-950 overflow-hidden">
+    <div className="flex flex-col overflow-hidden bg-slate-950 -mx-6 -my-6 lg:-mx-8 h-[calc(100%+3rem)]">
       {/* ══════════════════════════════════════════════════════════
          TOP TICKER BAR
          ══════════════════════════════════════════════════════════ */}
@@ -339,9 +339,9 @@ export default function OfftakerMarketplacePage() {
       {/* ══════════════════════════════════════════════════════════
          MAIN BODY — Catalog Grid + Execution Panel
          ══════════════════════════════════════════════════════════ */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* ─── LEFT: Asset Catalog Grid ─── */}
-        <div className="flex-1 min-h-0 p-4 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto p-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-3.5 w-3.5 text-slate-600" />
@@ -354,7 +354,7 @@ export default function OfftakerMarketplacePage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {ASSET_CATALOG.map((asset) => {
               const isSelected = selectedAsset?.id === asset.id;
               const pricePerOz = spotPrice * (1 + asset.premiumBps / 10000);
@@ -375,7 +375,7 @@ export default function OfftakerMarketplacePage() {
                 >
                   {/* Visual Showcase */}
                   <div
-                    className="relative w-full h-40 flex items-center justify-center overflow-hidden"
+                    className="relative w-full h-36 flex items-center justify-center overflow-hidden"
                     style={{ background: "radial-gradient(ellipse at center, #1e293b 0%, #020617 70%)" }}
                   >
                     <div className="relative h-28 w-28">
@@ -441,7 +441,7 @@ export default function OfftakerMarketplacePage() {
         </div>
 
         {/* ─── RIGHT: Execution Configuration Panel (Horizontal Stepper) ─── */}
-        <div className="w-[400px] bg-slate-900 border-l border-slate-800 flex flex-col shrink-0 overflow-hidden">
+        <div className="w-[450px] shrink-0 flex flex-col border-l border-slate-800 bg-slate-900/30">
           {/* ── Panel Header + Step Indicator ── */}
           <div className="shrink-0 border-b border-slate-800 px-3 py-2">
             <div className="flex items-center gap-2 mb-2">
@@ -477,7 +477,7 @@ export default function OfftakerMarketplacePage() {
           </div>
 
           {/* ── Panel Body — renders only the active step ── */}
-          <div className="flex-1 min-h-0 flex flex-col p-3 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6">
             {hasSelection ? (
               <>
                 {/* ═══ STEP 1: Execution Config ═══ */}
@@ -613,24 +613,6 @@ export default function OfftakerMarketplacePage() {
                       </div>
                     </div>
 
-                    {/* Spacer */}
-                    <div className="flex-1" />
-
-                    {/* Step 1 → 2 Navigation */}
-                    <div className="shrink-0">
-                      <button
-                        disabled={!step1Complete}
-                        onClick={() => setPanelStep(2)}
-                        className={`w-full font-bold text-xs tracking-[0.15em] uppercase py-3 flex items-center justify-center gap-2 font-mono transition-colors ${
-                          step1Complete
-                            ? "bg-[#C6A86B] text-slate-950 hover:bg-[#d4b87a] cursor-pointer"
-                            : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
-                        }`}
-                      >
-                        Next: Capital Routing
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
                   </div>
                 )}
 
@@ -749,32 +731,6 @@ export default function OfftakerMarketplacePage() {
                       </div>
                     )}
 
-                    {/* Spacer */}
-                    <div className="flex-1" />
-
-                    {/* Navigation */}
-                    <div className="shrink-0 flex gap-2">
-                      <button
-                        onClick={() => setPanelStep(1)}
-                        className="flex-1 font-mono text-xs text-slate-400 border border-slate-700 py-2.5 flex items-center justify-center gap-1.5 hover:border-slate-600 transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                        Back
-                      </button>
-                      <button
-                        disabled={!canLockQuote || limitBlocked}
-                        onClick={handleLockQuote}
-                        className={`flex-2 font-bold text-xs tracking-widest uppercase py-2.5 flex items-center justify-center gap-2 font-mono transition-colors ${
-                          canLockQuote && !limitBlocked
-                            ? "bg-[#C6A86B] text-slate-950 hover:bg-[#d4b87a] cursor-pointer"
-                            : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
-                        }`}
-                      >
-                        <Zap className="h-3.5 w-3.5" />
-                        Lock 60s Quote
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
 
                     {/* Limit Warning */}
                     {limitWarning && (
@@ -903,53 +859,6 @@ export default function OfftakerMarketplacePage() {
                         </p>
                       </div>
                     )}
-
-                    {/* Spacer */}
-                    <div className="flex-1" />
-
-                    {/* Execute CTA */}
-                    <div className="shrink-0">
-                      {phase === "CONFIGURING" && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setPanelStep(2)}
-                            className="flex-1 font-mono text-xs text-slate-400 border border-slate-700 py-2.5 flex items-center justify-center gap-1.5 hover:border-slate-600 transition-colors cursor-pointer"
-                          >
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                            Back
-                          </button>
-                        </div>
-                      )}
-
-                      {phase === "QUOTE_LOCKED" && (
-                        <button
-                          onClick={handleConfirmExecution}
-                          disabled={isExecuting}
-                          className={`w-full font-bold text-xs tracking-[0.15em] uppercase py-3.5 flex items-center justify-center gap-2 font-mono transition-colors ${
-                            isExecuting
-                              ? "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
-                              : "bg-[#C6A86B] text-slate-950 hover:bg-[#d4b87a] cursor-pointer"
-                          }`}
-                        >
-                          {isExecuting ? (
-                            <>
-                              <div className="h-4 w-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                              Initializing Escrow...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="h-4 w-4" />
-                              Confirm Execution
-                              <ChevronRight className="h-4 w-4" />
-                            </>
-                          )}
-                        </button>
-                      )}
-
-                      <p className="font-mono text-[8px] text-slate-600 uppercase tracking-wide text-center mt-2">
-                        Cryptographically binding · IP logged · BSA/AML
-                      </p>
-                    </div>
                   </div>
                 )}
               </>
@@ -966,6 +875,98 @@ export default function OfftakerMarketplacePage() {
                   Choose delivery mode, destination, and view the full cost breakdown.
                 </p>
               </div>
+            )}
+          </div>
+
+          {/* ── Sticky CTA Footer — locked outside scroll area ── */}
+          <div className="shrink-0 p-4 border-t border-slate-800 bg-slate-950">
+            {hasSelection ? (
+              <>
+                {panelStep === 3 && phase === "CONFIGURING" && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPanelStep(2)}
+                      className="flex-1 font-mono text-xs text-slate-400 border border-slate-700 py-2.5 flex items-center justify-center gap-1.5 hover:border-slate-600 transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                      Back
+                    </button>
+                  </div>
+                )}
+
+                {panelStep === 3 && phase === "QUOTE_LOCKED" && (
+                  <button
+                    onClick={handleConfirmExecution}
+                    disabled={isExecuting}
+                    className={`w-full font-bold text-xs tracking-[0.15em] uppercase py-3.5 flex items-center justify-center gap-2 font-mono transition-colors ${
+                      isExecuting
+                        ? "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
+                        : "bg-[#C6A86B] text-slate-950 hover:bg-[#d4b87a] cursor-pointer"
+                    }`}
+                  >
+                    {isExecuting ? (
+                      <>
+                        <div className="h-4 w-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        Initializing Escrow...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Confirm Execution
+                        <ChevronRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {panelStep === 1 && (
+                  <button
+                    disabled={!step1Complete}
+                    onClick={() => setPanelStep(2)}
+                    className={`w-full font-bold text-xs tracking-[0.15em] uppercase py-3 flex items-center justify-center gap-2 font-mono transition-colors ${
+                      step1Complete
+                        ? "bg-[#C6A86B] text-slate-950 hover:bg-[#d4b87a] cursor-pointer"
+                        : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
+                    }`}
+                  >
+                    Next: Capital Routing
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                )}
+
+                {panelStep === 2 && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPanelStep(1)}
+                      className="flex-1 font-mono text-xs text-slate-400 border border-slate-700 py-2.5 flex items-center justify-center gap-1.5 hover:border-slate-600 transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                      Back
+                    </button>
+                    <button
+                      disabled={!canLockQuote || limitBlocked}
+                      onClick={handleLockQuote}
+                      className={`flex-2 font-bold text-xs tracking-widest uppercase py-2.5 flex items-center justify-center gap-2 font-mono transition-colors ${
+                        canLockQuote && !limitBlocked
+                          ? "bg-[#C6A86B] text-slate-950 hover:bg-[#d4b87a] cursor-pointer"
+                          : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
+                      }`}
+                    >
+                      <Zap className="h-3.5 w-3.5" />
+                      Lock 60s Quote
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                <p className="font-mono text-[8px] text-slate-600 uppercase tracking-wide text-center mt-2">
+                  Cryptographically binding · IP logged · BSA/AML
+                </p>
+              </>
+            ) : (
+              <p className="font-mono text-[9px] text-slate-600 text-center">
+                Select an asset to begin
+              </p>
             )}
           </div>
         </div>
