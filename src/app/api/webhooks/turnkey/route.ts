@@ -7,13 +7,16 @@
    transfer is detected on a settlement's MPC deposit wallet.
 
    When the deposited amount >= required notional (converted to
-   6-decimal USDT base units), this handler advances the settlement
-   state machine by setting funds_confirmed_final and emitting
-   the FUNDS_CLEARED_ON_CHAIN audit event.
+   6-decimal USDT base units), this handler parks the settlement in
+   AWAITING_CHAIN_CONFIRMATIONS and records the txHash + blockNumber.
+
+   A separate cron/background worker must call pollBlockConfirmations()
+   to verify 12 block confirmations before finalizing.
 
    Security:
      - HMAC-SHA256 signature validation using TURNKEY_WEBHOOK_SECRET
      - X-Turnkey-Signature header verification
+     - 12-block confirmation requirement before finality
 
    CRITICAL MATH:
      Our DB stores total_notional as USD dollars (NUMERIC).
@@ -67,6 +70,9 @@ interface TurnkeyWebhookPayload {
 /** USDT contract address on Ethereum mainnet (checksummed) */
 const USDT_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 
+/** Required block confirmations before finality (protects against reorgs) */
+const REQUIRED_BLOCK_CONFIRMATIONS = 12;
+
 /* ---------- Signature Validation ---------- */
 
 /**
@@ -93,6 +99,99 @@ function verifyWebhookSignature(
     mismatch |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
   }
   return mismatch === 0;
+}
+
+/* ---------- Block Confirmation Polling Utility ---------- */
+
+/**
+ * Poll the Ethereum RPC to check whether a transaction has achieved
+ * the required number of block confirmations (default: 12).
+ *
+ * This function is designed to be called by a cron job or background
+ * worker — NOT inline within the webhook handler. The webhook parks
+ * the settlement in AWAITING_CHAIN_CONFIRMATIONS and this function
+ * is called periodically to finalize.
+ *
+ * @param rpcUrl - Ethereum JSON-RPC endpoint URL
+ * @param txHash - Transaction hash to check
+ * @param requiredConfirmations - Number of confirmations required (default: 12)
+ * @returns Object with confirmation status and current confirmation count
+ */
+export async function pollBlockConfirmations(
+  rpcUrl: string,
+  txHash: string,
+  requiredConfirmations: number = REQUIRED_BLOCK_CONFIRMATIONS,
+): Promise<{
+  confirmed: boolean;
+  currentConfirmations: number;
+  receiptBlockNumber: number | null;
+  currentBlockNumber: number | null;
+}> {
+  try {
+    // Get transaction receipt
+    const receiptRes = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_getTransactionReceipt",
+        params: [txHash],
+      }),
+    });
+    const receiptData = await receiptRes.json() as {
+      result: { blockNumber: string; status: string } | null;
+    };
+
+    if (!receiptData.result) {
+      // Transaction not yet mined
+      return { confirmed: false, currentConfirmations: 0, receiptBlockNumber: null, currentBlockNumber: null };
+    }
+
+    const receiptBlockNumber = parseInt(receiptData.result.blockNumber, 16);
+
+    // Check that the tx succeeded (status 0x1)
+    if (receiptData.result.status !== "0x1") {
+      console.error(
+        `[TURNKEY-CONFIRMATIONS] Transaction ${txHash} REVERTED (status=${receiptData.result.status})`,
+      );
+      return { confirmed: false, currentConfirmations: 0, receiptBlockNumber, currentBlockNumber: null };
+    }
+
+    // Get current block number
+    const blockRes = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "eth_blockNumber",
+        params: [],
+      }),
+    });
+    const blockData = await blockRes.json() as { result: string };
+    const currentBlockNumber = parseInt(blockData.result, 16);
+
+    const confirmations = currentBlockNumber - receiptBlockNumber;
+
+    console.log(
+      `[TURNKEY-CONFIRMATIONS] txHash=${txHash} block=${receiptBlockNumber} ` +
+      `current=${currentBlockNumber} confirmations=${confirmations}/${requiredConfirmations}`,
+    );
+
+    return {
+      confirmed: confirmations >= requiredConfirmations,
+      currentConfirmations: confirmations,
+      receiptBlockNumber,
+      currentBlockNumber,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[TURNKEY-CONFIRMATIONS] Failed to poll confirmations for ${txHash}: ${message}`,
+    );
+    return { confirmed: false, currentConfirmations: 0, receiptBlockNumber: null, currentBlockNumber: null };
+  }
 }
 
 /* ---------- POST Handler ---------- */
@@ -165,10 +264,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const depositAddress = transfer.toAddress.toLowerCase();
   const transferredAmount = transfer.amount; // USDT 6-decimal base units as string
   const txHash = transfer.transactionHash;
+  const depositBlockNumber = transfer.blockNumber;
 
   console.log(
     `[TURNKEY-WEBHOOK] USDT deposit detected: ` +
-      `to=${depositAddress} amount=${transferredAmount} txHash=${txHash}`,
+      `to=${depositAddress} amount=${transferredAmount} txHash=${txHash} block=${depositBlockNumber}`,
   );
 
   /* ── 5. Find the SettlementCase tied to this deposit address ── */
@@ -308,20 +408,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    /* ── 7. Full funding confirmed — advance state machine ── */
-    // If manual review required, set status to MANUAL_REVIEW instead of PROCESSING_RAIL
-    const nextStatus = requiresManualReview ? "MANUAL_REVIEW" : "PROCESSING_RAIL";
+    /* ── 7. Deposit detected — park in AWAITING_CHAIN_CONFIRMATIONS ── */
+    // Do NOT immediately set funds_confirmed_final or call CONFIRM_FUNDS_FINAL.
+    // Instead, record the deposit and wait for 12 block confirmations
+    // to protect against Ethereum chain reorgs.
+    const nextStatus = requiresManualReview
+      ? "MANUAL_REVIEW"
+      : "AWAITING_CHAIN_CONFIRMATIONS";
+
     console.log(
-      `[TURNKEY-WEBHOOK] Full USDT deposit confirmed for settlement ${settlement.id}. ` +
-        `Setting funds_confirmed_final=true, status=${nextStatus}.`,
+      `[TURNKEY-WEBHOOK] Full USDT deposit detected for settlement ${settlement.id}. ` +
+        `Parking in status=${nextStatus} pending ${REQUIRED_BLOCK_CONFIRMATIONS} block confirmations. ` +
+        `txHash=${txHash} block=${depositBlockNumber}`,
     );
 
-    // Record finality for the inbound deposit
+    // Record the deposit in settlement_finality with PENDING_CONFIRMATION status
     await client.query(
       `INSERT INTO settlement_finality
           (settlement_id, rail, external_transfer_id, idempotency_key,
-           finality_status, amount_cents, leg, is_fallback, finalized_at)
-        VALUES ($1, 'turnkey', $2, $3, 'COMPLETED', $4, 'buyer_deposit', FALSE, NOW())
+           finality_status, amount_cents, leg, is_fallback)
+        VALUES ($1, 'turnkey', $2, $3, 'PENDING_CONFIRMATION', $4, 'buyer_deposit', FALSE)
         ON CONFLICT DO NOTHING`,
       [
         settlement.id,
@@ -331,191 +437,69 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ],
     );
 
-    // Directly update settlement_cases: funds confirmed + advance status
+    // Update settlement status to AWAITING_CHAIN_CONFIRMATIONS (NOT funds_confirmed_final)
     await client.query(
       `UPDATE settlement_cases
-       SET funds_confirmed_final = TRUE,
-           status = $2
+       SET status = $2,
+           turnkey_deposit_tx_hash = $3,
+           turnkey_deposit_block_number = $4
        WHERE id = $1`,
-      [settlement.id, nextStatus],
+      [settlement.id, nextStatus, txHash, depositBlockNumber],
     );
 
-    // Emit FUNDS_CLEARED_ON_CHAIN audit event to dvp_events
+    // Emit DEPOSIT_DETECTED audit event (NOT FUNDS_CLEARED — that comes after confirmations)
     await client.query(
       `INSERT INTO dvp_events
          (settlement_id, event_type, previous_state,
           actor_user_id, actor_role, detail, metadata)
-       VALUES ($1, 'FUNDS_HELD', $2, 'SYSTEM_TURNKEY_WEBHOOK', 'system', $3, $4)`,
+       VALUES ($1, 'DEPOSIT_DETECTED', $2, 'SYSTEM_TURNKEY_WEBHOOK', 'system', $3, $4)`,
       [
         settlement.id,
         settlement.status,
-        `FUNDS_CLEARED_ON_CHAIN: USDT deposit confirmed. ` +
-          `txHash=${txHash} amount=${receivedBaseUnits.toString()} base units. ` +
+        `USDT deposit detected — awaiting ${REQUIRED_BLOCK_CONFIRMATIONS} block confirmations. ` +
+          `txHash=${txHash} block=${depositBlockNumber} ` +
+          `amount=${receivedBaseUnits.toString()} base units. ` +
           `Deposit address: ${depositAddress}`,
         JSON.stringify({
-          event: "FUNDS_CLEARED_ON_CHAIN",
+          event: "DEPOSIT_DETECTED",
           txHash,
+          depositBlockNumber,
           depositAddress,
           receivedBaseUnits: receivedBaseUnits.toString(),
           requiredBaseUnits: requiredBaseUnits.toString(),
           notionalCents,
-          confirmedAt: new Date().toISOString(),
+          requiredConfirmations: REQUIRED_BLOCK_CONFIRMATIONS,
+          detectedAt: new Date().toISOString(),
         }),
       ],
     );
 
-    // Also apply CONFIRM_FUNDS_FINAL via the settlement engine for ledger consistency
-    try {
-      const { apiApplySettlementAction } = await import("@/lib/api");
-      await apiApplySettlementAction({
-        settlementId: settlement.id,
-        payload: {
-          action: "CONFIRM_FUNDS_FINAL",
-          actorRole: "INSTITUTION_TREASURY",
-          actorUserId: "SYSTEM_TURNKEY_WEBHOOK",
-          reason: `USDT deposit confirmed via Turnkey webhook. ` +
-            `txHash=${txHash} amount=${receivedBaseUnits.toString()} base units. ` +
-            `Deposit address: ${depositAddress}`,
-        },
-        now: new Date().toISOString(),
-      });
+    console.log(
+      `[TURNKEY-WEBHOOK] ✓ Settlement ${settlement.id} parked in ${nextStatus}. ` +
+        `Block confirmation polling will finalize after ${REQUIRED_BLOCK_CONFIRMATIONS} confirmations.`,
+    );
 
-      console.log(
-        `[TURNKEY-WEBHOOK] ✓ Settlement ${settlement.id} funds confirmed final via USDT deposit`,
-      );
-
-      /* ── 8. Auto-sweep (ONLY if no manual review required) ── */
-      if (requiresManualReview) {
-        console.log(
-          `[TURNKEY-WEBHOOK] Skipping auto-sweep for settlement ${settlement.id} — requires MANUAL REVIEW. ` +
-            `Funds held in MPC wallet at ${depositAddress} until compliance approval.`,
-        );
-      }
-      let sweepTxHash = "";
-      if (!requiresManualReview) {
-        try {
-          // Look up sub-org, wallet, and deposit address for this settlement
-          const { rows: walletRows } = await client.query<{
-            turnkey_sub_org_id: string;
-            turnkey_wallet_id: string;
-            turnkey_deposit_address: string;
-          }>(
-            `SELECT turnkey_sub_org_id, turnkey_wallet_id, turnkey_deposit_address
-             FROM settlement_cases WHERE id = $1`,
-            [settlement.id],
-          );
-
-          const walletInfo = walletRows[0];
-
-          if (walletInfo?.turnkey_sub_org_id && walletInfo?.turnkey_wallet_id && walletInfo?.turnkey_deposit_address) {
-            const { turnkeyService } = await import("@/lib/banking/turnkey-adapter");
-
-            const sweepResult = await turnkeyService.sweepToTreasury({
-              subOrganizationId: walletInfo.turnkey_sub_org_id,
-              walletId: walletInfo.turnkey_wallet_id,
-              fromAddress: walletInfo.turnkey_deposit_address,
-              amountBaseUnits: transferredAmount,
-              settlementId: settlement.id,
-            });
-
-            sweepTxHash = sweepResult.txHash;
-
-            // Record the sweep in settlement_finality
-            await client.query(
-              `INSERT INTO settlement_finality
-                  (settlement_id, rail, external_transfer_id, idempotency_key,
-                   finality_status, amount_cents, leg, is_fallback, finalized_at)
-                VALUES ($1, 'turnkey', $2, $3, 'COMPLETED', $4, 'treasury_sweep', FALSE, NOW())
-                ON CONFLICT DO NOTHING`,
-              [
-                settlement.id,
-                sweepResult.txHash,
-                `turnkey-sweep-${sweepResult.txHash}`,
-                Number(receivedBaseUnits / BigInt(10000)),
-              ],
-            );
-
-            // Emit TREASURY_SWEEP audit event
-            await client.query(
-              `INSERT INTO dvp_events
-                 (settlement_id, event_type, previous_state,
-                  actor_user_id, actor_role, detail, metadata)
-               VALUES ($1, 'TREASURY_SWEEP', 'PROCESSING_RAIL', 'SYSTEM_TURNKEY_WEBHOOK', 'system', $2, $3)`,
-              [
-                settlement.id,
-                `USDT swept to treasury. txHash=${sweepResult.txHash} ` +
-                  `from=${sweepResult.fromAddress} to=${sweepResult.toAddress} ` +
-                  `amount=${sweepResult.amountBaseUnits} base units. isLive=${sweepResult.isLive}`,
-                JSON.stringify({
-                  event: "TREASURY_SWEEP",
-                  ...sweepResult,
-                }),
-              ],
-            );
-
-            console.log(
-              `[TURNKEY-WEBHOOK] ✓ Treasury sweep complete for settlement ${settlement.id}: txHash=${sweepResult.txHash}`,
-            );
-          } else {
-            console.warn(
-              `[TURNKEY-WEBHOOK] Cannot sweep: missing wallet metadata for settlement ${settlement.id}. ` +
-                `Manual sweep required.`,
-            );
-          }
-        } catch (sweepErr) {
-          // Sweep failure does NOT fail the webhook — funds are confirmed regardless.
-          const sweepMessage = sweepErr instanceof Error ? sweepErr.message : String(sweepErr);
-          console.error(
-            `[TURNKEY-WEBHOOK] Treasury sweep FAILED for settlement ${settlement.id}: ${sweepMessage}. ` +
-              `Manual sweep required.`,
-          );
-
-          await client.query(
-            `INSERT INTO settlement_finality
-                (settlement_id, rail, external_transfer_id, idempotency_key,
-                 finality_status, amount_cents, leg, is_fallback, error_message)
-              VALUES ($1, 'turnkey', $2, $3, 'FAILED', $4, 'treasury_sweep', FALSE, $5)
-              ON CONFLICT DO NOTHING`,
-            [
-              settlement.id,
-              `sweep-failed-${Date.now()}`,
-              `turnkey-sweep-failed-${settlement.id}-${Date.now()}`,
-              Number(receivedBaseUnits / BigInt(10000)),
-              sweepMessage,
-            ],
-          );
-        }
-      }
-      return NextResponse.json({
-        received: true,
-        settled: true,
-        settlementId: settlement.id,
-        txHash,
-        sweepTxHash: sweepTxHash || undefined,
-        amountBaseUnits: receivedBaseUnits.toString(),
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(
-        `[TURNKEY-WEBHOOK] Failed to apply CONFIRM_FUNDS_FINAL for settlement ${settlement.id}:`,
-        message,
-      );
-
-      // Return 200 to prevent infinite webhook retries — log the error for manual review
-      return NextResponse.json({
-        received: true,
-        error: "State machine transition failed",
-        settlementId: settlement.id,
-        detail: message,
-      });
-    }
+    return NextResponse.json({
+      received: true,
+      awaitingConfirmations: true,
+      settlementId: settlement.id,
+      txHash,
+      blockNumber: depositBlockNumber,
+      requiredConfirmations: REQUIRED_BLOCK_CONFIRMATIONS,
+      amountBaseUnits: receivedBaseUnits.toString(),
+    });
   } catch (err) {
+    // TASK 3 FIX: Internal system failures MUST return 500 to trigger
+    // Turnkey's exponential backoff retry. Only validation errors
+    // (bad signature, wrong contract) return 200/400.
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[TURNKEY-WEBHOOK] Database error:", message);
+    console.error("[TURNKEY-WEBHOOK] Internal processing error:", message);
 
-    // Return 500 so Turnkey retries the webhook
     return NextResponse.json(
-      { error: "Internal processing error" },
+      {
+        error: "State machine transition failed — require retry",
+        detail: message,
+      },
       { status: 500 },
     );
   } finally {

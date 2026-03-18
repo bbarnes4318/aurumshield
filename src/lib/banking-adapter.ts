@@ -1,9 +1,10 @@
 /* ================================================================
-   BANKING ADAPTER — Modern Treasury Settlement Rail
+   BANKING ADAPTER — Modern Treasury Settlement Rail (Column Proxy)
    ================================================================
    Wraps the Modern Treasury SDK to execute outbound payment orders.
    Refactored into the ModernTreasurySettlementRail class implementing
-   the ISettlementRail interface for dual-rail settlement routing.
+   the ISettlementRail interface. Rail identifier is 'column' in the
+   settlement pipeline (legacy MT SDK still used for execution).
 
    MUST NOT be imported in client components.
    All API keys / org IDs are read from process.env at call time.
@@ -91,7 +92,7 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
       );
       return {
         success: true,
-        railUsed: "modern_treasury",
+        railUsed: "column",
         externalIds: [
           `mock-mt-seller-${request.settlementId}-${idemSuffix}`,
           `mock-mt-fee-${request.settlementId}-${idemSuffix}`,
@@ -132,7 +133,7 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
         amount: sellerPayoutAmount,
         currency: "USD",
         originating_account_id: ORIGINATING_INTERNAL_ACCOUNT_ID,
-        receiving_account_id: request.sellerAccountId,
+        receiving_account_id: request.sellerVirtualAccountId,
         description: `AurumShield Settlement Payout: ${request.settlementId}`,
         metadata: {
           settlementId: request.settlementId,
@@ -168,7 +169,7 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
 
       return {
         success: true,
-        railUsed: "modern_treasury",
+        railUsed: "column",
         externalIds,
         sellerPayoutCents: sellerPayoutAmount,
         platformFeeCents: request.platformFeeCents,
@@ -183,7 +184,7 @@ export class ModernTreasurySettlementRail implements ISettlementRail {
       );
       return {
         success: false,
-        railUsed: "modern_treasury",
+        railUsed: "column",
         externalIds,
         sellerPayoutCents: 0,
         platformFeeCents: request.platformFeeCents,
@@ -233,8 +234,9 @@ export async function executePayout(
 ): Promise<PayoutResult> {
   const result = await modernTreasuryRail.executePayout({
     settlementId,
-    sellerAccountId: sellerExternalAccountId,
+    sellerVirtualAccountId: sellerExternalAccountId,
     totalAmountCents: totalSettlementAmount,
+    payoutCurrency: "USD",
     platformFeeCents: platformFeeAmount,
   });
 

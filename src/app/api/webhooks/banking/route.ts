@@ -262,7 +262,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   recordSettlementFinality({
     settlementId,
-    rail: "modern_treasury",
+    rail: "column",
     externalTransferId: data.id,
     idempotencyKey: idemKey,
     finalityStatus,

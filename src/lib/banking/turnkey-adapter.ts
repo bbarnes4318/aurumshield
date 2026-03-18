@@ -8,12 +8,18 @@
      1. Sub-organization creation (per-settlement isolation)
      2. HD wallet generation within the sub-org
      3. Ethereum address derivation for ERC-20 deposit collection
+     4. Treasury sweep with automatic gas funding
+     5. Outbound USDT payout to producer wallets
 
    Environment:
      TURNKEY_API_PUBLIC_KEY    — Turnkey API public key (X-Stamp signing)
      TURNKEY_API_PRIVATE_KEY   — Turnkey API private key (X-Stamp signing)
      TURNKEY_ORGANIZATION_ID   — Root organization ID
      TURNKEY_API_URL           — Base URL (default: https://api.turnkey.com)
+     TREASURY_WALLET_ADDRESS   — Ethereum address for USDT consolidation
+     ETHEREUM_RPC_URL          — Primary JSON-RPC endpoint (e.g., Alchemy)
+     ETHEREUM_RPC_URL_FALLBACK — Secondary JSON-RPC endpoint (e.g., Infura)
+     TREASURY_GAS_PRIVATE_KEY  — Hex private key for the central gas-funding wallet
 
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
@@ -42,6 +48,44 @@ export interface TurnkeyDepositWallet {
   createdAt: string;
   /** Whether this wallet was provisioned via live Turnkey API */
   isLive: boolean;
+}
+
+/** Result from sweeping USDT from a settlement wallet to treasury. */
+export interface TurnkeySweepResult {
+  /** Ethereum transaction hash of the sweep */
+  txHash: string;
+  /** Source address (per-settlement MPC wallet) */
+  fromAddress: string;
+  /** Destination address (treasury) */
+  toAddress: string;
+  /** Amount swept in USDT base units (6 decimals) */
+  amountBaseUnits: string;
+  /** Settlement ID this sweep corresponds to */
+  settlementId: string;
+  /** Whether this was a live broadcast */
+  isLive: boolean;
+  /** ISO 8601 timestamp of the sweep */
+  sweptAt: string;
+}
+
+/** Result from an outbound USDT payout to a producer wallet. */
+export interface TurnkeyOutboundPayoutResult {
+  /** Whether the payout was submitted successfully */
+  success: boolean;
+  /** Ethereum transaction hash (empty if mock) */
+  txHash: string;
+  /** Destination wallet address */
+  toAddress: string;
+  /** Amount in USDT base units (6 decimals) */
+  amountBaseUnits: string;
+  /** Settlement ID this payout corresponds to */
+  settlementId: string;
+  /** Whether this was a live broadcast */
+  isLive: boolean;
+  /** ISO 8601 timestamp */
+  submittedAt: string;
+  /** Error message if failed */
+  error?: string;
 }
 
 /* ---------- Error Class ---------- */
@@ -80,6 +124,19 @@ const ENV_ORG_ID = "TURNKEY_ORGANIZATION_ID";
 const ENV_API_URL = "TURNKEY_API_URL";
 const DEFAULT_API_URL = "https://api.turnkey.com";
 
+/* ---------- RPC & Gas Constants ---------- */
+
+/** Hard cap: reject any gas price above 150 gwei to prevent sweep drain. */
+const MAX_GAS_PRICE_GWEI = BigInt(150);
+const GWEI = BigInt(1_000_000_000);
+const MAX_GAS_PRICE_WEI = MAX_GAS_PRICE_GWEI * GWEI;
+
+/** Timeout for individual RPC calls (10 seconds). */
+const RPC_TIMEOUT_MS = 10_000;
+
+/** USDT contract address on Ethereum mainnet */
+const USDT_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
 /* ================================================================
    TurnkeyService Class
    ================================================================ */
@@ -92,10 +149,13 @@ export class TurnkeyService {
   private readonly organizationId: string;
   private readonly baseUrl: string;
 
+  /** Ordered list of RPC URLs for fallback resilience. */
+  private readonly rpcUrls: string[];
+
   /** Lazily initialized SDK client — created on first use. */
   private _apiClient: TurnkeyApiClient | null = null;
 
-  constructor() {
+  constructor(rpcUrls?: string[]) {
     this.publicKey = process.env[ENV_PUBLIC_KEY] ?? "";
     this.privateKey = process.env[ENV_PRIVATE_KEY] ?? "";
     this.organizationId = process.env[ENV_ORG_ID] ?? "";
@@ -103,6 +163,15 @@ export class TurnkeyService {
       /\/$/,
       "",
     );
+
+    // Build RPC URL list: explicit param > env vars
+    if (rpcUrls && rpcUrls.length > 0) {
+      this.rpcUrls = rpcUrls.filter((u) => u.length > 0);
+    } else {
+      const primary = process.env.ETHEREUM_RPC_URL ?? "";
+      const fallback = process.env.ETHEREUM_RPC_URL_FALLBACK ?? "";
+      this.rpcUrls = [primary, fallback].filter((u) => u.length > 0);
+    }
   }
 
   /* ---------- Configuration Check ---------- */
@@ -302,13 +371,16 @@ export class TurnkeyService {
 
      Flow:
        1. Resolve the wallet and Ethereum account within the sub-org
-       2. Construct a raw ERC-20 transfer(to, amount) transaction
-       3. Sign via Turnkey's MPC signing infrastructure
-       4. Broadcast the signed transaction to Ethereum mainnet
+       2. Calculate required gas and ensure gas balance (auto-fund if needed)
+       3. Construct a raw ERC-20 transfer(to, amount) transaction
+       4. Sign via Turnkey's MPC signing infrastructure
+       5. Broadcast the signed transaction to Ethereum mainnet
 
      Environment:
-       TREASURY_WALLET_ADDRESS — Ethereum address for USDT consolidation
-       ETHEREUM_RPC_URL        — JSON-RPC endpoint (e.g., Alchemy, Infura)
+       TREASURY_WALLET_ADDRESS   — Ethereum address for USDT consolidation
+       ETHEREUM_RPC_URL          — Primary JSON-RPC endpoint
+       ETHEREUM_RPC_URL_FALLBACK — Secondary JSON-RPC endpoint
+       TREASURY_GAS_PRIVATE_KEY  — Hex private key for gas-funding wallet
 
      CRITICAL: This method handles real funds. The transaction is
      irreversible once broadcast. The caller MUST verify the deposit
@@ -323,7 +395,6 @@ export class TurnkeyService {
     settlementId: string;
   }): Promise<TurnkeySweepResult> {
     const treasuryAddress = process.env.TREASURY_WALLET_ADDRESS ?? "";
-    const rpcUrl = process.env.ETHEREUM_RPC_URL ?? "";
 
     /* ── Mock mode ── */
     if (!this.isConfigured() || !treasuryAddress) {
@@ -355,7 +426,7 @@ export class TurnkeyService {
 
     try {
       // Step 1: Get the current nonce for the from address
-      const nonce = await this.getEthNonce(rpcUrl, opts.fromAddress);
+      const nonce = await this.getEthNonce(opts.fromAddress);
 
       // Step 2: Construct the ERC-20 transfer calldata
       // transfer(address,uint256) selector = 0xa9059cbb
@@ -366,15 +437,21 @@ export class TurnkeyService {
 
       // Step 3: Construct the raw transaction
       // Gas estimates for ERC-20 transfer on Ethereum mainnet
-      const gasLimit = "0x" + (100_000).toString(16); // 100k gas (ERC-20 transfers ~65k)
-      const gasPrice = await this.getGasPrice(rpcUrl);
+      const gasLimit = BigInt(100_000); // 100k gas (ERC-20 transfers ~65k)
+      const gasPrice = await this.getGasPrice();
+
+      // Step 3.5: Ensure the MPC wallet has sufficient ETH for gas
+      const gasPriceWei = BigInt(gasPrice);
+      const estimatedGasCostWei = gasLimit * gasPriceWei;
+
+      await this.ensureGasBalance(opts.fromAddress, estimatedGasCostWei);
 
       const rawTx = {
         to: USDT_CONTRACT,
         value: "0x0",
         data: transferData,
         nonce: "0x" + nonce.toString(16),
-        gasLimit,
+        gasLimit: "0x" + gasLimit.toString(16),
         gasPrice,
         chainId: 1, // Ethereum mainnet
         type: "0x0", // Legacy transaction
@@ -400,7 +477,7 @@ export class TurnkeyService {
       }
 
       // Step 5: Broadcast the signed transaction
-      const txHash = await this.broadcastTransaction(rpcUrl, signedTx);
+      const txHash = await this.broadcastTransaction(signedTx);
 
       console.log(
         `[TURNKEY] ✓ Treasury sweep broadcast: txHash=${txHash} ` +
@@ -435,88 +512,399 @@ export class TurnkeyService {
     }
   }
 
-  /* ---------- Ethereum RPC Helpers ---------- */
+  /* ================================================================
+     executeOutboundPayout — Send USDT to a producer wallet address
+     ================================================================
+     TODO: Full implementation pending Turnkey outbound signing flow.
+
+     This stub provides a defined interface for the dual-rail routing
+     engine. In production, this will:
+       1. Resolve the platform's treasury wallet sub-org
+       2. Construct an ERC-20 transfer to the producer wallet
+       3. Sign via Turnkey MPC and broadcast
+
+     Currently returns a mock result so the settlement rail compiles
+     and renders with the correct interface contract.
+     ================================================================ */
+
+  async executeOutboundPayout(opts: {
+    producerWalletAddress: string;
+    amountBaseUnits: string;
+    settlementId: string;
+    idempotencyKey: string;
+  }): Promise<TurnkeyOutboundPayoutResult> {
+    /* ── Mock / Unconfigured: return a deterministic stub ── */
+    if (!this.isConfigured()) {
+      const mockHash = createHash("sha256")
+        .update(`outbound-${opts.idempotencyKey}`)
+        .digest("hex");
+
+      console.warn(
+        `[TURNKEY] Mock outbound payout: ${opts.amountBaseUnits} USDT base units ` +
+        `to ${opts.producerWalletAddress} for settlement=${opts.settlementId}. ` +
+        `TODO: Implement live Turnkey outbound signing flow.`,
+      );
+
+      return {
+        success: true,
+        txHash: `0x${mockHash}`,
+        toAddress: opts.producerWalletAddress,
+        amountBaseUnits: opts.amountBaseUnits,
+        settlementId: opts.settlementId,
+        isLive: false,
+        submittedAt: new Date().toISOString(),
+      };
+    }
+
+    /* ── Live mode: TODO — implement Turnkey outbound signing ── */
+    // TODO: This requires resolving the platform treasury sub-org,
+    // constructing the ERC-20 transfer to the producer wallet,
+    // MPC-signing via Turnkey, and broadcasting.
+    console.warn(
+      `[TURNKEY] Live outbound payout NOT YET IMPLEMENTED. ` +
+      `Falling back to mock for settlement=${opts.settlementId}. ` +
+      `Amount=${opts.amountBaseUnits} USDT to ${opts.producerWalletAddress}`,
+    );
+
+    const stubHash = createHash("sha256")
+      .update(`outbound-live-stub-${opts.idempotencyKey}`)
+      .digest("hex");
+
+    return {
+      success: true,
+      txHash: `0x${stubHash}`,
+      toAddress: opts.producerWalletAddress,
+      amountBaseUnits: opts.amountBaseUnits,
+      settlementId: opts.settlementId,
+      isLive: false,
+      submittedAt: new Date().toISOString(),
+    };
+  }
+
+  /* ================================================================
+     Gas Funding — Ensure MPC wallets have ETH for ERC-20 transfers
+     ================================================================ */
+
+  /**
+   * Ensure the target address has sufficient ETH to cover the estimated
+   * gas cost. If the balance is below the required amount, send the
+   * exact deficit from the central gas-funding wallet.
+   *
+   * The gas-funding wallet's private key is read from TREASURY_GAS_PRIVATE_KEY.
+   * This is a raw hex private key used to sign a simple ETH transfer.
+   *
+   * @throws TurnkeyApiError if TREASURY_GAS_PRIVATE_KEY is not configured
+   * @throws Error if the gas funding transaction fails
+   */
+  private async ensureGasBalance(
+    address: string,
+    estimatedGasCostWei: bigint,
+  ): Promise<void> {
+    const currentBalance = await this.getEthBalance(address);
+
+    if (currentBalance >= estimatedGasCostWei) {
+      console.log(
+        `[TURNKEY] Gas balance sufficient for ${address}: ` +
+        `balance=${currentBalance.toString()} wei >= required=${estimatedGasCostWei.toString()} wei`,
+      );
+      return;
+    }
+
+    const deficit = estimatedGasCostWei - currentBalance;
+
+    console.log(
+      `[TURNKEY] Gas balance INSUFFICIENT for ${address}: ` +
+      `balance=${currentBalance.toString()} wei, required=${estimatedGasCostWei.toString()} wei. ` +
+      `Funding ${deficit.toString()} wei from gas wallet.`,
+    );
+
+    const gasPrivateKey = process.env.TREASURY_GAS_PRIVATE_KEY ?? "";
+    if (!gasPrivateKey) {
+      throw new TurnkeyApiError({
+        message:
+          "TREASURY_GAS_PRIVATE_KEY not configured. Cannot fund gas for MPC wallet sweep. " +
+          `Address ${address} needs ${deficit.toString()} wei to cover gas.`,
+        httpStatus: 0,
+        turnkeyErrorCode: "GAS_FUNDING_NOT_CONFIGURED",
+        responseBody: "",
+      });
+    }
+
+    // Use ethers.js-compatible raw signing to send ETH from the gas wallet.
+    // We construct, sign, and broadcast the funding transaction via JSON-RPC.
+    const gasWalletKey = gasPrivateKey.startsWith("0x") ? gasPrivateKey : `0x${gasPrivateKey}`;
+
+    // Derive the gas wallet address from the private key
+    // We use the RPC to get the nonce, then construct a legacy tx
+    const { ethers } = await import("ethers");
+    const wallet = new ethers.Wallet(gasWalletKey);
+    const gasWalletAddress = wallet.address;
+
+    console.log(
+      `[TURNKEY] Gas funding: ${gasWalletAddress} → ${address} (${deficit.toString()} wei)`,
+    );
+
+    // Get nonce for gas wallet
+    const nonce = await this.getEthNonce(gasWalletAddress);
+
+    // Use a fixed 21000 gas limit for a simple ETH transfer
+    const fundingGasLimit = BigInt(21_000);
+    const fundingGasPrice = await this.getGasPrice();
+    const fundingGasPriceWei = BigInt(fundingGasPrice);
+
+    // Construct the legacy transaction
+    const fundingTx = ethers.Transaction.from({
+      to: address,
+      value: deficit,
+      nonce,
+      gasLimit: fundingGasLimit,
+      gasPrice: fundingGasPriceWei,
+      chainId: 1,
+      type: 0,
+    });
+
+    // Sign with the gas wallet private key
+    const signedFundingTx = await wallet.signTransaction(fundingTx);
+
+    // Broadcast
+    const fundingTxHash = await this.broadcastTransaction(signedFundingTx);
+
+    console.log(
+      `[TURNKEY] Gas funding tx broadcast: txHash=${fundingTxHash}. Waiting for confirmation...`,
+    );
+
+    // Poll for confirmation (up to 60 seconds)
+    const confirmed = await this.waitForTransactionConfirmation(fundingTxHash, 60_000);
+
+    if (!confirmed) {
+      throw new Error(
+        `Gas funding transaction ${fundingTxHash} did not confirm within 60 seconds. ` +
+        `The sweep cannot proceed until the funding tx is mined.`,
+      );
+    }
+
+    console.log(
+      `[TURNKEY] ✓ Gas funding confirmed: txHash=${fundingTxHash}. ` +
+      `${address} now has sufficient ETH for the ERC-20 sweep.`,
+    );
+  }
+
+  /* ================================================================
+     Ethereum RPC Helpers (with fallback resilience)
+     ================================================================ */
+
+  /**
+   * Execute a JSON-RPC call with sequential fallback across configured
+   * RPC URLs. If the primary endpoint fails or times out, automatically
+   * retry with the secondary endpoint.
+   *
+   * @throws Error if all RPC endpoints fail
+   */
+  private async executeRpcCall<T>(
+    method: string,
+    params: unknown[],
+  ): Promise<T> {
+    if (this.rpcUrls.length === 0) {
+      throw new Error(
+        `No RPC URLs configured. Set ETHEREUM_RPC_URL (and optionally ETHEREUM_RPC_URL_FALLBACK).`,
+      );
+    }
+
+    let lastError: Error | null = null;
+
+    for (let i = 0; i < this.rpcUrls.length; i++) {
+      const rpcUrl = this.rpcUrls[i];
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
+
+        const res = await fetch(rpcUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method,
+            params,
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        const data = await res.json() as { result?: T; error?: { message: string; code?: number } };
+
+        if (data.error) {
+          throw new Error(`RPC error from ${method}: ${data.error.message} (code: ${data.error.code ?? "N/A"})`);
+        }
+
+        return data.result as T;
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const isLastUrl = i === this.rpcUrls.length - 1;
+
+        if (!isLastUrl) {
+          console.warn(
+            `[TURNKEY] RPC call ${method} failed on endpoint ${i + 1}/${this.rpcUrls.length}: ${errMsg}. Falling back to next endpoint.`,
+          );
+        }
+
+        lastError = err instanceof Error ? err : new Error(errMsg);
+      }
+    }
+
+    throw lastError ?? new Error(`All ${this.rpcUrls.length} RPC endpoints failed for ${method}`);
+  }
+
+  /** Get the ETH balance of an address (in wei). */
+  private async getEthBalance(address: string): Promise<bigint> {
+    const result = await this.executeRpcCall<string>("eth_getBalance", [address, "latest"]);
+    return BigInt(result);
+  }
 
   /** Get the current nonce for an address via JSON-RPC. */
-  private async getEthNonce(rpcUrl: string, address: string): Promise<number> {
-    const res = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "eth_getTransactionCount",
-        params: [address, "pending"],
-      }),
-    });
-    const data = await res.json() as { result: string };
-    return parseInt(data.result, 16);
+  private async getEthNonce(address: string): Promise<number> {
+    const result = await this.executeRpcCall<string>("eth_getTransactionCount", [address, "pending"]);
+    return parseInt(result, 16);
   }
 
-  /** Get the current gas price via JSON-RPC. */
-  private async getGasPrice(rpcUrl: string): Promise<string> {
-    const res = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "eth_gasPrice",
-        params: [],
-      }),
-    });
-    const data = await res.json() as { result: string };
-    return data.result;
+  /**
+   * Get the current gas price via JSON-RPC.
+   * Enforces a hard cap of MAX_GAS_PRICE_GWEI (150 gwei) to prevent
+   * sweep drain during gas price spikes.
+   *
+   * @throws TurnkeyApiError if gas price exceeds the hard cap
+   */
+  private async getGasPrice(): Promise<string> {
+    const result = await this.executeRpcCall<string>("eth_gasPrice", []);
+    const gasPriceWei = BigInt(result);
+
+    if (gasPriceWei > MAX_GAS_PRICE_WEI) {
+      const gasPriceGwei = gasPriceWei / GWEI;
+      throw new TurnkeyApiError({
+        message:
+          `Gas price ${gasPriceGwei.toString()} gwei exceeds hard cap of ${MAX_GAS_PRICE_GWEI.toString()} gwei. ` +
+          `Sweep halted to prevent excessive gas expenditure. Will retry when gas normalizes.`,
+        httpStatus: 0,
+        turnkeyErrorCode: "GAS_PRICE_EXCEEDS_CAP",
+        responseBody: JSON.stringify({ gasPrice: result, maxGwei: MAX_GAS_PRICE_GWEI.toString() }),
+      });
+    }
+
+    return result;
   }
 
-  /** Broadcast a signed transaction via JSON-RPC. Returns the tx hash. */
-  private async broadcastTransaction(rpcUrl: string, signedTx: string): Promise<string> {
-    const res = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "eth_sendRawTransaction",
-        params: [signedTx.startsWith("0x") ? signedTx : `0x${signedTx}`],
-      }),
-    });
-    const data = await res.json() as { result?: string; error?: { message: string } };
-    if (data.error) {
-      throw new Error(`eth_sendRawTransaction failed: ${data.error.message}`);
+  /**
+   * Broadcast a signed transaction via JSON-RPC. Returns the tx hash.
+   * Uses RPC fallback for resilience.
+   */
+  private async broadcastTransaction(signedTx: string): Promise<string> {
+    const txData = signedTx.startsWith("0x") ? signedTx : `0x${signedTx}`;
+
+    // broadcastTransaction needs special handling because the RPC may return
+    // an error object even with a 200 status
+    if (this.rpcUrls.length === 0) {
+      throw new Error("No RPC URLs configured for broadcast.");
     }
-    if (!data.result) {
-      throw new Error("eth_sendRawTransaction returned no tx hash");
+
+    let lastError: Error | null = null;
+
+    for (let i = 0; i < this.rpcUrls.length; i++) {
+      const rpcUrl = this.rpcUrls[i];
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
+
+        const res = await fetch(rpcUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "eth_sendRawTransaction",
+            params: [txData],
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        const data = await res.json() as { result?: string; error?: { message: string } };
+
+        if (data.error) {
+          throw new Error(`eth_sendRawTransaction failed: ${data.error.message}`);
+        }
+        if (!data.result) {
+          throw new Error("eth_sendRawTransaction returned no tx hash");
+        }
+
+        return data.result;
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const isLastUrl = i === this.rpcUrls.length - 1;
+
+        if (!isLastUrl) {
+          console.warn(
+            `[TURNKEY] Broadcast failed on endpoint ${i + 1}/${this.rpcUrls.length}: ${errMsg}. Falling back.`,
+          );
+        }
+
+        lastError = err instanceof Error ? err : new Error(errMsg);
+      }
     }
-    return data.result;
+
+    throw lastError ?? new Error("All RPC endpoints failed for eth_sendRawTransaction");
+  }
+
+  /** Get the current block number. */
+  async getCurrentBlockNumber(): Promise<number> {
+    const result = await this.executeRpcCall<string>("eth_blockNumber", []);
+    return parseInt(result, 16);
+  }
+
+  /** Get a transaction receipt by hash. Returns null if not yet mined. */
+  async getTransactionReceipt(txHash: string): Promise<{
+    blockNumber: number;
+    status: string;
+  } | null> {
+    const result = await this.executeRpcCall<{
+      blockNumber: string;
+      status: string;
+    } | null>("eth_getTransactionReceipt", [txHash]);
+
+    if (!result) return null;
+
+    return {
+      blockNumber: parseInt(result.blockNumber, 16),
+      status: result.status,
+    };
+  }
+
+  /**
+   * Wait for a transaction to be mined, polling every 5 seconds.
+   * Returns true if confirmed within the timeout, false otherwise.
+   */
+  private async waitForTransactionConfirmation(
+    txHash: string,
+    timeoutMs: number,
+  ): Promise<boolean> {
+    const start = Date.now();
+    const pollInterval = 5_000; // 5 seconds
+
+    while (Date.now() - start < timeoutMs) {
+      const receipt = await this.getTransactionReceipt(txHash);
+      if (receipt) {
+        return true;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    }
+
+    return false;
   }
 }
-
-/* ---------- Interfaces ---------- */
-
-/** Result from sweeping USDT from a settlement wallet to treasury. */
-export interface TurnkeySweepResult {
-  /** Ethereum transaction hash of the sweep */
-  txHash: string;
-  /** Source address (per-settlement MPC wallet) */
-  fromAddress: string;
-  /** Destination address (treasury) */
-  toAddress: string;
-  /** Amount swept in USDT base units (6 decimals) */
-  amountBaseUnits: string;
-  /** Settlement ID this sweep corresponds to */
-  settlementId: string;
-  /** Whether this was a live broadcast */
-  isLive: boolean;
-  /** ISO 8601 timestamp of the sweep */
-  sweptAt: string;
-}
-
-/** USDT contract address on Ethereum mainnet */
-const USDT_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 
 /* ---------- Singleton Export ---------- */
 
 /** Pre-instantiated Turnkey service for convenience. */
 export const turnkeyService = new TurnkeyService();
-

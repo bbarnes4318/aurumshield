@@ -762,7 +762,7 @@ export function applySettlementAction(
       // Payment rail — dynamic based on funding route selection
       const paymentRail = settlement.fundingRoute === "stablecoin"
         ? "turnkey_mpc"
-        : "modern_treasury";
+        : "column";
 
       // Logistics routing — sovereign carriers only
       const logisticsThresholdCents = 50_000_000; // $500,000 in cents

@@ -157,14 +157,30 @@ describe("RSK-013: Idempotent Webhook Ledger Transactions", () => {
   /*  State machine advancement                      */
   /* ────────────────────────────────────────────── */
 
-  describe("state machine advancement", () => {
-    it("triggers CONFIRM_FUNDS_FINAL on full funding", () => {
-      expect(routeSource).toContain("CONFIRM_FUNDS_FINAL");
+  describe("state machine advancement (reorg-safe)", () => {
+    it("parks deposits in AWAITING_CHAIN_CONFIRMATIONS instead of immediate finality", () => {
+      // Task 2: Webhook no longer calls CONFIRM_FUNDS_FINAL inline.
+      // It parks the deposit and a cron job finalizes after 12 confirmations.
+      expect(routeSource).toContain("AWAITING_CHAIN_CONFIRMATIONS");
+      expect(routeSource).toContain("PENDING_CONFIRMATION");
     });
 
-    it("uses apiApplySettlementAction via dynamic import", () => {
-      expect(routeSource).toContain("apiApplySettlementAction");
-      expect(routeSource).toContain("import(\"@/lib/api\")");
+    it("does NOT call apiApplySettlementAction inline (deferred to cron)", () => {
+      // The webhook handler must NOT immediately advance the state machine.
+      // CONFIRM_FUNDS_FINAL is now triggered by a background worker after
+      // 12 block confirmations via pollBlockConfirmations().
+      expect(routeSource).not.toContain("apiApplySettlementAction");
+      expect(routeSource).not.toContain("import(\"@/lib/api\")");
+    });
+
+    it("emits DEPOSIT_DETECTED audit event (not FUNDS_CLEARED)", () => {
+      expect(routeSource).toContain("DEPOSIT_DETECTED");
+    });
+
+    it("exports pollBlockConfirmations for cron-based finalization", () => {
+      expect(routeSource).toContain("export async function pollBlockConfirmations");
+      expect(routeSource).toContain("eth_getTransactionReceipt");
+      expect(routeSource).toContain("REQUIRED_BLOCK_CONFIRMATIONS");
     });
 
     it("identifies the actor as SYSTEM_TURNKEY_WEBHOOK", () => {

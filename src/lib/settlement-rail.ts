@@ -1,16 +1,18 @@
 /* ================================================================
-   SETTLEMENT RAIL — 100% Modern Treasury (Fedwire/RTGS)
+   SETTLEMENT RAIL — Dual-Rail Settlement (Column + Turnkey)
    ================================================================
-   Single-rail settlement engine. All payouts route through Modern
-   Treasury. There is NO fallback, NO dual-rail, NO auto-mode.
-   If Modern Treasury fails, a fatal SettlementRailError is thrown
+   Dual-rail settlement engine routing payouts through either:
+     1. Column Bank (Fedwire / RTGS) — for USD fiat payouts
+     2. Turnkey (MPC ERC-20) — for USDT stablecoin payouts
+
+   If a rail fails, a fatal SettlementRailError is thrown
    and the settlement halts for manual intervention.
 
    Idempotency:
      Every payout request carries a deterministic key derived from
      SHA-256(settlement_id | payee_id | amount_cents | action_type).
-     This key is passed to Modern Treasury (idempotency_key param)
-     and persisted in the `payouts` table to prevent duplicate transfers.
+     This key is passed to the rail provider and persisted in the
+     `payouts` table to prevent duplicate transfers.
 
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
@@ -25,18 +27,22 @@ import { transitionSettlementState } from "./state-machine";
 export interface SettlementPayoutRequest {
   /** AurumShield settlement ID (for idempotency & ledger reference) */
   settlementId: string;
-  /** Seller external account identifier (Modern Treasury counterparty ID) */
-  sellerAccountId: string;
+  /** Seller virtual account identifier (Column virtual account ID for USD payouts) */
+  sellerVirtualAccountId: string;
   /** Total settlement value in cents (smallest USD denomination) */
   totalAmountCents: number;
   /** Platform fee in cents */
   platformFeeCents: number;
+  /** Payout currency — determines which rail is used */
+  payoutCurrency: "USD" | "USDT";
+  /** Producer wallet address for USDT payouts (required when payoutCurrency === "USDT") */
+  producerWalletAddress?: string;
   /** Optional metadata to attach to the payment order */
   metadata?: Record<string, string>;
   /**
    * Platform-generated idempotency key. Derived from:
    *   SHA-256(settlement_id | payee_id | amount_cents | action_type)
-   * Passed to Modern Treasury API.
+   * Passed to the rail provider.
    */
   idempotencyKey?: string;
 }
@@ -46,8 +52,8 @@ export interface SettlementPayoutResult {
   /** Whether the payout was executed successfully */
   success: boolean;
   /** Rail that was used for this payout */
-  railUsed: "modern_treasury" | "column";
-  /** External IDs from Modern Treasury (payment order IDs) */
+  railUsed: "column" | "turnkey";
+  /** External IDs from the rail provider */
   externalIds: string[];
   /** Seller payout amount in cents */
   sellerPayoutCents: number;
@@ -63,7 +69,7 @@ export interface SettlementPayoutResult {
 
 /**
  * Settlement rail interface.
- * Only Modern Treasury implements this.
+ * Implemented by ColumnBankService (USD) and TurnkeyService (USDT).
  */
 export interface ISettlementRail {
   /** Human-readable rail name */
@@ -77,8 +83,8 @@ export interface ISettlementRail {
 /* ---------- Fatal Error ---------- */
 
 /**
- * Fatal settlement rail error. Thrown when Modern Treasury fails.
- * There is NO fallback — this halts the settlement for manual intervention.
+ * Fatal settlement rail error. Thrown when a payout rail fails.
+ * There is NO automatic fallback — this halts the settlement for manual intervention.
  */
 export class SettlementRailError extends Error {
   public readonly settlementId: string;
@@ -91,7 +97,7 @@ export class SettlementRailError extends Error {
     railError: string;
   }) {
     super(
-      `SETTLEMENT_RAIL_FATAL: Modern Treasury payout failed for settlement ${opts.settlementId}. ` +
+      `SETTLEMENT_RAIL_FATAL: Payout failed for settlement ${opts.settlementId}. ` +
       `No fallback rail available. Manual intervention required. ` +
       `Error: ${opts.railError}`,
     );
@@ -108,8 +114,8 @@ export class SettlementRailError extends Error {
  * Generate a deterministic idempotency key from settlement parameters.
  * Key = SHA-256(settlement_id | payee_id | amount_cents | action_type)
  *
- * Passed to Modern Treasury (idempotency_key param) and persisted
- * in the `payouts` table for dedup on webhooks.
+ * Passed to the rail provider and persisted in the `payouts` table
+ * for dedup on webhooks.
  */
 export function generateIdempotencyKey(
   settlementId: string,
@@ -131,7 +137,7 @@ export async function recordPayoutAttempt(params: {
   settlementId: string;
   payeeId: string;
   idempotencyKey: string;
-  rail: "modern_treasury";
+  rail: "column" | "turnkey";
   actionType: string;
   amountCents: number;
 }): Promise<void> {
@@ -189,7 +195,7 @@ export async function updatePayoutStatus(params: {
  */
 export async function recordSettlementFinality(params: {
   settlementId: string;
-  rail: "modern_treasury";
+  rail: "column" | "turnkey";
   externalTransferId: string;
   idempotencyKey: string;
   finalityStatus: "PENDING" | "COMPLETED" | "FAILED" | "REVERSED" | "REQUIRES_REVIEW";
@@ -260,6 +266,7 @@ export async function checkPayoutIdempotency(
 
 /**
  * Check if a prior transfer finality exists for a settlement.
+ * Checks both Column and Turnkey rails.
  */
 export async function checkPriorFinality(
   settlementId: string,
@@ -271,7 +278,7 @@ export async function checkPriorFinality(
       const result = await client.query(
         `SELECT finality_status, external_transfer_id
          FROM settlement_finality
-         WHERE settlement_id = $1 AND rail = 'modern_treasury' AND leg = 'seller_payout'
+         WHERE settlement_id = $1 AND rail IN ('column', 'turnkey') AND leg = 'seller_payout'
          ORDER BY created_at DESC LIMIT 1`,
         [settlementId],
       );
@@ -291,26 +298,29 @@ export async function checkPriorFinality(
 
 /* ---------- Registry ---------- */
 
-let _modernTreasuryRail: ISettlementRail | null = null;
+const _railRegistry = new Map<"column" | "turnkey", ISettlementRail>();
 
 /**
- * Register the Modern Treasury rail implementation.
+ * Register a settlement rail implementation.
  */
 export function registerSettlementRail(
-  railName: "modern_treasury",
+  railName: "column" | "turnkey",
   rail: ISettlementRail,
 ): void {
-  _modernTreasuryRail = rail;
+  _railRegistry.set(railName, rail);
   console.log(`[SETTLEMENT-RAIL] Registered rail: ${railName} (${rail.name})`);
 }
 
 /* ---------- Router ---------- */
 
 /**
- * Route a settlement payout through Modern Treasury.
+ * Route a settlement payout through the appropriate rail based on
+ * the payout currency:
+ *   - "USD"  → Column Bank (Fedwire / RTGS)
+ *   - "USDT" → Turnkey (MPC ERC-20 transfer)
  *
- * This is the ONLY settlement rail. If Modern Treasury fails,
- * a fatal SettlementRailError is thrown. There is NO fallback.
+ * If the rail fails, a fatal SettlementRailError is thrown.
+ * There is NO automatic fallback between rails.
  */
 export async function routeSettlement(
   request: SettlementPayoutRequest,
@@ -321,7 +331,7 @@ export async function routeSettlement(
       ...request,
       idempotencyKey: generateIdempotencyKey(
         request.settlementId,
-        request.sellerAccountId,
+        request.sellerVirtualAccountId,
         request.totalAmountCents,
         "settlement_payout",
       ),
@@ -331,6 +341,7 @@ export async function routeSettlement(
   /* ── RSK-003: Pre-execution idempotency guard ── */
   const priorPayout = await checkPayoutIdempotency(request.idempotencyKey!);
   if (priorPayout) {
+    const activeRail: "column" | "turnkey" = request.payoutCurrency === "USDT" ? "turnkey" : "column";
     console.error(
       `[AurumShield P1 ALERT] idempotency_conflict | ` +
       `settlementId=${request.settlementId} ` +
@@ -341,7 +352,7 @@ export async function routeSettlement(
     );
     return {
       success: false,
-      railUsed: "modern_treasury",
+      railUsed: activeRail,
       externalIds: priorPayout.externalId ? [priorPayout.externalId] : [],
       sellerPayoutCents: 0,
       platformFeeCents: request.platformFeeCents,
@@ -355,9 +366,10 @@ export async function routeSettlement(
   /* ── Check prior finality ── */
   const priorFinality = await checkPriorFinality(request.settlementId);
   if (priorFinality && (priorFinality.finalityStatus === "COMPLETED" || priorFinality.finalityStatus === "PENDING")) {
+    const activeRail: "column" | "turnkey" = request.payoutCurrency === "USDT" ? "turnkey" : "column";
     return {
       success: false,
-      railUsed: "modern_treasury",
+      railUsed: activeRail,
       externalIds: priorFinality.externalTransferId ? [priorFinality.externalTransferId] : [],
       sellerPayoutCents: 0,
       platformFeeCents: request.platformFeeCents,
@@ -367,12 +379,25 @@ export async function routeSettlement(
     };
   }
 
+  /* ── Dual-Rail Routing ── */
+  if (request.payoutCurrency === "USDT") {
+    return await routeUsdtPayout(request);
+  } else {
+    return await routeUsdPayout(request);
+  }
+}
+
+/* ---------- USD Payout (Column Bank / Fedwire) ---------- */
+
+async function routeUsdPayout(
+  request: SettlementPayoutRequest,
+): Promise<SettlementPayoutResult> {
   /* ── Record payout attempt ── */
   await recordPayoutAttempt({
     settlementId: request.settlementId,
-    payeeId: request.sellerAccountId,
+    payeeId: request.sellerVirtualAccountId,
     idempotencyKey: request.idempotencyKey!,
-    rail: "modern_treasury",
+    rail: "column",
     actionType: "settlement_payout",
     amountCents: request.totalAmountCents,
   });
@@ -386,47 +411,163 @@ export async function routeSettlement(
     "system",
   );
 
-  /* ── Execute on Modern Treasury ── */
-  if (!_modernTreasuryRail || !_modernTreasuryRail.isConfigured()) {
-    throw new SettlementRailError({
-      settlementId: request.settlementId,
-      idempotencyKey: request.idempotencyKey!,
-      railError: "Modern Treasury rail is not registered or not configured. Settlement halted.",
-    });
-  }
-
+  /* ── Execute on Column Bank ── */
   try {
-    const result = await _modernTreasuryRail.executePayout(request);
+    const { columnBankService } = await import("@/lib/banking/column-adapter");
 
-    await updatePayoutStatus({
-      idempotencyKey: request.idempotencyKey!,
-      status: result.success ? "SUBMITTED" : "FAILED",
-      externalId: result.externalIds[0],
-      errorMessage: result.error,
-    });
-
-    if (result.success) {
-      emitSettlementPayoutConfirmedEvent({
-        settlementId: request.settlementId,
-        idempotencyKey: request.idempotencyKey ?? "N/A",
-        railUsed: "modern_treasury",
-        externalIds: result.externalIds,
-        sellerPayoutCents: result.sellerPayoutCents,
-        platformFeeCents: result.platformFeeCents,
-        totalAmountCents: request.totalAmountCents,
-        isFallback: false,
-      });
-    }
-
-    if (!result.success) {
+    if (!columnBankService.isConfigured()) {
       throw new SettlementRailError({
         settlementId: request.settlementId,
         idempotencyKey: request.idempotencyKey!,
-        railError: result.error ?? "Modern Treasury payout rejected",
+        railError: "Column Bank rail is not configured. Settlement halted.",
       });
     }
 
-    return { ...result, idempotencyKey: request.idempotencyKey };
+    const sellerPayoutCents = request.totalAmountCents - request.platformFeeCents;
+
+    // Execute the outbound Fedwire via Column
+    const wireResult = await columnBankService.initiateOutboundWire(
+      request.sellerVirtualAccountId,
+      sellerPayoutCents,
+      {
+        routingNumber: request.metadata?.destinationRoutingNumber ?? "",
+        accountNumber: request.metadata?.destinationAccountNumber ?? "",
+        beneficiaryName: request.metadata?.beneficiaryName ?? "Settlement Payout",
+      },
+      {
+        settlementId: request.settlementId,
+        idempotencyKey: request.idempotencyKey ?? "",
+        leg: "seller_payout",
+      },
+    );
+
+    await updatePayoutStatus({
+      idempotencyKey: request.idempotencyKey!,
+      status: "SUBMITTED",
+      externalId: wireResult.id,
+    });
+
+    emitSettlementPayoutConfirmedEvent({
+      settlementId: request.settlementId,
+      idempotencyKey: request.idempotencyKey ?? "N/A",
+      railUsed: "column",
+      externalIds: [wireResult.id],
+      sellerPayoutCents,
+      platformFeeCents: request.platformFeeCents,
+      totalAmountCents: request.totalAmountCents,
+      isFallback: false,
+    });
+
+    const result: SettlementPayoutResult = {
+      success: true,
+      railUsed: "column",
+      externalIds: [wireResult.id],
+      sellerPayoutCents,
+      platformFeeCents: request.platformFeeCents,
+      isFallback: false,
+      idempotencyKey: request.idempotencyKey,
+    };
+
+    return result;
+  } catch (err) {
+    if (err instanceof SettlementRailError) throw err;
+
+    const message = err instanceof Error ? err.message : String(err);
+    await updatePayoutStatus({
+      idempotencyKey: request.idempotencyKey!,
+      status: "FAILED",
+      errorMessage: message,
+    });
+
+    throw new SettlementRailError({
+      settlementId: request.settlementId,
+      idempotencyKey: request.idempotencyKey!,
+      railError: message,
+    });
+  }
+}
+
+/* ---------- USDT Payout (Turnkey MPC) ---------- */
+
+async function routeUsdtPayout(
+  request: SettlementPayoutRequest,
+): Promise<SettlementPayoutResult> {
+  if (!request.producerWalletAddress) {
+    throw new SettlementRailError({
+      settlementId: request.settlementId,
+      idempotencyKey: request.idempotencyKey!,
+      railError: "producerWalletAddress is required for USDT payouts but was not provided.",
+    });
+  }
+
+  /* ── Record payout attempt ── */
+  await recordPayoutAttempt({
+    settlementId: request.settlementId,
+    payeeId: request.producerWalletAddress,
+    idempotencyKey: request.idempotencyKey!,
+    rail: "turnkey",
+    actionType: "settlement_payout",
+    amountCents: request.totalAmountCents,
+  });
+
+  /* ── State Machine — PENDING_RAIL → RAIL_SUBMITTED ── */
+  transitionSettlementState(
+    request.settlementId,
+    "PENDING_RAIL",
+    "RAIL_SUBMITTED",
+    "system",
+    "system",
+  );
+
+  /* ── Execute on Turnkey ── */
+  try {
+    const { turnkeyService } = await import("@/lib/banking/turnkey-adapter");
+
+    const sellerPayoutCents = request.totalAmountCents - request.platformFeeCents;
+
+    // Convert cents to USDT base units (6 decimals)
+    // cents * 10000 = base units
+    const amountBaseUnits = (BigInt(sellerPayoutCents) * BigInt(10000)).toString();
+
+    const payoutResult = await turnkeyService.executeOutboundPayout({
+      producerWalletAddress: request.producerWalletAddress,
+      amountBaseUnits,
+      settlementId: request.settlementId,
+      idempotencyKey: request.idempotencyKey!,
+    });
+
+    if (!payoutResult.success) {
+      throw new Error(payoutResult.error ?? "Turnkey outbound payout rejected");
+    }
+
+    await updatePayoutStatus({
+      idempotencyKey: request.idempotencyKey!,
+      status: "SUBMITTED",
+      externalId: payoutResult.txHash,
+    });
+
+    emitSettlementPayoutConfirmedEvent({
+      settlementId: request.settlementId,
+      idempotencyKey: request.idempotencyKey ?? "N/A",
+      railUsed: "turnkey",
+      externalIds: [payoutResult.txHash],
+      sellerPayoutCents,
+      platformFeeCents: request.platformFeeCents,
+      totalAmountCents: request.totalAmountCents,
+      isFallback: false,
+    });
+
+    const result: SettlementPayoutResult = {
+      success: true,
+      railUsed: "turnkey",
+      externalIds: [payoutResult.txHash],
+      sellerPayoutCents,
+      platformFeeCents: request.platformFeeCents,
+      isFallback: false,
+      idempotencyKey: request.idempotencyKey,
+    };
+
+    return result;
   } catch (err) {
     if (err instanceof SettlementRailError) throw err;
 

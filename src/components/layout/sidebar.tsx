@@ -56,6 +56,9 @@ interface NavItem {
   allowedRoles?: UserRole[];
   /** If set, this item's href is dynamically overridden by Pro Toggle state. */
   proToggleKey?: "dashboard";
+  /** If true, this link points to the marketing domain and uses a regular <a> tag
+   *  instead of Next.js <Link> to prevent RSC prefetch CORS errors. */
+  external?: boolean;
 }
 
 /* ── Roles considered "internal operators" — can see all admin links ── */
@@ -109,8 +112,8 @@ const OPERATOR_MARKET: NavItem[] = [
   { label: "Corridors",           href: "/corridors",              icon: Network,         allowedRoles: OPERATOR_ROLES },
   { label: "Hubs",                href: "/hubs",                   icon: Map,             allowedRoles: OPERATOR_ROLES },
   { label: "Intraday",            href: "/intraday",               icon: Activity,        allowedRoles: OPERATOR_ROLES },
-  { label: "Investor",            href: "/investor",               icon: DollarSign,      allowedRoles: OPERATOR_ROLES },
-  { label: "Platform Overview",   href: "/platform-overview",      icon: Globe,           allowedRoles: OPERATOR_ROLES },
+  { label: "Investor",            href: "/investor",               icon: DollarSign,      allowedRoles: OPERATOR_ROLES, external: true },
+  { label: "Platform Overview",   href: "/platform-overview",      icon: Globe,           allowedRoles: OPERATOR_ROLES, external: true },
 ];
 
 /* Platform Admin */
@@ -142,6 +145,9 @@ const PRODUCER_NAV: NavItem[] = [
    Shared nav renderer — used by both Sidebar and MobileDrawer
    ================================================================ */
 
+/** Marketing domain base URL — external nav links point here instead of using Next.js <Link> */
+const ROOT_URL = process.env.NEXT_PUBLIC_ROOT_URL || "https://aurumshield.vip";
+
 function NavLink({
   item,
   href,
@@ -161,27 +167,52 @@ function NavLink({
       ? pathname === "/dashboard"
       : pathname === href || pathname.startsWith(href + "/");
 
+  const classes = cn(
+    "flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] font-normal tracking-wide transition-colors duration-100",
+    isActive
+      ? "bg-slate-800 text-white font-medium"
+      : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200",
+    collapsed && "justify-center px-0"
+  );
+
+  const content = (
+    <>
+      <Icon
+        className={cn(
+          "h-4 w-4 shrink-0",
+          isActive ? "text-white" : "text-slate-500"
+        )}
+      />
+      {!collapsed && <span className="truncate">{item.label}</span>}
+    </>
+  );
+
+  // External links (marketing routes) use <a> to avoid Next.js RSC prefetch CORS errors
+  if (item.external) {
+    return (
+      <li>
+        <a
+          href={`${ROOT_URL}${href}`}
+          onClick={onLinkClick}
+          className={classes}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {content}
+        </a>
+      </li>
+    );
+  }
+
   return (
     <li>
       <Link
         href={href}
         onClick={onLinkClick}
-        className={cn(
-          "flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] font-normal tracking-wide transition-colors duration-100",
-          isActive
-            ? "bg-slate-800 text-white font-medium"
-            : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200",
-          collapsed && "justify-center px-0"
-        )}
+        className={classes}
         aria-current={isActive ? "page" : undefined}
       >
-        <Icon
-          className={cn(
-            "h-4 w-4 shrink-0",
-            isActive ? "text-white" : "text-slate-500"
-          )}
-        />
-        {!collapsed && <span className="truncate">{item.label}</span>}
+        {content}
       </Link>
     </li>
   );
