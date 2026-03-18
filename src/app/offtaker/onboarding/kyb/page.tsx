@@ -365,6 +365,10 @@ export default function KYBConsolePage() {
         <h1 className="text-lg font-bold tracking-tight text-white mt-1.5">
           Offtaker Verification Console
         </h1>
+        <p className="mt-2 text-sm text-slate-400 max-w-2xl leading-relaxed">
+          To unlock marketplace access, we are legally required to verify your corporate identity and beneficial owners.
+          Please review your case file on the left, then click <strong className="text-white">&quot;Launch Secure Identity Scan&quot;</strong> in the active step below to begin.
+        </p>
       </div>
 
       {/* ── 2-Column Main Content ── */}
@@ -436,9 +440,15 @@ export default function KYBConsolePage() {
                   Verification Sequence
                 </h2>
               </div>
-              <span className="font-mono text-[10px] text-slate-500 tracking-wider">
-                {clearedCount} / {steps.length} CLEARED
-              </span>
+              {steps.every(s => s.status === "COMPLETE") ? (
+                <span className="font-mono text-[10px] text-emerald-400 tracking-wider bg-emerald-500/10 px-2 py-1 rounded-sm">
+                  ALL CHECKS CLEARED
+                </span>
+              ) : (
+                <span className="font-mono text-[10px] text-gold-primary tracking-wider bg-gold-primary/10 px-2 py-1 rounded-sm animate-pulse">
+                  ACTION REQUIRED: STEP {steps.findIndex(s => s.status === "ACTIVE") + 1}
+                </span>
+              )}
             </div>
 
             {/* The Ladder */}
@@ -513,16 +523,22 @@ export default function KYBConsolePage() {
 
                       {/* Action button — only on ACTIVE step */}
                       {isActive && (
-                        <div className="mt-3">
+                        <div className="mt-4 p-3 bg-gold-primary/5 border border-gold-primary/20 rounded-md">
+                          <p className="text-white text-xs mb-3 font-medium">
+                            Ready to begin? You will be securely redirected to our identity partner.
+                          </p>
                           <button
                             data-tour="cinematic-kyb-launch-scan"
                             onClick={handleLaunchIdentityScan}
                             disabled={scanLoading}
-                            className={`bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-5 py-2.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait ${scanLoading ? 'animate-pulse' : ''}`}
+                            className={`w-full justify-center bg-gold-primary text-slate-950 font-bold text-sm tracking-wide px-5 py-3 rounded-sm hover:bg-gold-hover transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(198,168,107,0.3)] hover:shadow-[0_0_25px_rgba(198,168,107,0.5)] disabled:opacity-60 disabled:cursor-wait disabled:shadow-none ${scanLoading ? 'animate-pulse' : ''}`}
                           >
                             {scanLoading ? 'Initiating Secure Session…' : 'Launch Secure Identity Scan'}
-                            {scanLoading ? <Clock className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                            {scanLoading ? <Clock className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
                           </button>
+                          <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wide mt-3 text-center block">
+                            EXECUTION IS CRYPTOGRAPHICALLY BINDING. IP ADDRESS LOGGED UNDER BSA/AML PROTOCOLS.
+                          </span>
                         </div>
                       )}
                     </div>
