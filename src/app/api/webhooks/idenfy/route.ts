@@ -249,49 +249,48 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     await client.query("BEGIN");
 
-    /* ── 5a. Idempotency Guard (allows state progression) ── */
+    /* ── 5a. State Progression & Idempotency Guard ── */
     const { rows: existing } = await client.query<{ idenfy_status: string }>(
       "SELECT idenfy_status FROM idenfy_webhook_log WHERE scan_ref = $1",
       [scanRef],
     );
 
-    if (existing.length > 0 && existing[0].idenfy_status === overallStatus) {
-      await client.query("COMMIT");
-      console.info(
-        `[IDENFY-WEBHOOK] Duplicate scanRef=${scanRef} with same status=${overallStatus} — idempotent skip.`,
-      );
-      return NextResponse.json({
-        success: true,
-        action: "skipped",
-        reason: "already_processed",
-        scanRef,
-      });
-    }
+    let isStateUpdate = false;
 
     if (existing.length > 0) {
-      console.info(
-        `[IDENFY-WEBHOOK] State progression detected: scanRef=${scanRef} ` +
-          `${existing[0].idenfy_status} → ${overallStatus}`,
-      );
+      if (existing[0].idenfy_status === overallStatus) {
+        await client.query("COMMIT");
+        console.info(
+          `[IDENFY-WEBHOOK] Duplicate scanRef=${scanRef} with status=${overallStatus} — idempotent skip.`,
+        );
+        return NextResponse.json({
+          success: true,
+          action: "skipped",
+          reason: "already_processed",
+          scanRef,
+        });
+      }
+      // The status has changed (e.g., Admin manually approved a SUSPECTED scan in iDenfy portal)
+      isStateUpdate = true;
     }
 
-    /* ── 5b. Log the webhook (UPSERT — allows status override on same scanRef) ── */
-    await client.query(
-      `INSERT INTO idenfy_webhook_log
-         (scan_ref, user_id, idenfy_status, mapped_kyb_status, raw_payload)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (scan_ref) DO UPDATE SET
-         idenfy_status    = EXCLUDED.idenfy_status,
-         mapped_kyb_status = EXCLUDED.mapped_kyb_status,
-         raw_payload      = EXCLUDED.raw_payload`,
-      [
-        scanRef,
-        userId,
-        overallStatus,
-        transition.kybStatus,
-        JSON.stringify(parsed),
-      ],
-    );
+    /* ── 5b. Log the webhook (INSERT or UPDATE) ── */
+    if (isStateUpdate) {
+      await client.query(
+        `UPDATE idenfy_webhook_log
+         SET idenfy_status = $1, mapped_kyb_status = $2, raw_payload = $3
+         WHERE scan_ref = $4`,
+        [overallStatus, transition.kybStatus, JSON.stringify(parsed), scanRef]
+      );
+      console.info(`[IDENFY-WEBHOOK] Overriding existing scanRef=${scanRef} to status=${overallStatus}`);
+    } else {
+      await client.query(
+        `INSERT INTO idenfy_webhook_log
+           (scan_ref, user_id, idenfy_status, mapped_kyb_status, raw_payload)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [scanRef, userId, overallStatus, transition.kybStatus, JSON.stringify(parsed)]
+      );
+    }
 
     /* ── 5c. Update users table: kyb_status + marketplace_access + kyc_status + verified_by ── */
     const { rowCount } = await client.query(
