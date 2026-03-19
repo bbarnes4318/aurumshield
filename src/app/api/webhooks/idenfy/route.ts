@@ -244,33 +244,65 @@ export async function POST(request: Request): Promise<NextResponse> {
   );
 
   /* ── 5. Database Transaction (idempotent) ── */
-  const client = await getPoolClient();
-
-  /* ── 5a. Resolve Clerk ID → internal UUID (before transaction) ── */
-  const { rows: userRows } = await client.query<{ id: string }>(
-    "SELECT id FROM users WHERE clerk_id = $1",
-    [clerkId],
-  );
-
-  if (userRows.length === 0) {
-    client.release();
-    console.warn(
-      `[IDENFY-WEBHOOK] No user found for clerk_id=${clerkId} — acknowledging to prevent retry loop.`,
+  let client: Awaited<ReturnType<typeof getPoolClient>>;
+  try {
+    client = await getPoolClient();
+  } catch (poolErr) {
+    const msg = poolErr instanceof Error ? poolErr.message : String(poolErr);
+    console.error(`[IDENFY-WEBHOOK] Failed to get DB pool client:`, msg);
+    return NextResponse.json(
+      { error: "Database connection failed", detail: msg },
+      { status: 500 },
     );
-    return NextResponse.json({
-      success: true,
-      action: "skipped",
-      reason: "user_not_found",
-      clerkId,
-    });
   }
-
-  const userId = userRows[0].id; // Internal UUID
+  let resolvedUserId: string | null = null;
 
   try {
+    /* ── 5a. Auto-create idenfy_webhook_log if missing (self-healing) ── */
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS idenfy_webhook_log (
+        id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        scan_ref          VARCHAR(255) NOT NULL UNIQUE,
+        user_id           VARCHAR(255),
+        idenfy_status     VARCHAR(50) NOT NULL,
+        mapped_kyb_status VARCHAR(50) NOT NULL,
+        raw_payload       JSONB DEFAULT '{}'::jsonb,
+        processed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    /* ── 5b. Ensure required columns exist on users table ── */
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clerk_id TEXT UNIQUE`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS kyb_status VARCHAR(50)`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS marketplace_access BOOLEAN DEFAULT FALSE`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS kyc_status VARCHAR(50)`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_by VARCHAR(20)`);
+
+    /* ── 5c. Resolve Clerk ID → internal UUID ── */
+    const { rows: userRows } = await client.query<{ id: string }>(
+      "SELECT id FROM users WHERE clerk_id = $1",
+      [clerkId],
+    );
+
+    if (userRows.length === 0) {
+      client.release();
+      console.warn(
+        `[IDENFY-WEBHOOK] No user found for clerk_id=${clerkId} — acknowledging to prevent retry loop.`,
+      );
+      return NextResponse.json({
+        success: true,
+        action: "skipped",
+        reason: "user_not_found",
+        clerkId,
+      });
+    }
+
+    const userId = userRows[0].id; // Internal UUID
+    resolvedUserId = userId;
+
     await client.query("BEGIN");
 
-    /* ── 5b. State Progression & Idempotency Guard ── */
+    /* ── 5d. State Progression & Idempotency Guard ── */
     const { rows: existing } = await client.query<{ idenfy_status: string }>(
       "SELECT idenfy_status FROM idenfy_webhook_log WHERE scan_ref = $1",
       [scanRef],
@@ -358,7 +390,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       message,
     );
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Internal Server Error", detail: message },
       { status: 500 },
     );
   } finally {
@@ -368,10 +400,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   /* ── 6. Compliance Case Integration (non-fatal) ── */
   let complianceCaseId: string | undefined;
   try {
-    let cc = await getComplianceCaseByUserId(userId);
+    let cc = await getComplianceCaseByUserId(resolvedUserId ?? clerkId);
     if (!cc) {
       cc = await createComplianceCase({
-        userId: userId,
+        userId: resolvedUserId ?? clerkId,
         status: "PENDING_PROVIDER",
         tier: "BROWSE",
       });
@@ -417,7 +449,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     // Publish to SSE for real-time UI updates
     if (event) {
-      await publishCaseEvent(userId, cc.id, event);
+      await publishCaseEvent(resolvedUserId ?? clerkId, cc.id, event);
     }
 
     console.info(

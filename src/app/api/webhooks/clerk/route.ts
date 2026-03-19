@@ -148,6 +148,9 @@ export async function POST(req: NextRequest) {
   const client = await getPoolClient();
 
   try {
+    /* ── Self-healing: ensure clerk_id column exists ── */
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clerk_id TEXT UNIQUE`);
+
     await client.query(
       `INSERT INTO users (clerk_id, email, first_name, last_name, role)
        VALUES ($1, $2, $3, $4, $5)
