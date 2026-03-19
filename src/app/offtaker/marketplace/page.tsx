@@ -477,16 +477,16 @@ export default function OfftakerMarketplacePage() {
           </div>
 
           {/* ── Panel Body — renders only the active step ── */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-6">
+          <div className="flex-1 min-h-0 overflow-hidden p-4">
             {hasSelection ? (
               <>
                 {/* ═══ STEP 1: Execution Config ═══ */}
                 {panelStep === 1 && (
-                  <div className="flex-1 min-h-0 flex flex-col gap-3">
+                  <div className="flex-1 min-h-0 flex flex-col gap-2">
                     {/* Selected Instrument */}
-                    <div className="flex items-center gap-3 bg-black/40 border border-slate-800/60 p-2.5">
-                      <div className="relative h-10 w-10 shrink-0 rounded-sm overflow-hidden bg-slate-800">
-                        <Image src={selectedAsset.imageUrl} alt={selectedAsset.shortName} width={40} height={40} className="object-contain" />
+                    <div className="flex items-center gap-2.5 bg-black/40 border border-slate-800/60 px-2.5 py-2">
+                      <div className="relative h-8 w-8 shrink-0 rounded-sm overflow-hidden bg-slate-800">
+                        <Image src={selectedAsset.imageUrl} alt={selectedAsset.shortName} width={32} height={32} className="object-contain" />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-mono text-[8px] text-slate-600 tracking-wider uppercase">Instrument</span>
@@ -538,15 +538,20 @@ export default function OfftakerMarketplacePage() {
                         <button
                           onClick={() => handleDeliveryModeChange("VAULT")}
                           disabled={phase === "QUOTE_LOCKED"}
-                          className={`p-2.5 border text-left transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                          className={`p-2 border text-left transition-all duration-200 cursor-pointer disabled:cursor-not-allowed relative ${
                             deliveryMode === "VAULT"
-                              ? "bg-slate-950 border-[#C6A86B]/50"
-                              : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                              ? "bg-[#C6A86B]/10 border-[#C6A86B] ring-1 ring-[#C6A86B]/40 shadow-[0_0_12px_rgba(198,168,107,0.15)]"
+                              : "bg-slate-950 border-slate-800 hover:border-slate-600"
                           }`}
                         >
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Vault className="h-3 w-3 text-slate-400" />
-                            <span className="font-mono text-[11px] text-white font-bold">Vaulting</span>
+                          {deliveryMode === "VAULT" && (
+                            <div className="absolute top-1.5 right-1.5">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-[#C6A86B]" />
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <Vault className={`h-3 w-3 ${deliveryMode === "VAULT" ? "text-[#C6A86B]" : "text-slate-400"}`} />
+                            <span className={`font-mono text-[11px] font-bold ${deliveryMode === "VAULT" ? "text-[#C6A86B]" : "text-white"}`}>Vaulting</span>
                           </div>
                           <p className="font-mono text-[8px] text-slate-500 leading-relaxed">
                             Allocated sovereign freeport custody.
@@ -555,15 +560,20 @@ export default function OfftakerMarketplacePage() {
                         <button
                           onClick={() => handleDeliveryModeChange("PHYSICAL")}
                           disabled={phase === "QUOTE_LOCKED"}
-                          className={`p-2.5 border text-left transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                          className={`p-2 border text-left transition-all duration-200 cursor-pointer disabled:cursor-not-allowed relative ${
                             deliveryMode === "PHYSICAL"
-                              ? "bg-slate-950 border-[#C6A86B]/50"
-                              : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                              ? "bg-[#C6A86B]/10 border-[#C6A86B] ring-1 ring-[#C6A86B]/40 shadow-[0_0_12px_rgba(198,168,107,0.15)]"
+                              : "bg-slate-950 border-slate-800 hover:border-slate-600"
                           }`}
                         >
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Truck className="h-3 w-3 text-slate-400" />
-                            <span className="font-mono text-[11px] text-white font-bold">Physical</span>
+                          {deliveryMode === "PHYSICAL" && (
+                            <div className="absolute top-1.5 right-1.5">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-[#C6A86B]" />
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <Truck className={`h-3 w-3 ${deliveryMode === "PHYSICAL" ? "text-[#C6A86B]" : "text-slate-400"}`} />
+                            <span className={`font-mono text-[11px] font-bold ${deliveryMode === "PHYSICAL" ? "text-[#C6A86B]" : "text-white"}`}>Physical</span>
                           </div>
                           <p className="font-mono text-[8px] text-slate-500 leading-relaxed">
                             Armored transit, fully insured.
@@ -603,7 +613,7 @@ export default function OfftakerMarketplacePage() {
                     </div>
 
                     {/* Insurance Badge */}
-                    <div className="border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                    <div className="border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1.5">
                       <div className="flex items-center gap-1.5">
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
                         <Shield className="h-3 w-3 text-emerald-400" />
