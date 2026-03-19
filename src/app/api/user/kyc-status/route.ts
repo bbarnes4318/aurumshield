@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     client = await getDbClient();
 
     const { rows } = await client.query<KycStatusRow>(
-      "SELECT kyc_status FROM users WHERE id = $1",
+      "SELECT kyc_status FROM users WHERE clerk_id = $1",
       [userId],
     );
 
