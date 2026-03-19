@@ -638,15 +638,20 @@ export default function OfftakerMarketplacePage() {
                         <button
                           onClick={() => setSettlementRail("FEDWIRE")}
                           disabled={phase === "QUOTE_LOCKED"}
-                          className={`p-2.5 border text-left transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                          className={`p-2.5 border text-left transition-all duration-200 cursor-pointer disabled:cursor-not-allowed relative ${
                             settlementRail === "FEDWIRE"
-                              ? "bg-slate-950 border-[#C6A86B]/50"
-                              : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                              ? "bg-[#C6A86B]/10 border-[#C6A86B] ring-1 ring-[#C6A86B]/40 shadow-[0_0_12px_rgba(198,168,107,0.15)]"
+                              : "bg-slate-950 border-slate-800 hover:border-slate-600"
                           }`}
                         >
+                          {settlementRail === "FEDWIRE" && (
+                            <div className="absolute top-1.5 right-1.5">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-[#C6A86B]" />
+                            </div>
+                          )}
                           <div className="flex items-center gap-1.5 mb-1">
-                            <Landmark className="h-3 w-3 text-slate-400" />
-                            <span className="font-mono text-[11px] text-white font-bold">Fedwire RTGS</span>
+                            <Landmark className={`h-3 w-3 ${settlementRail === "FEDWIRE" ? "text-[#C6A86B]" : "text-slate-400"}`} />
+                            <span className={`font-mono text-[11px] font-bold ${settlementRail === "FEDWIRE" ? "text-[#C6A86B]" : "text-white"}`}>Fedwire RTGS</span>
                           </div>
                           <p className="font-mono text-[8px] text-slate-500 leading-relaxed">
                             Bank wire via Federal Reserve. T+0.
@@ -655,15 +660,20 @@ export default function OfftakerMarketplacePage() {
                         <button
                           onClick={() => setSettlementRail("TURNKEY_USDT")}
                           disabled={phase === "QUOTE_LOCKED"}
-                          className={`p-2.5 border text-left transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                          className={`p-2.5 border text-left transition-all duration-200 cursor-pointer disabled:cursor-not-allowed relative ${
                             settlementRail === "TURNKEY_USDT"
-                              ? "bg-slate-950 border-[#C6A86B]/50"
-                              : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                              ? "bg-[#C6A86B]/10 border-[#C6A86B] ring-1 ring-[#C6A86B]/40 shadow-[0_0_12px_rgba(198,168,107,0.15)]"
+                              : "bg-slate-950 border-slate-800 hover:border-slate-600"
                           }`}
                         >
+                          {settlementRail === "TURNKEY_USDT" && (
+                            <div className="absolute top-1.5 right-1.5">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-[#C6A86B]" />
+                            </div>
+                          )}
                           <div className="flex items-center gap-1.5 mb-1">
-                            <Wallet className="h-3 w-3 text-slate-400" />
-                            <span className="font-mono text-[11px] text-white font-bold">USDT (ERC-20)</span>
+                            <Wallet className={`h-3 w-3 ${settlementRail === "TURNKEY_USDT" ? "text-[#C6A86B]" : "text-slate-400"}`} />
+                            <span className={`font-mono text-[11px] font-bold ${settlementRail === "TURNKEY_USDT" ? "text-[#C6A86B]" : "text-white"}`}>USDT (ERC-20)</span>
                           </div>
                           <p className="font-mono text-[8px] text-slate-500 leading-relaxed">
                             Stablecoin via Turnkey MPC.

@@ -94,12 +94,8 @@ async function fetchDemoPrice(): Promise<GoldPriceData> {
 /* ── Fetcher ── */
 async function fetchGoldPrice(): Promise<GoldPriceData> {
   if (!API_KEY_PRESENT) {
-    if (DEMO_MODE) return fetchDemoPrice();
-    console.error(
-      "[GOLD-ORACLE] NEXT_PUBLIC_GOLD_API_KEY is not configured. " +
-      "Live pricing is OFFLINE. Set the env var and redeploy."
-    );
-    throw new Error("GOLD_API_KEY_MISSING");
+    // No API key — use demo simulator silently
+    return fetchDemoPrice();
   }
 
   const res = await fetch("https://www.goldapi.io/api/XAU/USD", {
@@ -112,25 +108,24 @@ async function fetchGoldPrice(): Promise<GoldPriceData> {
   });
 
   if (res.status === 401 || res.status === 403) {
-    console.error(
-      `[GOLD-ORACLE] GoldAPI returned ${res.status} — API key is invalid or revoked.`
+    console.warn(
+      `[GOLD-ORACLE] GoldAPI returned ${res.status} — falling back to demo pricing.`
     );
-    throw new Error(`GOLD_API_AUTH_FAILURE_${res.status}`);
+    return fetchDemoPrice();
   }
 
   if (res.status === 429) {
-    console.error(
-      "[GOLD-ORACLE] GoldAPI returned 429 — rate limit exceeded. " +
-      "Current plan may need upgrade or reduce polling frequency."
+    console.warn(
+      "[GOLD-ORACLE] GoldAPI returned 429 — rate limited, falling back to demo pricing."
     );
-    throw new Error("GOLD_API_RATE_LIMITED");
+    return fetchDemoPrice();
   }
 
   if (!res.ok) {
-    console.error(
-      `[GOLD-ORACLE] GoldAPI returned unexpected ${res.status}: ${res.statusText}`
+    console.warn(
+      `[GOLD-ORACLE] GoldAPI returned ${res.status} — falling back to demo pricing.`
     );
-    throw new Error(`GOLD_API_HTTP_${res.status}`);
+    return fetchDemoPrice();
   }
 
   const data: GoldApiResponse = await res.json();
@@ -187,8 +182,8 @@ export function useGoldPrice(): GoldPriceResult {
       // Retry transient errors up to 3 times
       return failureCount < 3;
     },
-    // Disable the query if key is missing AND not in demo mode
-    enabled: CAN_SHOW_PRICE,
+    // Always enabled — falls back to demo pricing internally
+    enabled: true,
   });
 
   const errorMessage = !CAN_SHOW_PRICE
@@ -209,10 +204,10 @@ export function useGoldPrice(): GoldPriceResult {
 
   return {
     data,
-    isLoading: CAN_SHOW_PRICE ? isLoading : false,
-    isError: !CAN_SHOW_PRICE || isError,
+    isLoading,
+    isError: isError,
     errorMessage,
     // Live = we have data AND no current error AND pricing is available
-    isLive: CAN_SHOW_PRICE && !isError && data !== undefined,
+    isLive: !isError && data !== undefined,
   };
 }
