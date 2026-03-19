@@ -155,6 +155,37 @@ export default function KYBConsolePage() {
   const { isDemoActive } = useDemoTour();
   const demoParam = isDemoActive ? "?demo=active" : "";
 
+  /* ── On mount: check if user is already verified and auto-advance ── */
+  useEffect(() => {
+    if (isDemoActive) return;
+
+    (async () => {
+      try {
+        const result = await serverPollVerificationStatus(caseFile.caseId);
+
+        if (result.status === "APPROVED") {
+          console.log("[KYB-UI] ✅ User already verified — auto-advancing all steps");
+          setScanProvider("CLEARED");
+          setSteps(prev => prev.map(s => ({ ...s, status: "COMPLETE" as StepStatus })));
+        } else if (result.status === "REVIEWING") {
+          console.log("[KYB-UI] 🟡 Verification under review");
+          setScanProvider("REVIEWING");
+          setSteps(prev => prev.map((s, i) => {
+            if (i === 0) return { ...s, status: "COMPLETE" as StepStatus };
+            if (i === 1) return { ...s, status: "ACTIVE" as StepStatus };
+            return s;
+          }));
+        } else if (result.status === "DECLINED") {
+          console.log("[KYB-UI] 🔴 Verification declined");
+          setDeclineReasons(result.declineReasons ?? []);
+          setScanError("Identity verification DECLINED");
+        }
+      } catch (err) {
+        console.warn("[KYB-UI] Mount status check failed (non-fatal):", err);
+      }
+    })();
+  }, [isDemoActive, caseFile.caseId]);
+
   const allCleared = steps.every(s => s.status === "COMPLETE");
   const clearedCount = steps.filter(s => s.status === "COMPLETE").length;
 

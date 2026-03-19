@@ -321,7 +321,7 @@ export async function serverPollVerificationStatus(
         marketplace_access: boolean | null;
       }>(
         `SELECT kyb_status, verified_by, marketplace_access
-         FROM users WHERE id = $1 LIMIT 1`,
+         FROM users WHERE clerk_id = $1 LIMIT 1`,
         [clerkUserId],
       );
 
@@ -436,7 +436,7 @@ export async function serverResetForRetry(
     try {
       await client.query(
         `UPDATE users SET kyb_status = 'KYB_PENDING', marketplace_access = false
-         WHERE id = $1`,
+         WHERE clerk_id = $1`,
         [clerkUserId],
       );
 
