@@ -164,8 +164,11 @@ export default function KYBConsolePage() {
   const handleLaunchIdentityScan = useCallback(async () => {
     if (scanLoading) return;
 
+    console.log("[KYB-UI] 🔵 Button clicked. isDemoActive=", isDemoActive, "caseId=", caseFile.caseId);
+
     // Demo mode: run local animation instead of hitting real API
     if (isDemoActive) {
+      console.log("[KYB-UI] 🟡 Demo mode — running animation");
       setScanLoading(true);
       const stepDelay = 1200;
       INITIAL_STEPS.forEach((_, idx) => {
@@ -183,15 +186,29 @@ export default function KYBConsolePage() {
       return;
     }
 
-    // Production: call real compliance engine
+    // Production: call iDenfy via compliance engine
     setScanLoading(true);
     setScanError(null);
+    console.log("[KYB-UI] 🔵 Calling serverLaunchIdentityScan...");
 
     try {
-      const result = await serverLaunchIdentityScan(caseFile.caseId);
+      // Timeout wrapper — never hang longer than 30 seconds
+      const result = await Promise.race([
+        serverLaunchIdentityScan(caseFile.caseId),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(
+            "Identity scan request timed out after 30 seconds. " +
+            "This usually means the server cannot connect to the database or iDenfy. " +
+            "Check server logs for the root cause."
+          )), 30_000)
+        ),
+      ]);
+
+      console.log("[KYB-UI] 🟢 Server action returned:", JSON.stringify(result));
 
       switch (result.status) {
         case "REDIRECT":
+          console.log("[KYB-UI] 🟢 REDIRECT → opening iDenfy:", result.redirectUrl);
           setScanProvider(result.provider ?? null);
           setScanSessionId(result.sessionId ?? null);
           if (result.redirectUrl) {
@@ -205,11 +222,13 @@ export default function KYBConsolePage() {
           break;
 
         case "ALREADY_CLEARED":
+          console.log("[KYB-UI] 🟢 User is already cleared");
           setScanProvider("CLEARED");
           setSteps(prev => prev.map(s => ({ ...s, status: "COMPLETE" as StepStatus })));
           break;
 
         case "IN_PROGRESS":
+          console.log("[KYB-UI] 🟡 Verification already in progress");
           setScanProvider("PENDING");
           setSteps(prev => prev.map((s, i) => {
             if (i === 0) return { ...s, status: "COMPLETE" as StepStatus };
@@ -219,11 +238,13 @@ export default function KYBConsolePage() {
           break;
 
         case "ERROR":
-          setScanError(result.error ?? "Unknown error");
+          console.error("[KYB-UI] 🔴 Server returned ERROR:", result.error);
+          setScanError(result.error ?? "Unknown server error — check server logs.");
           break;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.error("[KYB-UI] 🔴 EXCEPTION during identity scan launch:", msg, err);
       setScanError(msg);
     } finally {
       setScanLoading(false);
@@ -349,6 +370,30 @@ export default function KYBConsolePage() {
 
   return (
     <div className="flex flex-col overflow-hidden bg-slate-950 -mx-6 -my-6 lg:-mx-8 h-[calc(100%+3rem)]">
+      {/* ── PROMINENT ERROR BANNER — impossible to miss ── */}
+      {scanError && (
+        <div className="shrink-0 bg-red-950/80 border-b-2 border-red-500 px-6 py-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-mono text-sm font-bold text-red-300 uppercase tracking-wider mb-1">Identity Scan Failed</p>
+            <p className="font-mono text-xs text-red-200/80 leading-relaxed">{scanError}</p>
+            {declineReasons.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {declineReasons.map((reason, idx) => (
+                  <li key={idx} className="font-mono text-xs text-red-300">→ {reason}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <button
+            onClick={() => { setScanError(null); setDeclineReasons([]); }}
+            className="text-red-400 hover:text-red-300 font-mono text-xs uppercase tracking-wider shrink-0 cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="shrink-0 border-b border-slate-800/60 bg-black/30 px-6 py-3">
         <div className="flex items-center justify-between">

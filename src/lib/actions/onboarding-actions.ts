@@ -129,16 +129,23 @@ export interface IdentityScanResult {
 export async function serverLaunchIdentityScan(
   caseId: string,
 ): Promise<IdentityScanResult> {
+  console.log(`[KYB-SERVER] ▶ serverLaunchIdentityScan called with caseId="${caseId}"`);
+
   try {
-    // Resolve the real Clerk user ID — the compliance engine keys on this,
-    // NOT the onboarding case ID (e.g. "AS-OFT-2026-xxxxx").
+    // Step 1: Resolve the authenticated user ID from Clerk.
+    // Clerk is ONLY used here to identify WHO is logged in.
+    // It has NOTHING to do with identity verification — that's iDenfy.
+    console.log("[KYB-SERVER] Step 1: Resolving authenticated user via Clerk auth()...");
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
+      console.error("[KYB-SERVER] ✘ No authenticated user — auth() returned null");
       return { status: "ERROR", error: "Authentication required — please sign in." };
     }
+    console.log(`[KYB-SERVER] Step 1 ✔ Authenticated user: ${clerkUserId}`);
 
-    // Attempt to update case status in DB (uses onboarding caseId)
+    // Step 2: Update onboarding case status in DB (best-effort, non-blocking)
     try {
+      console.log("[KYB-SERVER] Step 2: Updating onboarding case status...");
       const client = await getPoolClient();
       try {
         await client.query(
@@ -146,28 +153,42 @@ export async function serverLaunchIdentityScan(
            WHERE case_id = $1`,
           [caseId],
         );
+        console.log("[KYB-SERVER] Step 2 ✔ Case status updated");
       } finally {
         client.release();
       }
-    } catch {
+    } catch (dbErr) {
       // DB unavailable — continue with the verification flow
-      console.warn("[KYB] DB update failed for case:", caseId);
+      console.warn("[KYB-SERVER] Step 2 ⚠ DB update failed (non-blocking):", dbErr);
     }
 
-    // Call the real compliance engine with the Clerk user ID
+    // Step 3: Call the compliance engine which routes to iDenfy.
+    // For new users, this THROWS a CompliancePendingError with the iDenfy redirect URL.
+    // For cleared users, this returns a readiness result.
+    console.log(`[KYB-SERVER] Step 3: Calling evaluateCounterpartyReadiness("${clerkUserId}")...`);
+    console.log(`[KYB-SERVER]   ACTIVE_COMPLIANCE_PROVIDER=${process.env.ACTIVE_COMPLIANCE_PROVIDER ?? "NOT SET (defaults to VERIFF)"}`);
+    console.log(`[KYB-SERVER]   IDENFY_API_KEY=${process.env.IDENFY_API_KEY ? "SET ✔" : "⚠ NOT SET"}`);
+    console.log(`[KYB-SERVER]   IDENFY_API_SECRET=${process.env.IDENFY_API_SECRET ? "SET ✔" : "⚠ NOT SET"}`);
+
     const result = await evaluateCounterpartyReadiness(clerkUserId);
 
     // If we get here without throwing, the user is already cleared
     if (result.ready) {
+      console.log("[KYB-SERVER] Step 3 ✔ User is already CLEARED");
       return { status: "ALREADY_CLEARED" };
     }
 
     // Not cleared but no redirect thrown — verification is in progress
+    console.log("[KYB-SERVER] Step 3 ✔ Verification in progress (no redirect thrown)");
     return { status: "IN_PROGRESS" };
   } catch (err) {
     // CompliancePendingError is the EXPECTED path for new users —
-    // the compliance engine throws it with the redirect URL
+    // the compliance engine throws it with the iDenfy redirect URL
     if (err instanceof CompliancePendingError) {
+      console.log(`[KYB-SERVER] Step 3 ✔ CompliancePendingError caught (EXPECTED for new users)`);
+      console.log(`[KYB-SERVER]   provider=${err.provider}`);
+      console.log(`[KYB-SERVER]   sessionId=${err.sessionId}`);
+      console.log(`[KYB-SERVER]   redirectUrl=${err.redirectUrl}`);
       return {
         status: "REDIRECT",
         redirectUrl: err.redirectUrl,
@@ -176,9 +197,10 @@ export async function serverLaunchIdentityScan(
       };
     }
 
-    // Real error — surface it
+    // Real error — surface it loudly
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[KYB] Identity scan launch error:", message);
+    console.error("[KYB-SERVER] ✘✘✘ Identity scan launch FAILED:", message);
+    console.error("[KYB-SERVER] Full error:", err);
     return {
       status: "ERROR",
       error: message,
