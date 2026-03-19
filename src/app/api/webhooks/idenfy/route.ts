@@ -265,11 +265,17 @@ export async function POST(request: Request): Promise<NextResponse> {
         scan_ref          VARCHAR(255) NOT NULL UNIQUE,
         user_id           VARCHAR(255),
         idenfy_status     VARCHAR(50) NOT NULL,
-        mapped_kyb_status VARCHAR(50) NOT NULL,
+        mapped_kyb_status VARCHAR(50) NOT NULL DEFAULT 'UNKNOWN',
         raw_payload       JSONB DEFAULT '{}'::jsonb,
         processed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    /* Patch existing table if columns are missing (CREATE TABLE IF NOT EXISTS does nothing when table exists) */
+    await client.query(`ALTER TABLE idenfy_webhook_log ADD COLUMN IF NOT EXISTS user_id VARCHAR(255)`);
+    await client.query(`ALTER TABLE idenfy_webhook_log ADD COLUMN IF NOT EXISTS idenfy_status VARCHAR(50) NOT NULL DEFAULT 'UNKNOWN'`);
+    await client.query(`ALTER TABLE idenfy_webhook_log ADD COLUMN IF NOT EXISTS mapped_kyb_status VARCHAR(50) NOT NULL DEFAULT 'UNKNOWN'`);
+    await client.query(`ALTER TABLE idenfy_webhook_log ADD COLUMN IF NOT EXISTS raw_payload JSONB DEFAULT '{}'::jsonb`);
+    await client.query(`ALTER TABLE idenfy_webhook_log ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
 
     /* ── 5b. Ensure required columns exist on users table ── */
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS clerk_id TEXT UNIQUE`);
