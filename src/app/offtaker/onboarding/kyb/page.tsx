@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   Lock,
   Clock,
-  Upload,
   Terminal,
   AlertTriangle,
   ChevronRight,
@@ -151,8 +150,6 @@ export default function KYBConsolePage() {
   const [declineReasons, setDeclineReasons] = useState<string[]>([]);
   const [scanProvider, setScanProvider] = useState<string | null>(null);
   const [scanSessionId, setScanSessionId] = useState<string | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; size: number }[]>([]);
   const [caseFile] = useState(() => getCaseFileFromSession());
   const router = useRouter();
   const { isDemoActive } = useDemoTour();
@@ -347,447 +344,261 @@ export default function KYBConsolePage() {
     }
   }, [caseFile.caseId]);
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      if (!isDragOver) setIsDragOver(true);
-    },
-    [isDragOver],
-  );
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    const fileInfos = files.map(f => ({ name: f.name, size: f.size }));
-    setUploadedFiles(prev => [...prev, ...fileInfos]);
-    // TODO: Upload files to S3 via presigned URL for production
-  }, []);
 
   return (
-    /* ── Task 1: Absolute Inset Root Lock ── */
+    /* ── Absolute Inset Root Lock ── */
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950">
 
-      {/* ── PROMINENT ERROR BANNER — impossible to miss ── */}
+      {/* ── ERROR BANNER (conditional) ── */}
       {scanError && (
-        <div className="shrink-0 bg-red-950/80 border-b-2 border-red-500 px-6 py-3 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+        <div className="shrink-0 bg-red-950/80 border-b-2 border-red-500 px-6 py-2 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="font-mono text-sm font-bold text-red-300 uppercase tracking-wider mb-1">Identity Scan Failed</p>
-            <p className="font-mono text-xs text-red-200/80 leading-relaxed wrap-break-word">{scanError}</p>
+            <p className="font-mono text-xs font-bold text-red-300 uppercase tracking-wider">{scanError}</p>
             {declineReasons.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
+              <ul className="mt-0.5 space-y-0">
                 {declineReasons.map((reason, idx) => (
-                  <li key={idx} className="font-mono text-xs text-red-300">→ {reason}</li>
+                  <li key={idx} className="font-mono text-[10px] text-red-300">→ {reason}</li>
                 ))}
               </ul>
             )}
           </div>
           <button
             onClick={() => { setScanError(null); setDeclineReasons([]); }}
-            className="text-red-400 hover:text-red-300 font-mono text-xs uppercase tracking-wider shrink-0 cursor-pointer"
+            className="text-red-400 hover:text-red-300 font-mono text-[10px] uppercase tracking-wider shrink-0 cursor-pointer"
           >
-            Dismiss
+            ✕
           </button>
         </div>
       )}
 
-      {/* ── Task 2: Locked Header ── */}
-      <div className="shrink-0 p-6 border-b border-slate-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="h-4 w-4 text-gold-primary" />
-            <span className="font-mono text-gold-primary text-[10px] tracking-[0.3em] uppercase font-bold">
+      {/* ── Locked Header ── */}
+      <div className="shrink-0 px-6 py-3 border-b border-slate-800 bg-slate-900 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <Shield className="h-3.5 w-3.5 text-gold-primary" />
+            <span className="font-mono text-gold-primary text-[9px] tracking-[0.3em] uppercase font-bold">
               Step 2 of 3 — Identity &amp; AML Perimeter
             </span>
           </div>
-          <span className="font-mono text-[10px] text-slate-600 tracking-wider">
-            {clearedCount} / {steps.length} CLEARED
-          </span>
+          <h1 className="text-base font-bold tracking-tight text-white">
+            Offtaker Verification Console
+          </h1>
         </div>
-        <h1 className="text-lg font-bold tracking-tight text-white mt-1.5">
-          Offtaker Verification Console
-        </h1>
-        <p className="mt-1 text-sm text-slate-400 max-w-2xl leading-relaxed">
-          Verify your corporate identity and beneficial owners to unlock marketplace access.
-          Click <strong className="text-white">&quot;Launch Secure Identity Scan&quot;</strong> on the active step to begin.
-        </p>
+        <span className="font-mono text-[10px] text-slate-500 tracking-wider">
+          {clearedCount}/{steps.length} CLEARED
+        </span>
       </div>
 
-      {/* ── Task 3: Contained Middle Split (The Kill Switch) ── */}
-      <div className="flex-1 min-h-0 flex gap-6 p-6 overflow-hidden">
+      {/* ── Main Content — Single View, NO scrollbar ── */}
+      <div className="flex-1 min-h-0 flex flex-col p-4 gap-3 overflow-hidden">
 
-        {/* ═══════════════════════════════════════════════════════════
-           LEFT COLUMN — Case Summary + Verification Ladder
-           Task 4: Independent Inner Scroll Zone
-           ═══════════════════════════════════════════════════════════ */}
-        <div className="w-1/3 shrink-0 flex flex-col gap-4 overflow-y-auto pr-2">
-
-          {/* ── Case File Summary ── */}
-          <div className="shrink-0 bg-slate-900/50 border border-slate-800/50 rounded-sm p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <FileText className="h-3.5 w-3.5 text-slate-500" />
-              <h2 className="font-mono text-slate-500 text-[10px] tracking-[0.15em] uppercase">
-                Case File Summary
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <DataRow label="Legal Entity" value={caseFile.legalEntityName} />
-              <div>
-                <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
-                  LEI
-                </span>
-                <span className="font-mono text-xs text-gold-primary bg-black/40 border border-slate-800/50 px-2 py-0.5 inline-block">
-                  {caseFile.lei}
-                </span>
-              </div>
-              <DataRow label="Jurisdiction" value={caseFile.jurisdiction} />
-              <DataRow label="Registration" value={caseFile.registrationDate} mono />
-            </div>
-
-            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-800/40">
-              <div>
-                <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
-                  Case ID
-                </span>
-                <span className="font-mono text-[11px] text-gold-primary bg-black/40 border border-slate-800/50 px-2 py-0.5 inline-block">
-                  {caseFile.caseId}
-                </span>
-              </div>
-              <div>
-                <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
-                  Risk Tier
-                </span>
-                <StatusBadge status={caseFile.riskTier} />
-              </div>
-              <div>
-                <span className="font-mono text-slate-600 text-[10px] tracking-[0.15em] uppercase block mb-1">
-                  Submitted
-                </span>
-                <span className="font-mono text-xs text-slate-400">
-                  {new Date(caseFile.submittedAt).toLocaleString("en-US", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </span>
-              </div>
-            </div>
+        {/* ── Row 1: Case File Summary (horizontal grid) ── */}
+        <div className="shrink-0 bg-slate-900/50 border border-slate-800/50 rounded-sm px-4 py-3">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="h-3 w-3 text-slate-500" />
+            <h2 className="font-mono text-slate-500 text-[9px] tracking-[0.15em] uppercase">
+              Case File Summary
+            </h2>
           </div>
-
-          {/* ── Verification Ladder ── */}
-          <div className="bg-slate-900/50 border border-slate-800/50 rounded-sm p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-gold-primary" />
-                <h2 className="font-mono text-white text-xs tracking-[0.15em] uppercase font-semibold">
-                  Verification Sequence
-                </h2>
-              </div>
-              {steps.every(s => s.status === "COMPLETE") ? (
-                <span className="font-mono text-[10px] text-emerald-400 tracking-wider bg-emerald-500/10 px-2 py-1 rounded-sm">
-                  ALL CHECKS CLEARED
-                </span>
-              ) : (
-                <span className="font-mono text-[10px] text-gold-primary tracking-wider bg-gold-primary/10 px-2 py-1 rounded-sm animate-pulse">
-                  STEP {steps.findIndex(s => s.status === "ACTIVE") + 1}
-                </span>
-              )}
+          <div className="grid grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-2">
+            <DataRow label="Legal Entity" value={caseFile.legalEntityName} />
+            <div>
+              <span className="font-mono text-slate-600 text-[9px] tracking-[0.15em] uppercase block mb-0.5">LEI</span>
+              <span className="font-mono text-[11px] text-gold-primary">{caseFile.lei}</span>
             </div>
-
-            {/* The Ladder */}
-            <div className="space-y-0">
-              {steps.map((step, idx) => {
-                const isLast = idx === steps.length - 1;
-                const isActive = step.status === "ACTIVE";
-                const isLocked = step.status === "LOCKED";
-                const isComplete = step.status === "COMPLETE";
-
-                return (
-                  <div key={step.id} className="flex gap-3">
-                    {/* Vertical connector line + icon */}
-                    <div className="flex flex-col items-center">
-                      <div
-                        className={`h-8 w-8 rounded-sm flex items-center justify-center shrink-0 transition-all duration-300 ${
-                          isActive
-                            ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
-                            : isComplete
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : "bg-slate-800/50 text-slate-600 border border-slate-700/50"
-                        }`}
-                      >
-                        {isLocked ? (
-                          <Lock className="h-3 w-3" />
-                        ) : isComplete ? (
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        ) : (
-                          step.icon
-                        )}
-                      </div>
-                      {!isLast && (
-                        <div
-                          className={`w-px flex-1 min-h-4 transition-colors duration-300 ${
-                            isComplete
-                              ? "bg-emerald-500/20"
-                              : isActive
-                                ? "bg-gold-primary/20"
-                                : "bg-slate-800/30"
-                          }`}
-                        />
-                      )}
-                    </div>
-
-                    {/* Step content */}
-                    <div className={`flex-1 ${isLast ? "pb-0" : "pb-3"}`}>
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span
-                          className={`font-mono text-xs transition-colors duration-300 ${
-                            isActive
-                              ? "text-gold-primary font-semibold"
-                              : isComplete
-                                ? "text-emerald-400"
-                                : "text-slate-600"
-                          }`}
-                        >
-                          {step.label}
-                        </span>
-                        <StatusBadge status={step.status} />
-                      </div>
-                      <p
-                        className={`text-[11px] leading-snug transition-colors duration-300 ${
-                          isActive
-                            ? "text-slate-400"
-                            : isComplete
-                              ? "text-slate-500"
-                              : "text-slate-700"
-                        }`}
-                      >
-                        {step.description}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+            <DataRow label="Jurisdiction" value={caseFile.jurisdiction} />
+            <DataRow label="Registration" value={caseFile.registrationDate} mono />
+            <div>
+              <span className="font-mono text-slate-600 text-[9px] tracking-[0.15em] uppercase block mb-0.5">Case ID</span>
+              <span className="font-mono text-[11px] text-gold-primary">{caseFile.caseId}</span>
+            </div>
+            <div>
+              <span className="font-mono text-slate-600 text-[9px] tracking-[0.15em] uppercase block mb-0.5">Risk Tier</span>
+              <StatusBadge status={caseFile.riskTier} />
             </div>
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════
-           RIGHT COLUMN — Active Content Container
-           Task 4: Independent Inner Scroll Zone with border
-           ═══════════════════════════════════════════════════════════ */}
-        <div className="w-2/3 flex flex-col border border-slate-800 bg-slate-900/50 rounded-xl overflow-hidden">
+        {/* ── Row 2: Two-column — Left: Identity Scan CTA + Verification Ladder | Right: System Readout ── */}
+        <div className="flex-1 min-h-0 flex gap-3 overflow-hidden">
 
-          {/* ── Right Column Inner Scroll Area ── */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-4">
+          {/* Left: Identity Scan + Verification Ladder */}
+          <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-hidden">
 
-            {/* ── Task 5: Identity Scan Card — Horizontal, Compressed ── */}
+            {/* ── Identity Scan Card ── */}
             {steps.some(s => s.status === "ACTIVE") && (
               <div
                 data-tour="cinematic-kyb-launch-scan"
-                className="bg-gold-primary/5 border border-gold-primary/20 rounded-lg p-4 mb-4"
+                className="shrink-0 bg-gold-primary/5 border border-gold-primary/20 rounded-sm p-3"
               >
-                <div className="flex flex-row items-center justify-between gap-4">
-                  {/* Left: Icon + Text */}
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="shrink-0 w-12 h-12 rounded-lg bg-gold-primary/10 border border-gold-primary/30 flex items-center justify-center">
-                      <Shield className="h-6 w-6 text-gold-primary" />
+                    <div className="shrink-0 w-10 h-10 rounded-sm bg-gold-primary/10 border border-gold-primary/30 flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-gold-primary" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-mono text-sm font-bold text-white tracking-wide">
                         Establish Corporate Identity
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5 leading-snug">
-                        You will be securely redirected to our identity verification partner.
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Securely redirected to our identity verification partner.
                       </p>
                     </div>
                   </div>
-                  {/* Right: CTA Button */}
                   <button
                     onClick={handleLaunchIdentityScan}
                     disabled={scanLoading}
-                    className={`shrink-0 bg-gold-primary text-slate-950 font-bold text-sm tracking-wide px-6 py-3 rounded-sm hover:bg-gold-hover transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(198,168,107,0.3)] hover:shadow-[0_0_25px_rgba(198,168,107,0.5)] disabled:opacity-60 disabled:cursor-wait disabled:shadow-none ${scanLoading ? "animate-pulse" : ""}`}
+                    className={`shrink-0 bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-5 py-2.5 rounded-sm hover:bg-gold-hover transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(198,168,107,0.3)] hover:shadow-[0_0_25px_rgba(198,168,107,0.5)] disabled:opacity-60 disabled:cursor-wait disabled:shadow-none ${scanLoading ? "animate-pulse" : ""}`}
                   >
                     {scanLoading ? "Initiating…" : "Launch Secure Identity Scan"}
-                    {scanLoading ? <Clock className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                    {scanLoading ? <Clock className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
                   </button>
                 </div>
-                <span className="font-mono text-[9px] text-slate-600 uppercase tracking-wide mt-2 block">
+                <span className="font-mono text-[8px] text-slate-600 uppercase tracking-wide mt-1.5 block">
                   EXECUTION IS CRYPTOGRAPHICALLY BINDING. IP ADDRESS LOGGED UNDER BSA/AML PROTOCOLS.
                 </span>
               </div>
             )}
 
-            {/* ── Document Upload Zone ── */}
-            <div className="bg-slate-950/50 border border-slate-800/50 rounded-sm p-4 mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Upload className="h-3.5 w-3.5 text-slate-500" />
-                <h2 className="font-mono text-slate-500 text-[10px] tracking-[0.15em] uppercase">
-                  Evidence Upload
-                </h2>
-              </div>
-
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`border border-dashed rounded-sm p-4 text-center transition-colors ${
-                  isDragOver
-                    ? "border-gold-primary/50 bg-gold-primary/5"
-                    : "border-slate-700/50 bg-slate-950/50"
-                }`}
-              >
-                <Upload
-                  className={`h-4 w-4 mx-auto mb-1 ${
-                    isDragOver ? "text-gold-primary" : "text-slate-600"
-                  }`}
-                />
-                <p className="font-mono text-[10px] tracking-widest uppercase text-slate-500 mb-0.5">
-                  Registry Extracts &amp; Incorporation Docs
-                </p>
-                <p className="font-mono text-[10px] text-slate-700">
-                  Drag files or click to browse
-                </p>
-              </div>
-
-              <div className="mt-1.5 flex items-center justify-between">
-                <p className="font-mono text-[9px] text-slate-600">
-                  PDF, PNG, JPG · Max 25MB
-                </p>
-                <p className="font-mono text-[9px] text-slate-600">
-                  {uploadedFiles.length} uploaded
-                </p>
-              </div>
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-1 mt-2">
-                  {uploadedFiles.map((f, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-black/30 border border-slate-800/40 px-2.5 py-1 rounded-sm">
-                      <span className="font-mono text-[10px] text-slate-400 truncate">{f.name}</span>
-                      <span className="font-mono text-[9px] text-slate-600 ml-2 shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
-                    </div>
-                  ))}
+            {/* ── Verification Ladder ── */}
+            <div className="flex-1 min-h-0 bg-slate-900/50 border border-slate-800/50 rounded-sm p-3 overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="h-3.5 w-3.5 text-gold-primary" />
+                  <h2 className="font-mono text-white text-[10px] tracking-[0.15em] uppercase font-semibold">
+                    Verification Sequence
+                  </h2>
                 </div>
-              )}
-            </div>
-
-            {/* ── Status Readout (Terminal) ── */}
-            <div
-              data-tour="cinematic-kyb-terminal"
-              className="bg-slate-950/50 border border-slate-800/50 rounded-sm p-4"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Terminal className="h-3.5 w-3.5 text-slate-500" />
-                <h2 className="font-mono text-slate-500 text-[10px] tracking-[0.15em] uppercase">
-                  System Readout
-                </h2>
-              </div>
-
-              <div className="bg-black/40 border border-slate-800/40 rounded-sm p-3 space-y-1.5">
-                <TerminalLine
-                  prefix="SYS"
-                  text="Dossier ingested. Case ID assigned."
-                  color="text-slate-400"
-                />
-                <TerminalLine
-                  prefix="KYB"
-                  text="GLEIF registry lookup queued..."
-                  color="text-slate-500"
-                />
-                <TerminalLine
-                  prefix="AML"
-                  text="Sanctions screening: STANDBY"
-                  color="text-slate-600"
-                />
-                {scanError ? (
-                  <>
-                    <TerminalLine
-                      prefix="ERR"
-                      text={scanError}
-                      color="text-red-400"
-                    />
-                    {declineReasons.length > 0 && declineReasons.map((reason, idx) => (
-                      <TerminalLine
-                        key={idx}
-                        prefix="ERR"
-                        text={`  → ${reason}`}
-                        color="text-red-300"
-                      />
-                    ))}
-                    <div className="mt-2">
-                      <button
-                        onClick={handleRetry}
-                        disabled={scanLoading}
-                        className="bg-gold-primary text-slate-950 font-bold text-xs tracking-wide px-4 py-2 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
-                      >
-                        {scanLoading ? "Resetting..." : "Retry Verification"}
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </>
-                ) : scanProvider === "CLEARED" ? (
-                  <TerminalLine
-                    prefix="VRF"
-                    text="Identity perimeter CLEARED — all checks passed."
-                    color="text-emerald-400"
-                  />
-                ) : scanProvider === "REVIEWING" ? (
-                  <TerminalLine
-                    prefix="VRF"
-                    text="Manual review in progress — awaiting analyst decision..."
-                    color="text-amber-400"
-                    blink
-                  />
-                ) : scanProvider && scanSessionId ? (
-                  <>
-                    <TerminalLine
-                      prefix="VRF"
-                      text={`${scanProvider} session initiated: ${scanSessionId}`}
-                      color="text-gold-primary"
-                    />
-                    <TerminalLine
-                      prefix="VRF"
-                      text="Verification opened in new tab. Complete scan to proceed."
-                      color="text-gold-primary"
-                      blink
-                    />
-                    <TerminalLine
-                      prefix="POLL"
-                      text="Auto-polling for result every 5s..."
-                      color="text-slate-600"
-                    />
-                  </>
+                {steps.every(s => s.status === "COMPLETE") ? (
+                  <span className="font-mono text-[9px] text-emerald-400 tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-sm">
+                    ALL CLEARED
+                  </span>
                 ) : (
-                  <TerminalLine
-                    prefix="VRF"
-                    text={scanLoading ? "Connecting to identity provider..." : "Awaiting identity scan launch..."}
-                    color="text-gold-primary"
-                    blink
-                  />
+                  <span className="font-mono text-[9px] text-gold-primary tracking-wider bg-gold-primary/10 px-2 py-0.5 rounded-sm animate-pulse">
+                    STEP {steps.findIndex(s => s.status === "ACTIVE") + 1}
+                  </span>
                 )}
               </div>
 
-              {/* Cinematic tour sentinel */}
-              {allCleared && (
-                <div data-tour="cinematic-kyb-checks-complete" className="hidden" aria-hidden="true" />
+              <div className="space-y-0">
+                {steps.map((step, idx) => {
+                  const isLast = idx === steps.length - 1;
+                  const isActive = step.status === "ACTIVE";
+                  const isLocked = step.status === "LOCKED";
+                  const isComplete = step.status === "COMPLETE";
+                  return (
+                    <div key={step.id} className="flex gap-2">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`h-6 w-6 rounded-sm flex items-center justify-center shrink-0 transition-all duration-300 ${
+                            isActive
+                              ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
+                              : isComplete
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : "bg-slate-800/50 text-slate-600 border border-slate-700/50"
+                          }`}
+                        >
+                          {isLocked ? <Lock className="h-2.5 w-2.5" /> : isComplete ? <CheckCircle2 className="h-3 w-3" /> : step.icon}
+                        </div>
+                        {!isLast && (
+                          <div className={`w-px flex-1 min-h-2 transition-colors duration-300 ${
+                            isComplete ? "bg-emerald-500/20" : isActive ? "bg-gold-primary/20" : "bg-slate-800/30"
+                          }`} />
+                        )}
+                      </div>
+                      <div className={`flex-1 ${isLast ? "pb-0" : "pb-1.5"}`}>
+                        <div className="flex items-center justify-between">
+                          <span className={`font-mono text-[11px] transition-colors duration-300 ${
+                            isActive ? "text-gold-primary font-semibold" : isComplete ? "text-emerald-400" : "text-slate-600"
+                          }`}>
+                            {step.label}
+                          </span>
+                          <StatusBadge status={step.status} />
+                        </div>
+                        <p className={`text-[10px] leading-snug transition-colors duration-300 ${
+                          isActive ? "text-slate-400" : isComplete ? "text-slate-500" : "text-slate-700"
+                        }`}>
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: System Readout Terminal */}
+          <div
+            data-tour="cinematic-kyb-terminal"
+            className="w-2/5 shrink-0 flex flex-col bg-slate-900/50 border border-slate-800/50 rounded-sm p-3 min-h-0 overflow-hidden"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Terminal className="h-3 w-3 text-slate-500" />
+              <h2 className="font-mono text-slate-500 text-[9px] tracking-[0.15em] uppercase">
+                System Readout
+              </h2>
+            </div>
+
+            <div className="flex-1 min-h-0 bg-black/40 border border-slate-800/40 rounded-sm p-3 space-y-1 overflow-hidden">
+              <TerminalLine prefix="SYS" text="Dossier ingested. Case ID assigned." color="text-slate-400" />
+              <TerminalLine prefix="KYB" text="GLEIF registry lookup queued..." color="text-slate-500" />
+              <TerminalLine prefix="AML" text="Sanctions screening: STANDBY" color="text-slate-600" />
+              {scanError ? (
+                <>
+                  <TerminalLine prefix="ERR" text={scanError} color="text-red-400" />
+                  {declineReasons.length > 0 && declineReasons.map((reason, idx) => (
+                    <TerminalLine key={idx} prefix="ERR" text={`  → ${reason}`} color="text-red-300" />
+                  ))}
+                  <div className="mt-1.5">
+                    <button
+                      onClick={handleRetry}
+                      disabled={scanLoading}
+                      className="bg-gold-primary text-slate-950 font-bold text-[10px] tracking-wide px-3 py-1.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                    >
+                      {scanLoading ? "Resetting..." : "Retry Verification"}
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </div>
+                </>
+              ) : scanProvider === "CLEARED" ? (
+                <TerminalLine prefix="VRF" text="Identity perimeter CLEARED — all checks passed." color="text-emerald-400" />
+              ) : scanProvider === "REVIEWING" ? (
+                <TerminalLine prefix="VRF" text="Manual review in progress — awaiting analyst decision..." color="text-amber-400" blink />
+              ) : scanProvider && scanSessionId ? (
+                <>
+                  <TerminalLine prefix="VRF" text={`${scanProvider} session initiated: ${scanSessionId}`} color="text-gold-primary" />
+                  <TerminalLine prefix="VRF" text="Verification opened in new tab. Complete scan to proceed." color="text-gold-primary" blink />
+                  <TerminalLine prefix="POLL" text="Auto-polling for result every 5s..." color="text-slate-600" />
+                </>
+              ) : (
+                <TerminalLine
+                  prefix="VRF"
+                  text={scanLoading ? "Connecting to identity provider..." : "Awaiting identity scan launch..."}
+                  color="text-gold-primary"
+                  blink
+                />
               )}
             </div>
+
+            {/* Cinematic tour sentinel */}
+            {allCleared && (
+              <div data-tour="cinematic-kyb-checks-complete" className="hidden" aria-hidden="true" />
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── Task 2: Locked Footer ── */}
-      <div className="shrink-0 p-4 border-t border-slate-800 bg-slate-950 flex flex-col">
+      {/* ── Locked Footer ── */}
+      <div className="shrink-0 px-4 py-2 border-t border-slate-800 bg-slate-950 flex flex-col">
         {isDemoActive ? (
           <div className="relative">
             <DemoTooltip text="Verify Corporate Identity to access the Marketplace →" position="top" />
             <button
               data-tour="cinematic-kyb-enter"
               onClick={() => router.push(`/offtaker/marketplace${demoParam}`)}
-              className={`w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-3 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2 font-mono cursor-pointer ${DEMO_SPOTLIGHT_CLASSES}`}
+              className={`w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-2.5 rounded-sm hover:bg-gold-hover transition-colors flex items-center justify-center gap-2 font-mono cursor-pointer ${DEMO_SPOTLIGHT_CLASSES}`}
             >
               <ChevronRight className="h-4 w-4" />
               Proceed to Marketplace
@@ -797,7 +608,7 @@ export default function KYBConsolePage() {
         ) : allCleared ? (
           <button
             onClick={() => router.push(`/offtaker/marketplace${demoParam}`)}
-            className="w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-3 rounded-sm hover:bg-gold-hover transition-all duration-300 flex items-center justify-center gap-2 font-mono cursor-pointer shadow-[0_0_20px_rgba(198,168,107,0.2)]"
+            className="w-full bg-gold-primary text-slate-950 font-bold text-sm tracking-wide py-2.5 rounded-sm hover:bg-gold-hover transition-all duration-300 flex items-center justify-center gap-2 font-mono cursor-pointer shadow-[0_0_20px_rgba(198,168,107,0.2)]"
           >
             <CheckCircle2 className="h-4 w-4" />
             Enter AurumShield Marketplace
