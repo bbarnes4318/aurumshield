@@ -80,16 +80,23 @@ export async function generateSession(
 
   const basicAuth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
 
-  const requestBody = {
+  // Per iDenfy docs: clientId is the ONLY required param.
+  // Sending wrong firstName/lastName triggers SUSPECTED with NAME/SURNAME mismatch.
+  // Only include names if we have real human names (not a Clerk userId like "user_3AW...").
+  const isRealName = entityName && !entityName.startsWith("user_") && entityName.includes(" ");
+
+  const requestBody: Record<string, unknown> = {
     clientId: userId,
-    firstName: entityName.split(" ")[0] || entityName,
-    lastName: entityName.split(" ").slice(1).join(" ") || entityName,
-    generateDigitString: true,
   };
+
+  if (isRealName) {
+    requestBody.firstName = entityName.split(" ")[0];
+    requestBody.lastName = entityName.split(" ").slice(1).join(" ");
+  }
 
   console.log(
     `[IDENFY] Generating session for userId=${userId} entity="${entityName}" ` +
-      `endpoint=${IDENFY_TOKEN_ENDPOINT}`,
+      `endpoint=${IDENFY_TOKEN_ENDPOINT} sendingNames=${isRealName}`,
   );
 
   const response = await fetch(IDENFY_TOKEN_ENDPOINT, {

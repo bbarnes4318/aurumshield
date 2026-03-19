@@ -73,7 +73,7 @@ function MaterialChangeModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div className="fixed inset-0 z-999 flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="mx-4 max-w-lg rounded-xl border border-red-500/30 bg-[#0B0E14] p-6 shadow-2xl">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">

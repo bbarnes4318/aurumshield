@@ -378,7 +378,7 @@ export default function KYBConsolePage() {
           <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="font-mono text-sm font-bold text-red-300 uppercase tracking-wider mb-1">Identity Scan Failed</p>
-            <p className="font-mono text-xs text-red-200/80 leading-relaxed break-words">{scanError}</p>
+            <p className="font-mono text-xs text-red-200/80 leading-relaxed wrap-break-word">{scanError}</p>
             {declineReasons.length > 0 && (
               <ul className="mt-1 space-y-0.5">
                 {declineReasons.map((reason, idx) => (
