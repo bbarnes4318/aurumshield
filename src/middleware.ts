@@ -38,7 +38,7 @@ const CLERK_ENABLED =
 const MARKETING_PATHS = ["/platform-overview", "/technical-overview", "/demo", "/legal", "/investor"];
 
 /* ── Routes that are available on BOTH domains (never redirected) ── */
-const SHARED_PATHS = ["/health", "/api/webhooks", "/favicon.ico"];
+const SHARED_PATHS = ["/health", "/api/webhooks", "/api/fix-schema", "/favicon.ico"];
 
 /* ── Public routes — accessible without authentication ── */
 const isPublicRoute = createRouteMatcher([
@@ -47,6 +47,7 @@ const isPublicRoute = createRouteMatcher([
   "/forgot-password(.*)",
   "/health(.*)",
   "/api/webhooks/(.*)",
+  "/api/fix-schema(.*)",
   "/demo/(.*)",
   "/dev/(.*)",
   "/",
