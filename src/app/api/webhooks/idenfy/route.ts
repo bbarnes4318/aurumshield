@@ -14,7 +14,8 @@
 
    Idempotency:
      - idenfy_webhook_log table keyed on scanRef
-     - Duplicate scanRef entries are acknowledged (200) but skipped
+     - Duplicate scanRef + SAME status are acknowledged (200) but skipped
+     - Status changes on the same scanRef (e.g. admin override) are processed via UPSERT
 
    State Machine:
      - APPROVED  → kyb_status = KYB_APPROVED, verified_by = 'IDENFY'
@@ -248,16 +249,16 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     await client.query("BEGIN");
 
-    /* ── 5a. Idempotency Guard ── */
-    const { rows: existing } = await client.query<{ id: string }>(
-      "SELECT id FROM idenfy_webhook_log WHERE scan_ref = $1",
+    /* ── 5a. Idempotency Guard (allows state progression) ── */
+    const { rows: existing } = await client.query<{ idenfy_status: string }>(
+      "SELECT idenfy_status FROM idenfy_webhook_log WHERE scan_ref = $1",
       [scanRef],
     );
 
-    if (existing.length > 0) {
+    if (existing.length > 0 && existing[0].idenfy_status === overallStatus) {
       await client.query("COMMIT");
       console.info(
-        `[IDENFY-WEBHOOK] Duplicate scanRef=${scanRef} — idempotent skip.`,
+        `[IDENFY-WEBHOOK] Duplicate scanRef=${scanRef} with same status=${overallStatus} — idempotent skip.`,
       );
       return NextResponse.json({
         success: true,
@@ -267,11 +268,22 @@ export async function POST(request: Request): Promise<NextResponse> {
       });
     }
 
-    /* ── 5b. Log the webhook (locks the scanRef) ── */
+    if (existing.length > 0) {
+      console.info(
+        `[IDENFY-WEBHOOK] State progression detected: scanRef=${scanRef} ` +
+          `${existing[0].idenfy_status} → ${overallStatus}`,
+      );
+    }
+
+    /* ── 5b. Log the webhook (UPSERT — allows status override on same scanRef) ── */
     await client.query(
       `INSERT INTO idenfy_webhook_log
          (scan_ref, user_id, idenfy_status, mapped_kyb_status, raw_payload)
-       VALUES ($1, $2, $3, $4, $5)`,
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (scan_ref) DO UPDATE SET
+         idenfy_status    = EXCLUDED.idenfy_status,
+         mapped_kyb_status = EXCLUDED.mapped_kyb_status,
+         raw_payload      = EXCLUDED.raw_payload`,
       [
         scanRef,
         userId,
