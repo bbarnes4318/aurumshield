@@ -220,42 +220,44 @@ export default function EntityManagementPage() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-slate-950">
-      {/* ── Header ── */}
-      <div className="shrink-0 border-b border-slate-800 px-6 py-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10">
-              <Shield className="h-5 w-5 text-gold" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-white tracking-tight">
-                Entity Management
-              </h1>
-              <p className="text-xs text-slate-500">
-                Corporate Dossier · KYB Compliance Record
-              </p>
-            </div>
-          </div>
+    /* ── Task 2: Absolute Inset Root Lock ── */
+    <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950">
 
-          {/* Status Badge */}
-          <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-2">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                Cleared
-              </p>
-              <p className="text-[9px] text-emerald-400/60 font-mono">
-                {clearedAt}
-              </p>
-            </div>
+      {/* ── Task 3: Locked Header ── */}
+      <div className="shrink-0 px-6 py-4 border-b border-slate-800 bg-slate-900 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10">
+            <Shield className="h-5 w-5 text-gold" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-white tracking-tight">
+              Entity Management
+            </h1>
+            <p className="text-xs text-slate-500">
+              Corporate Dossier · KYB Compliance Record
+            </p>
+          </div>
+        </div>
+
+        {/* Status Badge */}
+        <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-2">
+          <ShieldCheck className="h-4 w-4 text-emerald-400" />
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+              Cleared
+            </p>
+            <p className="text-[9px] text-emerald-400/60 font-mono">
+              {clearedAt}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* ── Dossier Grid — scrollable content ── */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      {/* ── Task 4: Clean Scroll Zone ── */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
+
+        {/* Dossier Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <DossierField
             icon={Building2}
             label="Company Name"
@@ -272,6 +274,11 @@ export default function EntityManagementPage() {
             value={jurisdiction}
           />
           <DossierField
+            icon={Fingerprint}
+            label="Legal Entity Identifier (LEI)"
+            value={lei}
+          />
+          <DossierField
             icon={Mail}
             label="Contact Email"
             value={contactEmail}
@@ -280,11 +287,6 @@ export default function EntityManagementPage() {
             icon={Phone}
             label="Contact Phone"
             value={contactPhone}
-          />
-          <DossierField
-            icon={Fingerprint}
-            label="Legal Entity Identifier (LEI)"
-            value={lei}
           />
         </div>
 
@@ -314,28 +316,22 @@ export default function EntityManagementPage() {
         </div>
       </div>
 
-      {/* ── Footer — Amend Action ── */}
-      <div className="shrink-0 border-t border-slate-800 bg-black/90 backdrop-blur-md px-6 py-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-slate-500 max-w-md">
-            Amending your corporate dossier will trigger a Material Change
-            review. Your KYB clearance will be revoked pending re-verification.
-          </p>
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="
-              inline-flex items-center gap-2 rounded-lg px-5 py-2.5
-              text-sm font-semibold
-              border border-amber-500/30 bg-amber-500/10 text-amber-400
-              hover:bg-amber-500/20 active:bg-amber-500/25
-              transition-colors duration-150
-            "
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Amend Entity Dossier
-          </button>
-        </div>
+      {/* ── Task 5: Locked Action Footer ── */}
+      <div className="shrink-0 p-4 border-t border-slate-800 bg-slate-950 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="
+            inline-flex items-center gap-2 rounded-lg px-5 py-2.5
+            text-sm font-semibold
+            border border-amber-500/30 bg-amber-500/10 text-amber-400
+            hover:bg-amber-500/20 active:bg-amber-500/25
+            transition-colors duration-150
+          "
+        >
+          <AlertTriangle className="h-4 w-4" />
+          Amend Entity Dossier
+        </button>
       </div>
 
       {/* ── Material Change Modal ── */}
