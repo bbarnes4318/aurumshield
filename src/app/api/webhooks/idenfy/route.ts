@@ -279,22 +279,23 @@ export async function POST(request: Request): Promise<NextResponse> {
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_by VARCHAR(20)`);
 
     /* ── 5c. Resolve Clerk ID → internal UUID ── */
-    const { rows: userRows } = await client.query<{ id: string }>(
+    let { rows: userRows } = await client.query<{ id: string }>(
       "SELECT id FROM users WHERE clerk_id = $1",
       [clerkId],
     );
 
     if (userRows.length === 0) {
-      client.release();
-      console.warn(
-        `[IDENFY-WEBHOOK] No user found for clerk_id=${clerkId} — acknowledging to prevent retry loop.`,
+      // Auto-create the user row with just clerk_id — Clerk webhook will backfill name/email later
+      console.info(
+        `[IDENFY-WEBHOOK] No user found for clerk_id=${clerkId} — auto-creating user row.`,
       );
-      return NextResponse.json({
-        success: true,
-        action: "skipped",
-        reason: "user_not_found",
-        clerkId,
-      });
+      const insertResult = await client.query<{ id: string }>(
+        `INSERT INTO users (clerk_id, email, role) VALUES ($1, $2, 'offtaker')
+         ON CONFLICT (clerk_id) DO UPDATE SET clerk_id = EXCLUDED.clerk_id
+         RETURNING id`,
+        [clerkId, `${clerkId}@idenfy-pending.aurumshield.vip`],
+      );
+      userRows = insertResult.rows;
     }
 
     const userId = userRows[0].id; // Internal UUID
