@@ -12,7 +12,7 @@
      - Proof of address verification
 
    API Docs: https://documentation.idenfy.com/
-   Token API: POST https://ivme.idenfy.com/api/v2/token
+   Token API: POST https://ivs.idenfy.com/api/v2/token
    ================================================================ */
 
 import "server-only";
@@ -49,7 +49,7 @@ export interface IdenfyTokenResponse {
 
 /* ---------- Constants ---------- */
 
-const IDENFY_TOKEN_ENDPOINT = "https://ivme.idenfy.com/api/v2/token";
+const IDENFY_TOKEN_ENDPOINT = "https://ivs.idenfy.com/api/v2/token";
 const IDENFY_REDIRECT_BASE = "https://ivs.idenfy.com/api/v2/redirect";
 
 /* ---------- Session Generation ---------- */
