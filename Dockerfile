@@ -31,6 +31,8 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy .env.production so server-side secrets (iDenfy, Clerk, Moov, etc.) are available at runtime
+COPY --from=builder --chown=nextjs:nodejs /app/.env.production ./.env.production
 # Do NOT copy .next/cache — force fresh route cache on each deploy
 
 USER nextjs

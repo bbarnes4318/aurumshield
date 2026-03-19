@@ -26,26 +26,46 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Write .env.production so NEXT_PUBLIC_* vars are inlined into
-      # the JS bundle at Docker build time.  These are PUBLIC client-side
-      # keys (visible in browser source) — safe to have in the workflow.
-      # Server-side secrets (CLERK_SECRET_KEY, etc.) are injected via
-      # ECS task-definition environment variables, NOT baked into the image.
+      # Write .env.production with ALL keys.  NEXT_PUBLIC_* vars are inlined
+      # into the JS bundle at build time.  Server-side secrets are read by
+      # the standalone Next.js server at runtime from the same file.
       - name: Generate .env.production for build
         run: |
           cat <<'EOF' > .env.production
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2hhcm1pbmctbWFsYW11dGUtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA
+          CLERK_SECRET_KEY=sk_test_fIaeGptebLHqvIUT1dAOykEwDyJ39v3hEdAF3TbyEw
           NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
           NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
           NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/platform
           NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/platform
+          NEXT_PUBLIC_GOLD_API_KEY=goldapi-61jz17mmw26w54-io
+          COLUMN_API_KEY=test_3Ad1cbp6TlIC01ehxs7CjaBKkFE
+          IDENFY_API_KEY=20SqdSWzbbr
+          IDENFY_API_SECRET=EgFxjFB7e2GoYEjGDkPR
+          IDENFY_WEBHOOK_SECRET=a7f9b2d8e4c13a5f7d6e8b9a0c1f2e3d4c5b6a7f8e9d0c1b2a3f4e5d6c7b8a9f
+          ACTIVE_COMPLIANCE_PROVIDER=IDENFY
           NEXT_PUBLIC_FINGERPRINT_API_KEY=v2Sh4oHVmFlGimLgPvBQ
-          NEXT_PUBLIC_PERSONA_TEMPLATE_ID=itmpl_Pfrnmyw2tVKVktTxHazqZ5sMQGeE
+          FINGERPRINT_SERVER_SECRET=MmnemLbDTTEXwGcNPm77
+          OPENSANCTIONS_API_KEY=2a94836d5cb76ee97090537870534a3d
+          DROPBOX_SIGN_API_KEY=2607baf9662cd53294b4120ddf2c7b8a6b873173c31b0e301757196a7b297350
+          MOOV_PUBLIC_KEY=U3niHalxKwJxGzAL
+          MOOV_SECRET_KEY=GVfH8VJgqplJ8CUYx3UgUF7Timk1wE97
+          SETTLEMENT_RAIL=auto
+          SETTLEMENT_ENTERPRISE_THRESHOLD=25000000
+          FRACTEL_PHONE_NUMBER=+12402400470
+          MOOV_WEBHOOK_SECRET=8371f0726e84ee53cc7b51690ef7aef0b43eefa2fca6e615d70341cee6801e4a8411488cf774e6df97159c2e936528bea7bca7af3e3eb60a7fb3161e1a81d23e
+          CLERK_WEBHOOK_SECRET=whsec_g+fl2HQVo6IHIqStnUEdZl4b1nd8mMmC
+          COLUMN_WEBHOOK_SECRET=SET_FROM_COLUMN_DASHBOARD
           NEXT_PUBLIC_ROOT_URL=https://aurumshield.vip
           NEXT_PUBLIC_APP_URL=https://app.aurumshield.vip
+          VERIFF_API_KEY=7961d64f-7253-40dc-aa2c-d2ab23f80892
+          VERIFF_API_SECRET=9b946a72-96cd-4240-8623-a0465ad24fd8
+          AWS_REGION=us-east-2
+          TURNKEY_ORGANIZATION_ID=4f9a8a9f-9f90-454b-906d-05d47549e5db
+          TURNKEY_API_PUBLIC_KEY=03571a20bbad27d8ce14c552e8ec0b01105c042925e70704945433d38adfc2e7e1
+          TURNKEY_API_PRIVATE_KEY=fff80852f8e631c4efc4c566fbcd1870106f53e152e96da24688fda1439918a0
           NEXT_PUBLIC_VAPI_PUBLIC_KEY=bafbcec8-96b4-48d0-8ea0-6c8ce48d3ac4
           NEXT_PUBLIC_VAPI_ASSISTANT_ID=0056b7ad-31f1-45dd-b88b-1d29bc97efc6
-          NEXT_PUBLIC_GOLD_API_KEY=goldapi-61jz17mmw26w54-io
           NEXT_PUBLIC_DEMO_MODE=true
           EOF
           sed -i 's/^          //' .env.production
