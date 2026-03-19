@@ -227,7 +227,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const payload: IdenfyWebhookPayload = validation.data;
   const scanRef = payload.scanRef;
   const overallStatus = payload.status.overall;
-  const userId = payload.clientId;
+  const clerkId = payload.clientId; // iDenfy clientId = Clerk user ID
 
   /* ── 4. Resolve State Transition ── */
   const transition = STATE_MAP[overallStatus];
@@ -240,16 +240,37 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   console.log(
     `[IDENFY-WEBHOOK] Processing: scanRef=${scanRef} ` +
-      `user=${userId} idenfy_status=${overallStatus} → kyb_status=${transition.kybStatus}`,
+      `clerk_id=${clerkId} idenfy_status=${overallStatus} → kyb_status=${transition.kybStatus}`,
   );
 
   /* ── 5. Database Transaction (idempotent) ── */
   const client = await getPoolClient();
 
+  /* ── 5a. Resolve Clerk ID → internal UUID (before transaction) ── */
+  const { rows: userRows } = await client.query<{ id: string }>(
+    "SELECT id FROM users WHERE clerk_id = $1",
+    [clerkId],
+  );
+
+  if (userRows.length === 0) {
+    client.release();
+    console.warn(
+      `[IDENFY-WEBHOOK] No user found for clerk_id=${clerkId} — acknowledging to prevent retry loop.`,
+    );
+    return NextResponse.json({
+      success: true,
+      action: "skipped",
+      reason: "user_not_found",
+      clerkId,
+    });
+  }
+
+  const userId = userRows[0].id; // Internal UUID
+
   try {
     await client.query("BEGIN");
 
-    /* ── 5a. State Progression & Idempotency Guard ── */
+    /* ── 5b. State Progression & Idempotency Guard ── */
     const { rows: existing } = await client.query<{ idenfy_status: string }>(
       "SELECT idenfy_status FROM idenfy_webhook_log WHERE scan_ref = $1",
       [scanRef],
@@ -274,7 +295,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       isStateUpdate = true;
     }
 
-    /* ── 5b. Log the webhook (INSERT or UPDATE) ── */
+    /* ── 5c. Log the webhook (INSERT or UPDATE) ── */
     if (isStateUpdate) {
       await client.query(
         `UPDATE idenfy_webhook_log
@@ -292,48 +313,48 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    /* ── 5c. Update users table: kyb_status + marketplace_access + kyc_status + verified_by ── */
+    /* ── 5d. Update users table: kyb_status + marketplace_access + kyc_status + verified_by ── */
     const { rowCount } = await client.query(
       `UPDATE users
        SET kyb_status         = $1,
            marketplace_access = $2,
            kyc_status         = $3,
            verified_by        = $4
-       WHERE id = $5`,
+       WHERE clerk_id = $5`,
       [
         transition.kybStatus,
         transition.marketplaceAccess,
         transition.kycStatus,
         "IDENFY",
-        userId,
+        clerkId,
       ],
     );
 
     if (rowCount === 0) {
       await client.query("ROLLBACK");
       console.warn(
-        `[IDENFY-WEBHOOK] User ${userId} not found — rolled back. ` +
+        `[IDENFY-WEBHOOK] User update failed for clerk_id=${clerkId} — rolled back. ` +
           "Acknowledging to prevent iDenfy retry loop.",
       );
       return NextResponse.json({
         success: true,
         action: "skipped",
-        reason: "user_not_found",
-        userId,
+        reason: "user_update_failed",
+        clerkId,
       });
     }
 
     await client.query("COMMIT");
 
     console.info(
-      `[IDENFY-WEBHOOK] COMMITTED: user=${userId} → ` +
+      `[IDENFY-WEBHOOK] COMMITTED: clerk_id=${clerkId} uuid=${userId} → ` +
         `kyb_status=${transition.kybStatus} marketplace_access=${transition.marketplaceAccess} verified_by=IDENFY`,
     );
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
     const message = err instanceof Error ? err.message : String(err);
     console.error(
-      `[IDENFY-WEBHOOK] Database transaction FAILED for user=${userId}:`,
+      `[IDENFY-WEBHOOK] Database transaction FAILED for clerk_id=${clerkId}:`,
       message,
     );
     return NextResponse.json(
@@ -350,12 +371,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     let cc = await getComplianceCaseByUserId(userId);
     if (!cc) {
       cc = await createComplianceCase({
-        userId,
+        userId: userId,
         status: "PENDING_PROVIDER",
         tier: "BROWSE",
       });
       console.info(
-        `[IDENFY-WEBHOOK] Created ComplianceCase ${cc.id} for user ${userId}`,
+        `[IDENFY-WEBHOOK] Created ComplianceCase ${cc.id} for clerk_id=${clerkId}`,
       );
     }
     complianceCaseId = cc.id;
@@ -400,13 +421,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     console.info(
-      `[IDENFY-WEBHOOK] ComplianceCase ${cc.id} → ` +
+      `[IDENFY-WEBHOOK] ComplianceCase ${cc.id} (clerk_id=${clerkId}) → ` +
         `status=${transition.complianceStatus} tier=${transition.complianceTier} verified_by=IDENFY`,
     );
   } catch (ccErr) {
     // Non-fatal: the KYB state was already committed.
     console.error(
-      `[IDENFY-WEBHOOK] ComplianceCase update failed (non-fatal) for user=${userId}:`,
+      `[IDENFY-WEBHOOK] ComplianceCase update failed (non-fatal) for clerk_id=${clerkId}:`,
       ccErr instanceof Error ? ccErr.message : String(ccErr),
     );
   }
@@ -415,7 +436,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   return NextResponse.json({
     success: true,
     action: "committed",
-    userId,
+    clerkId,
     kybStatus: transition.kybStatus,
     marketplaceAccess: transition.marketplaceAccess,
     scanRef,
