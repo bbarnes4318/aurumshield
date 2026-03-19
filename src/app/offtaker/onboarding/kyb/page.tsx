@@ -377,8 +377,8 @@ export default function KYBConsolePage() {
 
 
   return (
-    /* ── Absolute Inset Root Lock ── */
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950">
+    /* ── Full-Height Root Lock (respects parent layout) ── */
+    <div className="h-full flex flex-col overflow-hidden bg-slate-950">
 
       {/* ── ERROR BANNER (conditional) ── */}
       {scanError && (
@@ -622,7 +622,7 @@ export default function KYBConsolePage() {
       </div>
 
       {/* ── Locked Footer ── */}
-      <div className="shrink-0 px-4 py-2 border-t border-slate-800 bg-slate-950 flex flex-col">
+      <div className="shrink-0 px-4 py-3 pb-4 border-t border-slate-800 bg-slate-950 flex flex-col">
         {isDemoActive ? (
           <div className="relative">
             <DemoTooltip text="Verify Corporate Identity to access the Marketplace →" position="top" />
@@ -663,9 +663,7 @@ export default function KYBConsolePage() {
             </button>
           </div>
         )}
-        <div className="mt-1">
-          <TelemetryFooter />
-        </div>
+        <TelemetryFooter />
       </div>
     </div>
   );
