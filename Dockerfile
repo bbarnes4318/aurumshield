@@ -13,6 +13,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 # Purge any leaked .next cache from Docker layer cache
 RUN rm -rf .next/cache
+# Cache-bust: changes every deploy to force fresh Next.js build (prevents stale chunk hashes)
+ARG CACHEBUST=1
 # NEXT_PUBLIC_* vars are read from .env.production at build time (allowed through .dockerignore)
 RUN npm run build
 

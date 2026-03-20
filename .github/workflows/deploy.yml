@@ -92,6 +92,7 @@ jobs:
           docker buildx build \
             --cache-from type=gha \
             --cache-to type=gha,mode=max \
+            --build-arg CACHEBUST=${{ github.sha }} \
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             --push \
