@@ -10,8 +10,13 @@
      2. UBO Identity               — Pass / Fail / Pending
      3. OFAC / Global Sanctions    — Clear / Flagged
 
+   Part 1027 Physical Metals Due Diligence (3 mandatory attestations):
+     4. Chain of Custody Verified
+     5. Assay Authenticity
+     6. Form 8300 Applicability
+
    The "Approve Case" button is DISABLED unless all three badges
-   read Pass or Clear.
+   read Pass or Clear AND all three DD attestations are checked.
 
    If the officer manually overrides a restricted case, a mandatory
    "BSA Officer Audit Note" text input must be completed.
@@ -119,6 +124,12 @@ export function DecisionPanel({ verificationCase: vc, userId, orgId, className }
   const [approved, setApproved] = useState(false);
   const [auditNote, setAuditNote] = useState("");
 
+  /* ── Part 1027: Physical Metals Due Diligence attestations ── */
+  const [ddChainOfCustody, setDdChainOfCustody] = useState(false);
+  const [ddAssayAuthenticity, setDdAssayAuthenticity] = useState(false);
+  const [ddForm8300, setDdForm8300] = useState(false);
+  const allDueDiligenceComplete = ddChainOfCustody && ddAssayAuthenticity && ddForm8300;
+
   /* ── Run adapter checks (deterministic, no side effects) ── */
   const kycIdResult = mockKycProvider.verifyIdentityDocument(userId, orgId);
   const kycLivenessResult = mockKycProvider.verifyLiveness(userId);
@@ -188,8 +199,8 @@ export function DecisionPanel({ verificationCase: vc, userId, orgId, className }
   // Override requires a filled audit note
   const canOverride = isRestrictedCase && auditNote.trim().length > 0;
 
-  // Approve is allowed if all clear OR if override is valid
-  const canApprove = allClear || canOverride;
+  // Approve is allowed if (all clear OR override valid) AND all DD checks done
+  const canApprove = (allClear || canOverride) && allDueDiligenceComplete;
 
   /* ── Adapter results (secondary detail) ── */
   const adapterResults = [
@@ -225,7 +236,7 @@ export function DecisionPanel({ verificationCase: vc, userId, orgId, className }
   return (
     <div className={cn("space-y-4", className)}>
       {/* ── BSA Compliance Badges ── */}
-      <div className="rounded-[var(--radius)] border border-border bg-surface-1">
+      <div className="rounded-(--radius) border border-border bg-surface-1">
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-text-faint" />
@@ -283,7 +294,7 @@ export function DecisionPanel({ verificationCase: vc, userId, orgId, className }
 
       {/* ── BSA Officer Audit Note (required for override) ── */}
       {isRestrictedCase && !approved && (
-        <div className="rounded-[var(--radius)] border border-amber-400/20 bg-amber-400/5">
+        <div className="rounded-(--radius) border border-amber-400/20 bg-amber-400/5">
           <div className="p-4 border-b border-amber-400/15">
             <div className="flex items-center gap-2">
               <ClipboardCheck className="h-4 w-4 text-amber-400" />
@@ -320,8 +331,149 @@ export function DecisionPanel({ verificationCase: vc, userId, orgId, className }
         </div>
       )}
 
+      {/* ── Part 1027: Physical Metals Due Diligence ── */}
+      {!approved && (
+        <div className="rounded-(--radius) border border-blue-400/20 bg-blue-400/5">
+          <div className="p-4 border-b border-blue-400/15">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-blue-400" />
+              <p className="text-[10px] uppercase tracking-widest text-blue-400 font-semibold">
+                Part 1027 — Physical Metals Due Diligence
+              </p>
+            </div>
+            <p className="text-xs text-text-faint mt-0.5">
+              All three attestations must be completed before case approval is permitted.
+            </p>
+          </div>
+          <div className="p-4 space-y-3">
+            {/* Chain of Custody */}
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="relative mt-0.5 shrink-0">
+                <input
+                  type="checkbox"
+                  checked={ddChainOfCustody}
+                  onChange={(e) => setDdChainOfCustody(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div
+                  className={cn(
+                    "h-4 w-4 rounded border flex items-center justify-center transition-colors",
+                    ddChainOfCustody
+                      ? "bg-emerald-500/20 border-emerald-500/40"
+                      : "bg-zinc-800 border-zinc-600 group-hover:border-zinc-500",
+                  )}
+                >
+                  {ddChainOfCustody && <CheckCircle2 className="h-3 w-3 text-emerald-400" />}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p className={cn(
+                  "text-xs font-semibold",
+                  ddChainOfCustody ? "text-emerald-400" : "text-text",
+                )}>
+                  Chain of Custody Verified
+                </p>
+                <p className="text-[11px] text-text-faint mt-0.5 leading-relaxed">
+                  I attest that the origin of this metal has been traced to a non-sanctioned,
+                  OECD-compliant source.
+                </p>
+              </div>
+            </label>
+
+            {/* Assay Authenticity */}
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="relative mt-0.5 shrink-0">
+                <input
+                  type="checkbox"
+                  checked={ddAssayAuthenticity}
+                  onChange={(e) => setDdAssayAuthenticity(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div
+                  className={cn(
+                    "h-4 w-4 rounded border flex items-center justify-center transition-colors",
+                    ddAssayAuthenticity
+                      ? "bg-emerald-500/20 border-emerald-500/40"
+                      : "bg-zinc-800 border-zinc-600 group-hover:border-zinc-500",
+                  )}
+                >
+                  {ddAssayAuthenticity && <CheckCircle2 className="h-3 w-3 text-emerald-400" />}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p className={cn(
+                  "text-xs font-semibold",
+                  ddAssayAuthenticity ? "text-emerald-400" : "text-text",
+                )}>
+                  Assay Authenticity
+                </p>
+                <p className="text-[11px] text-text-faint mt-0.5 leading-relaxed">
+                  I attest that the refiner hallmarks and assay certificates have been validated
+                  against the LBMA/Dubai Good Delivery list or partner refinery.
+                </p>
+              </div>
+            </label>
+
+            {/* Form 8300 Applicability */}
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="relative mt-0.5 shrink-0">
+                <input
+                  type="checkbox"
+                  checked={ddForm8300}
+                  onChange={(e) => setDdForm8300(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div
+                  className={cn(
+                    "h-4 w-4 rounded border flex items-center justify-center transition-colors",
+                    ddForm8300
+                      ? "bg-emerald-500/20 border-emerald-500/40"
+                      : "bg-zinc-800 border-zinc-600 group-hover:border-zinc-500",
+                  )}
+                >
+                  {ddForm8300 && <CheckCircle2 className="h-3 w-3 text-emerald-400" />}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p className={cn(
+                  "text-xs font-semibold",
+                  ddForm8300 ? "text-emerald-400" : "text-text",
+                )}>
+                  Form 8300 Applicability
+                </p>
+                <p className="text-[11px] text-text-faint mt-0.5 leading-relaxed">
+                  I have verified that no single or related cash-equivalent deposits exceeding
+                  $10,000 were used to fund this transaction, OR the required Form 8300 has been filed.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          {/* Checklist status footer */}
+          <div className="px-4 py-2.5 border-t border-blue-400/15">
+            <div className="flex items-center gap-2">
+              {allDueDiligenceComplete ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                    Due Diligence Complete
+                  </span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                    {[ddChainOfCustody, ddAssayAuthenticity, ddForm8300].filter(Boolean).length}/3 Attestations Complete
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Approve Case Button ── */}
-      <div className="rounded-[var(--radius)] border border-border bg-surface-1 p-4">
+      <div className="rounded-(--radius) border border-border bg-surface-1 p-4">
         {approved ? (
           <div className="flex items-center justify-center gap-2 py-2">
             <CheckCircle2 className="h-5 w-5 text-emerald-400" />
@@ -356,15 +508,17 @@ export function DecisionPanel({ verificationCase: vc, userId, orgId, className }
         )}
         {!canApprove && !approved && (
           <p className="text-[11px] text-zinc-500 mt-2 text-center">
-            {isRestrictedCase
-              ? "Approval locked — complete the BSA Officer Audit Note to override."
-              : "Approval locked — all compliance badges must read Pass or Clear."}
+            {!allDueDiligenceComplete
+              ? "Approval locked — complete all Part 1027 due diligence attestations."
+              : isRestrictedCase
+                ? "Approval locked — complete the BSA Officer Audit Note to override."
+                : "Approval locked — all compliance badges must read Pass or Clear."}
           </p>
         )}
       </div>
 
       {/* ── Detailed Adapter Results ── */}
-      <div className="rounded-[var(--radius)] border border-border bg-surface-1">
+      <div className="rounded-(--radius) border border-border bg-surface-1">
         <div className="p-4 border-b border-border">
           <p className="text-[10px] uppercase tracking-widest text-text-faint font-semibold">
             Screening Results
@@ -399,7 +553,7 @@ export function DecisionPanel({ verificationCase: vc, userId, orgId, className }
       </div>
 
       {/* ── Evidence ── */}
-      <div className="rounded-[var(--radius)] border border-border bg-surface-1">
+      <div className="rounded-(--radius) border border-border bg-surface-1">
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-2">
             <FileSearch className="h-4 w-4 text-text-faint" />

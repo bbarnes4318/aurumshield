@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Building,
   Building2,
-  ListTree,
   Shield,
   FileCheck,
   ChevronLeft,
@@ -37,6 +36,7 @@ import {
   Lock,
   Coins,
   ArrowRightLeft,
+  GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -100,7 +100,7 @@ const PRO_TOGGLE_KEY = "aurumshield:pro-execution-desk";
 const OPERATOR_OPS: NavItem[] = [
   { label: "Command Center",      href: "/dashboard",              icon: LayoutDashboard, allowedRoles: OPERATOR_ROLES },
   // Goldwire uses a custom logo renderer — see GoldwireNavLink below
-  { label: "Settlement Ledger",   href: "/transactions",           icon: ListTree,        allowedRoles: OPERATOR_ROLES },
+  { label: "Marketplace",          href: "/transactions",           icon: Coins,           allowedRoles: OPERATOR_ROLES },
   { label: "Settlements",         href: "/settlements",            icon: Landmark,        allowedRoles: OPERATOR_ROLES },
   { label: "Reservations",        href: "/reservations",           icon: CalendarClock,   allowedRoles: OPERATOR_ROLES },
   { label: "Counterparties",      href: "/counterparties",         icon: Users,           allowedRoles: OPERATOR_ROLES },
@@ -113,6 +113,7 @@ const OPERATOR_RISK: NavItem[] = [
   { label: "Supervisory",         href: "/supervisory",            icon: Eye,             allowedRoles: OPERATOR_ROLES },
   { label: "Capital Controls",    href: "/capital-controls",       icon: Scale,           allowedRoles: OPERATOR_ROLES },
   { label: "Reinsurance",         href: "/reinsurance",            icon: Shield,          allowedRoles: OPERATOR_ROLES },
+  { label: "AML Training",        href: "/compliance/training",    icon: GraduationCap,   allowedRoles: OPERATOR_ROLES },
 ];
 
 /* Market Infrastructure */
@@ -120,7 +121,7 @@ const OPERATOR_MARKET: NavItem[] = [
   { label: "Corridors",           href: "/corridors",              icon: Network,         allowedRoles: OPERATOR_ROLES },
   { label: "Hubs",                href: "/hubs",                   icon: Map,             allowedRoles: OPERATOR_ROLES },
   { label: "Intraday",            href: "/intraday",               icon: Activity,        allowedRoles: OPERATOR_ROLES },
-  { label: "Investor",            href: "/investor",               icon: DollarSign,      allowedRoles: OPERATOR_ROLES, external: true },
+  { label: "Investor Brief",     href: "/investor-brief",         icon: DollarSign,      allowedRoles: OPERATOR_ROLES, external: true },
   { label: "Platform Overview",   href: "/platform-overview",      icon: Globe,           allowedRoles: OPERATOR_ROLES, external: true },
 ];
 

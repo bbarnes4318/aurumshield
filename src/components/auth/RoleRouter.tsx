@@ -9,12 +9,11 @@
 
    Logic:
      - OPERATOR_ROLES       → allowed through to /dashboard
-     - INSTITUTIONAL_ROLES  → router.replace("/dashboard")
-       (white-glove institutional buyers share the Enterprise
-        Command Center with operators)
+     - INSTITUTIONAL_ROLES  → /institutional
+       (dedicated institutional buyer terminal)
      - OFFTAKER_ROLES       → /offtaker/org/select
        (standard self-serve retail offtakers)
-     - PRODUCER_ROLES       → /producer/accreditation
+     - PRODUCER_ROLES       → /producer
      - BROKER_ROLES         → /broker
        (invite-only — compliance trapdoor enforced at layout level)
    ================================================================ */
@@ -34,7 +33,7 @@ const OPERATOR_ROLES: UserRole[] = [
   "vault_ops",
 ];
 
-/** White-glove institutional buyers — routed to Enterprise Command Center */
+/** White-glove institutional buyers — routed to /institutional terminal */
 const INSTITUTIONAL_ROLES: UserRole[] = [
   "INSTITUTION_TRADER",
   "INSTITUTION_TREASURY",
@@ -58,6 +57,11 @@ const BROKER_ROLES: UserRole[] = [
   "BROKER",
 ];
 
+/** LP / venture backers — read-only telemetry portal */
+const INVESTOR_ROLES: UserRole[] = [
+  "INVESTOR",
+];
+
 /** Routes that trigger the role-based redirect */
 const INTERCEPT_ROUTES = ["/dashboard"];
 
@@ -74,10 +78,9 @@ export function RoleRouter() {
     // ── Operators proceed to /dashboard — no redirect ──
     if (OPERATOR_ROLES.includes(role)) return;
 
-    // ── Institutional buyers → Enterprise Command Center (/dashboard) ──
-    // White-glove users share the operator dashboard with elevated data access
+    // ── Institutional buyers → dedicated institutional terminal ──
     if (INSTITUTIONAL_ROLES.includes(role)) {
-      // Already on /dashboard — allow through (same destination)
+      router.replace("/institutional");
       return;
     }
 
@@ -87,15 +90,21 @@ export function RoleRouter() {
       return;
     }
 
-    // ── Producer roles → producer portal entry point ──
+    // ── Producer roles → producer SCADA terminal ──
     if (PRODUCER_ROLES.includes(role)) {
-      router.replace("/producer/accreditation");
+      router.replace("/producer");
       return;
     }
 
     // ── Broker roles → broker portal (compliance gate at layout level) ──
     if (BROKER_ROLES.includes(role)) {
       router.replace("/broker");
+      return;
+    }
+
+    // ── Investor roles → investor telemetry portal ──
+    if (INVESTOR_ROLES.includes(role)) {
+      router.replace("/investor");
       return;
     }
 

@@ -3452,6 +3452,8 @@ export type UserRole =
   | "MINE"
   // Broker portal role
   | "BROKER"
+  // Investor portal role
+  | "INVESTOR"
   // Legacy aliases — retained for backward compatibility during UI migration
   | "buyer"
   | "seller"

@@ -10,10 +10,10 @@
    dark-mode SCADA aesthetic.
 
    Modules:
-     1. BSA Legal Framework
-     2. Precious Metals Typologies (Quiz)
-     3. Red Flag Recognition (Quiz)
-     4. Suspicious Activity Reporting (Quiz)
+     1. Part 1027 & Form 8300 (No Quiz — foundational reading)
+     2. Supply Chain Due Diligence (Quiz)
+     3. Physical Metal Typologies (Quiz)
+     4. SARs & Tipping Off (Quiz)
      → Digital Signature + Certificate Issuance
 
    Architecture:
@@ -65,177 +65,177 @@ interface CurriculumModule {
 }
 
 const CURRICULUM: CurriculumModule[] = [
-  /* ── Module 1: BSA Legal Framework ── */
+  /* ── Module 1: Part 1027 & Form 8300 ── */
   {
     id: 1,
-    title: "BSA Legal Framework",
-    shortTitle: "BSA Framework",
+    title: "Part 1027 & Form 8300",
+    shortTitle: "Part 1027",
     icon: "§",
     content: {
-      heading: "The Bank Secrecy Act & USA PATRIOT Act",
+      heading: "31 CFR Part 1027 — Precious Metals Dealer Obligations",
       paragraphs: [
-        "The Bank Secrecy Act of 1970 (31 U.S.C. §§ 5311–5332) establishes the legal foundation for anti-money laundering compliance in the United States. Under the BSA, dealers in precious metals, precious stones, or jewels (PMSJs) are classified as financial institutions and must implement a written AML program reasonably designed to prevent the business from being used to facilitate money laundering or terrorist financing.",
-        "The USA PATRIOT Act of 2001 (Title III) expanded the BSA's reach by adding enhanced due diligence (EDD) requirements for correspondent accounts, private banking, and transactions involving jurisdictions of primary money laundering concern (31 CFR § 1010.610–670). Section 352 mandates that every financial institution establish an AML program containing four pillars.",
-        "FinCEN's 2005 Final Rule (31 CFR Part 1027) explicitly brought precious metals dealers under BSA jurisdiction. AurumShield, as a clearing and settlement platform for physical gold, is subject to the full weight of these requirements.",
+        "FinCEN's 2005 Final Rule (31 CFR Part 1027) designates dealers in precious metals, precious stones, or jewels (PMSJs) as 'financial institutions' under the Bank Secrecy Act. AurumShield, as a clearing and settlement platform for physical LBMA-grade gold, is classified as a PMSJ and is subject to the full regulatory weight of Part 1027 — including mandatory AML program requirements (§ 1027.210), SAR filing obligations (§ 1027.320), and recordkeeping provisions.",
+        "IRS/FinCEN Form 8300 ('Report of Cash Payments Over $10,000 Received in a Trade or Business') must be filed within 15 days whenever a dealer receives more than $10,000 in cash or cash equivalents in a single transaction — or in two or more related transactions within a 24-hour period. 'Cash equivalents' explicitly includes cashier's checks, bank drafts, traveler's checks, and money orders with a face value of $10,000 or less. A wire transfer is NOT a cash equivalent. A cashier's check for $9,500 combined with $1,500 in currency triggers Form 8300.",
+        "AurumShield personnel must understand that Form 8300 filing is NOT discretionary. Failure to file carries civil penalties of $25,000 per violation (minimum), and willful failure to file is a federal felony under 26 U.S.C. § 7206 carrying up to 5 years imprisonment and a $250,000 fine. Structuring — breaking transactions into amounts below $10,000 to evade reporting — is separately criminalized under 31 U.S.C. § 5324 regardless of whether the underlying funds are legitimate.",
       ],
       keyPoints: [
-        { label: "Four Pillars of AML", detail: "(1) Internal policies/procedures, (2) Compliance officer designation, (3) Employee training, (4) Independent testing" },
-        { label: "Form 8300", detail: "Any cash transaction exceeding $10,000 in a single day must be reported via IRS/FinCEN Form 8300 within 15 days" },
-        { label: "Structuring (31 U.S.C. § 5324)", detail: "Breaking transactions into amounts below $10,000 to evade reporting is a federal crime carrying up to 5 years imprisonment" },
-        { label: "Willful Violation Penalties", detail: "Up to $500,000 fine and/or 10 years imprisonment per violation. Corporate liability attaches to the entity" },
+        { label: "PMSJ Threshold", detail: "Part 1027 applies to any dealer who has purchased or sold more than $50,000 in precious metals, precious stones, or jewels during the prior calendar year" },
+        { label: "Cash Equivalents", detail: "Cashier's checks, bank drafts, traveler's checks, and money orders with face values of $10,000 or less — these count as 'cash' for Form 8300 purposes" },
+        { label: "15-Day Filing Window", detail: "Form 8300 must be filed with both FinCEN and the IRS within 15 calendar days of the cash receipt. A copy must also be provided to the payor by January 31 of the following year" },
+        { label: "Aggregation Rule", detail: "Multiple cash payments from the same buyer (or agent) that the dealer knows — or has reason to know — are related must be aggregated. Two $6,000 cash payments on consecutive days from the same customer = one $12,000 reportable event" },
       ],
     },
     quiz: null,
   },
 
-  /* ── Module 2: Precious Metals Typologies ── */
+  /* ── Module 2: Supply Chain Due Diligence ── */
   {
     id: 2,
-    title: "Precious Metals Typologies",
-    shortTitle: "PM Typologies",
+    title: "Supply Chain Due Diligence",
+    shortTitle: "Supply Chain DD",
     icon: "▲",
     content: {
-      heading: "How Gold Is Weaponized for Money Laundering",
+      heading: "Verifying Source, Chain of Custody & Assay Integrity",
       paragraphs: [
-        "Trade-Based Money Laundering (TBML) through precious metals is a $2 trillion annual global threat identified by the Financial Action Task Force (FATF). Gold's intrinsic value, global liquidity, and ability to be melted and re-assayed make it a preferred vehicle for value transfer by organized crime, sanctions evaders, and terrorist financiers.",
-        "Common typologies include: (1) Falsified assay certificates — fabricating purity documentation to inflate the declared value of gold shipments, enabling over-invoicing schemes. (2) Scrap melting — purchasing gold from unknown sources (often theft proceeds), melting it to destroy provenance, and re-casting it as 'new production' with falsified origin documentation. (3) Structured cash purchases — splitting gold purchases across multiple days or locations to stay below Form 8300 thresholds.",
-        "AurumShield's mandatory refinery routing and LBMA Good Delivery verification exist specifically to break these typologies. Every bar entering our clearing ledger must be independently assayed by a partner refinery, preventing falsified provenance from penetrating the settlement system.",
+        "Every physical gold bar that enters AurumShield's clearing ledger must be traceable to a legitimate source. The LBMA Good Delivery List establishes the global standard for acceptable refineries — only bars produced by an LBMA-accredited refinery, accompanied by a valid Assay Certificate confirming fineness (minimum 995.0 parts per thousand for gold), are eligible for settlement. AurumShield operators must verify the refinery hallmark, serial number, and assay documentation for every bar before it enters the vault or custody chain.",
+        "Chain of Custody (CoC) documentation traces every transfer of physical metal from mine or refinery to the dealer. Gaps in the CoC are a critical red flag: they may indicate the metal was diverted, stolen, or laundered through informal channels. AurumShield requires unbroken CoC documentation for all inbound metal, including transport manifests, vault transfer receipts, and handover signatures at each node.",
+        "Conflict gold and sanctioned-origin metal pose severe legal exposure. Under Executive Orders 13661, 13662, and 14024, dealing in Russian-origin gold refined after March 2022 is prohibited. The LBMA's Responsible Gold Guidance (based on OECD Due Diligence frameworks) requires dealers to conduct reasonable-grounds inquiry into whether metal originates from conflict-affected or high-risk areas (CAHRA) — including artisanal mining regions in DRC, Sudan, and Venezuela. Accepting metal without this diligence exposes AurumShield to OFAC sanctions liability, IEEPA penalties (up to $1M per violation and 20 years imprisonment), and reputational destruction.",
       ],
       keyPoints: [
-        { label: "Mirror Trades", detail: "Simultaneous buy/sell of equivalent gold positions across jurisdictions to transfer value internationally without wire transfers" },
-        { label: "Layering via Refineries", detail: "Using multiple re-refining steps to obscure the original source of gold, creating a 'clean' provenance chain" },
-        { label: "Cuckoo Smurfing", detail: "A third party unknowingly receives legitimate gold as payment, while the launderer diverts the funds — exploiting the physical nature of gold for value substitution" },
-        { label: "Form 8300 Evasion", detail: "Structured purchases of $9,500 on consecutive days — still reportable under 'aggregate transactions' rule and constitutes a federal crime" },
+        { label: "LBMA Good Delivery", detail: "Only bars from LBMA-accredited refineries are acceptable. The refinery hallmark, bar serial number, assay fineness, and weight must match the accompanying certificate" },
+        { label: "Assay Certificate", detail: "Independent laboratory confirmation of gold purity (fineness). A missing, altered, or unverifiable assay certificate is grounds for immediate rejection of the bar" },
+        { label: "Russian-Origin Gold Ban", detail: "Per OFAC/Executive Order 14024 and UK SI 2022/850, Russian-origin gold refined on or after March 7, 2022 is sanctioned. Accepting it is a federal crime" },
+        { label: "OECD 5-Step Framework", detail: "(1) Establish strong management systems, (2) Identify/assess supply chain risks, (3) Design mitigation strategy, (4) Carry out independent third-party audit, (5) Report on supply chain due diligence" },
       ],
     },
     quiz: {
-      question: "A broker's client purchases $9,800 in gold bars on Monday, then $9,600 on Wednesday, and $9,400 on Friday — all in cash. Under BSA regulations, what is the correct course of action?",
+      question: "A new supplier offers AurumShield 20 kilobars of gold at 3% below spot price. The bars carry hallmarks from a refinery that was removed from the LBMA Good Delivery List in 2023. The supplier provides assay certificates, but they are photocopies with no original refinery seal. The supplier states the metal was 'sourced from a private Swiss vault' and cannot provide chain of custody documentation. What is the correct course of action?",
       options: [
         {
           id: "a",
-          text: "No reporting required — each individual transaction is below the $10,000 threshold",
+          text: "Accept the metal — the below-spot pricing represents a legitimate arbitrage opportunity and assay certificates are provided",
           correct: false,
-          explanation: "INCORRECT. Under 31 CFR § 1010.313, multiple cash transactions by the same customer that aggregate to over $10,000 within a single business day — or multiple related transactions designed to evade reporting — trigger Form 8300 filing. Furthermore, this pattern constitutes textbook 'structuring' under 31 U.S.C. § 5324, which is itself a federal crime regardless of whether the underlying funds are legitimate.",
+          explanation: "INCORRECT. Below-spot pricing on physical metal is itself a red flag for stolen or laundered gold. Combined with a delisted refinery hallmark, photocopied assay certificates (not originals), and no chain of custody documentation, this transaction presents at least four concurrent red flags. Proceeding would violate AurumShield's AML program and potentially implicate the platform in receiving stolen property or laundering proceeds.",
         },
         {
           id: "b",
-          text: "File a Form 8300 for each transaction individually since they exceed $5,000",
-          correct: false,
-          explanation: "INCORRECT. The $5,000 threshold relates to mandatory customer identification under the BSA, not Form 8300 reporting. Form 8300 is triggered at $10,000 in aggregate cash per customer. Additionally, this pattern requires a Suspicious Activity Report (SAR) for suspected structuring, not merely individual Form 8300 filings.",
+          text: "Reject the metal outright — a delisted refinery hallmark disqualifies the bars from AurumShield's clearing ledger. Document the refusal, retain all supplier communications, and escalate to the Compliance Officer for potential SAR filing",
+          correct: true,
+          explanation: "CORRECT. A refinery removed from the LBMA Good Delivery List cannot produce bars eligible for AurumShield settlement. Photocopied assay certificates without original seals are unverifiable and worthless. The absence of chain of custody creates an unacceptable provenance gap. The combination of these facts — plus below-spot pricing — meets the SAR-filing threshold. You must: (1) Reject the metal, (2) Document everything, (3) Escalate immediately, and (4) File a SAR within 30 days if the Compliance Officer concurs.",
         },
         {
           id: "c",
-          text: "File a single Form 8300 for the aggregated amount AND file a SAR for suspected structuring",
-          correct: true,
-          explanation: "CORRECT. The transactions aggregate to $28,800 in cash within a single week from the same customer — clearly exceeding the $10,000 threshold. The deliberate pattern of keeping each transaction below $10,000 is textbook structuring (31 U.S.C. § 5324). You must: (1) File Form 8300 for the aggregate, (2) File a SAR within 30 days for suspected structuring, and (3) Never inform the customer that a SAR has been filed.",
+          text: "Request that the supplier provide original assay certificates and chain of custody documents before making a decision",
+          correct: false,
+          explanation: "INCORRECT. While requesting documentation seems reasonable, the delisted refinery hallmark alone is disqualifying. No amount of supplementary paperwork can rehabilitate bars from a non-LBMA-accredited source for settlement through AurumShield. Additionally, continuing to negotiate with the supplier before escalating to compliance delays the potential SAR-filing clock.",
         },
         {
           id: "d",
-          text: "Refuse the transactions and terminate the business relationship immediately",
+          text: "Accept the metal conditionally — have it independently re-assayed at an LBMA-accredited refinery before entering it into the clearing ledger",
           correct: false,
-          explanation: "INCORRECT. While refusal may be appropriate after internal review, immediately terminating the relationship without filing the required SAR constitutes a compliance failure. The BSA requires that you file the SAR first. Defensive termination ('de-risking') without completing regulatory obligations is itself a regulatory violation.",
+          explanation: "INCORRECT. Re-assaying confirms purity, not provenance. Even if the gold tests at 999.9 fineness, the origin remains unknown, the chain of custody is broken, and the refinery is delisted. Re-assaying does not cure the AML risk — it only confirms that the metal is real gold. The compliance concern is where the gold came from, not what it is made of.",
         },
       ],
     },
   },
 
-  /* ── Module 3: Red Flag Recognition ── */
+  /* ── Module 3: Physical Metal Typologies ── */
   {
     id: 3,
-    title: "Red Flag Recognition",
-    shortTitle: "Red Flags",
+    title: "Physical Metal Typologies",
+    shortTitle: "TBML Red Flags",
     icon: "⚑",
     content: {
-      heading: "Identifying Suspicious Counterparties & Transactions",
+      heading: "Trade-Based Money Laundering Using Physical Gold",
       paragraphs: [
-        "FinCEN Advisory FIN-2006-A003 and FATF Guidance on TBML outline specific red flags for the precious metals sector. AurumShield operators and registered brokers are legally obligated to recognize and escalate these indicators. Failure to do so exposes the individual and the platform to criminal liability under 18 U.S.C. § 1956 (money laundering) and 18 U.S.C. § 1960 (unlicensed money transmission).",
-        "Counterparty red flags include: obscured Ultimate Beneficial Ownership (UBO) structures involving shell companies in opacity jurisdictions (BVI, Panama, Seychelles), uncooperative or evasive behavior during KYB due diligence, last-minute changes to settlement instructions (particularly routing to new jurisdictions), and entities with connections to OFAC-designated persons or countries subject to comprehensive sanctions (North Korea, Iran, Syria, Cuba, Crimea).",
-        "Transaction red flags include: purchases with no apparent economic rationale, transactions inconsistent with the customer's stated business purpose, requests to bypass standard settlement procedures, and unusual insistence on physical delivery to non-standard locations.",
+        "Trade-Based Money Laundering (TBML) through precious metals is a $2 trillion annual global threat identified by the Financial Action Task Force (FATF). Gold's intrinsic value, global liquidity, and ability to be melted and re-assayed make it a preferred vehicle for value transfer by organized crime, sanctions evaders, and terrorist financiers. AurumShield operators must recognize the specific TBML typologies that exploit physical metal.",
+        "Altered hallmarks are a critical indicator of laundered metal. Legitimate LBMA bars carry laser-engraved refinery marks, unique serial numbers, and weight/fineness stamps that are virtually impossible to replicate. Bars with hand-stamped, re-engraved, or partially obscured hallmarks may have been re-cast from illicit sources. Similarly, transactions involving unrefined scrap gold or Doré (semi-pure alloy direct from mining) that deviate from standard LBMA 400oz or kilobar formats are high-risk — scrap and Doré are the primary entry points for conflict mineral and artisanal-mined gold into the legitimate supply chain.",
+        "Behavioral typologies are equally important. Customers who show no interest in storage fees, insurance costs, or purity verification are potential red flags — legitimate gold investors care deeply about these economics. Other indicators include: buyers who request immediate physical delivery to a third-party address (potential 'drop' location), customers who purchase gold and immediately request it be re-smelted or re-refined (destroying provenance), and buyers who pay significant premiums above spot without negotiation (suggesting the transaction's purpose is value transfer, not investment).",
       ],
       keyPoints: [
-        { label: "Shell Company Layering", detail: "Counterparty is a SPV owned by a trust, administered by a nominee director, with the UBO obscured behind 3+ corporate layers" },
-        { label: "Geographic Risk", detail: "Origin/destination in FATF 'grey list' jurisdictions (currently: Turkey, UAE, South Africa, Nigeria) or comprehensive sanctions targets" },
-        { label: "Behavioral Indicators", detail: "Customer is unusually knowledgeable about SAR thresholds, asks whether transactions are reported, or requests confirmation of anonymity" },
-        { label: "Profile Inconsistency", detail: "A small trading company with declared $200K annual revenue placing a $5M gold order — profile does not match transaction volume" },
+        { label: "Altered Hallmarks", detail: "Hand-stamped, re-engraved, partially polished, or mismatched serial numbers on bars. Any discrepancy between the physical hallmark and the assay certificate is grounds for rejection and escalation" },
+        { label: "Scrap / Doré Deviation", detail: "Transactions involving unrefined scrap, Doré bars, or non-standard formats (e.g., irregular weight, non-LBMA dimensions) that bypass standard refinery provenance channels" },
+        { label: "Indifference to Economics", detail: "Customer does not negotiate price, shows no concern for storage fees or insurance, waives purity testing, or pays significant premiums over spot — the transaction may be about value transfer, not investment" },
+        { label: "Rapid Buy-Refine Cycle", detail: "Customer purchases refined gold and immediately requests re-smelting or re-assay at a different refinery — a classic technique to launder provenance by creating new documentation under the second refinery's name" },
       ],
     },
     quiz: {
-      question: "During KYB onboarding, a counterparty provides UBO documentation showing the beneficial owner is a trust registered in the British Virgin Islands, administered by a nominee director based in Dubai, with the trust's settlor listed as 'CONFIDENTIAL.' The entity wants to purchase 50kg of gold for 'treasury reserves.' What is your obligation?",
+      question: "A customer purchases 10 LBMA kilobars from AurumShield, settles via wire transfer at full spot price with no negotiation, and immediately requests that all 10 bars be sent to a non-LBMA refinery in Dubai for 're-assay and re-casting into smaller denominations.' The customer has no prior purchase history with AurumShield and lists their occupation as 'import/export consultant.' What is the correct assessment?",
       options: [
         {
           id: "a",
-          text: "Proceed — trust structures are common in international commerce and the BVI is a legitimate jurisdiction",
+          text: "Legitimate request — customers frequently re-cast bars into smaller denominations for resale in regional markets",
           correct: false,
-          explanation: "INCORRECT. While trust structures are legal, the combination of BVI incorporation + nominee directors + undisclosed settlor + Dubai administration constitutes multiple concurrent red flags per FATF Guidance. Proceeding without Enhanced Due Diligence (EDD) violates 31 CFR § 1010.610 and exposes AurumShield to facilitating potential sanctions evasion or money laundering.",
+          explanation: "INCORRECT. While re-casting occurs in legitimate commerce, this scenario presents multiple concurrent red flags: (1) No prior purchase history (new, unestablished relationship), (2) No price negotiation on a ~$800K purchase (indifference to economics), (3) Immediate re-casting request at a non-LBMA refinery (provenance destruction), (4) Vague occupational profile ('import/export consultant'). The purpose of this transaction is almost certainly to launder the provenance of gold — creating new documentation under the Dubai refinery's name to obscure the bars' origin.",
         },
         {
           id: "b",
-          text: "Escalate to the Compliance Officer for Enhanced Due Diligence (EDD) — the opacity of UBO structure requires full beneficial ownership resolution before any transaction can proceed",
+          text: "Escalate immediately to the Compliance Officer — this is a textbook rapid buy-refine provenance laundering typology requiring SAR evaluation",
           correct: true,
-          explanation: "CORRECT. Under 31 CFR § 1010.230 (CDD Rule), you must identify and verify the identity of each beneficial owner with 25%+ ownership. A 'CONFIDENTIAL' settlor is unacceptable — the UBO must be resolved. The Compliance Officer must conduct EDD including: independent verification of the trust deed, identification of all parties with control or benefit, screening against OFAC/UN sanctions lists, and a documented risk assessment before any transaction can proceed.",
+          explanation: "CORRECT. This matches the FATF-identified 'rapid buy-refine cycle' typology precisely. The customer is purchasing gold with a clean LBMA provenance and immediately destroying that provenance by re-casting at a non-accredited facility. The new refinery would issue fresh documentation, effectively laundering the gold's history. Combined with no prior relationship, no negotiation, and a vague occupational profile, this meets the SAR-filing threshold. Escalate to Compliance, document all communications, and do NOT process the re-casting shipment until the investigation concludes.",
         },
         {
           id: "c",
-          text: "File a SAR immediately and block the account",
+          text: "Process the purchase but decline the re-casting request — AurumShield only deals with LBMA-accredited refineries",
           correct: false,
-          explanation: "INCORRECT. A SAR may ultimately be required, but the immediate obligation is to escalate for EDD — not to file a SAR based solely on red flags without investigation. Filing a SAR prematurely without completing due diligence can itself be a compliance failure. The correct sequence is: escalate → investigate → determine if SAR-filing threshold is met → file within 30 days if warranted.",
+          explanation: "INCORRECT. Declining the re-casting request addresses only one symptom while ignoring the underlying compliance obligation. The totality of the red flags — new customer, no negotiation, immediate re-casting, vague profile — requires a SAR evaluation regardless of whether you process the re-casting. The purchase itself may be suspicious. Simply declining one request without escalating to Compliance is a regulatory failure.",
         },
         {
           id: "d",
-          text: "Request a letter from the counterparty's attorney confirming the legitimacy of the trust structure",
+          text: "Request additional documentation — ask the customer to explain the business rationale for re-casting and provide proof of downstream buyers",
           correct: false,
-          explanation: "INCORRECT. An attorney letter provides zero regulatory value for UBO verification under the BSA. You cannot outsource your CDD obligations to the customer's legal counsel. The obligation to independently verify beneficial ownership rests with AurumShield, not the counterparty's representatives.",
+          explanation: "INCORRECT. While gathering additional information is generally appropriate, the number and severity of concurrent red flags in this scenario require immediate compliance escalation — not further customer engagement. Asking the customer to explain themselves risks 'tipping off' (if a SAR is later warranted) and delays the 30-day SAR-filing clock. Escalate first, investigate through compliance channels, then determine next steps.",
         },
       ],
     },
   },
 
-  /* ── Module 4: Suspicious Activity Reporting ── */
+  /* ── Module 4: SARs & Tipping Off ── */
   {
     id: 4,
-    title: "Suspicious Activity Reporting (SAR)",
+    title: "SARs & Tipping Off",
     shortTitle: "SAR Filing",
     icon: "◉",
     content: {
-      heading: "Federal Filing Obligations & the Tipping-Off Prohibition",
+      heading: "Suspicious Activity Reporting for Physical Metal Transactions",
       paragraphs: [
-        "Under 31 CFR § 1027.320, AurumShield must file a Suspicious Activity Report (SAR) with FinCEN within 30 calendar days of the initial detection of facts constituting the basis for filing. If no suspect is identified, the deadline extends to 60 days. SAR filing is mandatory — there is no discretion threshold. If facts meet the standard, the SAR must be filed.",
-        "The 'tipping off' prohibition (31 U.S.C. § 5318(g)(2)) makes it a federal crime to disclose to any person involved in the transaction that a SAR has been filed or is being considered. This prohibition extends to all AurumShield employees, contractors, and registered brokers. Violation carries penalties of up to $250,000 and/or 5 years imprisonment.",
-        "SAR narratives must be factually detailed, describing the 'who, what, when, where, why, and how' of the suspicious activity. Vague or conclusory narratives (e.g., 'suspicious transaction') are regulatory failures. FinCEN reviews narrative quality and can issue deficiency findings against institutions filing inadequate SARs.",
+        "Under 31 CFR § 1027.320, AurumShield must file a Suspicious Activity Report (SAR) with FinCEN within 30 calendar days of the initial detection of facts constituting a known or suspected violation of law, or a transaction designed to evade BSA reporting requirements — if the transaction involves or aggregates to at least $5,000. For precious metals dealers, this threshold is notably lower than for banks ($5,000 vs. $5,000 for PMSJs is the same, but the 'aggregation' rules mean even small structured purchases can trigger filing). If no suspect is identified at the time of detection, the filing deadline extends to 60 days.",
+        "The 'tipping off' prohibition (31 U.S.C. § 5318(g)(2)) is absolute and applies to every AurumShield employee, contractor, and registered broker. It is a federal crime to disclose — directly or indirectly — that a SAR has been filed, is being filed, or will be filed. This prohibition extends to confirming, denying, or even implying the existence of a SAR. It applies to communications with the subject of the SAR, the subject's attorney, law enforcement (unless pursuant to formal subpoena or request), and any third party. Violation carries penalties of up to $250,000 and/or 5 years imprisonment.",
+        "SAR narratives for physical metal transactions must include the specific TBML typology observed (e.g., altered hallmarks, broken CoC, rapid buy-refine cycle, structuring), the exact weight, fineness, and refinery of the metal involved, all counterparty identification data, and a clear timeline of events. Vague narratives like 'suspicious gold transaction' are deficient. FinCEN's BSA Enforcement Division reviews narrative quality and will issue findings against institutions that file boilerplate SARs.",
       ],
       keyPoints: [
-        { label: "30-Day Filing Deadline", detail: "Clock starts on the date suspicious activity is first detected by any employee — not when the Compliance Officer is notified" },
-        { label: "Tipping Off = Federal Crime", detail: "You CANNOT tell the customer, their attorney, or any third party that a SAR has been or will be filed. Period. No exceptions." },
-        { label: "Safe Harbor (31 U.S.C. § 5318(g)(3))", detail: "Good-faith SAR filing provides complete civil liability protection. You cannot be sued for filing a SAR." },
-        { label: "Retention", detail: "All SARs and supporting documentation must be retained for 5 years from the date of filing" },
+        { label: "30-Day Filing Deadline", detail: "Clock starts on the date suspicious activity is first detected by any employee — not when the Compliance Officer is notified. Late detection does not excuse late filing" },
+        { label: "Tipping Off = Federal Crime", detail: "You CANNOT tell the customer, their attorney, their broker, or any third party that a SAR has been or will be filed. You cannot confirm, deny, or imply. Period. No exceptions." },
+        { label: "Safe Harbor (31 U.S.C. § 5318(g)(3))", detail: "Good-faith SAR filing provides complete civil liability protection. You cannot be sued for filing a SAR — even if the activity turns out to be legitimate" },
+        { label: "5-Year Retention", detail: "All SARs, supporting documentation, and the Compliance Officer's investigation notes must be retained for 5 years from the date of filing. AurumShield's audit vault logs all SAR-related actions immutably" },
       ],
     },
     quiz: {
-      question: "You filed a SAR on a broker's client 15 days ago. The broker calls and asks: 'My client says his gold purchase was flagged — can you confirm whether any reports were filed?' What is your legal obligation?",
+      question: "Three weeks ago, AurumShield's Compliance Officer filed a SAR on a customer who purchased 5 LBMA kilobars using three separate cashier's checks ($9,500 each) on the same day — suspected structuring to evade Form 8300. Today, the customer calls you directly and says: 'My bank told me you filed some kind of government report about my gold purchase. I want to know exactly what was reported.' What is your legal obligation?",
       options: [
         {
           id: "a",
-          text: "Confirm the SAR was filed — the broker is a registered platform user with a legitimate business need to know",
+          text: "Confirm the SAR was filed — the customer already knows about it from their bank, so the information is no longer confidential",
           correct: false,
-          explanation: "INCORRECT. This is a textbook violation of 31 U.S.C. § 5318(g)(2). The tipping-off prohibition applies to ALL persons, including registered brokers. There is NO 'business need' exception. Confirming the SAR would constitute a federal crime punishable by up to $250,000 fine and 5 years imprisonment.",
+          explanation: "INCORRECT. The tipping-off prohibition (31 U.S.C. § 5318(g)(2)) applies regardless of what the customer claims to already know. Even if the customer's bank independently disclosed information (which would itself be a violation by the bank), AurumShield's obligation to neither confirm nor deny remains absolute. The customer's statement may also be a 'social engineering' tactic to extract confirmation. Any confirmation by you is a federal crime.",
         },
         {
           id: "b",
-          text: "Deny that any SAR was filed — protecting client confidentiality",
+          text: "Deny that any report was filed — tell the customer their bank must be mistaken",
           correct: false,
-          explanation: "INCORRECT. Affirmatively denying a SAR's existence is also a form of disclosure under the tipping-off prohibition. Any statement that could lead the subject to infer whether a SAR was or was not filed violates the statute. The correct response is to neither confirm nor deny.",
+          explanation: "INCORRECT. Affirmatively denying a SAR's existence is also a prohibited disclosure under the tipping-off statute. Any statement — positive or negative — that allows the subject to infer the existence or non-existence of a SAR violates 31 U.S.C. § 5318(g)(2). Denial is as illegal as confirmation.",
         },
         {
           id: "c",
-          text: "Neither confirm nor deny — state that company policy prohibits discussing internal compliance matters, and document the broker's inquiry in the SAR follow-up file",
+          text: "Neither confirm nor deny — state that AurumShield policy does not permit discussion of internal compliance processes, then immediately document the call and notify the Compliance Officer",
           correct: true,
-          explanation: "CORRECT. The only legally compliant response is to neither confirm nor deny. State: 'AurumShield policy does not permit discussion of internal compliance processes.' Then immediately document the inquiry (date, time, caller, exact questions asked) in the SAR follow-up file — the inquiry itself may be a red flag requiring SAR amendment.",
+          explanation: "CORRECT. The only legally compliant response is: 'AurumShield policy does not permit discussion of internal compliance processes.' Do not elaborate, explain, or make any statement that could be interpreted as confirmation or denial. Immediately after the call: (1) Document the date, time, caller identity, and exact words used, (2) Notify the Compliance Officer, (3) The Compliance Officer should evaluate whether the customer's inquiry — and the claim that their bank disclosed SAR information — warrants a SAR amendment or a new SAR filing against the bank.",
         },
         {
           id: "d",
-          text: "Transfer the call to the Compliance Officer — only they are authorized to discuss SARs",
+          text: "Transfer the call to the Compliance Officer — they are the only person authorized to discuss SAR filings",
           correct: false,
-          explanation: "INCORRECT. The Compliance Officer is equally bound by the tipping-off prohibition. Transferring the call implies that discussing SARs is permissible at a higher authorization level, which is false. No person at AurumShield — regardless of title — may confirm, deny, or discuss SAR filings with any outside party.",
+          explanation: "INCORRECT. No person at AurumShield — including the Compliance Officer — is authorized to discuss SAR filings with the subject of the SAR. The Compliance Officer is equally bound by the tipping-off prohibition. Transferring the call implies that disclosure is permissible at a higher authorization level, which is categorically false under federal law.",
         },
       ],
     },

@@ -174,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     "/platform-overview",
     "/technical-overview",
     "/legal",
-    "/investor",
+    "/investor-brief",
     "/dev",
   ];
   const isBypassRoute =

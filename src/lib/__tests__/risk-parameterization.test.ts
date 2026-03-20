@@ -14,9 +14,15 @@ import {
   checkBlockers,
   determineApproval,
   runComplianceChecks,
+  evaluatePhysicalMetalRisk,
+  applyPhysicalMetalTRIAdjustment,
+  mergePhysicalMetalBlockers,
+  mergePhysicalMetalChecks,
   type RiskConfiguration,
   type TRIResult,
   type CapitalValidation,
+  type PolicyBlocker,
+  type ComplianceCheck,
 } from "../policy-engine";
 import {
   invalidateRiskConfigCache,
@@ -289,4 +295,276 @@ describe("RSK-010: Dynamic Operational Risk Parameterization", () => {
       expect(mockQueryFn).toHaveBeenCalledTimes(2);
     });
   });
+
+  /* ────────────────────────────────────────────── */
+  /*  Part 1027: Physical Metal Risk Rules          */
+  /* ────────────────────────────────────────────── */
+
+  describe("Part 1027: Physical Metal Risk Rules", () => {
+    /* ── Product Risk Classification ── */
+
+    describe("Product Risk Classification", () => {
+      it("LBMA Good Delivery → standard risk (1.0×), no manual review", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "WIRE",
+          amountUsd: 500_000,
+        });
+        expect(result.productRiskWeight).toBe(1.0);
+        expect(result.requiresManualReview).toBe(false);
+        expect(result.blockers.find((b) => b.id === "pm-asset-review")).toBeUndefined();
+        expect(result.complianceChecks.find((c) => c.id === "pm-asset")?.result).toBe("PASS");
+      });
+
+      it("SCRAP → high-risk (3.0×), forces manual review BLOCK", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "SCRAP",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "WIRE",
+          amountUsd: 500_000,
+        });
+        expect(result.productRiskWeight).toBe(3.0);
+        expect(result.requiresManualReview).toBe(true);
+        const blocker = result.blockers.find((b) => b.id === "pm-asset-review");
+        expect(blocker).toBeDefined();
+        expect(blocker?.severity).toBe("BLOCK");
+        expect(result.complianceChecks.find((c) => c.id === "pm-asset")?.result).toBe("FAIL");
+      });
+
+      it("UNREFINED_DORE → high-risk (3.0×), forces manual review BLOCK", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "UNREFINED_DORE",
+          deliveryMethod: "DIGITAL_TITLE_TRANSFER",
+          settlementRail: "WIRE",
+          amountUsd: 100_000,
+        });
+        expect(result.productRiskWeight).toBe(3.0);
+        expect(result.requiresManualReview).toBe(true);
+        expect(result.blockers.find((b) => b.id === "pm-asset-review")?.severity).toBe("BLOCK");
+      });
+
+      it("UNKNOWN → high-risk (3.0×), forces manual review", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "UNKNOWN",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "WIRE",
+          amountUsd: 50_000,
+        });
+        expect(result.productRiskWeight).toBe(3.0);
+        expect(result.requiresManualReview).toBe(true);
+      });
+    });
+
+    /* ── Physical Delivery TRI Escalation ── */
+
+    describe("Physical Delivery TRI Escalation", () => {
+      it("PHYSICAL_LOADOUT → +2 TRI escalation", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "PHYSICAL_LOADOUT",
+          settlementRail: "WIRE",
+          amountUsd: 500_000,
+        });
+        expect(result.deliveryEscalation).toBe(2);
+        expect(result.triAdjustment).toBe(2);
+        expect(result.blockers.find((b) => b.id === "pm-loadout")?.severity).toBe("WARN");
+        expect(result.complianceChecks.find((c) => c.id === "pm-delivery")?.result).toBe("WARN");
+      });
+
+      it("DIGITAL_TITLE_TRANSFER → no TRI escalation", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "DIGITAL_TITLE_TRANSFER",
+          settlementRail: "WIRE",
+          amountUsd: 500_000,
+        });
+        expect(result.deliveryEscalation).toBe(0);
+        expect(result.triAdjustment).toBe(0);
+        expect(result.blockers.find((b) => b.id === "pm-loadout")).toBeUndefined();
+        expect(result.complianceChecks.find((c) => c.id === "pm-delivery")?.result).toBe("PASS");
+      });
+
+      it("VAULT_TO_VAULT → no TRI escalation", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "WIRE",
+          amountUsd: 500_000,
+        });
+        expect(result.deliveryEscalation).toBe(0);
+        expect(result.triAdjustment).toBe(0);
+      });
+    });
+
+    /* ── Form 8300 Detection ── */
+
+    describe("Form 8300 Detection", () => {
+      it("Cashier's check > $10K → FORM_8300_REQUIRED BLOCK", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "CASHIERS_CHECK",
+          amountUsd: 15_000,
+        });
+        expect(result.form8300Required).toBe(true);
+        const blocker = result.blockers.find((b) => b.id === "form-8300-required");
+        expect(blocker).toBeDefined();
+        expect(blocker?.severity).toBe("BLOCK");
+        expect(result.complianceChecks.find((c) => c.id === "pm-form8300")?.result).toBe("FAIL");
+      });
+
+      it("Money order > $10K → FORM_8300_REQUIRED BLOCK", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "MONEY_ORDER",
+          amountUsd: 11_000,
+        });
+        expect(result.form8300Required).toBe(true);
+        expect(result.blockers.find((b) => b.id === "form-8300-required")?.severity).toBe("BLOCK");
+      });
+
+      it("Cash $9K → no Form 8300 (below threshold)", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "CASH",
+          amountUsd: 9_000,
+        });
+        expect(result.form8300Required).toBe(false);
+        expect(result.blockers.find((b) => b.id === "form-8300-required")).toBeUndefined();
+        expect(result.complianceChecks.find((c) => c.id === "pm-form8300")?.result).toBe("PASS");
+      });
+
+      it("Cash exactly $10K → no Form 8300 (threshold is >$10K)", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "CASH",
+          amountUsd: 10_000,
+        });
+        expect(result.form8300Required).toBe(false);
+      });
+
+      it("Wire $15K → no Form 8300 (non-cash rail)", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "WIRE",
+          amountUsd: 15_000,
+        });
+        expect(result.form8300Required).toBe(false);
+        expect(result.blockers.find((b) => b.id === "form-8300-required")).toBeUndefined();
+        expect(result.complianceChecks.find((c) => c.id === "pm-form8300")?.result).toBe("PASS");
+      });
+
+      it("Stablecoin $50K → no Form 8300 (non-cash rail)", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "STABLECOIN",
+          amountUsd: 50_000,
+        });
+        expect(result.form8300Required).toBe(false);
+      });
+
+      it("Bank draft > $10K → FORM_8300_REQUIRED", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "BANK_DRAFT",
+          amountUsd: 25_000,
+        });
+        expect(result.form8300Required).toBe(true);
+        expect(result.blockers.find((b) => b.id === "form-8300-required")?.severity).toBe("BLOCK");
+      });
+
+      it("Traveler's check > $10K → FORM_8300_REQUIRED", () => {
+        const result = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "TRAVELERS_CHECK",
+          amountUsd: 12_500,
+        });
+        expect(result.form8300Required).toBe(true);
+      });
+    });
+
+    /* ── TRI Adjustment ── */
+
+    describe("applyPhysicalMetalTRIAdjustment", () => {
+      it("applies +2 adjustment and recalculates band", () => {
+        const baseTri: TRIResult = { ...mockTri, score: 5, band: "amber" };
+        const adjusted = applyPhysicalMetalTRIAdjustment(baseTri, 2);
+        expect(adjusted.score).toBe(7);
+        expect(adjusted.band).toBe("red");
+        expect(adjusted.formula).toContain("+2 (Physical Metal)");
+      });
+
+      it("clamps at maximum 10", () => {
+        const baseTri: TRIResult = { ...mockTri, score: 9, band: "red" };
+        const adjusted = applyPhysicalMetalTRIAdjustment(baseTri, 2);
+        expect(adjusted.score).toBe(10);
+        expect(adjusted.band).toBe("red");
+      });
+
+      it("returns original TRI when adjustment is 0", () => {
+        const result = applyPhysicalMetalTRIAdjustment(mockTri, 0);
+        expect(result).toBe(mockTri); // exact same reference, not a copy
+      });
+
+      it("clamps at minimum 1", () => {
+        const baseTri: TRIResult = { ...mockTri, score: 1, band: "green" };
+        const adjusted = applyPhysicalMetalTRIAdjustment(baseTri, -5);
+        expect(adjusted.score).toBe(1);
+        expect(adjusted.band).toBe("green");
+      });
+    });
+
+    /* ── Composition Helpers ── */
+
+    describe("mergePhysicalMetalBlockers / mergePhysicalMetalChecks", () => {
+      it("appends PM blockers to base blockers without mutation", () => {
+        const baseBlockers: PolicyBlocker[] = [
+          { id: "cp-susp", severity: "BLOCK", title: "Test", detail: "Test" },
+        ];
+        const pmResult = evaluatePhysicalMetalRisk({
+          assetClass: "SCRAP",
+          deliveryMethod: "PHYSICAL_LOADOUT",
+          settlementRail: "CASH",
+          amountUsd: 50_000,
+        });
+        const merged = mergePhysicalMetalBlockers(baseBlockers, pmResult);
+        // Base should be untouched
+        expect(baseBlockers).toHaveLength(1);
+        // Merged should contain base + PM blockers
+        expect(merged.length).toBeGreaterThan(1);
+        expect(merged[0].id).toBe("cp-susp");
+        // Should have all PM blocker IDs
+        expect(merged.find((b) => b.id === "pm-asset-review")).toBeDefined();
+        expect(merged.find((b) => b.id === "pm-loadout")).toBeDefined();
+        expect(merged.find((b) => b.id === "form-8300-required")).toBeDefined();
+      });
+
+      it("appends PM compliance checks to base checks without mutation", () => {
+        const baseChecks: ComplianceCheck[] = [
+          { id: "cp", name: "Test", result: "PASS", detail: "Test" },
+        ];
+        const pmResult = evaluatePhysicalMetalRisk({
+          assetClass: "LBMA_GOOD_DELIVERY",
+          deliveryMethod: "VAULT_TO_VAULT",
+          settlementRail: "WIRE",
+          amountUsd: 5_000,
+        });
+        const merged = mergePhysicalMetalChecks(baseChecks, pmResult);
+        expect(baseChecks).toHaveLength(1);
+        expect(merged.length).toBeGreaterThan(1);
+        expect(merged.find((c) => c.id === "pm-asset")).toBeDefined();
+        expect(merged.find((c) => c.id === "pm-delivery")).toBeDefined();
+        expect(merged.find((c) => c.id === "pm-form8300")).toBeDefined();
+      });
+    });
+  });
 });
+

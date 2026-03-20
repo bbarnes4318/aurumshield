@@ -26,7 +26,7 @@ const PUBLIC_ROUTES = [
   "/technical-overview",
   "/demo/walkthrough",
   "/legal",
-  "/investor",
+  "/investor-brief",
   "/simple-home",
   "/institutional-portal",
 ];

@@ -35,7 +35,7 @@ const CLERK_ENABLED =
    NOTE: Root "/" is NOT included here. On the marketing host it is
    handled explicitly. On the app host "/" passes through to Clerk
    which redirects to /dashboard or /login — never cross-domain. */
-const MARKETING_PATHS = ["/platform-overview", "/technical-overview", "/demo", "/legal", "/investor"];
+const MARKETING_PATHS = ["/platform-overview", "/technical-overview", "/demo", "/legal", "/investor-brief"];
 
 /* ── Routes that are available on BOTH domains (never redirected) ── */
 const SHARED_PATHS = ["/health", "/api/webhooks", "/api/fix-schema", "/favicon.ico"];
@@ -54,7 +54,7 @@ const isPublicRoute = createRouteMatcher([
   "/platform-overview(.*)",
   "/technical-overview(.*)",
   "/legal(.*)",
-  "/investor(.*)",
+  "/investor-brief(.*)",
   "/perimeter/(.*)",
 ]);
 

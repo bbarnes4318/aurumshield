@@ -27,6 +27,7 @@ export const ROLE_DISPLAY: Record<UserRole, string> = {
   REFINERY: "LBMA Refiner",
   MINE: "Mining Operator",
   BROKER: "LBMA Broker",
+  INVESTOR: "Investor",
 };
 
 /* ---------- Step Completion Types ---------- */

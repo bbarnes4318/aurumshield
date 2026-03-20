@@ -211,6 +211,25 @@ export default function BrokerLayout({ children }: { children: ReactNode }) {
                   </Link>
                 );
               })}
+
+              {/* ── Compliance ── */}
+              <div className="mt-4 pt-3 border-t border-slate-800">
+                <p className="px-3 mb-1.5 font-mono text-[9px] text-slate-600 uppercase tracking-[0.15em] font-bold">
+                  Compliance
+                </p>
+                <Link
+                  href="/compliance/training"
+                  className={[
+                    "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                    pathname.startsWith("/compliance/training")
+                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent",
+                  ].join(" ")}
+                >
+                  <ShieldAlert className="h-4 w-4" />
+                  <span>Mandatory AML Training</span>
+                </Link>
+              </div>
             </nav>
 
             {/* Sidebar footer */}

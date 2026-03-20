@@ -124,6 +124,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   REFINERY: "LBMA Refiner",
   MINE: "Mining Operator",
   BROKER: "Broker",
+  INVESTOR: "Investor",
   // Legacy aliases
   buyer: "Institution Trader",
   seller: "Institution Trader",

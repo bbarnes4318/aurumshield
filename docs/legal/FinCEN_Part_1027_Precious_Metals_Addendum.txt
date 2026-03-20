@@ -1,0 +1,468 @@
+================================================================================
+                         PVN LLC d/b/a AurumShield
+          FinCEN 31 CFR Part 1027 — Precious Metals Dealer Addendum
+================================================================================
+
+Entity:             PVN LLC d/b/a AurumShield
+Regulatory Status:  Dealer in Precious Metals, Precious Stones, or Jewels (PMSJ)
+                    Money Services Business (MSB)
+Regulator:          Financial Crimes Enforcement Network (FinCEN)
+                    Internal Revenue Service (IRS)
+Primary Statutes:
+
+    Bank Secrecy Act (31 U.S.C. §§ 5311–5332)
+    USA PATRIOT Act (Title III)
+    FinCEN 31 CFR Part 1027 (Dealers in Precious Metals)
+    IRS 26 U.S.C. § 6050I (Form 8300 Reporting)
+    OFAC Executive Orders 13661, 13662, 14024 (Russian Sanctions)
+    International Emergency Economic Powers Act (IEEPA)
+
+Document Classification:    Internal Compliance Policy — Part 1027 Addendum
+Parent Document:            Bank Secrecy Act (BSA) Anti-Money Laundering (AML)
+                            Compliance Program
+Version:                    1.0
+Approved By:                Board of Managers — PVN LLC
+Effective Date:             [Insert]
+
+================================================================================
+1. PURPOSE AND SCOPE
+================================================================================
+
+This Addendum supplements the AurumShield BSA/AML Compliance Program to address
+the specific obligations imposed on PVN LLC d/b/a AurumShield under FinCEN
+31 CFR Part 1027 — the rule governing Dealers in Precious Metals, Precious
+Stones, or Jewels ("PMSJs").
+
+This document establishes binding institutional policy for all AurumShield
+employees, contractors, registered brokers, and third-party agents involved in
+the clearing, settlement, custody, or physical handling of precious metals.
+
+Non-compliance with any provision of this Addendum constitutes grounds for
+immediate termination and referral for criminal prosecution.
+
+================================================================================
+2. APPLICABILITY — PMSJ CLASSIFICATION
+================================================================================
+
+2.1 Covered Dealer Status
+
+PVN LLC d/b/a AurumShield operates as a covered dealer under 31 CFR
+§ 1027.100(b). A "dealer" is defined as any person engaged in the business of
+purchasing and selling precious metals, precious stones, or jewels who, during
+the prior calendar year, purchased and sold more than $50,000 in covered goods.
+
+AurumShield's annual transaction volume in physical gold clearing and settlement
+far exceeds this threshold. Accordingly, AurumShield is subject to the full
+regulatory obligations of Part 1027, including but not limited to:
+
+    • AML Program Requirements (§ 1027.210)
+    • Suspicious Activity Reporting (§ 1027.320)
+    • Recordkeeping Requirements (31 CFR § 1010.410)
+    • IRS/FinCEN Form 8300 Reporting (26 U.S.C. § 6050I)
+
+2.2 Scope of Covered Goods
+
+For purposes of this Addendum, "precious metals" includes gold, silver,
+platinum, and palladium in any form — including but not limited to:
+
+    • Refined bars (LBMA Good Delivery, kilobars, tola bars)
+    • Coins and rounds (sovereign mint and private mint)
+    • Unrefined forms (Doré, scrap, granules, sponge)
+    • Allocated and unallocated vault positions representing physical metal
+
+2.3 Institutional Obligation
+
+All AurumShield personnel must understand that PMSJ obligations exist in
+addition to — not in lieu of — the MSB obligations set forth in the parent
+BSA/AML Compliance Program. The Part 1027 requirements impose specialized
+physical supply chain due diligence that does not apply to purely financial
+transactions.
+
+================================================================================
+3. SUPPLY CHAIN DUE DILIGENCE
+================================================================================
+
+3.1 Mandate
+
+No physical gold may enter, exit, or be transferred within AurumShield's
+clearing ledger, custody chain, or settlement pipeline unless the supply chain
+due diligence requirements set forth in this Section have been satisfied in
+their entirety.
+
+3.2 Chain of Custody Verification
+
+AurumShield requires unbroken Chain of Custody ("CoC") documentation for all
+inbound physical metal. CoC documentation must trace every transfer of physical
+metal from the producing refinery (or mine of origin) to the point of delivery
+to AurumShield's custodian or vault partner.
+
+Required documentation at each node of the custody chain:
+
+    • Transport manifests identifying carrier, origin, destination, and seal
+      numbers
+    • Vault transfer receipts with counterparty signatures
+    • Handover confirmations with date, time, and responsible party
+      identification
+    • Tamper-evident seal verification at each transfer point
+
+Any gap, discrepancy, or unexplained break in the CoC is a critical compliance
+failure. Metal with broken CoC documentation must be:
+
+    (a) Immediately quarantined and excluded from the clearing ledger;
+    (b) Escalated to the Compliance Officer within 24 hours;
+    (c) Evaluated for SAR filing under § 1027.320.
+
+3.3 Assay Authentication
+
+Every physical gold bar entering AurumShield's custody or clearing ledger must
+be accompanied by a valid Assay Certificate confirming:
+
+    • Refinery name and LBMA accreditation status
+    • Bar serial number matching the physical hallmark
+    • Gross weight in troy ounces or grams
+    • Fineness (minimum 995.0 parts per thousand for gold)
+    • Date of assay and certifying metallurgist signature
+
+Assay certificates must be original documents bearing the refinery's official
+seal. Photocopies, digital screenshots, and unsigned certificates are not
+acceptable without independent verification from the issuing refinery.
+
+AurumShield accepts assay certificates exclusively from:
+
+    • LBMA Good Delivery List refineries
+    • Dubai Good Delivery List refineries (DGCX)
+    • Partner refineries approved by AurumShield's Compliance Committee
+
+Discrepancies between the physical hallmark and the assay certificate — in
+serial number, weight, or fineness — are grounds for immediate rejection of the
+bar and escalation for potential SAR filing.
+
+3.4 Prohibition on Conflict Minerals
+
+AurumShield categorically prohibits the acceptance, clearing, settlement,
+custody, or facilitation of:
+
+    (a) Conflict gold — metal originating from conflict-affected or high-risk
+        areas ("CAHRA") as defined by the OECD Due Diligence Guidance for
+        Responsible Supply Chains of Minerals from Conflict-Affected and
+        High-Risk Areas, including but not limited to artisanal mining regions
+        in:
+            • Democratic Republic of Congo (DRC)
+            • Republic of Sudan
+            • Central African Republic (CAR)
+            • Bolivarian Republic of Venezuela
+            • Republic of Mali
+
+    (b) Sanctioned-origin gold — metal originating from or refined in:
+            • The Russian Federation (gold refined on or after March 7, 2022,
+              per Executive Order 14024 and OFAC Directive 4 under E.O. 14024)
+            • The Democratic People's Republic of Korea (DPRK)
+            • The Islamic Republic of Iran
+            • The Syrian Arab Republic
+            • Republic of Cuba
+            • Russian-occupied Crimea, Donetsk, and Luhansk regions of Ukraine
+
+3.5 OECD 5-Step Due Diligence Framework
+
+AurumShield implements the OECD five-step framework for responsible mineral
+supply chains:
+
+    Step 1:  Establish strong company management systems for supply chain due
+             diligence.
+    Step 2:  Identify and assess risks in the supply chain.
+    Step 3:  Design and implement a strategy to respond to identified risks.
+    Step 4:  Carry out independent third-party audit of supply chain due
+             diligence.
+    Step 5:  Report annually on supply chain due diligence.
+
+The Compliance Officer is responsible for maintaining documented evidence of
+AurumShield's compliance with each of these five steps.
+
+================================================================================
+4. PHYSICAL METAL TYPOLOGIES — RED FLAGS
+================================================================================
+
+4.1 Mandate
+
+AurumShield's Suspicious Metal Logistics ("SML") engine and all compliance
+personnel must monitor for the following red flags specific to trade-based money
+laundering ("TBML") through physical precious metals. Detection of any red flag
+requires immediate escalation and SAR evaluation.
+
+4.2 Altered Hallmarks
+
+    • Bars exhibiting hand-stamped, re-engraved, partially polished, or
+      otherwise altered refinery hallmarks
+    • Mismatched serial numbers between the physical bar and accompanying assay
+      certificate
+    • Hallmarks from refineries not on the LBMA Good Delivery List, the Dubai
+      Good Delivery List, or AurumShield's approved refinery register
+    • Bars that appear to have been re-cast, re-melted, or re-stamped to
+      conceal original provenance markings
+
+4.3 Non-Standard Product Forms
+
+    • Transactions involving unrefined scrap gold, Doré bars, granules, or
+      sponge that deviate from standard LBMA 400 oz or 1 kg bar formats
+    • Metal presented without standardized refinery packaging, protective
+      casing, or tamper-evident seals
+    • Bars of irregular weight, non-standard dimensions, or unusual alloy
+      composition inconsistent with declared fineness
+    • Metal bearing hallmarks from entities not recognized as refineries
+      (e.g., jewelry manufacturers, pawn operations, recycling facilities)
+
+4.4 Behavioral Indicators
+
+    • Customers who exhibit unusual lack of concern for storage fees, insurance
+      premiums, vaulting costs, or purity testing — legitimate gold investors
+      are highly sensitive to these economics
+    • Buyers who pay significant premiums above spot price without negotiation,
+      suggesting the transaction purpose is value transfer rather than
+      investment
+    • Customers who purchase refined gold and immediately request re-smelting
+      or re-assay at a different refinery ("rapid buy-refine cycle") — a
+      technique to launder provenance by creating new documentation
+    • Requests for immediate physical delivery to a third-party address,
+      particularly to non-standard locations (e.g., residential addresses,
+      freight forwarding agents, free trade zones)
+    • Customers who are unusually knowledgeable about SAR thresholds, reporting
+      requirements, or who ask whether transactions are reported to the
+      government
+    • Profile inconsistencies — a small trading company with modest declared
+      revenue placing orders inconsistent with its stated business capacity
+
+4.5 Structured Cash Purchases
+
+    • Multiple cash or cash-equivalent transactions from the same customer (or
+      related customers) that aggregate to exceed $10,000 within a 24-hour
+      period or over consecutive business days
+    • Transactions deliberately structured to remain below $10,000 per
+      individual receipt, with amounts such as $9,500, $9,800, or $9,900
+      indicating deliberate threshold avoidance
+    • Use of multiple cashier's checks, money orders, or bank drafts with face
+      values at or near $10,000 to fund a single purchase
+
+Structuring is a federal crime under 31 U.S.C. § 5324 regardless of whether the
+underlying funds are legitimate.
+
+================================================================================
+5. FORM 8300 ENFORCEMENT
+================================================================================
+
+5.1 Legal Basis
+
+Under 26 U.S.C. § 6050I and 31 CFR § 1010.330, any person engaged in a trade
+or business who receives more than $10,000 in cash or cash equivalents in a
+single transaction — or in two or more related transactions within a 24-hour
+period — must file IRS/FinCEN Form 8300 ("Report of Cash Payments Over $10,000
+Received in a Trade or Business").
+
+5.2 Definition of Cash and Cash Equivalents
+
+For purposes of Form 8300 reporting, "cash" includes:
+
+    • U.S. and foreign currency (coins and paper money)
+    • Cashier's checks with a face value of $10,000 or less
+    • Bank drafts with a face value of $10,000 or less
+    • Traveler's checks with a face value of $10,000 or less
+    • Money orders with a face value of $10,000 or less
+
+A cashier's check, bank draft, traveler's check, or money order with a face
+value exceeding $10,000 is NOT treated as "cash" for Form 8300 purposes — but
+its receipt may still trigger other BSA reporting obligations.
+
+Wire transfers and ACH transactions are NOT cash or cash equivalents for
+Form 8300 purposes.
+
+5.3 Aggregation Rule
+
+AurumShield personnel must aggregate multiple cash payments from the same
+buyer (or the buyer's agent) that the dealer knows — or has reason to know —
+are related. Related transactions include:
+
+    • Multiple payments toward a single purchase
+    • Multiple payments made on the same day
+    • Multiple payments made on consecutive business days where the pattern
+      indicates a single transaction or plan
+
+Example: A customer pays $6,000 in cash on Monday and $6,000 in cash on
+Tuesday toward the same gold purchase. The aggregate ($12,000) exceeds $10,000.
+Form 8300 must be filed.
+
+5.4 Filing Procedures
+
+    (a) Detection:  AurumShield's settlement engine automatically flags any
+                    transaction where the settlement rail is classified as a
+                    cash equivalent AND the settlement amount exceeds $10,000.
+                    The settlement status is locked to "FORM_8300_REQUIRED" and
+                    cannot proceed until cleared by the Compliance Officer.
+
+    (b) Filing:     Form 8300 must be filed with both FinCEN and the IRS within
+                    fifteen (15) calendar days of the date of receipt of the
+                    cash or cash-equivalent payment.
+
+    (c) Payor       A written statement must be provided to the payor by
+        Notice:     January 31 of the calendar year following the year in which
+                    the cash was received, notifying the payor that Form 8300
+                    was filed.
+
+    (d) Retention:  A copy of each filed Form 8300 and all supporting
+                    documentation must be retained for five (5) years from the
+                    date of filing.
+
+5.5 Penalties for Non-Compliance
+
+    • Civil penalty:    Minimum $25,000 per violation for failure to file
+    • Criminal penalty: Up to $250,000 fine and/or 5 years imprisonment for
+                        willful failure to file (26 U.S.C. § 7206)
+    • Structuring:      Up to $500,000 fine and/or 10 years imprisonment
+                        (31 U.S.C. § 5324)
+
+5.6 Interaction with SAR Obligations
+
+Form 8300 filing does NOT satisfy SAR obligations. If the cash transaction also
+involves suspicious indicators (e.g., suspected structuring, profile
+inconsistency, red flags identified in Section 4), a SAR must be filed
+independently within 30 days under § 1027.320.
+
+Conversely, SAR filing does NOT satisfy Form 8300 obligations. Both filings are
+independently mandatory when their respective criteria are met.
+
+================================================================================
+6. COMPLIANCE OFFICER ATTESTATION REQUIREMENTS
+================================================================================
+
+6.1 Physical Metals Due Diligence Gate
+
+Before approving any settlement, custody transfer, or title transfer involving
+physical precious metals, the designated Compliance Officer (or authorized
+delegate) must complete and attest to the following three mandatory due
+diligence verifications:
+
+    [ ] CHAIN OF CUSTODY VERIFIED
+        "I attest that the origin of this metal has been traced to a
+        non-sanctioned, OECD-compliant source, and that unbroken Chain of
+        Custody documentation has been reviewed and verified."
+
+    [ ] ASSAY AUTHENTICITY CONFIRMED
+        "I attest that the refiner hallmarks and assay certificates have been
+        validated against the LBMA Good Delivery List, the Dubai Good Delivery
+        List, or AurumShield's approved partner refinery register."
+
+    [ ] FORM 8300 APPLICABILITY REVIEWED
+        "I have verified that no single or related cash-equivalent deposits
+        exceeding $10,000 were used to fund this transaction, OR the required
+        Form 8300 has been filed and a copy retained in the compliance archive."
+
+No settlement or title transfer may proceed without all three attestations
+recorded in AurumShield's immutable Governance Audit Log.
+
+6.2 Audit Trail
+
+Each attestation must be logged with:
+
+    • Identity of the attesting Compliance Officer
+    • Timestamp of attestation (UTC)
+    • Case or settlement identifier
+    • Counterparty identifier
+    • Metal description (weight, fineness, serial numbers, refinery)
+    • Cryptographic certificate ID (if training certification is applicable)
+
+================================================================================
+7. EMPLOYEE TRAINING
+================================================================================
+
+7.1 Annual Certification
+
+All AurumShield personnel involved in precious metals operations must complete
+annual FinCEN Part 1027 compliance training. The training curriculum must
+include:
+
+    Module 1:   Part 1027 & Form 8300 — PMSJ classification, cash-equivalent
+                definitions, aggregation rules, 15-day filing window, penalties.
+
+    Module 2:   Supply Chain Due Diligence — LBMA Good Delivery verification,
+                assay certificate authentication, Chain of Custody requirements,
+                conflict gold and sanctioned-origin prohibitions, OECD 5-Step
+                Framework.
+
+    Module 3:   Physical Metal Typologies — Trade-Based Money Laundering red
+                flags, altered hallmarks, scrap/Doré deviations, behavioral
+                indicators, rapid buy-refine cycles.
+
+    Module 4:   SARs & Tipping Off — SAR filing obligations for physical metal
+                transactions (§ 1027.320), 30-day timeline, $5,000 aggregation
+                threshold, tipping-off prohibition (31 U.S.C. § 5318(g)(2)),
+                narrative quality standards.
+
+Training must conclude with a hard-stop knowledge check (quiz) for Modules 2
+through 4 and a binding digital attestation under penalty of federal law.
+
+Training completion and attestation records must be retained for five (5) years.
+
+================================================================================
+8. ENFORCEMENT AND DISCIPLINARY ACTION
+================================================================================
+
+8.1 Violations
+
+Any AurumShield employee, contractor, registered broker, or agent who:
+
+    (a) Accepts physical metal without completing required due diligence;
+    (b) Falsifies or omits Chain of Custody documentation;
+    (c) Fails to file Form 8300 when required;
+    (d) Structures or assists in structuring transactions to evade reporting;
+    (e) Discloses SAR-related information in violation of the tipping-off
+        prohibition; or
+    (f) Approves a settlement without completing the Physical Metals Due
+        Diligence attestation
+
+shall be subject to:
+
+    • Immediate suspension of platform access
+    • Termination of employment or contractual relationship
+    • Referral to FinCEN, IRS, and/or law enforcement as applicable
+    • Personal criminal liability under applicable federal statutes
+
+8.2 Corporate Liability
+
+PVN LLC acknowledges that willful violations of Part 1027, Form 8300 reporting
+obligations, or SAR filing requirements expose the entity to:
+
+    • Civil money penalties up to $500,000 per violation
+    • Criminal fines up to $1,000,000 per violation under IEEPA
+    • Imprisonment of responsible individuals up to 20 years (IEEPA)
+    • Debarment from the U.S. financial system
+    • Reputational destruction incompatible with continued operations
+
+================================================================================
+9. DOCUMENT CONTROL
+================================================================================
+
+Revision History:
+
+    Version     Date            Author                  Description
+    -------     ----            ------                  -----------
+    1.0         [Insert]        Compliance Division     Initial release
+
+This Addendum shall be reviewed and updated annually, or upon the occurrence of
+any material regulatory change affecting FinCEN Part 1027 obligations.
+
+================================================================================
+BOARD CERTIFICATION
+================================================================================
+
+The Board of Managers of PVN LLC certifies that AurumShield maintains a
+Physical Precious Metals compliance program designed to fulfill the obligations
+imposed by FinCEN 31 CFR Part 1027, IRS 26 U.S.C. § 6050I, and all applicable
+OFAC sanctions regulations governing dealings in physical gold.
+
+Authorized Signatory:   ________________________________________
+
+Title:                  ________________________________________
+
+Date:                   ________________________________________
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================
