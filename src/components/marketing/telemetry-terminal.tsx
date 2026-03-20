@@ -51,13 +51,13 @@ export function TelemetryTerminal() {
       {/* Terminal Header */}
       <div className="bg-[#0B0E14] border-b border-slate-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Terminal className="h-4 w-4 text-[#c6a86b]" />
+          <Terminal className="h-4 w-4 text-gold-primary" />
           <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">AurumShield // Core Engine_v2.4</span>
         </div>
         <div className="flex gap-2">
           <div className="h-2.5 w-2.5 rounded-full bg-slate-700" />
           <div className="h-2.5 w-2.5 rounded-full bg-slate-700" />
-          <div className="h-2.5 w-2.5 rounded-full bg-[#c6a86b]/70 animate-pulse" />
+          <div className="h-2.5 w-2.5 rounded-full bg-gold-primary/70 animate-pulse" />
         </div>
       </div>
       
@@ -66,20 +66,20 @@ export function TelemetryTerminal() {
         ref={scrollRef}
         className="p-6 h-[320px] overflow-y-auto scrollbar-hide bg-[linear-gradient(rgba(10,17,40,1)_0%,rgba(10,17,40,0.95)_100%)] relative"
       >
-        <div className="absolute inset-0 bg-[url('/scanline-bg.png')] opacity-5 pointer-events-none" /> {/* Optional scanline texture */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)' }} />
         
         <div className="space-y-3">
           {logs.map((log, i) => (
             <div 
               key={i} 
-              className={`flex items-start ${log.includes("SUCCESS") || log.includes("ACHIEVED") ? "text-[#c6a86b] font-bold" : "text-gray-400"}`}
+              className={`flex items-start ${log.includes("SUCCESS") || log.includes("ACHIEVED") ? "text-gold-primary font-bold" : "text-gray-400"}`}
             >
               <span className="opacity-50 mr-4 shrink-0">{new Date().toISOString().split('T')[1].slice(0, 8)}</span>
               <span className="break-all">{log}</span>
             </div>
           ))}
           {currentIndex < LOG_SEQUENCE.length && (
-            <div className="flex items-start text-[#c6a86b]">
+            <div className="flex items-start text-gold-primary">
               <span className="opacity-50 mr-4 shrink-0">{new Date().toISOString().split('T')[1].slice(0, 8)}</span>
               <span className="animate-pulse">_</span>
             </div>
