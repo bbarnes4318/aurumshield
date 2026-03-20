@@ -358,9 +358,7 @@ export default function OfftakerMarketplacePage() {
           <div className="flex items-center gap-2">
             <Activity className="h-3 w-3 text-slate-500" />
             <span className="font-mono text-[10px] text-slate-500">XAU/USD:</span>
-            {priceError ? (
-              <span className="font-mono text-xs text-red-500 font-bold tracking-wider">[PRICING OFFLINE]</span>
-            ) : priceLoading ? (
+            {priceLoading ? (
               <span className="font-mono text-xs text-slate-600 animate-pulse">SYNCING...</span>
             ) : (
               <>

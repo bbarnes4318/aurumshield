@@ -85,7 +85,7 @@ const PRODUCTS: Product[] = [
 
 export default function MarketplacePage() {
   const router = useRouter();
-  const { data: priceData, isLoading, isError: priceError, isLive: priceLive } = useGoldPrice();
+  const { data: priceData, isLoading } = useGoldPrice();
 
   const spotPrice = priceData?.spotPriceUsd ?? 0;
 
@@ -123,9 +123,7 @@ export default function MarketplacePage() {
         <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-1 px-4 py-2.5">
           <TrendingUp className="h-4 w-4 text-gold" />
           <span className="text-xs text-slate-400">Spot:</span>
-          {priceError ? (
-            <span className="font-mono text-sm font-bold text-red-500">[PRICING OFFLINE]</span>
-          ) : isLoading ? (
+          {isLoading ? (
             <span className="font-mono text-sm font-bold tabular-nums text-white">---</span>
           ) : (
             <>

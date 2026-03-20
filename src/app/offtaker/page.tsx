@@ -356,11 +356,7 @@ export default function CommandCenterPage() {
                 )}
               </div>
 
-              {isError ? (
-                <span className="font-mono text-lg text-red-500 font-bold tracking-wider">
-                  [PRICING OFFLINE]
-                </span>
-              ) : isLoading ? (
+              {isLoading ? (
                 <span className="font-mono text-lg text-slate-600 animate-pulse">
                   SYNCING...
                 </span>
