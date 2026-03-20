@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback, useTransition } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { WizardFormData } from "./wizard-schema";
 import { cn } from "@/lib/utils";
@@ -192,7 +192,7 @@ export function StepReview({ form, beneficiaryName, isExecuting, onExecute }: Pr
 
       {/* Goldwire Execution Certificate */}
       <div className="rounded-lg border border-border bg-surface-2 overflow-hidden">
-        <div className="bg-gold/[0.06] border-b border-gold/20 px-4 py-2.5 flex items-center gap-2">
+        <div className="bg-gold/6 border-b border-gold/20 px-4 py-2.5 flex items-center gap-2">
           <Lock className="h-3.5 w-3.5 text-gold" />
           <span className="text-[10px] font-bold text-gold uppercase tracking-widest">
             Goldwire Execution Certificate
@@ -262,7 +262,7 @@ export function StepReview({ form, beneficiaryName, isExecuting, onExecute }: Pr
          ════════════════════════════════════════════════════════════ */}
       {isFedwire && (
         <div className="rounded-lg border border-border bg-surface-2 overflow-hidden">
-          <div className="bg-blue-500/[0.06] border-b border-blue-500/20 px-5 py-3 flex items-center gap-2">
+          <div className="bg-blue-500/6 border-b border-blue-500/20 px-5 py-3 flex items-center gap-2">
             <Building2 className="h-3.5 w-3.5 text-blue-400" />
             <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
               Fedwire Settlement Instructions

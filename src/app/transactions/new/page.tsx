@@ -130,7 +130,7 @@ function SettlementLedger({
 
   return (
     <aside className="rounded-lg border border-border bg-surface-1 overflow-hidden">
-      <div className="bg-gold/[0.05] border-b border-gold/15 px-5 py-3 flex items-center gap-2">
+      <div className="bg-gold/5 border-b border-gold/15 px-5 py-3 flex items-center gap-2">
         <Scale className="h-4 w-4 text-gold" />
         <span className="text-xs font-bold text-gold uppercase tracking-widest">
           Settlement Ledger

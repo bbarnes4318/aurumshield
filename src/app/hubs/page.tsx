@@ -29,8 +29,8 @@ export default function HubsPage() {
   const dashQ = useDashboardData("phase1");
   const [selectedHubId, setSelectedHubId] = useState<string | null>(null);
 
-  const hubs = hubsQ.data ?? [];
-  const txns = txQ.data ?? [];
+  const hubs = useMemo(() => hubsQ.data ?? [], [hubsQ.data]);
+  const txns = useMemo(() => txQ.data ?? [], [txQ.data]);
   const hubConc = dashQ.data?.hubConcentration;
 
   const totalCapacity = hubs.reduce((a, h) => a + h.capacity, 0);
@@ -98,7 +98,7 @@ export default function HubsPage() {
               <div key={hub.id} onClick={() => setSelectedHubId(hub.id)} className="card-base p-5 cursor-pointer hover:border-gold/30 transition-colors" role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setSelectedHubId(hub.id)}>
                 <div className="mb-3 flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-surface-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-(--radius-sm) bg-surface-2">
                       <TypeIcon className="h-4 w-4 text-text-muted" />
                     </div>
                     <div>
@@ -124,7 +124,7 @@ export default function HubsPage() {
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-3 gap-2 rounded-[var(--radius-sm)] bg-surface-2 p-3">
+                <div className="grid grid-cols-3 gap-2 rounded-(--radius-sm) bg-surface-2 p-3">
                   <div className="text-center">
                     <p className="typo-label">Capacity</p>
                     <p className="tabular-nums text-sm font-semibold text-text">{hub.capacity.toLocaleString()}</p>
@@ -153,7 +153,7 @@ export default function HubsPage() {
               {exceptions.map((h) => {
                 const severe = h.status === "offline";
                 return (
-                  <div key={h.id} className={cn("flex items-start gap-2 rounded-[var(--radius-sm)] px-3 py-2", severe ? "bg-danger/10" : h.status === "degraded" ? "bg-warning/10" : "bg-info/10")}>
+                  <div key={h.id} className={cn("flex items-start gap-2 rounded-(--radius-sm) px-3 py-2", severe ? "bg-danger/10" : h.status === "degraded" ? "bg-warning/10" : "bg-info/10")}>
                     {severe ? <XCircle className="h-4 w-4 shrink-0 text-danger mt-0.5" /> : <AlertTriangle className="h-4 w-4 shrink-0 text-warning mt-0.5" />}
                     <div>
                       <p className="text-sm font-medium text-text">{h.name}</p>

@@ -100,7 +100,7 @@ export function StepCompliance({ beneficiaryName, amount }: Props) {
 
       {/* Gate Status */}
       {allPass ? (
-        <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/[0.04] px-4 py-2.5 flex items-center gap-2">
+        <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/4 px-4 py-2.5 flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
           <p className="text-sm text-emerald-400 font-medium">
             All compliance gates cleared. Entity authorized for settlement.

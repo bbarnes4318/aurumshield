@@ -23,8 +23,8 @@ export default function CorridorsPage() {
   const dashQ = useDashboardData("phase1");
   const [selectedCorridorId, setSelectedCorridorId] = useState<string | null>(null);
 
-  const corridors = corQ.data ?? [];
-  const txns = txQ.data ?? [];
+  const corridors = useMemo(() => corQ.data ?? [], [corQ.data]);
+  const txns = useMemo(() => txQ.data ?? [], [txQ.data]);
   const tiers = dashQ.data?.corridorTiers.tiers ?? [];
 
   const totalVolume = useMemo(() => corridors.reduce((a, c) => a + c.volume, 0), [corridors]);
@@ -133,7 +133,7 @@ export default function CorridorsPage() {
               {exceptions.map((c) => {
                 const isSusp = c.status === "suspended";
                 return (
-                  <div key={c.id} className={cn("flex items-start gap-2 rounded-[var(--radius-sm)] px-3 py-2", isSusp ? "bg-danger/10" : "bg-warning/10")}>
+                  <div key={c.id} className={cn("flex items-start gap-2 rounded-(--radius-sm) px-3 py-2", isSusp ? "bg-danger/10" : "bg-warning/10")}>
                     {isSusp ? <XCircle className="h-4 w-4 shrink-0 text-danger mt-0.5" /> : <AlertTriangle className="h-4 w-4 shrink-0 text-warning mt-0.5" />}
                     <div>
                       <p className="text-sm font-medium text-text">{c.name}</p>

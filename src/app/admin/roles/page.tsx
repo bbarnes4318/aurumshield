@@ -3,7 +3,6 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { useRoles } from "@/hooks/use-mock-queries";
-import { cn } from "@/lib/utils";
 import { Shield, Lock } from "lucide-react";
 
 export default function RolesPage() {
@@ -25,7 +24,7 @@ export default function RolesPage() {
               <div key={role.id} className="card-base p-5">
                 <div className="mb-3 flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-surface-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-(--radius-sm) bg-surface-2">
                       {role.isSystem ? <Shield className="h-4 w-4 text-gold" /> : <Lock className="h-4 w-4 text-text-muted" />}
                     </div>
                     <div>
