@@ -44,7 +44,7 @@ const DoreYieldSchema = z.object({
     .min(1, "Purity estimate is required")
     .refine(
       (v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0 && parseFloat(v) <= 100,
-      "Must be between 0.01 and 100",
+      "Must be between 0.01 and 100 — this is a baseline estimate, not an assay result",
     ),
   extractionDate: z.string().min(1, "Extraction date is required"),
 });
@@ -346,7 +346,7 @@ export default function ProducerTerminalPage() {
           {/* ── Footer Trust Line ── */}
           <div className="pt-2 border-t border-slate-800/50 mt-auto">
             <span className="font-mono text-[8px] text-slate-700 tracking-wider uppercase">
-              AurumShield · Industrial SCADA · Mine-to-Vault Pipeline · Real-Time Telemetry
+              AurumShield · Industrial SCADA · Doré Origin Provenance · Unrefined Metal Intake
             </span>
           </div>
         </div>
@@ -357,7 +357,7 @@ export default function ProducerTerminalPage() {
         <div className="col-span-4 flex flex-col gap-3 min-h-0 border border-slate-800 bg-slate-900/50 rounded-lg p-3">
 
           {/* ── Register New Yield ── */}
-          <SectionHeader icon={<FlaskConical className="h-3 w-3" />} title="Register New Yield" />
+          <SectionHeader icon={<FlaskConical className="h-3 w-3" />} title="Register Doré / Scrap Yield" />
 
           <div className="space-y-3">
             {/* Gross Weight */}
@@ -382,7 +382,7 @@ export default function ProducerTerminalPage() {
             {/* Estimated Purity */}
             <div>
               <label htmlFor="dore-purity" className="font-mono text-slate-500 text-[10px] tracking-[0.15em] uppercase block mb-1">
-                Estimated Purity (%)
+                Baseline Purity Estimate (%)
               </label>
               <input
                 id="dore-purity"

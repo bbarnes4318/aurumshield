@@ -1,20 +1,20 @@
 "use client";
 
 /* ================================================================
-   PRODUCER ACCREDITATION — LBMA Regulatory Gateway
+   PRODUCER ORIGIN DOSSIER — Chain of Custody Intake Gateway
    ================================================================
-   Uses the extracted LbmaVerificationPanel component for the
-   accreditation form. On successful submission, persists data
-   to sessionStorage and navigates to inventory ingestion.
+   Mines produce unrefined Doré / Scrap, NOT LBMA bars.
+   This page captures the mine-level origin data and Chain of
+   Custody documentation. On submission, navigates to inventory.
 
-   NOTE: Producers now land on /producer (SCADA terminal) by
-   default. This page is accessed via sidebar navigation when
-   a producer needs to submit or update their LBMA credentials.
+   NOTE: Producers land on /producer (SCADA terminal) by default.
+   This page is accessed via sidebar when a producer needs to
+   submit or update their origin credentials.
    ================================================================ */
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Landmark } from "lucide-react";
+import { MapPin } from "lucide-react";
 import LbmaVerificationPanel, {
   type LbmaAccreditationData,
 } from "@/components/compliance/LbmaVerificationPanel";
@@ -27,14 +27,14 @@ export default function ProducerAccreditationPage() {
   const handleSubmit = async (data: LbmaAccreditationData) => {
     setIsSubmitting(true);
 
-    // Persist accreditation data client-side
+    // Persist origin dossier client-side
     sessionStorage.setItem(
-      "aurumshield:producer-accreditation",
+      "aurumshield:producer-origin-dossier",
       JSON.stringify({ ...data, submittedAt: new Date().toISOString() }),
     );
 
-    // TODO: POST to /api/producer/accreditation for DB persistence
-    // Defined interface: { refinerName, refinerCode, annualProduction }
+    // TODO: POST to /api/producer/origin-dossier for DB persistence
+    // Defined interface: { mineName, originCountry, siteCoordinates, annualDoreOutput, cocDocumentRef }
 
     setTimeout(() => {
       router.push("/producer/inventory/new");
@@ -47,31 +47,31 @@ export default function ProducerAccreditationPage() {
         {/* ── Header ── */}
         <div className="mb-2 shrink-0">
           <div className="flex items-center gap-3 mb-3">
-            <Landmark className="h-4 w-4 text-gold-primary" />
+            <MapPin className="h-4 w-4 text-gold-primary" />
             <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
-              Producer Accreditation
+              Producer Origin Dossier
             </span>
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-white mb-2">
-            Refiner Credential Submission
+            Mine Origin & Chain of Custody
           </h1>
 
           <p className="font-mono text-slate-500 text-sm leading-relaxed max-w-2xl">
-            Submit your registered refiner credentials for automated
-            verification against the Axedras Integrity Ledger. Marketplace
-            access is gated until accreditation is confirmed.
+            Submit your mine identification, origin country, and Chain of
+            Custody documentation. All Doré intake is verified for provenance
+            and OECD conflict-mineral compliance before transport dispatch.
           </p>
         </div>
 
-        {/* ── LBMA Verification Form (reusable component) ── */}
+        {/* ── Origin Dossier Form (reusable component) ── */}
         <LbmaVerificationPanel
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
         />
 
         <p className="mt-4 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
-          AurumShield Clearing · Axedras Integrity Ledger · Producer Perimeter
+          AurumShield Clearing · Origin Provenance Engine · Producer Perimeter
           Enforcement
         </p>
       </div>
