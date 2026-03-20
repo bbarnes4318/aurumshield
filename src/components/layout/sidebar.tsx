@@ -86,6 +86,11 @@ const PRODUCER_ROLES: UserRole[] = [
   "MINE",
 ];
 
+/* ── Broker roles — restricted to /broker portal ── */
+const BROKER_ROLES: UserRole[] = [
+  "BROKER",
+];
+
 /* ── localStorage key for Pro Toggle persistence ── */
 const PRO_TOGGLE_KEY = "aurumshield:pro-execution-desk";
 
@@ -150,6 +155,14 @@ const PRODUCER_NAV: NavItem[] = [
   { label: "Asset Ingestion",     href: "/producer/inventory/new",          icon: Upload,         allowedRoles: PRODUCER_ROLES },
   { label: "Allocation Queue",    href: "/producer/orders",                 icon: Fingerprint,    allowedRoles: PRODUCER_ROLES },
   { label: "Escrow Releases",     href: "/producer/settlements",            icon: Banknote,       allowedRoles: PRODUCER_ROLES },
+];
+
+/* ── Broker-visible nav items ── */
+const BROKER_NAV: NavItem[] = [
+  { label: "Command Center",      href: "/broker",                          icon: LayoutDashboard, allowedRoles: BROKER_ROLES },
+  { label: "Deal Pipeline",       href: "/broker/pipeline",                 icon: ArrowRightLeft,  allowedRoles: BROKER_ROLES },
+  { label: "LBMA Assets",         href: "/broker/assets",                   icon: Shield,          allowedRoles: BROKER_ROLES },
+  { label: "Client Roster",       href: "/broker/clients",                  icon: Users,           allowedRoles: BROKER_ROLES },
 ];
 
 /* ================================================================
@@ -241,7 +254,7 @@ function SectionHeader({ label, collapsed }: { label: string; collapsed: boolean
 }
 
 /* ── Impersonation mode type ── */
-type ImpersonationMode = "none" | "offtaker" | "producer";
+type ImpersonationMode = "none" | "offtaker" | "producer" | "broker";
 
 function SidebarNav({
   collapsed,
@@ -256,6 +269,7 @@ function SidebarNav({
   const isOperator = OPERATOR_ROLES.includes(role);
   const isOfftaker = OFFTAKER_ROLES.includes(role);
   const isProducer = PRODUCER_ROLES.includes(role);
+  const isBroker = BROKER_ROLES.includes(role);
 
   /* ── Compliance state for offtaker sidebar gating ── */
   const { data: onboardingState, isLoading: complianceLoading } = useOnboardingState(isOfftaker);
@@ -295,6 +309,8 @@ function SidebarNav({
       router.push("/offtaker/org/select");
     } else if (mode === "producer") {
       router.push("/producer/accreditation");
+    } else if (mode === "broker") {
+      router.push("/broker");
     }
   }, [router]);
 
@@ -356,6 +372,12 @@ function SidebarNav({
           {renderReturnBanner()}
           {renderPortalNav(PRODUCER_NAV, "Producer Portal")}
         </>
+      ) : isOperator && impersonationMode === "broker" ? (
+        /* ══════ ADMIN → BROKER IMPERSONATION ══════ */
+        <>
+          {renderReturnBanner()}
+          {renderPortalNav(BROKER_NAV, "Broker Portal")}
+        </>
       ) : isOperator ? (
         /* ══════ ADMIN MODE ══════ */
         <>
@@ -401,6 +423,14 @@ function SidebarNav({
                   <Eye className="h-4 w-4 text-emerald-400 shrink-0" />
                   <span>View Producer Portal</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleImpersonate("broker")}
+                  className="w-full flex items-center gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-amber-400 hover:bg-amber-500/10 transition-all"
+                >
+                  <Eye className="h-4 w-4 text-amber-400 shrink-0" />
+                  <span>View Broker Portal</span>
+                </button>
               </>
             ) : (
               <>
@@ -420,6 +450,14 @@ function SidebarNav({
                 >
                   <Eye className="h-4 w-4" />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleImpersonate("broker")}
+                  className="flex items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-amber-400 hover:bg-amber-500/10 transition-all"
+                  title="View Broker Portal"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
               </>
             )}
           </div>
@@ -429,6 +467,15 @@ function SidebarNav({
         <>
           <ul className="space-y-0.5 flex-1">
             {PRODUCER_NAV.map((item) => (
+              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            ))}
+          </ul>
+        </>
+      ) : isBroker ? (
+        /* ══════ BROKER CLIENT MODE ══════ */
+        <>
+          <ul className="space-y-0.5 flex-1">
+            {BROKER_NAV.map((item) => (
               <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
             ))}
           </ul>
