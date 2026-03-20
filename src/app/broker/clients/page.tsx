@@ -1,93 +1,146 @@
 "use client";
 
 /* ================================================================
-   BROKER CLIENT ROSTER — Managed Client Entities
+   BROKER CLIENT NETWORK — Book of Business
    ================================================================
-   Table of all clients (buyers/sellers) onboarded under this
-   broker's umbrella, with KYC status and activity tracking.
+   High-density table of all entities under the broker's umbrella.
+   Columns: Entity Name, Jurisdiction, KYB/AML Status,
+            IRA Custodian Status, Actions.
+
+   Status styling:
+     CLEARED         → emerald (green)
+     PENDING LIVENESS → amber
+     SANCTIONS BLOCK  → red
    ================================================================ */
 
 /* ── Mock client data ── */
 const MOCK_CLIENTS = [
-  { id: "CLI-001", name: "Aurelia Sovereign Fund",    type: "BUYER",  kyc: "APPROVED", deals: 4, aum: 28_500_000, onboarded: "2026-01-15" },
-  { id: "CLI-002", name: "Meridian Capital Partners",  type: "BUYER",  kyc: "APPROVED", deals: 2, aum: 6_400_000,  onboarded: "2026-02-01" },
-  { id: "CLI-003", name: "Pacific Bullion Trust",      type: "BUYER",  kyc: "APPROVED", deals: 3, aum: 12_200_000, onboarded: "2026-01-22" },
-  { id: "CLI-004", name: "Nordic Reserve AG",          type: "BUYER",  kyc: "PENDING",  deals: 1, aum: 5_306_000,  onboarded: "2026-03-10" },
-  { id: "CLI-005", name: "Caspian Trade Finance",      type: "BUYER",  kyc: "APPROVED", deals: 1, aum: 21_224_000, onboarded: "2026-02-28" },
-  { id: "CLI-006", name: "Emirates Gold DMCC",         type: "SELLER", kyc: "APPROVED", deals: 3, aum: 0,          onboarded: "2026-01-05" },
-  { id: "CLI-007", name: "Perth Mint",                 type: "SELLER", kyc: "APPROVED", deals: 5, aum: 0,          onboarded: "2025-12-15" },
-  { id: "CLI-008", name: "Valcambi SA",                type: "SELLER", kyc: "APPROVED", deals: 2, aum: 0,          onboarded: "2026-01-08" },
-  { id: "CLI-009", name: "Shanghai Gold Exchange",     type: "BUYER",  kyc: "ELEVATED", deals: 1, aum: 15_918_000, onboarded: "2026-03-01" },
-  { id: "CLI-010", name: "Helvetia Heritage SA",       type: "BUYER",  kyc: "APPROVED", deals: 2, aum: 8_800_000,  onboarded: "2026-02-14" },
+  { id: "ENT-001", name: "Aurelia Sovereign Fund",     jurisdiction: "Cayman Islands",    kybAml: "CLEARED",           iraCustodian: "Equity Trust Co.",      deals: 4  },
+  { id: "ENT-002", name: "Meridian Capital Partners",  jurisdiction: "United Kingdom",    kybAml: "CLEARED",           iraCustodian: "N/A",                   deals: 2  },
+  { id: "ENT-003", name: "Pacific Bullion Trust",      jurisdiction: "Singapore",         kybAml: "PENDING LIVENESS",  iraCustodian: "GoldStar Trust",        deals: 3  },
+  { id: "ENT-004", name: "Nordic Reserve AG",          jurisdiction: "Switzerland",       kybAml: "CLEARED",           iraCustodian: "Kingdom Trust",         deals: 1  },
+  { id: "ENT-005", name: "Caspian Trade Finance",      jurisdiction: "UAE (DIFC)",        kybAml: "CLEARED",           iraCustodian: "N/A",                   deals: 1  },
+  { id: "ENT-006", name: "Emirates Gold DMCC",         jurisdiction: "UAE (DMCC)",        kybAml: "SANCTIONS BLOCK",   iraCustodian: "N/A",                   deals: 0  },
+  { id: "ENT-007", name: "Perth Mint Direct",          jurisdiction: "Australia",         kybAml: "CLEARED",           iraCustodian: "N/A",                   deals: 5  },
+  { id: "ENT-008", name: "Shanghai Gold Exchange",     jurisdiction: "China (Mainland)",  kybAml: "PENDING LIVENESS",  iraCustodian: "N/A",                   deals: 1  },
+  { id: "ENT-009", name: "Helvetia Heritage SA",       jurisdiction: "Switzerland",       kybAml: "CLEARED",           iraCustodian: "Preferred Trust Co.",   deals: 2  },
+  { id: "ENT-010", name: "Banco del Oro SA",           jurisdiction: "Panama",            kybAml: "PENDING LIVENESS",  iraCustodian: "STRATA Trust",          deals: 0  },
+  { id: "ENT-011", name: "Rand Refinery Ltd",          jurisdiction: "South Africa",      kybAml: "CLEARED",           iraCustodian: "N/A",                   deals: 3  },
+  { id: "ENT-012", name: "Tanaka Kikinzoku Kogyo",     jurisdiction: "Japan",             kybAml: "CLEARED",           iraCustodian: "N/A",                   deals: 2  },
 ] as const;
 
-const KYC_STYLES: Record<string, string> = {
-  APPROVED: "text-emerald-400",
-  PENDING:  "text-yellow-400",
-  ELEVATED: "text-blue-400",
-  REJECTED: "text-red-400",
+/* ── KYB/AML Status styling ── */
+const KYB_STYLES: Record<string, { text: string; dot: string; bg: string; border: string }> = {
+  CLEARED:           { text: "text-emerald-400", dot: "bg-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+  "PENDING LIVENESS": { text: "text-amber-400",   dot: "bg-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/20" },
+  "SANCTIONS BLOCK":  { text: "text-red-400",     dot: "bg-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20" },
 };
 
-const TYPE_STYLES: Record<string, string> = {
-  BUYER:  "text-amber-400 bg-amber-500/10 border-amber-500/20",
-  SELLER: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-};
-
-const fmtUsd = (v: number) =>
-  v === 0 ? "—" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
+const DEFAULT_STYLE = { text: "text-slate-500", dot: "bg-slate-500", bg: "bg-slate-500/10", border: "border-slate-500/20" };
 
 export default function BrokerClientsPage() {
-  const buyers = MOCK_CLIENTS.filter((c) => c.type === "BUYER").length;
-  const sellers = MOCK_CLIENTS.filter((c) => c.type === "SELLER").length;
+  const cleared = MOCK_CLIENTS.filter((c) => c.kybAml === "CLEARED").length;
+  const pending = MOCK_CLIENTS.filter((c) => c.kybAml === "PENDING LIVENESS").length;
+  const blocked = MOCK_CLIENTS.filter((c) => c.kybAml === "SANCTIONS BLOCK").length;
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden">
-      {/* ── Header ── */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-800">
+    <div className="absolute inset-0 flex flex-col p-4 gap-4 overflow-hidden bg-slate-950 text-slate-300">
+      {/* ── Header Strip ── */}
+      <div className="shrink-0 flex items-center justify-between">
         <div>
           <h1 className="text-sm font-semibold text-slate-200 tracking-tight">
-            Client Roster
+            Client Network
           </h1>
           <p className="text-[10px] font-mono text-slate-500 mt-0.5">
-            {MOCK_CLIENTS.length} entities &middot; {buyers} buyers &middot; {sellers} sellers
+            {MOCK_CLIENTS.length} entities &middot;{" "}
+            <span className="text-emerald-400">{cleared} cleared</span> &middot;{" "}
+            <span className="text-amber-400">{pending} pending</span> &middot;{" "}
+            <span className="text-red-400">{blocked} blocked</span>
           </p>
         </div>
+
+        <button className="px-3 py-1.5 rounded border border-amber-500/30 bg-amber-500/10 text-xs font-semibold text-amber-400 hover:bg-amber-500/20 transition-colors">
+          + Invite Institutional Buyer
+        </button>
       </div>
 
-      {/* ── Table ── */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-slate-950/95 backdrop-blur-sm">
+      {/* ── Dense Data Table ── */}
+      <div className="flex-1 min-h-0 overflow-y-auto rounded border border-slate-800 bg-slate-900/40">
+        <table className="w-full text-sm font-mono">
+          <thead className="sticky top-0 bg-slate-900/95 backdrop-blur-sm">
             <tr className="text-[10px] font-mono text-slate-500 uppercase tracking-widest border-b border-slate-800">
-              <th className="text-left px-4 py-2 font-medium">ID</th>
-              <th className="text-left px-4 py-2 font-medium">Entity Name</th>
-              <th className="text-left px-4 py-2 font-medium">Type</th>
-              <th className="text-left px-4 py-2 font-medium">KYC</th>
-              <th className="text-right px-4 py-2 font-medium">Deals</th>
-              <th className="text-right px-4 py-2 font-medium">AUM</th>
-              <th className="text-left px-4 py-2 font-medium">Onboarded</th>
+              <th className="text-left px-4 py-2.5 font-medium">Entity Name</th>
+              <th className="text-left px-4 py-2.5 font-medium">Jurisdiction</th>
+              <th className="text-left px-4 py-2.5 font-medium">KYB / AML Status</th>
+              <th className="text-left px-4 py-2.5 font-medium">IRA Custodian</th>
+              <th className="text-right px-4 py-2.5 font-medium">Deals</th>
+              <th className="text-right px-4 py-2.5 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {MOCK_CLIENTS.map((client) => (
-              <tr key={client.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                <td className="px-4 py-2.5 font-mono text-xs text-slate-500">{client.id}</td>
-                <td className="px-4 py-2.5 text-sm text-slate-200">{client.name}</td>
-                <td className="px-4 py-2.5">
-                  <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${TYPE_STYLES[client.type]}`}>
-                    {client.type}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5">
-                  <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider ${KYC_STYLES[client.kyc] ?? "text-slate-500"}`}>
-                    {client.kyc}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-right font-mono text-xs text-slate-400">{client.deals}</td>
-                <td className="px-4 py-2.5 text-right font-mono text-xs text-slate-300">{fmtUsd(client.aum)}</td>
-                <td className="px-4 py-2.5 font-mono text-xs text-slate-600">{client.onboarded}</td>
-              </tr>
-            ))}
+            {MOCK_CLIENTS.map((client) => {
+              const style = KYB_STYLES[client.kybAml] ?? DEFAULT_STYLE;
+              const isBlocked = client.kybAml === "SANCTIONS BLOCK";
+
+              return (
+                <tr
+                  key={client.id}
+                  className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors"
+                >
+                  {/* Entity Name */}
+                  <td className="px-4 py-2.5 text-xs text-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
+                      {client.name}
+                    </div>
+                  </td>
+
+                  {/* Jurisdiction */}
+                  <td className="px-4 py-2.5 text-xs text-slate-400">
+                    {client.jurisdiction}
+                  </td>
+
+                  {/* KYB/AML Status */}
+                  <td className="px-4 py-2.5">
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${style.text} ${style.bg} ${style.border}`}
+                    >
+                      {client.kybAml === "PENDING LIVENESS" && (
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      )}
+                      {client.kybAml}
+                    </span>
+                  </td>
+
+                  {/* IRA Custodian */}
+                  <td className="px-4 py-2.5 text-xs text-slate-400">
+                    {client.iraCustodian === "N/A" ? (
+                      <span className="text-slate-600">—</span>
+                    ) : (
+                      client.iraCustodian
+                    )}
+                  </td>
+
+                  {/* Deals */}
+                  <td className="px-4 py-2.5 text-right text-xs text-slate-400 tabular-nums">
+                    {client.deals}
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-4 py-2.5 text-right">
+                    {isBlocked ? (
+                      <span className="text-[10px] font-mono text-red-400/60 uppercase tracking-wider">
+                        Restricted
+                      </span>
+                    ) : (
+                      <button className="text-[10px] font-mono text-amber-400 hover:text-amber-300 uppercase tracking-wider transition-colors">
+                        View Entity →
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

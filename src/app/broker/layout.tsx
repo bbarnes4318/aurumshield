@@ -111,10 +111,9 @@ function BrokerComplianceGate({ children }: { children: ReactNode }) {
 
 /* ── Navigation items ── */
 const NAV_ITEMS = [
-  { href: "/broker",          label: "Command Center",  icon: "◆" },
-  { href: "/broker/pipeline", label: "Deal Pipeline",   icon: "◈" },
-  { href: "/broker/assets",   label: "LBMA Assets",     icon: "◇" },
-  { href: "/broker/clients",  label: "Client Roster",   icon: "◻" },
+  { href: "/marketplace",     label: "Marketplace",      icon: "◇" },
+  { href: "/broker/pipeline", label: "Deal Pipeline",    icon: "◈" },
+  { href: "/broker/clients",  label: "Client Network",   icon: "◻" },
 ] as const;
 
 export default function BrokerLayout({ children }: { children: ReactNode }) {
@@ -191,8 +190,8 @@ export default function BrokerLayout({ children }: { children: ReactNode }) {
             <nav className="flex-1 py-4 px-3 space-y-1">
               {NAV_ITEMS.map((item, idx) => {
                 const isActive =
-                  item.href === "/broker"
-                    ? pathname === "/broker"
+                  item.href === "/marketplace"
+                    ? pathname === "/marketplace" || pathname.startsWith("/marketplace/")
                     : pathname.startsWith(item.href);
 
                 const goldwireActive = pathname === "/transactions/new" || pathname.startsWith("/transactions/new/");
