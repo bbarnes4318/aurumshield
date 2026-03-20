@@ -202,7 +202,7 @@ function handleDownload(docId: string) {
 
 export default function AuditVaultPage() {
   const router = useRouter();
-  const { data: onboardingState, isLoading: complianceLoading } = useOnboardingState();
+  const { data: onboardingState, isLoading: complianceLoading, isError } = useOnboardingState();
   const isCleared = onboardingState?.status === "COMPLETED";
 
   const [activeTab, setActiveTab] = useState<AuditTab>("certificates");
@@ -210,10 +210,10 @@ export default function AuditVaultPage() {
 
   /* ── Hard Ejection ── */
   useEffect(() => {
-    if (!complianceLoading && !isCleared) {
+    if (!complianceLoading && !isError && !isCleared) {
       router.replace("/offtaker/org/select");
     }
-  }, [complianceLoading, isCleared, router]);
+  }, [complianceLoading, isCleared, isError, router]);
 
   if (complianceLoading) {
     return (

@@ -4,29 +4,49 @@
    OFFTAKER ROOT — /offtaker
    ================================================================
    Pure redirect page. Routes cleared users to the Marketplace and
-   uncleared users to org selection. The Command Center is NOT
-   visible on the portal after compliance approval.
+   uncleared users to org selection. Does NOT redirect when the
+   compliance state API is erroring — prevents false redirects.
    ================================================================ */
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
 
 export default function OfftakerRootPage() {
   const router = useRouter();
-  const { data: onboardingState, isLoading: complianceLoading } = useOnboardingState();
+  const { data: onboardingState, isLoading: complianceLoading, isError, refetch } = useOnboardingState();
   const isCleared = onboardingState?.status === "COMPLETED";
 
   useEffect(() => {
-    if (complianceLoading) return;
+    if (complianceLoading || isError) return; // NEVER redirect on error
 
     if (isCleared) {
       router.replace("/offtaker/marketplace");
     } else {
       router.replace("/offtaker/org/select");
     }
-  }, [complianceLoading, isCleared, router]);
+  }, [complianceLoading, isCleared, isError, router]);
+
+  if (isError) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-3 max-w-md text-center">
+          <AlertTriangle className="h-6 w-6 text-amber-400" />
+          <span className="font-mono text-xs text-slate-400">
+            Unable to verify compliance status. Retrying...
+          </span>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="font-mono text-[10px] text-gold-primary border border-gold-primary/30 px-4 py-2 hover:bg-gold-primary/10 transition-colors cursor-pointer tracking-wider uppercase"
+          >
+            Retry Now
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex items-center justify-center bg-slate-950">
@@ -39,3 +59,4 @@ export default function OfftakerRootPage() {
     </div>
   );
 }
+

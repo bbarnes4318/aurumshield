@@ -37,7 +37,14 @@ export async function GET() {
     }
 
     console.warn("[AurumShield] GET /api/compliance/state failed:", err);
-    return NextResponse.json({ state: null, source: "fallback" });
+    // CRITICAL: Return a 503 error so the client can distinguish between
+    // "user has no state" (state: null, 200) vs "API failed" (503).
+    // Returning { state: null } on failure was causing every offtaker page
+    // to falsely redirect approved users to /offtaker/org/select.
+    return NextResponse.json(
+      { error: "Failed to fetch onboarding state" },
+      { status: 503 },
+    );
   }
 }
 

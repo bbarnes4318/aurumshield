@@ -157,7 +157,7 @@ function MaterialChangeModal({
 export default function EntityManagementPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: onboardingState, isLoading: isLoadingState } =
+  const { data: onboardingState, isLoading: isLoadingState, isError } =
     useOnboardingState();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -214,7 +214,7 @@ export default function EntityManagementPage() {
   }
 
   /* ── Hard Ejection: non-cleared users get pushed out ── */
-  if (onboardingState?.status !== "COMPLETED") {
+  if (!isError && onboardingState?.status !== "COMPLETED") {
     router.replace("/offtaker/org/select");
     return <div className="h-full bg-slate-950" />;
   }

@@ -37,6 +37,8 @@ export function useOnboardingState(enabled = true) {
     },
     enabled,
     staleTime: 10_000, // 10s — state changes infrequently
+    retry: 3, // Retry on transient failures to prevent false redirects
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
   });
 }
 
