@@ -37,6 +37,8 @@ import {
   Coins,
   ArrowRightLeft,
   GraduationCap,
+  BarChart3,
+  PieChart,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -164,6 +166,14 @@ const BROKER_NAV: NavItem[] = [
   // Goldwire uses a custom logo renderer — see GoldwireNavLink below
   { label: "Deal Pipeline",       href: "/broker/pipeline",                 icon: ArrowRightLeft,  allowedRoles: BROKER_ROLES },
   { label: "Client Network",      href: "/broker/clients",                  icon: Users,           allowedRoles: BROKER_ROLES },
+];
+
+/* ── Investor-visible nav items (LPs / venture backers) ── */
+const INVESTOR_NAV: NavItem[] = [
+  { label: "Platform Overview",   href: "/investor",                        icon: BarChart3,        allowedRoles: [] },
+  { label: "Yield & Revenue",     href: "/investor/yield",                  icon: PieChart,         allowedRoles: [] },
+  { label: "Systemic Risk",       href: "/investor/risk",                   icon: ShieldCheck,      allowedRoles: [] },
+  { label: "Capital Cap Table",   href: "/investor/cap-table",              icon: Landmark,         allowedRoles: [] },
 ];
 
 /* ================================================================
@@ -307,7 +317,7 @@ function SectionHeader({ label, collapsed }: { label: string; collapsed: boolean
 }
 
 /* ── Impersonation mode type ── */
-type ImpersonationMode = "none" | "offtaker" | "producer" | "broker";
+type ImpersonationMode = "none" | "offtaker" | "producer" | "broker" | "investor";
 
 function SidebarNav({
   collapsed,
@@ -359,9 +369,10 @@ function SidebarNav({
      auto-detect the impersonation mode from the pathname. This prevents the sidebar
      from resetting to admin nav on page refresh. Pathname ALWAYS wins over state. */
   const pathnameImpersonation: ImpersonationMode =
-    isOperator && pathname.startsWith("/offtaker") ? "offtaker" :
-    isOperator && pathname.startsWith("/producer") ? "producer" :
-    isOperator && pathname.startsWith("/broker")   ? "broker"   :
+    isOperator && pathname.startsWith("/offtaker")  ? "offtaker"  :
+    isOperator && pathname.startsWith("/producer")  ? "producer"  :
+    isOperator && pathname.startsWith("/broker")    ? "broker"    :
+    isOperator && pathname.startsWith("/investor")  ? "investor"  :
     "none";
 
   const [manualImpersonation, setManualImpersonation] = useState<ImpersonationMode>("none");
@@ -378,6 +389,8 @@ function SidebarNav({
       router.push("/producer/accreditation");
     } else if (mode === "broker") {
       router.push("/broker/pipeline");
+    } else if (mode === "investor") {
+      router.push("/investor");
     }
   }, [router]);
 
@@ -456,6 +469,12 @@ function SidebarNav({
           {renderReturnBanner()}
           {renderPortalNav(BROKER_NAV, "Broker Portal", true)}
         </>
+      ) : isOperator && impersonationMode === "investor" ? (
+        /* ══════ ADMIN → INVESTOR IMPERSONATION ══════ */
+        <>
+          {renderReturnBanner()}
+          {renderPortalNav(INVESTOR_NAV, "Investor Portal")}
+        </>
       ) : isOperator ? (
         /* ══════ ADMIN MODE ══════ */
         <>
@@ -512,6 +531,14 @@ function SidebarNav({
                   <Eye className="h-4 w-4 text-amber-400 shrink-0" />
                   <span>View Broker Portal</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleImpersonate("investor")}
+                  className="w-full flex items-center gap-2.5 rounded-lg border border-cyan-500/30 bg-cyan-500/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                >
+                  <Eye className="h-4 w-4 text-cyan-400 shrink-0" />
+                  <span>View Investor Portal</span>
+                </button>
               </>
             ) : (
               <>
@@ -536,6 +563,14 @@ function SidebarNav({
                   onClick={() => handleImpersonate("broker")}
                   className="flex items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-amber-400 hover:bg-amber-500/10 transition-all"
                   title="View Broker Portal"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleImpersonate("investor")}
+                  className="flex items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-2 text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                  title="View Investor Portal"
                 >
                   <Eye className="h-4 w-4" />
                 </button>
