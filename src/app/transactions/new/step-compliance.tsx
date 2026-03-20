@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 /* ================================================================
    STEP 2 — Compliance Verification (Fail-Closed)
    ================================================================
-   Self-contained display of mock compliance checks.
+   Compact single-view display of compliance checks.
    All checks auto-pass for the demo environment.
    ================================================================ */
 
@@ -18,36 +18,11 @@ interface ComplianceItem {
 }
 
 const MOCK_CHECKS: ComplianceItem[] = [
-  {
-    id: "kyb",
-    name: "KYB Entity Verification",
-    detail: "Corporate registration, beneficial ownership, and UBO structure validated against FinCEN records.",
-    result: "PASS",
-  },
-  {
-    id: "ofac",
-    name: "OFAC Sanctions Screening",
-    detail: "Entity and all UBOs cleared against OFAC SDN, Consolidated Screening List, and EU sanctions registry.",
-    result: "PASS",
-  },
-  {
-    id: "aml",
-    name: "AML Transaction Pattern Analysis",
-    detail: "Settlement amount within normal institutional parameters. No structuring or velocity anomalies detected.",
-    result: "PASS",
-  },
-  {
-    id: "jurisdiction",
-    name: "Jurisdiction Clearance",
-    detail: "Counterparty jurisdiction is an approved corridor. No FATF grey/black-list match.",
-    result: "PASS",
-  },
-  {
-    id: "pep",
-    name: "PEP & Adverse Media",
-    detail: "No Politically Exposed Person links. Adverse media scan returned zero matches.",
-    result: "PASS",
-  },
+  { id: "kyb",          name: "KYB Entity Verification",       detail: "Corporate registration & UBO structure validated.",       result: "PASS" },
+  { id: "ofac",         name: "OFAC Sanctions Screening",      detail: "Cleared against OFAC SDN & EU sanctions registry.",      result: "PASS" },
+  { id: "aml",          name: "AML Pattern Analysis",          detail: "Amount within institutional parameters. No anomalies.",   result: "PASS" },
+  { id: "jurisdiction", name: "Jurisdiction Clearance",        detail: "Approved corridor. No FATF grey/black-list match.",       result: "PASS" },
+  { id: "pep",          name: "PEP & Adverse Media",           detail: "No PEP links. Adverse media scan returned zero matches.", result: "PASS" },
 ];
 
 const RESULT_CONFIG = {
@@ -65,31 +40,30 @@ export function StepCompliance({ beneficiaryName, amount }: Props) {
   const allPass = MOCK_CHECKS.every((c) => c.result === "PASS");
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold/10 border border-gold/20">
-          <ShieldCheck className="h-4 w-4 text-gold" />
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gold/10 border border-gold/20">
+          <ShieldCheck className="h-3.5 w-3.5 text-gold" />
         </div>
         <div>
-          <h2 className="font-heading text-base font-semibold text-text">
+          <h2 className="font-heading text-sm font-semibold text-text">
             Step 2 — Compliance Verification
           </h2>
-          <p className="text-xs text-text-faint">
-            Fail-closed compliance gate. All checks must pass before funding authorization.
+          <p className="text-[11px] text-text-faint">
+            Fail-closed gate. All checks must pass before funding.
           </p>
         </div>
       </div>
 
       {/* Transaction Summary */}
-      <div className="rounded-lg border border-border bg-surface-2 px-4 py-3">
-        <p className="typo-label mb-2">Transaction Under Review</p>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+      <div className="rounded-lg border border-border bg-surface-2 px-4 py-2.5">
+        <div className="flex items-center gap-6 text-sm">
           <div>
-            <span className="text-text-faint">Counterparty:</span>{" "}
+            <span className="text-text-faint text-xs">Counterparty:</span>{" "}
             <span className="text-text font-medium">{beneficiaryName}</span>
           </div>
           <div>
-            <span className="text-text-faint">Notional:</span>{" "}
+            <span className="text-text-faint text-xs">Notional:</span>{" "}
             <span className="text-text font-mono font-semibold tabular-nums">
               ${amount > 0 ? amount.toLocaleString("en-US", { minimumFractionDigits: 2 }) : "—"}
             </span>
@@ -98,7 +72,7 @@ export function StepCompliance({ beneficiaryName, amount }: Props) {
       </div>
 
       {/* Compliance Checklist */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {MOCK_CHECKS.map((check) => {
           const cfg = RESULT_CONFIG[check.result];
           const Icon = cfg.icon;
@@ -106,26 +80,19 @@ export function StepCompliance({ beneficiaryName, amount }: Props) {
             <div
               key={check.id}
               className={cn(
-                "flex items-start gap-3 rounded-lg border px-4 py-3 transition-colors",
+                "flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors",
                 cfg.bg,
                 cfg.border
               )}
             >
-              <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", cfg.color)} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-text">{check.name}</span>
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold uppercase tracking-widest",
-                      cfg.color
-                    )}
-                  >
-                    {cfg.label}
-                  </span>
-                </div>
-                <p className="mt-0.5 text-xs text-text-muted leading-relaxed">{check.detail}</p>
+              <Icon className={cn("h-4 w-4 shrink-0", cfg.color)} />
+              <div className="flex-1 min-w-0 flex items-center gap-2">
+                <span className="text-sm font-medium text-text">{check.name}</span>
+                <span className="text-[11px] text-text-muted hidden sm:inline">{check.detail}</span>
               </div>
+              <span className={cn("text-[10px] font-bold uppercase tracking-widest shrink-0", cfg.color)}>
+                {cfg.label}
+              </span>
             </div>
           );
         })}
@@ -133,14 +100,14 @@ export function StepCompliance({ beneficiaryName, amount }: Props) {
 
       {/* Gate Status */}
       {allPass ? (
-        <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/[0.04] px-4 py-3 flex items-center gap-2">
+        <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/[0.04] px-4 py-2.5 flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
           <p className="text-sm text-emerald-400 font-medium">
             All compliance gates cleared. Entity authorized for settlement.
           </p>
         </div>
       ) : (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-2.5 text-sm text-danger">
           One or more BLOCK-level checks failed. Resolve issues before proceeding.
         </div>
       )}

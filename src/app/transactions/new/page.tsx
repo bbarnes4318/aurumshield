@@ -377,7 +377,7 @@ export default function ExecuteGoldwirePage() {
                 className="flex items-center gap-2 rounded-lg bg-gold px-5 py-2.5 text-sm font-semibold text-bg transition-colors hover:bg-gold-hover active:bg-gold-pressed"
               >
                 {activeStep === 3
-                  ? "Proceed to Sign-Off"
+                  ? "Confirm & Authorize"
                   : activeStep === 2
                     ? "Continue to Funding"
                     : "Next"}

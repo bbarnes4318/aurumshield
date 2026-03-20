@@ -175,16 +175,16 @@ export function StepReview({ form, beneficiaryName, isExecuting, onExecute }: Pr
   const { copiedField, copy } = useCopyToClipboard();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <div className="flex items-center gap-3 mb-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold/10 border border-gold/20">
-          <ShieldCheck className="h-4 w-4 text-gold" />
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gold/10 border border-gold/20">
+          <ShieldCheck className="h-3.5 w-3.5 text-gold" />
         </div>
         <div>
-          <h2 className="font-heading text-base font-semibold text-text">
+          <h2 className="font-heading text-sm font-semibold text-text">
             Step 4 — Cryptographic Sign-Off
           </h2>
-          <p className="text-xs text-text-faint">
+          <p className="text-[11px] text-text-faint">
             Verify all parameters before signing the Goldwire execution certificate.
           </p>
         </div>
@@ -192,14 +192,14 @@ export function StepReview({ form, beneficiaryName, isExecuting, onExecute }: Pr
 
       {/* Goldwire Execution Certificate */}
       <div className="rounded-lg border border-border bg-surface-2 overflow-hidden">
-        <div className="bg-gold/[0.06] border-b border-gold/20 px-5 py-3 flex items-center gap-2">
+        <div className="bg-gold/[0.06] border-b border-gold/20 px-4 py-2.5 flex items-center gap-2">
           <Lock className="h-3.5 w-3.5 text-gold" />
-          <span className="text-xs font-bold text-gold uppercase tracking-widest">
+          <span className="text-[10px] font-bold text-gold uppercase tracking-widest">
             Goldwire Execution Certificate
           </span>
         </div>
-        <div className="px-5 py-4 space-y-3">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <div className="px-4 py-3 space-y-2.5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div>
               <span className="text-text-faint text-xs">Beneficiary</span>
               <p className="text-text font-medium">{beneficiaryName}</p>
@@ -367,10 +367,10 @@ export function StepReview({ form, beneficiaryName, isExecuting, onExecute }: Pr
         </Link>
       )}
 
-      {/* Reference Code */}
+      {/* Settlement Reference Code */}
       <div>
         <label className="typo-label mb-1.5 block" htmlFor="w-ref">
-          Wire Reference Code
+          Settlement Reference Code
         </label>
         <input
           id="w-ref"
@@ -383,7 +383,7 @@ export function StepReview({ form, beneficiaryName, isExecuting, onExecute }: Pr
           <p className="mt-1 text-xs text-danger">{errors.referenceCode.message}</p>
         )}
         <p className="mt-1 text-xs text-text-faint">
-          Unique identifier for this settlement. Will be embedded in the SHA-256 clearing certificate.
+          Auto-generated for both wire and stablecoin rails. Embedded in the SHA-256 clearing certificate.
         </p>
       </div>
 
