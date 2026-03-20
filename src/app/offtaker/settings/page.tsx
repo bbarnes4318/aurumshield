@@ -305,7 +305,7 @@ export default function EntityManagementPage() {
             <div>
               <span className="text-slate-500 text-xs">Verification Step</span>
               <p className="text-slate-300 font-mono mt-0.5">
-                {onboardingState.currentStep} / 7
+                {onboardingState?.currentStep ?? "—"} / 7
               </p>
             </div>
             <div>
