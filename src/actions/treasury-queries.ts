@@ -89,7 +89,7 @@ export async function getLiveDashboardMetrics(): Promise<DashboardData> {
          COALESCE(SUM(total_notional), 0) AS active_exposure,
          COUNT(*)::text AS total_cases
        FROM settlement_cases
-       WHERE status NOT IN (
+       WHERE status::TEXT NOT IN (
          'SETTLED', 'TITLE_TRANSFERRED_AND_COMPLETED',
          'REVERSED', 'FAILED', 'CANCELLED', 'DRAFT'
        )`,
@@ -105,19 +105,19 @@ export async function getLiveDashboardMetrics(): Promise<DashboardData> {
     }>(
       `SELECT
          CASE
-           WHEN status IN ('SETTLED', 'TITLE_TRANSFERRED_AND_COMPLETED') THEN 'completed'
-           WHEN status IN ('DVP_EXECUTED', 'PROCESSING_RAIL', 'AUTHORIZED') THEN 'processing'
-           WHEN status IN ('DRAFT', 'ESCROW_OPEN', 'AWAITING_FUNDS', 'AWAITING_GOLD',
+           WHEN status::TEXT IN ('SETTLED', 'TITLE_TRANSFERRED_AND_COMPLETED') THEN 'completed'
+           WHEN status::TEXT IN ('DVP_EXECUTED', 'PROCESSING_RAIL', 'AUTHORIZED') THEN 'processing'
+           WHEN status::TEXT IN ('DRAFT', 'ESCROW_OPEN', 'AWAITING_FUNDS', 'AWAITING_GOLD',
              'AWAITING_VERIFICATION', 'READY_TO_SETTLE', 'FUNDS_HELD', 'ASSET_ALLOCATED',
              'DVP_READY', 'FUNDS_CLEARED_READY_FOR_RELEASE', 'AWAITING_FUNDS_RELEASE') THEN 'pending'
-           WHEN status IN ('FAILED', 'AMBIGUOUS_STATE') THEN 'failed'
-           WHEN status = 'REVERSED' THEN 'reversed'
+           WHEN status::TEXT IN ('FAILED', 'AMBIGUOUS_STATE') THEN 'failed'
+           WHEN status::TEXT = 'REVERSED' THEN 'reversed'
            ELSE 'pending'
          END AS bucket,
          COUNT(*)::text AS cnt,
          COALESCE(SUM(total_notional), 0) AS vol
        FROM settlement_cases
-       WHERE status != 'CANCELLED'
+       WHERE status::TEXT != 'CANCELLED'
        GROUP BY bucket
        ORDER BY bucket`,
     );

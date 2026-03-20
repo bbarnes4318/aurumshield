@@ -326,7 +326,7 @@ export async function getProducerMetrics(
       `SELECT COALESCE(SUM(total_notional), 0) AS total_usd
        FROM settlement_cases
        WHERE seller_id = $1
-         AND status IN (
+         AND status::TEXT IN (
            'FUNDS_CLEARED_READY_FOR_RELEASE',
            'DVP_READY',
            'ASSET_ALLOCATED',
@@ -345,7 +345,7 @@ export async function getProducerMetrics(
       `SELECT COALESCE(SUM(total_notional), 0) AS total_usd
        FROM settlement_cases
        WHERE seller_id = $1
-         AND status IN ('TITLE_TRANSFERRED_AND_COMPLETED', 'SETTLED')
+         AND status::TEXT IN ('TITLE_TRANSFERRED_AND_COMPLETED', 'SETTLED')
          AND settled_at >= date_trunc('year', CURRENT_DATE)`,
       [producerId],
     );
