@@ -21,7 +21,7 @@
      └──────┴──────────────────────────────────────┘
    ================================================================ */
 
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -121,9 +121,16 @@ export default function BrokerLayout({ children }: { children: ReactNode }) {
   const { data: goldPrice, isLoading: priceLoading } = useGoldPrice();
   const spotPrice = goldPrice?.spotPriceUsd ?? 0;
 
+  /* ── Hydration guard: prevent React #418 by skipping SSR render ── */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) {
+    return <div className="absolute inset-0 bg-slate-950" />;
+  }
+
   return (
     <BrokerComplianceGate>
-      <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950 text-slate-300">
+      <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950 text-slate-300" suppressHydrationWarning>
         {/* ── AMBIENT TELEMETRY STRIP ── */}
         <div className="shrink-0 bg-black/40 border-b border-slate-800/60 px-6 py-2 flex items-center gap-6">
           <div className="flex items-center gap-2">
