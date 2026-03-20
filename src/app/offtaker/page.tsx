@@ -12,13 +12,28 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
+import { useAuth } from "@/providers/auth-provider";
+import type { UserRole } from "@/lib/mock-data";
+
+/* ── Operator roles bypass KYC entirely ── */
+const OPERATOR_ROLES: UserRole[] = ["admin", "compliance", "treasury", "vault_ops", "INSTITUTION_TRADER", "INSTITUTION_TREASURY"];
 
 export default function OfftakerRootPage() {
   const router = useRouter();
-  const { data: onboardingState, isLoading: complianceLoading, isError, refetch } = useOnboardingState();
+  const { user } = useAuth();
+  const role: UserRole = user?.role ?? "offtaker";
+  const isOperator = OPERATOR_ROLES.includes(role);
+
+  const { data: onboardingState, isLoading: complianceLoading, isError, refetch } = useOnboardingState(!isOperator);
   const isCleared = onboardingState?.status === "COMPLETED";
 
   useEffect(() => {
+    // Operators bypass compliance entirely — straight to marketplace
+    if (isOperator) {
+      router.replace("/offtaker/marketplace");
+      return;
+    }
+
     if (complianceLoading || isError) return; // NEVER redirect on error
 
     if (isCleared) {
@@ -26,7 +41,7 @@ export default function OfftakerRootPage() {
     } else {
       router.replace("/offtaker/org/select");
     }
-  }, [complianceLoading, isCleared, isError, router]);
+  }, [complianceLoading, isCleared, isError, isOperator, router]);
 
   if (isError) {
     return (

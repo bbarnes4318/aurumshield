@@ -160,11 +160,10 @@ const PRODUCER_NAV: NavItem[] = [
 
 /* ── Broker-visible nav items ── */
 const BROKER_NAV: NavItem[] = [
-  { label: "Command Center",      href: "/broker",                          icon: LayoutDashboard, allowedRoles: BROKER_ROLES },
+  { label: "Marketplace",         href: "/marketplace",                     icon: Coins,           allowedRoles: BROKER_ROLES },
   // Goldwire uses a custom logo renderer — see GoldwireNavLink below
   { label: "Deal Pipeline",       href: "/broker/pipeline",                 icon: ArrowRightLeft,  allowedRoles: BROKER_ROLES },
-  { label: "LBMA Assets",         href: "/broker/assets",                   icon: Shield,          allowedRoles: BROKER_ROLES },
-  { label: "Client Roster",       href: "/broker/clients",                  icon: Users,           allowedRoles: BROKER_ROLES },
+  { label: "Client Network",      href: "/broker/clients",                  icon: Users,           allowedRoles: BROKER_ROLES },
 ];
 
 /* ================================================================
@@ -353,18 +352,32 @@ function SidebarNav({
   }, []);
 
   /* ── Admin Portal Impersonation Toggle ── */
-  const [impersonationMode, setImpersonationMode] = useState<ImpersonationMode>("none");
   const router = useRouter();
 
+  /* ── PATHNAME-FIRST DETECTION ──
+     If an admin is physically inside a portal route (via URL, refresh, or deep link),
+     auto-detect the impersonation mode from the pathname. This prevents the sidebar
+     from resetting to admin nav on page refresh. Pathname ALWAYS wins over state. */
+  const pathnameImpersonation: ImpersonationMode =
+    isOperator && pathname.startsWith("/offtaker") ? "offtaker" :
+    isOperator && pathname.startsWith("/producer") ? "producer" :
+    isOperator && pathname.startsWith("/broker")   ? "broker"   :
+    "none";
+
+  const [manualImpersonation, setManualImpersonation] = useState<ImpersonationMode>("none");
+
+  /* Pathname takes precedence over manual toggle — prevents stale sidebar on refresh */
+  const impersonationMode = pathnameImpersonation !== "none" ? pathnameImpersonation : manualImpersonation;
+
   const handleImpersonate = useCallback((mode: ImpersonationMode) => {
-    setImpersonationMode(mode);
+    setManualImpersonation(mode);
     // Navigate to the portal's entry point
     if (mode === "offtaker") {
-      router.push("/offtaker/org/select");
+      router.push("/offtaker/marketplace");
     } else if (mode === "producer") {
       router.push("/producer/accreditation");
     } else if (mode === "broker") {
-      router.push("/broker");
+      router.push("/broker/pipeline");
     }
   }, [router]);
 
@@ -404,7 +417,7 @@ function SidebarNav({
       {!collapsed ? (
         <button
           type="button"
-          onClick={() => setImpersonationMode("none")}
+          onClick={() => setManualImpersonation("none")}
           className="mb-3 flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-950/20 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-blue-300 hover:bg-blue-950/40 transition-all"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
@@ -413,7 +426,7 @@ function SidebarNav({
       ) : (
         <button
           type="button"
-          onClick={() => setImpersonationMode("none")}
+          onClick={() => setManualImpersonation("none")}
           className="mb-3 flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-950/20 p-2 text-blue-300 hover:bg-blue-950/40 transition-all"
           title="Return to Admin Command"
         >
