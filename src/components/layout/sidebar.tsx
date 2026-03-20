@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Building,
   Building2,
-  Send,
   ListTree,
   Shield,
   FileCheck,
@@ -39,6 +38,7 @@ import {
   Coins,
   ArrowRightLeft,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { usePathname, useRouter } from "next/navigation";
@@ -99,7 +99,7 @@ const PRO_TOGGLE_KEY = "aurumshield:pro-execution-desk";
 /* Core Operations */
 const OPERATOR_OPS: NavItem[] = [
   { label: "Command Center",      href: "/dashboard",              icon: LayoutDashboard, allowedRoles: OPERATOR_ROLES },
-  { label: "Execute Goldwire",    href: "/transactions/new",       icon: Send,            allowedRoles: OPERATOR_ROLES },
+  // Goldwire uses a custom logo renderer — see GoldwireNavLink below
   { label: "Settlement Ledger",   href: "/transactions",           icon: ListTree,        allowedRoles: OPERATOR_ROLES },
   { label: "Settlements",         href: "/settlements",            icon: Landmark,        allowedRoles: OPERATOR_ROLES },
   { label: "Reservations",        href: "/reservations",           icon: CalendarClock,   allowedRoles: OPERATOR_ROLES },
@@ -160,6 +160,7 @@ const PRODUCER_NAV: NavItem[] = [
 /* ── Broker-visible nav items ── */
 const BROKER_NAV: NavItem[] = [
   { label: "Command Center",      href: "/broker",                          icon: LayoutDashboard, allowedRoles: BROKER_ROLES },
+  // Goldwire uses a custom logo renderer — see GoldwireNavLink below
   { label: "Deal Pipeline",       href: "/broker/pipeline",                 icon: ArrowRightLeft,  allowedRoles: BROKER_ROLES },
   { label: "LBMA Assets",         href: "/broker/assets",                   icon: Shield,          allowedRoles: BROKER_ROLES },
   { label: "Client Roster",       href: "/broker/clients",                  icon: Users,           allowedRoles: BROKER_ROLES },
@@ -242,6 +243,59 @@ function NavLink({
   );
 }
 
+/* ── Goldwire Logo Nav Link — renders the SVG logo instead of text ── */
+function GoldwireNavLink({
+  collapsed,
+  pathname,
+  onLinkClick,
+}: {
+  collapsed: boolean;
+  pathname: string;
+  onLinkClick?: () => void;
+}) {
+  const href = "/transactions/new";
+  const isActive = pathname === href || pathname.startsWith(href + "/");
+
+  return (
+    <li>
+      <Link
+        href={href}
+        onClick={onLinkClick}
+        className={cn(
+          "flex items-center rounded px-2.5 py-1.5 transition-colors duration-100",
+          isActive
+            ? "bg-slate-800"
+            : "hover:bg-slate-800/50",
+          collapsed ? "justify-center px-0" : "gap-2.5"
+        )}
+        aria-current={isActive ? "page" : undefined}
+      >
+        {collapsed ? (
+          /* Collapsed: show the icon mark */
+          <Image
+            src="/goldwire-icon.svg"
+            alt="Goldwire"
+            width={20}
+            height={17}
+            className="shrink-0"
+            style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
+          />
+        ) : (
+          /* Expanded: show the full logo */
+          <Image
+            src="/goldwire-logo.svg"
+            alt="Execute Goldwire"
+            width={120}
+            height={26}
+            className="shrink-0"
+            style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
+          />
+        )}
+      </Link>
+    </li>
+  );
+}
+
 function SectionHeader({ label, collapsed }: { label: string; collapsed: boolean }) {
   if (collapsed) return <li className="my-2 border-t border-slate-800" />;
   return (
@@ -315,7 +369,7 @@ function SidebarNav({
   }, [router]);
 
   /* ── Helper: render a portal nav list with optional section header ── */
-  const renderPortalNav = (items: NavItem[], sectionLabel: string) => (
+  const renderPortalNav = (items: NavItem[], sectionLabel: string, includeGoldwire = false) => (
     <>
       {!collapsed && (
         <div className="mb-2 flex items-center gap-2 px-2.5">
@@ -326,9 +380,20 @@ function SidebarNav({
         </div>
       )}
       <ul className="space-y-0.5 flex-1">
-        {items.map((item) => (
-          <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
-        ))}
+        {includeGoldwire ? (
+          <>
+            {/* Command Center first, then Goldwire logo, then rest */}
+            <NavLink key={items[0].label} item={items[0]} href={items[0].href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            <GoldwireNavLink collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            {items.slice(1).map((item) => (
+              <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            ))}
+          </>
+        ) : (
+          items.map((item) => (
+            <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+          ))
+        )}
       </ul>
     </>
   );
@@ -376,14 +441,17 @@ function SidebarNav({
         /* ══════ ADMIN → BROKER IMPERSONATION ══════ */
         <>
           {renderReturnBanner()}
-          {renderPortalNav(BROKER_NAV, "Broker Portal")}
+          {renderPortalNav(BROKER_NAV, "Broker Portal", true)}
         </>
       ) : isOperator ? (
         /* ══════ ADMIN MODE ══════ */
         <>
           <ul className="space-y-0.5 flex-1">
             <SectionHeader label="Operations" collapsed={collapsed} />
-            {OPERATOR_OPS.map((item) => (
+            {/* Goldwire logo link — inserted after Command Center */}
+            <NavLink key="Command Center" item={OPERATOR_OPS[0]} href={OPERATOR_OPS[0].href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            <GoldwireNavLink collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            {OPERATOR_OPS.slice(1).map((item) => (
               <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
             ))}
 
@@ -475,7 +543,10 @@ function SidebarNav({
         /* ══════ BROKER CLIENT MODE ══════ */
         <>
           <ul className="space-y-0.5 flex-1">
-            {BROKER_NAV.map((item) => (
+            {/* Goldwire logo link — inserted after Command Center */}
+            <NavLink key="Command Center" item={BROKER_NAV[0]} href={BROKER_NAV[0].href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            <GoldwireNavLink collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
+            {BROKER_NAV.slice(1).map((item) => (
               <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
             ))}
           </ul>
