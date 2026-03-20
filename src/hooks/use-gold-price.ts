@@ -130,11 +130,9 @@ export function useGoldPrice(): GoldPriceResult {
             if (firstPriceRef.current === null) {
               firstPriceRef.current = payload.spotPriceUsd;
             }
-            const change = payload.spotPriceUsd - firstPriceRef.current;
-            const changePct =
-              firstPriceRef.current > 0
-                ? (change / firstPriceRef.current) * 100
-                : 0;
+            const baseline = firstPriceRef.current ?? payload.spotPriceUsd;
+            const change = payload.spotPriceUsd - baseline;
+            const changePct = baseline > 0 ? (change / baseline) * 100 : 0;
 
             setData({
               spotPriceUsd: payload.spotPriceUsd,
