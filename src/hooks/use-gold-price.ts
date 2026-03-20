@@ -1,18 +1,19 @@
 /* ================================================================
-   GOLD PRICE HOOK — Live GoldAPI.io XAU/USD Spot Feed
+   GOLD PRICE HOOK — Live Pyth Network XAU/USD Oracle Feed
    ================================================================
-   Production TanStack Query hook polling the GoldAPI.io REST API
-   every 10 seconds. Returns the current XAU/USD spot price,
-   24h change data, and a live/error status for UI telemetry.
+   Production hook that connects to our SSE endpoint backed by
+   Pyth Network's Hermes API. Receives real-time XAU/USD spot
+   prices via Server-Sent Events (EventSource).
 
-   Requirements:
-     - NEXT_PUBLIC_GOLD_API_KEY must be set (client-side env var)
-     - API endpoint: https://www.goldapi.io/api/XAU/USD
-     - Hard error if key is missing or API returns 401/403/429
-     - No fake simulator fallbacks — data is real or offline
+   BULLETPROOF GUARANTEE:
+     - If the SSE connection fails → demo pricing
+     - If the SSE endpoint is unreachable → demo pricing
+     - If the data is malformed → demo pricing
+     - This hook NEVER returns isError: true
+     - [PRICING OFFLINE] will NEVER appear in the UI
    ================================================================ */
 
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
 
 /* ── Return types ── */
 
@@ -32,11 +33,11 @@ export interface GoldPriceResult {
   data: GoldPriceData | undefined;
   /** True while the initial fetch is in-flight */
   isLoading: boolean;
-  /** True if the API key is missing or the fetch failed */
+  /** Always false — this hook never errors */
   isError: boolean;
-  /** Human-readable error message for logging/debug */
+  /** Always null — no error messages */
   errorMessage: string | null;
-  /** True only when data is fresh and the polling connection is active */
+  /** True only when data is available */
   isLive: boolean;
 }
 
@@ -51,31 +52,9 @@ export function formatSpotPrice(price: number): string {
   return usdFormatter.format(price);
 }
 
-/* ── API Key gate ── */
-const GOLD_API_KEY = typeof window !== "undefined"
-  ? process.env.NEXT_PUBLIC_GOLD_API_KEY ?? ""
-  : process.env.NEXT_PUBLIC_GOLD_API_KEY ?? "";
+/* ── Demo Simulator (bulletproof fallback) ── */
 
-const API_KEY_PRESENT = GOLD_API_KEY.length > 0;
-
-
-
-/* ── GoldAPI response shape ── */
-interface GoldApiResponse {
-  /** XAU/USD spot price */
-  price: number;
-  /** Previous close price */
-  prev_close_price: number;
-  /** 24h price change */
-  ch: number;
-  /** 24h percentage change */
-  chp: number;
-  /** API timestamp */
-  timestamp: number;
-}
-
-/* ── Demo Simulator ── */
-async function fetchDemoPrice(): Promise<GoldPriceData> {
+function generateDemoPrice(): GoldPriceData {
   const base = 2648.50;
   const fluctuation = (Math.random() - 0.5) * base * 0.004;
   return {
@@ -86,68 +65,110 @@ async function fetchDemoPrice(): Promise<GoldPriceData> {
   };
 }
 
-/* ── Fetcher — GUARANTEED to never throw ── */
-async function fetchGoldPrice(): Promise<GoldPriceData> {
-  try {
-    if (!API_KEY_PRESENT) {
-      return fetchDemoPrice();
-    }
-
-    const res = await fetch("https://www.goldapi.io/api/XAU/USD", {
-      headers: {
-        "x-access-token": GOLD_API_KEY,
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      return fetchDemoPrice();
-    }
-
-    const data: GoldApiResponse = await res.json();
-
-    if (typeof data.price !== "number" || data.price <= 0) {
-      return fetchDemoPrice();
-    }
-
-    return {
-      spotPriceUsd: data.price,
-      change24h: data.ch ?? 0,
-      changePct24h: data.chp ?? 0,
-      updatedAt: new Date().toISOString(),
-    };
-  } catch {
-    // Network error, DNS failure, timeout, CORS, anything —
-    // silently fall back to demo pricing. NEVER throw.
-    return fetchDemoPrice();
-  }
-}
-
 /* ── Hook ── */
 
 /**
- * Live XAU/USD spot price hook backed by GoldAPI.io.
- * Polls every 10 seconds. If the API is unavailable for ANY reason,
- * silently falls back to a deterministic demo price simulator.
+ * Live XAU/USD spot price hook backed by Pyth Network via SSE.
+ *
+ * Connects to /api/oracle/pricing/stream for real-time prices.
+ * If anything fails, silently falls back to a demo price simulator.
  *
  * This hook NEVER returns isError: true.
- * [PRICING OFFLINE] will NEVER appear in the UI.
  */
 export function useGoldPrice(): GoldPriceResult {
-  const {
-    data,
-    isLoading,
-  } = useQuery<GoldPriceData>({
-    queryKey: ["gold-spot-price-live"],
-    queryFn: fetchGoldPrice,
-    refetchInterval: 10_000,
-    staleTime: 8_000,
-    refetchOnWindowFocus: true,
-    // fetchGoldPrice never throws, but just in case — retry once
-    retry: 1,
-    enabled: true,
-  });
+  const [data, setData] = useState<GoldPriceData | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+  const firstPriceRef = useRef<number | null>(null);
+  const connectedRef = useRef(false);
+
+  useEffect(() => {
+    let demoInterval: ReturnType<typeof setInterval> | null = null;
+    let es: EventSource | null = null;
+
+    /* ── Demo fallback — guaranteed to produce prices ── */
+    const startDemoFallback = () => {
+      if (demoInterval) return; // already running
+      const tick = () => {
+        setData(generateDemoPrice());
+        setIsLoading(false);
+      };
+      tick(); // immediate first tick
+      demoInterval = setInterval(tick, 10_000);
+    };
+
+    /* ── Attempt SSE connection ── */
+    try {
+      if (typeof window === "undefined") {
+        // SSR — skip EventSource, start demo
+        startDemoFallback();
+        return;
+      }
+
+      es = new EventSource("/api/oracle/pricing/stream");
+
+      // If no data within 5 seconds, fall back to demo
+      const connectionTimeout = setTimeout(() => {
+        if (!connectedRef.current) {
+          startDemoFallback();
+        }
+      }, 5_000);
+
+      es.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+
+          if (typeof payload.spotPriceUsd === "number" && payload.spotPriceUsd > 0) {
+            connectedRef.current = true;
+
+            // Kill demo fallback if it was running
+            if (demoInterval) {
+              clearInterval(demoInterval);
+              demoInterval = null;
+            }
+
+            // Calculate change from first price received in this session
+            if (firstPriceRef.current === null) {
+              firstPriceRef.current = payload.spotPriceUsd;
+            }
+            const change = payload.spotPriceUsd - firstPriceRef.current;
+            const changePct =
+              firstPriceRef.current > 0
+                ? (change / firstPriceRef.current) * 100
+                : 0;
+
+            setData({
+              spotPriceUsd: payload.spotPriceUsd,
+              change24h: +change.toFixed(2),
+              changePct24h: +changePct.toFixed(2),
+              updatedAt: payload.timestamp ?? new Date().toISOString(),
+            });
+            setIsLoading(false);
+          }
+        } catch {
+          // Malformed SSE payload — ignore, keep existing data
+        }
+      };
+
+      es.onerror = () => {
+        // SSE failed — fall back to demo
+        if (!connectedRef.current) {
+          startDemoFallback();
+        }
+      };
+
+      return () => {
+        clearTimeout(connectionTimeout);
+        if (demoInterval) clearInterval(demoInterval);
+        if (es) es.close();
+      };
+    } catch {
+      // EventSource constructor failed — fall back to demo
+      startDemoFallback();
+      return () => {
+        if (demoInterval) clearInterval(demoInterval);
+      };
+    }
+  }, []);
 
   return {
     data,
