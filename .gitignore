@@ -45,3 +45,5 @@ next-env.d.ts
 scripts/fix-ecs-secrets.ps1
 
 edenor-pdf-template/
+
+gold-temp/
