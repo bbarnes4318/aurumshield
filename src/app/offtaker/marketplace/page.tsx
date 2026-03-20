@@ -494,7 +494,7 @@ export default function OfftakerMarketplacePage() {
         </div>
 
         {/* ─── RIGHT: Execution Configuration Panel (Horizontal Stepper) ─── */}
-        <div className="w-[450px] shrink-0 flex flex-col border-l border-slate-800 bg-slate-900/30">
+        <div className="w-[450px] shrink-0 flex flex-col h-full relative border-l border-slate-800 bg-slate-900/30">
           {/* ── Panel Header + Step Indicator ── */}
           <div className="shrink-0 border-b border-slate-800 px-3 py-2">
             <div className="flex items-center gap-2 mb-2">
@@ -530,7 +530,7 @@ export default function OfftakerMarketplacePage() {
           </div>
 
           {/* ── Panel Body — renders only the active step ── */}
-          <div className="flex-1 min-h-0 overflow-hidden p-4">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-6">
             {hasSelection ? (
               <>
                 {/* ═══ STEP 1: Execution Config ═══ */}
@@ -1020,18 +1020,6 @@ export default function OfftakerMarketplacePage() {
                       </div>
                     )}
 
-                    {/* Execution Total */}
-                    <div className="bg-black/40 border border-[#C6A86B]/20 p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[9px] text-[#C6A86B] tracking-widest uppercase font-bold">
-                          Total Amount
-                        </span>
-                        <span className="font-mono text-xl text-[#C6A86B] font-bold tabular-nums">
-                          ${fmt(totalExecutionAmount)}
-                        </span>
-                      </div>
-                    </div>
-
                     {/* Legal Disclaimer */}
                     {phase === "QUOTE_LOCKED" && (
                       <div className="border border-slate-800/50 p-2.5">
@@ -1063,9 +1051,22 @@ export default function OfftakerMarketplacePage() {
           </div>
 
           {/* ── Sticky CTA Footer — locked outside scroll area ── */}
-          <div className="shrink-0 p-4 border-t border-slate-800 bg-slate-950">
+          <div className="mt-auto shrink-0 flex flex-col gap-3 pt-3 px-4 pb-4 border-t border-slate-800 bg-slate-950/90 z-10">
             {hasSelection ? (
               <>
+                {/* Execution Total — always visible above button */}
+                {panelStep === 3 && (
+                  <div className="bg-black/40 border border-[#C6A86B]/20 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[9px] text-[#C6A86B] tracking-widest uppercase font-bold">
+                        Total Settlement Amount
+                      </span>
+                      <span className="font-mono text-xl text-[#C6A86B] font-bold tabular-nums">
+                        ${fmt(totalExecutionAmount)}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {panelStep === 3 && phase === "CONFIGURING" && (
                   <div className="flex gap-2">
                     <button
