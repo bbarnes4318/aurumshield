@@ -145,7 +145,7 @@ function CapitalControlsConsole() {
   const canCreateOverride = user && OVERRIDE_ALLOWED_ROLES.includes(user.role);
 
   return (
-    <>
+    <div className="h-full flex flex-col overflow-hidden">
       <PageHeader
         title="Capital Controls Console"
         description="Deterministic guardrails, throttles, and override governance. Committee-grade instrument."
@@ -226,8 +226,8 @@ function CapitalControlsConsole() {
           </div>
         </div>
       </section>
-
-      {/* ── SECTION: ACTION MATRIX ── */}
+      {/* ── SECTION: ACTION MATRIX + below — scrollable ── */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4 mt-4">
       <section className="mt-6">
         <h2 className="typo-label mb-3">Action Matrix</h2>
         <div className="card-base overflow-hidden">
@@ -366,7 +366,8 @@ function CapitalControlsConsole() {
           .font-mono { font-family: "Courier New", monospace !important; }
         }
       `}</style>
-    </>
+      </div>
+    </div>
   );
 }
 

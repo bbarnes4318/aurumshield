@@ -41,17 +41,20 @@ export default function CorridorsPage() {
   if (corQ.isError) return <ErrorState message="Failed to load corridors." onRetry={() => corQ.refetch()} />;
 
   return (
-    <>
-      <PageHeader title="Corridors" description="Cross-border payment corridors — caps, concentration, and constraint monitoring." />
-
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="shrink-0">
+        <PageHeader title="Corridors" description="Cross-border payment corridors — caps, concentration, and constraint monitoring." />
+      </div>
       {/* Stats strip */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="shrink-0 grid grid-cols-2 gap-4 sm:grid-cols-4 mb-3">
         <MetricCard label="Total Volume" value={fmt(totalVolume)} change={0} trend="flat" period="all corridors" />
         <MetricCard label="Active" value={String(activeCount)} change={0} trend="flat" period={`of ${corridors.length}`} />
         <MetricCard label="Restricted" value={String(restrictedCount)} change={0} trend={restrictedCount > 0 ? "down" : "flat"} period="exceptions" />
         <MetricCard label="Suspended" value={String(suspendedCount)} change={0} trend={suspendedCount > 0 ? "down" : "flat"} period="blocked" />
       </div>
 
+      {/* Scrollable content */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
       {/* Tier cap cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {tiers.map((tier) => {
@@ -152,6 +155,8 @@ export default function CorridorsPage() {
         subtitle={`${drawerCorridor?.sourceCountry} → ${drawerCorridor?.destinationCountry}`}
         transactions={drawerTxns}
       />
-    </>
+      </div>
+    </div>
   );
 }
+

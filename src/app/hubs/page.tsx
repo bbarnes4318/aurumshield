@@ -47,17 +47,20 @@ export default function HubsPage() {
   if (hubsQ.isError) return <ErrorState message="Failed to load hubs." onRetry={() => hubsQ.refetch()} />;
 
   return (
-    <>
-      <PageHeader title="Hubs" description="Infrastructure nodes — clearing, custody, settlement, and trading. Concentration and capacity monitoring." />
-
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="shrink-0">
+        <PageHeader title="Hubs" description="Infrastructure nodes — clearing, custody, settlement, and trading. Concentration and capacity monitoring." />
+      </div>
       {/* Stats strip */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="shrink-0 grid grid-cols-2 gap-4 sm:grid-cols-4 mb-3">
         <MetricCard label="Operational" value={`${operational} / ${hubs.length}`} change={0} trend="flat" period="hubs online" />
         <MetricCard label="Total Capacity" value={totalCapacity.toLocaleString()} change={0} trend="flat" period="ops/day" />
         <MetricCard label="Avg Uptime" value={`${avgUptime.toFixed(2)}%`} change={0} trend="flat" period="trailing 30d" />
         <MetricCard label="Total HHI" value={totalHHI.toLocaleString()} change={0} trend={totalHHI > 2500 ? "down" : "flat"} period={totalHHI > 2500 ? "concentrated" : "diversified"} />
       </div>
 
+      {/* Scrollable content */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
       {/* Hub Concentration cards */}
       {hubConc && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -173,6 +176,7 @@ export default function HubsPage() {
         subtitle={`${drawerHub?.location} · ${drawerHub?.type}`}
         transactions={drawerTxns}
       />
-    </>
+      </div>
+    </div>
   );
 }

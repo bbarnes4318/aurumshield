@@ -106,9 +106,9 @@ function AuditOverview() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="shrink-0 flex items-center justify-between mb-3">
         <div>
           <h1 className="text-xl font-semibold text-text">Governance Command Center</h1>
           <p className="text-sm text-text-muted mt-0.5">Audit trail, compliance events, and export controls</p>
@@ -131,7 +131,7 @@ function AuditOverview() {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-3 flex-wrap" data-tour="audit-filters">
+      <div className="shrink-0 flex items-center gap-3 flex-wrap mb-3" data-tour="audit-filters">
         <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-text-faint">Filters</label>
         <select
           value={severityFilter}
@@ -167,68 +167,71 @@ function AuditOverview() {
       </div>
 
       {/* Metrics Strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="shrink-0 grid grid-cols-2 gap-3 sm:grid-cols-4 mb-3">
         <MetricCard label="Events (24 h)" value={metrics.total24h} />
         <MetricCard label="Critical (24 h)" value={metrics.critical24h} severity="critical" />
         <MetricCard label="Denied (24 h)" value={metrics.denied24h} severity="warning" />
         <MetricCard label="Exports (7 d)" value={metrics.exports7d} />
       </div>
 
-      {/* Two-panel layout */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Critical / Denied */}
-        <div className="rounded-lg border border-border bg-surface-1">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint">Critical &amp; Denied</h2>
-            <Link href="/audit/events?severity=critical" className="text-xs text-gold hover:underline">View all →</Link>
+      {/* Scrollable content */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
+        {/* Two-panel layout */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Critical / Denied */}
+          <div className="rounded-lg border border-border bg-surface-1">
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint">Critical &amp; Denied</h2>
+              <Link href="/audit/events?severity=critical" className="text-xs text-gold hover:underline">View all →</Link>
+            </div>
+            <div className="divide-y divide-border">
+              {criticalDenied.length === 0 && (
+                <p className="px-4 py-8 text-center text-sm text-text-faint">No critical events</p>
+              )}
+              {criticalDenied.map((e) => (
+                <Link key={e.id} href={`/audit/events/${e.id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-surface-2 transition-colors">
+                  <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${SEV_COLORS[e.severity]}`}>{e.severity}</span>
+                  <span className={`font-mono text-[11px] ${RESULT_COLORS[e.result]}`}>{e.result}</span>
+                  <span className="flex-1 truncate text-xs text-text-muted">{e.message}</span>
+                  <span className="shrink-0 text-[10px] text-text-faint font-mono">{fmtTime(e.occurredAt)}</span>
+                </Link>
+              ))}
+            </div>
           </div>
-          <div className="divide-y divide-border">
-            {criticalDenied.length === 0 && (
-              <p className="px-4 py-8 text-center text-sm text-text-faint">No critical events</p>
-            )}
-            {criticalDenied.map((e) => (
-              <Link key={e.id} href={`/audit/events/${e.id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-surface-2 transition-colors">
-                <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${SEV_COLORS[e.severity]}`}>{e.severity}</span>
-                <span className={`font-mono text-[11px] ${RESULT_COLORS[e.result]}`}>{e.result}</span>
-                <span className="flex-1 truncate text-xs text-text-muted">{e.message}</span>
-                <span className="shrink-0 text-[10px] text-text-faint font-mono">{fmtTime(e.occurredAt)}</span>
-              </Link>
-            ))}
+
+          {/* Hot Resources */}
+          <div className="rounded-lg border border-border bg-surface-1">
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint">Hot Resources</h2>
+              <Link href="/audit/events" className="text-xs text-gold hover:underline">Browse events →</Link>
+            </div>
+            <div className="divide-y divide-border">
+              {hotResources.map((r) => (
+                <Link key={`${r.type}:${r.id}`} href={`/audit/events?resourceType=${r.type}&resourceId=${r.id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-surface-2 transition-colors">
+                  <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[10px] font-mono uppercase text-text-faint">{r.type}</span>
+                  <span className="font-mono text-xs text-text">{r.id}</span>
+                  <span className="ml-auto text-xs font-bold text-gold">{r.count}</span>
+                  <span className="text-[10px] text-text-faint font-mono">{fmtTime(r.lastAt)}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Hot Resources */}
-        <div className="rounded-lg border border-border bg-surface-1">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-text-faint">Hot Resources</h2>
-            <Link href="/audit/events" className="text-xs text-gold hover:underline">Browse events →</Link>
-          </div>
-          <div className="divide-y divide-border">
-            {hotResources.map((r) => (
-              <Link key={`${r.type}:${r.id}`} href={`/audit/events?resourceType=${r.type}&resourceId=${r.id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-surface-2 transition-colors">
-                <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[10px] font-mono uppercase text-text-faint">{r.type}</span>
-                <span className="font-mono text-xs text-text">{r.id}</span>
-                <span className="ml-auto text-xs font-bold text-gold">{r.count}</span>
-                <span className="text-[10px] text-text-faint font-mono">{fmtTime(r.lastAt)}</span>
-              </Link>
-            ))}
-          </div>
+        {/* Quick nav */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "Event Log", href: "/audit/events" },
+            { label: "Ledger Index", href: "/audit/ledger" },
+            { label: "Receipts", href: "/audit/receipts" },
+            { label: "Supervisory", href: "/supervisory" },
+          ].map((n) => (
+            <Link key={n.href} href={n.href} className="group rounded-lg border border-border bg-surface-1 px-4 py-3 hover:border-gold/30 transition-colors">
+              <span className="text-sm font-medium text-text-muted group-hover:text-gold transition-colors">{n.label}</span>
+              <span className="block text-[10px] text-text-faint mt-0.5">{n.href}</span>
+            </Link>
+          ))}
         </div>
-      </div>
-
-      {/* Quick nav */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: "Event Log", href: "/audit/events" },
-          { label: "Ledger Index", href: "/audit/ledger" },
-          { label: "Receipts", href: "/audit/receipts" },
-          { label: "Supervisory", href: "/supervisory" },
-        ].map((n) => (
-          <Link key={n.href} href={n.href} className="group rounded-lg border border-border bg-surface-1 px-4 py-3 hover:border-gold/30 transition-colors">
-            <span className="text-sm font-medium text-text-muted group-hover:text-gold transition-colors">{n.label}</span>
-            <span className="block text-[10px] text-text-faint mt-0.5">{n.href}</span>
-          </Link>
-        ))}
       </div>
     </div>
   );

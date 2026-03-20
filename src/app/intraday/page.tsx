@@ -254,7 +254,7 @@ function IntradayConsolePage() {
   const badge = BREACH_BADGE[snap.breachLevel];
 
   return (
-    <>
+    <div className="h-full flex flex-col overflow-hidden">
       {/* ── Header ── */}
       <PageHeader
         title="Intraday Capital Console"
@@ -659,6 +659,6 @@ function IntradayConsolePage() {
           }
         }
       `}</style>
-    </>
+    </div>
   );
 }
