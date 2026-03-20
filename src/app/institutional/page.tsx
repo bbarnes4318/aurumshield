@@ -256,7 +256,7 @@ export default function InstitutionalPortfolioPage() {
                 </div>
                 <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-amber-500/80 to-amber-400"
+                    className="h-full rounded-full bg-linear-to-r from-amber-500/80 to-amber-400"
                     style={{ width: `${j.pct}%` }}
                   />
                 </div>

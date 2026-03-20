@@ -151,7 +151,7 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
 
           {/* Nav links */}
           <nav className="flex-1 px-3 space-y-1">
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.map((item, idx) => {
               const isActive =
                 item.href === "/institutional"
                   ? pathname === "/institutional"
@@ -159,20 +159,52 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
 
               const Icon = item.icon;
 
+              const goldwireActive = pathname === "/transactions/new" || pathname.startsWith("/transactions/new/");
+
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={[
-                    "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent",
-                  ].join(" ")}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={[
+                      "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent",
+                    ].join(" ")}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                  {/* Goldwire logo link — inserted after first nav item */}
+                  {idx === 0 && (
+                    <Link
+                      href="/transactions/new"
+                      className={[
+                        "flex items-center gap-2 px-3 py-2.5 rounded-md transition-colors mt-1",
+                        goldwireActive
+                          ? "bg-slate-800"
+                          : "hover:bg-slate-800/50",
+                      ].join(" ")}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/goldwire-icon.svg"
+                        alt=""
+                        className="h-4 w-auto shrink-0"
+                        aria-hidden="true"
+                        style={{ filter: goldwireActive ? "brightness(1.3)" : "brightness(0.85)" }}
+                      />
+                      <span
+                        className={[
+                          "text-[13px] font-bold tracking-[0.15em] uppercase bg-linear-to-r from-[#F5EACF] via-[#D4AF37] to-[#BFA052] bg-clip-text text-transparent select-none",
+                          goldwireActive ? "opacity-100" : "opacity-70",
+                        ].join(" ")}
+                      >
+                        GOLDWIRE
+                      </span>
+                    </Link>
+                  )}
+                </div>
               );
             })}
           </nav>
