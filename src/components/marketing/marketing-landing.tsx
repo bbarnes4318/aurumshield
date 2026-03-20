@@ -1060,7 +1060,7 @@ const JOURNEY_PHASES = [
   },
   {
     phase: "06",
-    title: "Goldwire Liquidity Nexus",
+    title: "Post-Settlement Treasury",
     description:
       "Post-settlement treasury dashboard. View vaulted collateral, execute fractional liquidations via the Goldwire card network against live spot.",
     href: "/goldwire",

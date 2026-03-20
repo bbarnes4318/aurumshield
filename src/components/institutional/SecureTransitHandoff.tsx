@@ -51,7 +51,7 @@ export function SecureTransitHandoff() {
   }, []);
 
   /* Telemetry simulation */
-  const [gpsLat, setGpsLat] = useState<number>(route.from.x);
+  const [, setGpsLat] = useState<number>(route.from.x);
   useEffect(() => {
     if (!booted) return;
     const t = setInterval(() => {
@@ -313,11 +313,11 @@ export function SecureTransitHandoff() {
         </div>
       </div>
 
-        {/* CTA to Goldwire Liquidity Nexus */}
+        {/* CTA to Marketplace */}
         <button type="button" onClick={goNext}
           className="shrink-0 mx-3 mb-3 flex items-center justify-center gap-2 rounded-xl bg-gold py-2.5 text-[10px] font-bold uppercase tracking-wider text-black hover:shadow-[0_0_25px_rgba(198,168,107,0.25)] transition-all">
           <Zap className="h-3.5 w-3.5" />
-          Access Goldwire Liquidity Nexus
+          Access Marketplace
           <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>

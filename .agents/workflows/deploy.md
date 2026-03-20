@@ -18,7 +18,7 @@ git commit -m "<your commit message>"
 
 3. Get the latest tag and bump the patch version:
 ```powershell
-$latest = git tag --sort=-v:refversion | Select-Object -First 1; $parts = $latest.TrimStart('v').Split('.'); $parts[2] = [int]$parts[2] + 1; $newTag = "v$($parts -join '.')"; git tag $newTag; Write-Host "Tagged: $newTag"
+$latest = git tag --sort=-version:refname | Select-Object -First 1; $parts = $latest.TrimStart('v').Split('.'); $parts[2] = [int]$parts[2] + 1; $newTag = "v$($parts -join '.')"; git tag $newTag; Write-Host "Tagged: $newTag"
 ```
 
 4. Push to main with tags (triggers the GitHub Actions CI/CD pipeline):

@@ -138,8 +138,7 @@ const OFFTAKER_ONBOARDING_NAV: NavItem[] = [
 
 /** State B: Shown when KYB is COMPLETED */
 const OFFTAKER_CLEARED_NAV: NavItem[] = [
-  { label: "Command Center",      href: "/offtaker",                        icon: LayoutDashboard, allowedRoles: OFFTAKER_ROLES },
-  { label: "Liquidity Nexus",     href: "/offtaker/marketplace",            icon: Coins,           allowedRoles: OFFTAKER_ROLES },
+  { label: "Marketplace",         href: "/offtaker/marketplace",            icon: Coins,           allowedRoles: OFFTAKER_ROLES },
   { label: "Trade Blotter",       href: "/offtaker/orders",                 icon: ArrowRightLeft,  allowedRoles: OFFTAKER_ROLES },
   { label: "Audit Vault",         href: "/offtaker/ledger",                 icon: ShieldCheck,     allowedRoles: OFFTAKER_ROLES },
   { label: "Entity Management",   href: "/offtaker/settings",               icon: Building,        allowedRoles: OFFTAKER_ROLES },
