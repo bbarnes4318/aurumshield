@@ -65,7 +65,7 @@ export const metadata: Metadata = {
   title: "AurumShield — Sovereign Financial Infrastructure",
   description:
     "Institutional gold clearing, custody, and compliance. Deterministic risk-first execution for sovereign-grade counterparties.",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [{ rel: "icon", url: "/arum-logo-gold-bold.svg", type: "image/svg+xml" }],
 };
 
 /* ----------------------------------------------------------------
