@@ -45,7 +45,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import type { UserRole } from "@/lib/mock-data";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
-import { useGoldPrice } from "@/hooks/use-gold-price";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -636,9 +635,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       <SidebarNav collapsed={collapsed} />
 
-      {/* ── Live Gold Price Ticker ── */}
-      <GoldPriceTicker collapsed={collapsed} />
-
       {/* Collapse toggle */}
       <div className="border-t border-border p-2">
         <button
@@ -650,85 +646,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </button>
       </div>
     </aside>
-  );
-}
-
-/* ── Live Gold Price Ticker — always visible in admin sidebar ── */
-function GoldPriceTicker({ collapsed }: { collapsed: boolean }) {
-  const { data: gold, isLoading } = useGoldPrice();
-
-  const fmtPrice = (v: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
-
-  const fmtTime = (iso: string) => {
-    try {
-      return new Date(iso).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      });
-    } catch {
-      return "--:--";
-    }
-  };
-
-  if (collapsed) {
-    return (
-      <div className="shrink-0 border-t border-slate-800 px-1 py-3 flex flex-col items-center gap-1">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_4px_rgba(16,185,129,0.6)]" />
-        {isLoading ? (
-          <span className="font-mono text-[8px] text-slate-600 animate-pulse">···</span>
-        ) : gold ? (
-          <>
-            <span className="font-mono text-[9px] text-white font-bold tabular-nums leading-tight">
-              {fmtPrice(gold.spotPriceUsd).replace("$", "")}
-            </span>
-            <span className={`font-mono text-[8px] tabular-nums leading-tight ${gold.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {gold.change24h >= 0 ? "+" : ""}{gold.change24h.toFixed(1)}
-            </span>
-          </>
-        ) : null}
-      </div>
-    );
-  }
-
-  return (
-    <div className="shrink-0 border-t border-slate-800 px-3 py-3">
-      <div className="rounded-lg bg-slate-900/80 border border-slate-800/60 px-3 py-2.5">
-        {/* Label row */}
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_4px_rgba(16,185,129,0.6)]" />
-          <span className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">
-            XAU/USD Spot
-          </span>
-        </div>
-
-        {isLoading ? (
-          <div className="font-mono text-[10px] text-slate-600 animate-pulse">SYNCING...</div>
-        ) : gold ? (
-          <>
-            {/* Price */}
-            <p className="font-mono text-base font-bold text-white tabular-nums tracking-tight leading-tight">
-              {fmtPrice(gold.spotPriceUsd)}
-            </p>
-            {/* Change + pct */}
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className={`font-mono text-[10px] font-semibold tabular-nums ${gold.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                {gold.change24h >= 0 ? "+" : ""}{gold.change24h.toFixed(2)}
-              </span>
-              <span className={`font-mono text-[10px] tabular-nums ${gold.change24h >= 0 ? "text-emerald-400/60" : "text-red-400/60"}`}>
-                ({gold.changePct24h >= 0 ? "+" : ""}{gold.changePct24h.toFixed(2)}%)
-              </span>
-            </div>
-            {/* Updated time */}
-            <p className="font-mono text-[9px] text-slate-600 mt-1">
-              Updated {fmtTime(gold.updatedAt)}
-            </p>
-          </>
-        ) : null}
-      </div>
-    </div>
   );
 }
 

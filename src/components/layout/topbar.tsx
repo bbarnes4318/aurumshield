@@ -13,6 +13,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { useAuth } from "@/providers/auth-provider";
+import { useGoldPrice } from "@/hooks/use-gold-price";
 
 interface TopbarProps {
   collapsed: boolean;
@@ -25,6 +26,7 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { data: gold, isLoading: priceLoading } = useGoldPrice();
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -41,6 +43,19 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
     setDropdownOpen(false);
     logout();
     router.push("/login");
+  };
+
+  const fmtTime = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return "--:--";
+    }
   };
 
   return (
@@ -79,8 +94,36 @@ export function Topbar({ collapsed, onToggleSidebar, onOpenMobileMenu }: TopbarP
         </div>
       </div>
 
-      {/* ── RIGHT: System Status + Profile ── */}
+      {/* ── RIGHT: Gold Ticker + System Status + Profile ── */}
       <div className="flex items-center gap-5">
+        {/* Live XAU/USD Gold Price Ticker */}
+        <div className="hidden sm:flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_4px_rgba(16,185,129,0.6)]" />
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">
+              XAU/USD
+            </span>
+          </div>
+          {priceLoading ? (
+            <span className="font-mono text-[10px] text-slate-600 animate-pulse">SYNCING...</span>
+          ) : gold ? (
+            <>
+              <span className="font-mono text-sm font-bold text-white tabular-nums tracking-tight">
+                {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(gold.spotPriceUsd)}
+              </span>
+              <span className={`font-mono text-[10px] font-semibold tabular-nums ${gold.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                {gold.change24h >= 0 ? "+" : ""}{gold.change24h.toFixed(2)} ({gold.changePct24h >= 0 ? "+" : ""}{gold.changePct24h.toFixed(2)}%)
+              </span>
+              <span className="font-mono text-[9px] text-slate-600 hidden lg:inline">
+                {fmtTime(gold.updatedAt)}
+              </span>
+            </>
+          ) : null}
+        </div>
+
+        {/* Divider */}
+        <div className="hidden sm:block h-5 w-px bg-slate-800" />
+
         {/* System Status Indicator */}
         <div className="hidden sm:flex items-center gap-2">
           <span className="relative flex h-2 w-2">

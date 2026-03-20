@@ -114,7 +114,7 @@ export default function BrokerAssetsPage() {
         </div>
 
         {/* ── RIGHT: LBMA Verification Panel ── */}
-        <div className="w-[420px] shrink-0 min-h-0 overflow-y-auto border-l border-slate-800 bg-slate-900/30 p-6">
+        <div className="w-[420px] shrink-0 min-h-0 overflow-hidden border-l border-slate-800 bg-slate-900/30 p-4 flex flex-col">
           <LbmaVerificationPanel onSubmit={handleLbmaSubmit} isSubmitting={isSubmitting} />
         </div>
       </div>
