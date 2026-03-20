@@ -38,7 +38,6 @@ import {
   Coins,
   ArrowRightLeft,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { usePathname, useRouter } from "next/navigation";
@@ -243,7 +242,7 @@ function NavLink({
   );
 }
 
-/* ── Goldwire Logo Nav Link — renders the SVG logo instead of text ── */
+/* ── Goldwire Logo Nav Link — renders icon + gold gradient text instead of a standard nav item ── */
 function GoldwireNavLink({
   collapsed,
   pathname,
@@ -266,30 +265,29 @@ function GoldwireNavLink({
           isActive
             ? "bg-slate-800"
             : "hover:bg-slate-800/50",
-          collapsed ? "justify-center px-0" : "gap-2.5"
+          collapsed ? "justify-center px-0" : "gap-2"
         )}
         aria-current={isActive ? "page" : undefined}
       >
-        {collapsed ? (
-          /* Collapsed: show the icon mark */
-          <Image
-            src="/goldwire-icon.svg"
-            alt="Goldwire"
-            width={20}
-            height={17}
-            className="shrink-0"
-            style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
-          />
-        ) : (
-          /* Expanded: show the full logo */
-          <Image
-            src="/goldwire-logo.svg"
-            alt="Execute Goldwire"
-            width={120}
-            height={26}
-            className="shrink-0"
-            style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
-          />
+        {/* Icon mark — always visible */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/goldwire-icon.svg"
+          alt=""
+          className="h-4 w-auto shrink-0"
+          aria-hidden="true"
+          style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
+        />
+        {/* Text — only when expanded */}
+        {!collapsed && (
+          <span
+            className={cn(
+              "text-[13px] font-bold tracking-[0.15em] uppercase bg-linear-to-r from-[#F5EACF] via-[#D4AF37] to-[#BFA052] bg-clip-text text-transparent select-none",
+              isActive ? "opacity-100" : "opacity-70"
+            )}
+          >
+            GOLDWIRE
+          </span>
         )}
       </Link>
     </li>
