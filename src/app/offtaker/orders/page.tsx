@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowRightLeft,
   Search,
@@ -24,6 +25,8 @@ import {
   FileText,
   Activity,
   Loader2,
+  MapPin,
+  Truck,
 } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
@@ -169,6 +172,13 @@ const LOGISTICS_LABELS: Record<LogisticsState, { label: string; color: string }>
   DELIVERED:         { label: "Delivered",          color: "text-emerald-400" },
   VAULTED:           { label: "Vaulted",            color: "text-emerald-400" },
 };
+
+/* States that imply asset movement — these get a "Track Asset" button */
+const TRACKABLE_LOGISTICS: LogisticsState[] = [
+  "AWAITING_DISPATCH",
+  "BRINKS_TRANSIT",
+  "CUSTOMS_HOLD",
+];
 
 const STATUS_FILTERS: { value: TradeStatus | "all"; label: string }[] = [
   { value: "all",               label: "All Trades" },
@@ -343,6 +353,17 @@ function TradeDrawer({
                   Initiate Execution Pipeline
                 </button>
               )}
+
+              {/* Track Asset — orders with movement logistics */}
+              {TRACKABLE_LOGISTICS.includes(trade.logisticsState) && (
+                <Link
+                  href={`/offtaker/orders/${trade.id}/logistics`}
+                  className="w-full flex items-center justify-center gap-2 rounded border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-blue-400 hover:bg-blue-500/20 transition-colors"
+                >
+                  <Truck className="h-3.5 w-3.5" />
+                  Track Asset
+                </Link>
+              )}
             </div>
           ) : execPhase === "auth" ? (
             <div className="p-5 space-y-4">
@@ -508,6 +529,46 @@ export default function TradeBlotterPage() {
         </div>
       </div>
 
+      {/* ── KPI Pipeline Cards ── */}
+      <div className="shrink-0 grid grid-cols-4 gap-3 px-6 py-3 border-b border-slate-800 bg-slate-900/20">
+        {(() => {
+          const active = allTrades.filter((t) => t.status === "active" || t.status === "pending_execution");
+          const inTransit = allTrades.filter((t) => t.logisticsState === "BRINKS_TRANSIT" || t.logisticsState === "CUSTOMS_HOLD");
+          const pendingDispatch = allTrades.filter((t) => t.logisticsState === "AWAITING_DISPATCH");
+          const pipelineAum = active.reduce((s, t) => s + t.notional, 0);
+          return (
+            <>
+              <div className="rounded border border-slate-800 bg-black/30 px-3 py-2.5">
+                <p className="font-mono text-[9px] text-slate-600 uppercase tracking-widest">Active Deals</p>
+                <p className="font-mono text-lg font-bold text-white mt-1 leading-none">{active.length}</p>
+                <p className="font-mono text-[10px] text-slate-600 mt-0.5">of {allTrades.length} total</p>
+              </div>
+              <div className="rounded border border-slate-800 bg-black/30 px-3 py-2.5">
+                <p className="font-mono text-[9px] text-slate-600 uppercase tracking-widest">Pipeline AUM</p>
+                <p className="font-mono text-lg font-bold text-[#C6A86B] mt-1 leading-none tabular-nums">{fmtUsd(pipelineAum)}</p>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("active")}
+                  className="font-mono text-[9px] text-[#C6A86B]/60 mt-0.5 hover:text-[#C6A86B] transition-colors block"
+                >
+                  View Active Pipeline →
+                </button>
+              </div>
+              <div className="rounded border border-blue-500/20 bg-blue-500/5 px-3 py-2.5">
+                <p className="font-mono text-[9px] text-blue-400/60 uppercase tracking-widest">In Transit</p>
+                <p className="font-mono text-lg font-bold text-blue-400 mt-1 leading-none">{inTransit.length}</p>
+                <p className="font-mono text-[10px] text-slate-600 mt-0.5">Brink&apos;s / Customs</p>
+              </div>
+              <div className="rounded border border-slate-800 bg-black/30 px-3 py-2.5">
+                <p className="font-mono text-[9px] text-slate-600 uppercase tracking-widest">Pending Dispatch</p>
+                <p className="font-mono text-lg font-bold text-amber-400 mt-1 leading-none">{pendingDispatch.length}</p>
+                <p className="font-mono text-[10px] text-slate-600 mt-0.5">awaiting shipment</p>
+              </div>
+            </>
+          );
+        })()}
+      </div>
+
       {/* ── Filter Bar ── */}
       <div className="shrink-0 border-b border-slate-800 bg-slate-900/30 px-6 py-3">
         <div className="flex items-center gap-4">
@@ -618,11 +679,23 @@ export default function TradeBlotterPage() {
                   </span>
 
                   {/* Actions */}
-                  <span className="col-span-2 flex items-center justify-end gap-1.5 text-slate-500">
-                    <span className="font-mono text-[9px] tracking-wider uppercase">
-                      Detail
+                  <span className="col-span-2 flex items-center justify-end gap-2">
+                    {TRACKABLE_LOGISTICS.includes(trade.logisticsState) && (
+                      <Link
+                        href={`/offtaker/orders/${trade.id}/logistics`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 rounded border border-blue-500/30 bg-blue-500/10 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-blue-400 hover:bg-blue-500/20 transition-colors"
+                      >
+                        <MapPin className="h-2.5 w-2.5" />
+                        Track
+                      </Link>
+                    )}
+                    <span className="flex items-center gap-1 text-slate-500">
+                      <span className="font-mono text-[9px] tracking-wider uppercase">
+                        Detail
+                      </span>
+                      <ChevronRight className="h-3 w-3" />
                     </span>
-                    <ChevronRight className="h-3 w-3" />
                   </span>
                 </button>
               );
