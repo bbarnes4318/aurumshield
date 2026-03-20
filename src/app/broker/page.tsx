@@ -206,7 +206,7 @@ export default function BrokerCommandCenter() {
 
           {/* Quick Action */}
           <Link
-            href="/broker/pipeline"
+            href="/broker/deals/new"
             className="shrink-0 flex items-center justify-center gap-2 rounded border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-400 hover:bg-amber-500/20 transition-colors"
           >
             <span className="text-base leading-none">+</span>
