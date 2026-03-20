@@ -9,6 +9,8 @@
    full page reload so the browser fetches the new HTML + new chunks.
 
    Guard: only reloads once per session to prevent infinite loops.
+   The guard is cleared after a 5-second delay (meaning the page
+   loaded and stabilized successfully with new chunks).
    ================================================================ */
 
 import { useEffect } from "react";
@@ -28,10 +30,15 @@ export function ChunkErrorRecovery() {
       if (!isChunkError) return;
 
       // Guard: only auto-reload once per session
-      const alreadyReloaded = sessionStorage.getItem(RELOAD_KEY);
-      if (alreadyReloaded) return;
+      try {
+        const alreadyReloaded = sessionStorage.getItem(RELOAD_KEY);
+        if (alreadyReloaded) return;
+        sessionStorage.setItem(RELOAD_KEY, "1");
+      } catch {
+        // sessionStorage unavailable — don't reload
+        return;
+      }
 
-      sessionStorage.setItem(RELOAD_KEY, "1");
       window.location.reload();
     }
 
@@ -52,20 +59,32 @@ export function ChunkErrorRecovery() {
 
       if (!isChunkError) return;
 
-      const alreadyReloaded = sessionStorage.getItem(RELOAD_KEY);
-      if (alreadyReloaded) return;
+      try {
+        const alreadyReloaded = sessionStorage.getItem(RELOAD_KEY);
+        if (alreadyReloaded) return;
+        sessionStorage.setItem(RELOAD_KEY, "1");
+      } catch {
+        return;
+      }
 
-      sessionStorage.setItem(RELOAD_KEY, "1");
       window.location.reload();
     }
 
     window.addEventListener("error", handleChunkError);
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
-    // Clear the reload guard on successful page load (new chunks loaded OK)
-    sessionStorage.removeItem(RELOAD_KEY);
+    // Clear the reload guard AFTER a delay — if we got here and stayed
+    // stable for 5 seconds, the new chunks loaded fine
+    const clearTimer = setTimeout(() => {
+      try {
+        sessionStorage.removeItem(RELOAD_KEY);
+      } catch {
+        // ignore
+      }
+    }, 5_000);
 
     return () => {
+      clearTimeout(clearTimer);
       window.removeEventListener("error", handleChunkError);
       window.removeEventListener("unhandledrejection", handleUnhandledRejection);
     };

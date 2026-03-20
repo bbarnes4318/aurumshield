@@ -7,11 +7,13 @@
    Primary purpose: recover gracefully from ChunkLoadErrors that
    crash the React tree after a deploy.
 
-   If a chunk error is detected, auto-reload. Otherwise show a
-   minimal recovery UI.
+   If a chunk error is detected, auto-reload ONCE per session.
+   Guard: uses sessionStorage to prevent infinite reload loops.
    ================================================================ */
 
 import { useEffect } from "react";
+
+const RELOAD_KEY = "__aurumshield_global_error_reload";
 
 export default function GlobalError({
   error,
@@ -29,7 +31,21 @@ export default function GlobalError({
       msg.includes("Failed to fetch dynamically imported module");
 
     if (isChunkError) {
-      // Stale chunks from a previous deploy — reload to get new HTML
+      // Guard: only auto-reload ONCE per session to prevent infinite loops
+      try {
+        const alreadyReloaded = sessionStorage.getItem(RELOAD_KEY);
+        if (alreadyReloaded) {
+          // Already tried reloading — don't loop, just show the error UI
+          console.warn(
+            "[GlobalError] ChunkLoadError persisted after reload. Showing recovery UI.",
+          );
+          return;
+        }
+        sessionStorage.setItem(RELOAD_KEY, "1");
+      } catch {
+        // sessionStorage unavailable — don't reload to be safe
+        return;
+      }
       window.location.reload();
       return;
     }
@@ -68,7 +84,15 @@ export default function GlobalError({
             update. Please try again.
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              // Clear the reload guard so a fresh manual reload can try again
+              try {
+                sessionStorage.removeItem(RELOAD_KEY);
+              } catch {
+                // ignore
+              }
+              window.location.reload();
+            }}
             style={{
               background: "#c6a86b",
               color: "#0b1220",
