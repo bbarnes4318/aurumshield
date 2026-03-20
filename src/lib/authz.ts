@@ -40,6 +40,8 @@ export type UserRole =
   | "producer"
   | "REFINERY"
   | "MINE"
+  // Broker portal role
+  | "BROKER"
   // Legacy aliases — retained for backward compatibility during UI migration
   | "buyer"
   | "seller"
@@ -93,6 +95,7 @@ const CLERK_ROLE_MAP: Record<string, UserRole> = {
   "org:institution_trader": "INSTITUTION_TRADER",
   "org:institution_treasury": "INSTITUTION_TREASURY",
   "org:broker_dealer_api": "BROKER_DEALER_API",
+  "org:broker": "BROKER",
   "org:compliance": "compliance",
   "org:vault_ops": "vault_ops",
   // Legacy mappings for backward compatibility during transition

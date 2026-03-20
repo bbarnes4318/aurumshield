@@ -3450,6 +3450,8 @@ export type UserRole =
   | "producer"
   | "REFINERY"
   | "MINE"
+  // Broker portal role
+  | "BROKER"
   // Legacy aliases — retained for backward compatibility during UI migration
   | "buyer"
   | "seller"

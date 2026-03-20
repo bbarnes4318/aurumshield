@@ -68,6 +68,7 @@ const CLERK_ROLE_MAP: Record<string, UserRole> = {
   "org:treasury": "treasury",
   "org:compliance": "compliance",
   "org:vault_ops": "vault_ops",
+  "org:broker": "BROKER",
 };
 
 const DEFAULT_ROLE: UserRole = "buyer";

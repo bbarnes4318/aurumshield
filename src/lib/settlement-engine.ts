@@ -123,6 +123,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   producer: "Producer",
   REFINERY: "LBMA Refiner",
   MINE: "Mining Operator",
+  BROKER: "Broker",
   // Legacy aliases
   buyer: "Institution Trader",
   seller: "Institution Trader",
@@ -182,6 +183,7 @@ function roleToActor(role: UserRole): LedgerEntry["actor"] {
     case "compliance": return "COMPLIANCE";
     case "INSTITUTION_TRADER": return "BUYER";
     case "BROKER_DEALER_API": return "BUYER";
+    case "BROKER": return "OPS";
     default: return "OPS"; // admin, INSTITUTION_TREASURY, vault_ops
   }
 }

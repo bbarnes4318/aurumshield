@@ -10,6 +10,7 @@
    Logic:
      - OFFTAKER_ROLES → /offtaker/org/select
      - PRODUCER_ROLES → /producer/accreditation
+     - BROKER_ROLES   → /broker
      - OPERATOR_ROLES → allowed through to /dashboard (no redirect)
    ================================================================ */
 
@@ -38,6 +39,10 @@ const PRODUCER_ROLES: UserRole[] = [
   "MINE",
 ];
 
+const BROKER_ROLES: UserRole[] = [
+  "BROKER",
+];
+
 /** Routes that trigger the role-based redirect */
 const INTERCEPT_ROUTES = ["/dashboard"];
 
@@ -63,6 +68,12 @@ export function RoleRouter() {
     // Producer roles → producer portal entry point
     if (PRODUCER_ROLES.includes(role)) {
       router.replace("/producer/accreditation");
+      return;
+    }
+
+    // Broker roles → broker portal entry point
+    if (BROKER_ROLES.includes(role)) {
+      router.replace("/broker");
       return;
     }
 
