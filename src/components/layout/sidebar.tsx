@@ -64,18 +64,19 @@ interface NavItem {
 }
 
 /* ── Roles considered "internal operators" — can see all admin links ── */
+/* Includes white-glove institutional buyers who share the Enterprise Command Center */
 const OPERATOR_ROLES: UserRole[] = [
   "admin",
   "compliance",
   "treasury",
   "vault_ops",
-];
-
-/* ── Offtaker roles — restricted to /offtaker portal ── */
-const OFFTAKER_ROLES: UserRole[] = [
-  "offtaker",
   "INSTITUTION_TRADER",
   "INSTITUTION_TREASURY",
+];
+
+/* ── Offtaker roles — standard self-serve retail buyers only ── */
+const OFFTAKER_ROLES: UserRole[] = [
+  "offtaker",
 ];
 
 /* ── Producer roles — restricted to /producer portal ── */
