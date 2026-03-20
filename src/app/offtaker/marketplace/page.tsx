@@ -182,11 +182,27 @@ export default function OfftakerMarketplacePage() {
   const [limitWarning, setLimitWarning] = useState<string | null>(null);
   const [limitBlocked, setLimitBlocked] = useState(false);
 
+  /* ── Physical address state ── */
+  const [physStreet, setPhysStreet] = useState("");
+  const [physCity, setPhysCity] = useState("");
+  const [physState, setPhysState] = useState("");
+  const [physZip, setPhysZip] = useState("");
+  const [physAddrType, setPhysAddrType] = useState<"residential" | "commercial">("residential");
+  const [freightQuote, setFreightQuote] = useState<{
+    freightCost: number; insurancePremium: number; totalLogisticsFee: number;
+    distanceMiles: number; mileageSurcharge: number; baseDispatch: number;
+  } | null>(null);
+  const [freightError, setFreightError] = useState<string | null>(null);
+  const [freightLoading, setFreightLoading] = useState(false);
+
   /* ── Horizontal stepper state ── */
   const [panelStep, setPanelStep] = useState<PanelStep>(1);
 
   /* ── Live spot price ── */
   const spotPrice = goldPrice?.spotPriceUsd ?? 0;
+
+  /* ── Physical address completeness ── */
+  const physAddressComplete = physStreet.trim() !== "" && physCity.trim() !== "" && physState.trim() !== "" && physZip.trim().length >= 5;
 
   /* ── Derived values ── */
   const hasSelection = selectedAsset !== null;
@@ -197,15 +213,24 @@ export default function OfftakerMarketplacePage() {
   const baseSpotValue = totalWeightOz * spotPrice;
   const assetPremium = baseSpotValue * (selectedAsset?.premiumBps ?? 0) / 10000;
   const physicalPremium = deliveryMode === "PHYSICAL" ? baseSpotValue * PHYSICAL_PREMIUM_BPS / 10000 : 0;
-  const transitCost = selectedDest ? baseSpotValue * selectedDest.transitBps / 10000 : 0;
-  const insuranceCost = deliveryMode === "PHYSICAL" && selectedDest
-    ? baseSpotValue * ((selectedDest as typeof DELIVERY_DESTINATIONS[number]).insuranceBps ?? 0) / 10000
+
+  // Transit + insurance: use real freight quote for Physical, bps for Vault
+  const transitCost = deliveryMode === "PHYSICAL"
+    ? (freightQuote?.freightCost ?? 0)
+    : (selectedDest ? baseSpotValue * selectedDest.transitBps / 10000 : 0);
+  const insuranceCost = deliveryMode === "PHYSICAL"
+    ? (freightQuote?.insurancePremium ?? 0)
     : 0;
+
   const platformFee = baseSpotValue * PLATFORM_FEE_BPS / 10000;
   const totalExecutionAmount = baseSpotValue + assetPremium + physicalPremium + transitCost + insuranceCost + platformFee;
 
-  const canLockQuote = hasSelection && destination !== "" && quantity > 0;
-  const step1Complete = hasSelection && destination !== "" && quantity > 0;
+  const canLockQuote = deliveryMode === "PHYSICAL"
+    ? (hasSelection && physAddressComplete && freightQuote !== null && !freightError && quantity > 0)
+    : (hasSelection && destination !== "" && quantity > 0);
+  const step1Complete = deliveryMode === "PHYSICAL"
+    ? (hasSelection && physAddressComplete && quantity > 0)
+    : (hasSelection && destination !== "" && quantity > 0);
 
   /* ── Asset selection ── */
   const handleSelectAsset = useCallback((asset: AssetTier) => {
@@ -220,8 +245,38 @@ export default function OfftakerMarketplacePage() {
   const handleDeliveryModeChange = useCallback((mode: DeliveryMode) => {
     setDeliveryMode(mode);
     setDestination("");
+    setFreightQuote(null);
+    setFreightError(null);
     setPhase("CONFIGURING");
   }, []);
+
+  /* ── Fetch real freight quote when physical address changes ── */
+  const fetchFreightQuote = useCallback(async () => {
+    if (!physAddressComplete || deliveryMode !== "PHYSICAL" || baseSpotValue <= 0) return;
+    setFreightLoading(true);
+    setFreightError(null);
+    try {
+      const { verifyAddressAndQuote } = await import("@/actions/logistics");
+      const result = await verifyAddressAndQuote(
+        { streetAddress: physStreet, city: physCity, state: physState, zipCode: physZip, addressType: physAddrType },
+        baseSpotValue + (baseSpotValue * (selectedAsset?.premiumBps ?? 0) / 10000),
+      );
+      setFreightQuote(result);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setFreightError(msg);
+      setFreightQuote(null);
+    } finally {
+      setFreightLoading(false);
+    }
+  }, [physAddressComplete, deliveryMode, baseSpotValue, physStreet, physCity, physState, physZip, physAddrType, selectedAsset?.premiumBps]);
+
+  useEffect(() => {
+    if (deliveryMode === "PHYSICAL" && physAddressComplete && baseSpotValue > 0) {
+      const timer = setTimeout(fetchFreightQuote, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [deliveryMode, physAddressComplete, baseSpotValue, fetchFreightQuote]);
 
   /* ── Quote lock (with transaction limit enforcement) ── */
   const handleLockQuote = useCallback(() => {
@@ -582,35 +637,131 @@ export default function OfftakerMarketplacePage() {
                       </div>
                     </div>
 
-                    {/* Destination */}
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <Globe className="h-3 w-3 text-slate-500" />
-                        <span className="font-mono text-[9px] text-slate-600 tracking-[0.15em] uppercase">
-                          {deliveryMode === "VAULT" ? "Vault Location" : "Delivery Destination"}
-                        </span>
+                    {/* Destination / Address */}
+                    {deliveryMode === "VAULT" ? (
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Globe className="h-3 w-3 text-slate-500" />
+                          <span className="font-mono text-[9px] text-slate-600 tracking-[0.15em] uppercase">
+                            Vault Location
+                          </span>
+                        </div>
+                        <select
+                          value={destination}
+                          onChange={(e) => setDestination(e.target.value)}
+                          disabled={phase === "QUOTE_LOCKED"}
+                          className="w-full bg-slate-950 border border-slate-700 px-2.5 py-2 font-mono text-xs text-white focus:border-[#C6A86B] focus:ring-1 focus:ring-[#C6A86B]/30 focus:outline-none transition-colors appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <option value="" disabled>Select vault location…</option>
+                          {VAULT_DESTINATIONS.map((dest) => (
+                            <option key={dest.value} value={dest.value}>
+                              {dest.label} · {dest.region} · +{dest.transitBps} bps
+                            </option>
+                          ))}
+                        </select>
+                        {!destination && (
+                          <p className="mt-1 font-mono text-[8px] text-red-400/70">
+                            Required to calculate transit costs
+                          </p>
+                        )}
                       </div>
-                      <select
-                        value={destination}
-                        onChange={(e) => setDestination(e.target.value)}
-                        disabled={phase === "QUOTE_LOCKED"}
-                        className="w-full bg-slate-950 border border-slate-700 px-2.5 py-2 font-mono text-xs text-white focus:border-[#C6A86B] focus:ring-1 focus:ring-[#C6A86B]/30 focus:outline-none transition-colors appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <option value="" disabled>
-                          {deliveryMode === "VAULT" ? "Select vault location…" : "Select delivery destination…"}
-                        </option>
-                        {destinations.map((dest) => (
-                          <option key={dest.value} value={dest.value}>
-                            {dest.label} · {dest.region} · +{dest.transitBps} bps
-                          </option>
-                        ))}
-                      </select>
-                      {!destination && (
-                        <p className="mt-1 font-mono text-[8px] text-red-400/70">
-                          Required to calculate transit costs
-                        </p>
-                      )}
-                    </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Truck className="h-3 w-3 text-slate-500" />
+                          <span className="font-mono text-[9px] text-slate-600 tracking-[0.15em] uppercase">
+                            Delivery Address (CONUS)
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            placeholder="Street Address"
+                            value={physStreet}
+                            onChange={(e) => setPhysStreet(e.target.value)}
+                            disabled={phase === "QUOTE_LOCKED"}
+                            className="w-full bg-slate-950 border border-slate-700 px-2.5 py-1.5 font-mono text-xs text-white focus:border-[#C6A86B] focus:ring-1 focus:ring-[#C6A86B]/30 focus:outline-none transition-colors disabled:opacity-40"
+                          />
+                          <div className="grid grid-cols-3 gap-1.5">
+                            <input
+                              type="text"
+                              placeholder="City"
+                              value={physCity}
+                              onChange={(e) => setPhysCity(e.target.value)}
+                              disabled={phase === "QUOTE_LOCKED"}
+                              className="bg-slate-950 border border-slate-700 px-2 py-1.5 font-mono text-xs text-white focus:border-[#C6A86B] focus:outline-none disabled:opacity-40"
+                            />
+                            <input
+                              type="text"
+                              placeholder="State"
+                              value={physState}
+                              onChange={(e) => setPhysState(e.target.value)}
+                              disabled={phase === "QUOTE_LOCKED"}
+                              maxLength={2}
+                              className="bg-slate-950 border border-slate-700 px-2 py-1.5 font-mono text-xs text-white uppercase focus:border-[#C6A86B] focus:outline-none disabled:opacity-40"
+                            />
+                            <input
+                              type="text"
+                              placeholder="ZIP Code"
+                              value={physZip}
+                              onChange={(e) => setPhysZip(e.target.value)}
+                              disabled={phase === "QUOTE_LOCKED"}
+                              maxLength={10}
+                              className="bg-slate-950 border border-slate-700 px-2 py-1.5 font-mono text-xs text-white focus:border-[#C6A86B] focus:outline-none disabled:opacity-40"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[8px] text-slate-600 tracking-wider uppercase">Type:</span>
+                            <button
+                              onClick={() => setPhysAddrType("residential")}
+                              disabled={phase === "QUOTE_LOCKED"}
+                              className={`font-mono text-[9px] px-2 py-0.5 border transition-all cursor-pointer disabled:cursor-not-allowed ${
+                                physAddrType === "residential"
+                                  ? "border-[#C6A86B]/60 text-[#C6A86B] bg-[#C6A86B]/10"
+                                  : "border-slate-700 text-slate-500 hover:border-slate-600"
+                              }`}
+                            >Residential</button>
+                            <button
+                              onClick={() => setPhysAddrType("commercial")}
+                              disabled={phase === "QUOTE_LOCKED"}
+                              className={`font-mono text-[9px] px-2 py-0.5 border transition-all cursor-pointer disabled:cursor-not-allowed ${
+                                physAddrType === "commercial"
+                                  ? "border-[#C6A86B]/60 text-[#C6A86B] bg-[#C6A86B]/10"
+                                  : "border-slate-700 text-slate-500 hover:border-slate-600"
+                              }`}
+                            >Commercial</button>
+                          </div>
+                        </div>
+
+                        {/* Freight Quote Result */}
+                        {freightLoading && (
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            <div className="h-3 w-3 border-2 border-[#C6A86B] border-t-transparent rounded-full animate-spin" />
+                            <span className="font-mono text-[9px] text-slate-500">Calculating freight…</span>
+                          </div>
+                        )}
+                        {freightError && (
+                          <div className="mt-1.5 bg-red-950/30 border border-red-500/40 px-2 py-1.5">
+                            <div className="flex items-start gap-1.5">
+                              <AlertTriangle className="h-3 w-3 text-red-400 mt-0.5 shrink-0" />
+                              <p className="font-mono text-[8px] text-red-400 leading-relaxed">{freightError}</p>
+                            </div>
+                          </div>
+                        )}
+                        {freightQuote && !freightError && (
+                          <div className="mt-1.5 bg-emerald-500/5 border border-emerald-500/20 px-2 py-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono text-[8px] text-emerald-400 tracking-wider uppercase">
+                                {freightQuote.distanceMiles} mi from NYC Vault
+                              </span>
+                              <span className="font-mono text-[10px] text-emerald-400 font-bold tabular-nums">
+                                ${fmt(freightQuote.totalLogisticsFee)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Insurance Badge */}
                     <div className="border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1.5">
@@ -683,7 +834,7 @@ export default function OfftakerMarketplacePage() {
                     </div>
 
                     {/* Full Cost Breakdown */}
-                    {destination && (
+                    {(destination || (deliveryMode === "PHYSICAL" && freightQuote)) && (
                       <div className="bg-black border border-slate-800/60 p-3">
                         <div className="flex items-center gap-1.5 mb-2">
                           <FileText className="h-3 w-3 text-slate-500" />
@@ -709,18 +860,33 @@ export default function OfftakerMarketplacePage() {
                               accent
                             />
                           )}
-                          <CostRow
-                            label={`${deliveryMode === "VAULT" ? "Vault Transit" : "Armored Transit"} (+${selectedDest?.transitBps ?? 0} bps)`}
-                            value={transitCost}
-                            accent
-                          />
-                          {deliveryMode === "PHYSICAL" && insuranceCost > 0 && (
-                            <CostRow
-                              label={`Specie Insurance (+${(selectedDest as typeof DELIVERY_DESTINATIONS[number])?.insuranceBps ?? 0} bps)`}
-                              value={insuranceCost}
-                              accent
-                            />
-                          )}
+                          {deliveryMode === "PHYSICAL" && freightQuote ? (
+                            <>
+                              <CostRow
+                                label={`Base Dispatch (NYC Vault)`}
+                                value={freightQuote.baseDispatch}
+                                accent
+                              />
+                              <CostRow
+                                label={`Mileage Surcharge (${freightQuote.distanceMiles} mi × $4.50)`}
+                                value={freightQuote.mileageSurcharge}
+                                accent
+                              />
+                              <CostRow
+                                label={`Lloyd's Insurance (15 bps)`}
+                                value={freightQuote.insurancePremium}
+                                accent
+                              />
+                            </>
+                          ) : deliveryMode === "VAULT" ? (
+                            <>
+                              <CostRow
+                                label={`Vault Transit (+${selectedDest?.transitBps ?? 0} bps)`}
+                                value={transitCost}
+                                accent
+                              />
+                            </>
+                          ) : null}
                           {deliveryMode === "VAULT" && selectedDest && (
                             <div className="flex items-center justify-between py-1.5 border-b border-slate-800/50">
                               <span className="font-mono text-[9px] text-slate-500 tracking-wider uppercase pr-4">
