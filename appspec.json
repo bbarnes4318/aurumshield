@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "Resources": [
+    {
+      "TargetService": {
+        "Type": "AWS::ECS::Service",
+        "Properties": {
+          "TaskDefinition": "<TASK_DEFINITION>",
+          "LoadBalancerInfo": {
+            "ContainerName": "aurumshield-app",
+            "ContainerPort": 3000
+          },
+          "PlatformVersion": "LATEST",
+          "NetworkConfiguration": {
+            "AwsvpcConfiguration": {
+              "Subnets": [
+                "subnet-0a88d4a00b43b4e67",
+                "subnet-0605457f8f0407e00"
+              ],
+              "SecurityGroups": [
+                "sg-0b55525b0d1b6327d"
+              ],
+              "AssignPublicIp": "DISABLED"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

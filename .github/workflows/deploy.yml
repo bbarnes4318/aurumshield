@@ -1,4 +1,23 @@
-name: Deploy to AWS ECS
+# ================================================================
+# AWS ECS Blue/Green Deployment via CodeDeploy
+# ================================================================
+#
+# DEPLOYMENT MODEL: Blue/Green via AWS CodeDeploy (ECS)
+#
+# Flow:
+#   1. Build Docker image → Push to ECR
+#   2. Register new ECS Task Definition revision
+#   3. Generate appspec.json with real Task Definition ARN
+#   4. Trigger CodeDeploy deployment
+#   5. CodeDeploy spins up Green task set behind secondary TG
+#   6. ALB traffic atomically cuts over to Green
+#   7. Blue (old) task set drains and terminates
+#
+# This eliminates Next.js ChunkLoadError split-brain caching
+# because traffic NEVER hits a mix of old and new containers.
+# ================================================================
+
+name: Deploy to AWS ECS (Blue/Green)
 
 on:
   workflow_dispatch:
@@ -16,19 +35,21 @@ env:
   ECS_CLUSTER: aurumshield-cluster
   ECS_SERVICE: aurumshield-app
   CONTAINER_NAME: aurumshield-app
+  CODEDEPLOY_APPLICATION: aurumshield-bluegreen
+  CODEDEPLOY_DEPLOYMENT_GROUP: aurumshield-bluegreen-dg
 
 jobs:
   deploy:
-    name: Build and Deploy
+    name: Build and Deploy (Blue/Green)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Write .env.production with ALL keys.  NEXT_PUBLIC_* vars are inlined
-      # into the JS bundle at build time.  Server-side secrets are read by
-      # the standalone Next.js server at runtime from the same file.
+      # ── Generate .env.production ──
+      # NEXT_PUBLIC_* vars are inlined into the JS bundle at build time.
+      # Server-side secrets are read by the standalone Next.js server at runtime.
       - name: Generate .env.production for build
         run: |
           cat <<'EOF' > .env.production
@@ -70,6 +91,7 @@ jobs:
           EOF
           sed -i 's/^          //' .env.production
 
+      # ── AWS Authentication ──
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -80,6 +102,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      # ── Build & Push Docker Image ──
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -99,20 +122,19 @@ jobs:
             .
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Update ECS task definition with new image
-        id: update-task-def
+      # ── Register New Task Definition ──
+      - name: Register new ECS task definition revision
+        id: register-task-def
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Get current task definition
           TASK_DEF=$(aws ecs describe-task-definition \
             --task-definition $CONTAINER_NAME \
             --region $AWS_REGION \
             --query 'taskDefinition' \
             --output json)
 
-          # Create new task definition with updated image
           NEW_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           echo "Deploying image: $NEW_IMAGE"
 
@@ -121,7 +143,6 @@ jobs:
             '.containerDefinitions |= map(if .name == $NAME then .image = $IMAGE else . end) |
              del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
 
-          # Register the new task definition revision
           NEW_REVISION=$(aws ecs register-task-definition \
             --cli-input-json "$NEW_TASK_DEF" \
             --region $AWS_REGION \
@@ -131,44 +152,113 @@ jobs:
           echo "Registered new task definition: $NEW_REVISION"
           echo "task-def-arn=$NEW_REVISION" >> $GITHUB_OUTPUT
 
-      - name: Deploy new task definition to ECS
+      # ── Generate Runtime AppSpec ──
+      # Injects the real task definition ARN and network config
+      # into the appspec template for CodeDeploy consumption.
+      - name: Generate appspec.json with real task definition
+        id: generate-appspec
         run: |
-          aws ecs update-service \
+          TASK_DEF_ARN="${{ steps.register-task-def.outputs.task-def-arn }}"
+
+          # Pull network config from the live ECS service
+          SERVICE_DESC=$(aws ecs describe-services \
             --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE \
-            --task-definition ${{ steps.update-task-def.outputs.task-def-arn }} \
-            --force-new-deployment \
-            --region $AWS_REGION
+            --services $ECS_SERVICE \
+            --region $AWS_REGION \
+            --query 'services[0].networkConfiguration.awsvpcConfiguration' \
+            --output json)
 
-          echo "Deployment triggered. Waiting for service stability..."
+          SUBNETS=$(echo "$SERVICE_DESC" | jq -c '.subnets')
+          SECURITY_GROUPS=$(echo "$SERVICE_DESC" | jq -c '.securityGroups')
+          ASSIGN_PUBLIC_IP=$(echo "$SERVICE_DESC" | jq -r '.assignPublicIp')
 
-      - name: Wait for deployment to stabilize
+          cat <<SPEC > appspec-runtime.json
+          {
+            "version": 1,
+            "Resources": [
+              {
+                "TargetService": {
+                  "Type": "AWS::ECS::Service",
+                  "Properties": {
+                    "TaskDefinition": "$TASK_DEF_ARN",
+                    "LoadBalancerInfo": {
+                      "ContainerName": "$CONTAINER_NAME",
+                      "ContainerPort": 3000
+                    },
+                    "PlatformVersion": "LATEST",
+                    "NetworkConfiguration": {
+                      "AwsvpcConfiguration": {
+                        "Subnets": $SUBNETS,
+                        "SecurityGroups": $SECURITY_GROUPS,
+                        "AssignPublicIp": "$ASSIGN_PUBLIC_IP"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+          SPEC
+          sed -i 's/^          //' appspec-runtime.json
+
+          echo "Generated appspec-runtime.json:"
+          cat appspec-runtime.json
+
+      # ── Trigger CodeDeploy Blue/Green Deployment ──
+      - name: Create CodeDeploy deployment
+        id: codedeploy
         run: |
-          echo "Waiting for ECS service to stabilize (up to 15 minutes)..."
+          APPSPEC_CONTENT=$(cat appspec-runtime.json | jq -c '.')
+
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name $CODEDEPLOY_APPLICATION \
+            --deployment-group-name $CODEDEPLOY_DEPLOYMENT_GROUP \
+            --revision "{\"revisionType\": \"AppSpecContent\", \"appSpecContent\": {\"content\": \"$(echo $APPSPEC_CONTENT | sed 's/"/\\"/g')\"}}" \
+            --region $AWS_REGION \
+            --query 'deploymentId' \
+            --output text)
+
+          echo "CodeDeploy deployment triggered: $DEPLOYMENT_ID"
+          echo "deployment-id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+
+      # ── Wait for Blue/Green Cutover ──
+      - name: Wait for CodeDeploy deployment to complete
+        run: |
+          DEPLOYMENT_ID="${{ steps.codedeploy.outputs.deployment-id }}"
+          echo "Waiting for deployment $DEPLOYMENT_ID to complete (up to 15 minutes)..."
+
           MAX_ATTEMPTS=60
           POLL_INTERVAL=15
           for i in $(seq 1 $MAX_ATTEMPTS); do
-            DEPLOYMENTS=$(aws ecs describe-services \
-              --cluster $ECS_CLUSTER \
-              --services $ECS_SERVICE \
+            STATUS=$(aws deploy get-deployment \
+              --deployment-id $DEPLOYMENT_ID \
               --region $AWS_REGION \
-              --query 'services[0].deployments' \
-              --output json)
+              --query 'deploymentInfo.status' \
+              --output text)
 
-            DEPLOY_COUNT=$(echo "$DEPLOYMENTS" | jq 'length')
-            PRIMARY_RUNNING=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status == "PRIMARY")][0].runningCount // 0')
-            PRIMARY_DESIRED=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status == "PRIMARY")][0].desiredCount // 0')
+            echo "Poll $i/$MAX_ATTEMPTS: status=$STATUS"
 
-            echo "Poll $i/$MAX_ATTEMPTS: deployments=$DEPLOY_COUNT, PRIMARY running=$PRIMARY_RUNNING/$PRIMARY_DESIRED"
-
-            if [ "$PRIMARY_RUNNING" -eq "$PRIMARY_DESIRED" ] && [ "$PRIMARY_DESIRED" -gt 0 ]; then
-              echo "✅ Deployment complete — PRIMARY running=$PRIMARY_RUNNING/$PRIMARY_DESIRED"
-              exit 0
-            fi
+            case $STATUS in
+              Succeeded)
+                echo "✅ Blue/Green deployment complete — traffic atomically cut to Green."
+                exit 0
+                ;;
+              Failed|Stopped)
+                echo "❌ Deployment $STATUS."
+                aws deploy get-deployment \
+                  --deployment-id $DEPLOYMENT_ID \
+                  --region $AWS_REGION \
+                  --query 'deploymentInfo.errorInformation' \
+                  --output json
+                exit 1
+                ;;
+              *)
+                # InProgress, Created, Queued, Ready — keep waiting
+                ;;
+            esac
 
             sleep $POLL_INTERVAL
           done
 
-          echo "❌ Deployment did not stabilize within $(( MAX_ATTEMPTS * POLL_INTERVAL / 60 )) minutes"
-          aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION --query 'services[0].events[:5]' --output table
+          echo "❌ Deployment did not complete within $(( MAX_ATTEMPTS * POLL_INTERVAL / 60 )) minutes"
           exit 1
