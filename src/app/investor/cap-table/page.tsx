@@ -202,7 +202,7 @@ export default function CapTablePage() {
               <Users className="h-3 w-3 text-cyan-400" />
               <span className="text-[10px] font-semibold text-slate-200 uppercase tracking-wider">Key Investors</span>
             </div>
-            <div className="divide-y divide-slate-800/50 flex-1 min-h-0 overflow-hidden">
+            <div className="divide-y divide-slate-800/50 flex-1 min-h-0 overflow-y-auto">
               {KEY_INVESTORS.map((inv) => (
                 <div key={inv.name} className="px-3 py-1.5">
                   <div className="flex items-center justify-between">
