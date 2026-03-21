@@ -430,8 +430,8 @@ function SidebarNav({
       {!collapsed ? (
         <button
           type="button"
-          onClick={() => setManualImpersonation("none")}
-          className="mb-3 flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-950/20 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-blue-300 hover:bg-blue-950/40 transition-all"
+          onClick={() => { setManualImpersonation("none"); router.push("/dashboard"); }}
+          className="mb-3 flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-950/20 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-blue-300 hover:bg-blue-950/40 transition-all cursor-pointer"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           Return to Admin Command
@@ -439,8 +439,8 @@ function SidebarNav({
       ) : (
         <button
           type="button"
-          onClick={() => setManualImpersonation("none")}
-          className="mb-3 flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-950/20 p-2 text-blue-300 hover:bg-blue-950/40 transition-all"
+          onClick={() => { setManualImpersonation("none"); router.push("/dashboard"); }}
+          className="mb-3 flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-950/20 p-2 text-blue-300 hover:bg-blue-950/40 transition-all cursor-pointer"
           title="Return to Admin Command"
         >
           <ChevronLeft className="h-4 w-4" />
