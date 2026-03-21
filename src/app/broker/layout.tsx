@@ -27,7 +27,19 @@ import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { useGoldPrice } from "@/hooks/use-gold-price";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
+import { useAuth } from "@/providers/auth-provider";
+import type { UserRole } from "@/lib/mock-data";
 import { Activity, Wifi, Lock, Fingerprint, Loader2, ShieldAlert } from "lucide-react";
+
+/* ── Operator roles that bypass the compliance gate (admin impersonation) ── */
+const OPERATOR_ROLES: UserRole[] = [
+  "admin",
+  "compliance",
+  "treasury",
+  "vault_ops",
+  "INSTITUTION_TRADER",
+  "INSTITUTION_TREASURY",
+];
 
 /* ══════════════════════════════════════════════════════════════════
    BROKER COMPLIANCE GATE — The Trapdoor
@@ -35,6 +47,7 @@ import { Activity, Wifi, Lock, Fingerprint, Loader2, ShieldAlert } from "lucide-
    Brokers are invite-only (org:broker assigned in Clerk).
    However, an invite does NOT mean they are compliance-cleared.
    This gate checks their KYB/AML status and:
+     - Operator/Admin → bypass gate entirely (impersonation mode)
      - Loading  → secure terminal spinner (dark mode)
      - !CLEARED → VIOLENT redirect to /offtaker/onboarding/kyb
      - CLEARED  → render children (broker terminal)
@@ -42,15 +55,21 @@ import { Activity, Wifi, Lock, Fingerprint, Loader2, ShieldAlert } from "lucide-
 
 function BrokerComplianceGate({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const role: UserRole = user?.role ?? "offtaker";
+  const isOperator = OPERATOR_ROLES.includes(role);
+
   const {
     data: onboardingState,
     isLoading,
     isError,
-  } = useOnboardingState();
+  } = useOnboardingState(!isOperator); // Skip compliance fetch for operators
 
-  const isCleared = onboardingState?.status === "COMPLETED";
+  const isCleared = isOperator || onboardingState?.status === "COMPLETED";
 
   useEffect(() => {
+    // Operators bypass — no redirect needed
+    if (isOperator) return;
     // Never redirect while still loading or on transient error
     if (isLoading || isError) return;
 
@@ -58,7 +77,12 @@ function BrokerComplianceGate({ children }: { children: ReactNode }) {
     if (!isCleared) {
       router.replace("/offtaker/onboarding/kyb");
     }
-  }, [isLoading, isError, isCleared, router]);
+  }, [isOperator, isLoading, isError, isCleared, router]);
+
+  // ── OPERATOR BYPASS: Admins viewing broker portal via impersonation ──
+  if (isOperator) {
+    return <>{children}</>;
+  }
 
   // ── Loading: Secure terminal spinner ──
   if (isLoading) {

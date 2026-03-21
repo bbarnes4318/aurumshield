@@ -390,7 +390,7 @@ function SidebarNav({
     } else if (mode === "producer") {
       router.push("/producer/accreditation");
     } else if (mode === "broker") {
-      router.push("/broker/pipeline");
+      router.push("/broker");
     } else if (mode === "investor") {
       router.push("/investor");
     }
@@ -457,7 +457,7 @@ function SidebarNav({
         /* ══════ ADMIN → OFFTAKER IMPERSONATION ══════ */
         <>
           {renderReturnBanner()}
-          {renderPortalNav(OFFTAKER_CLEARED_NAV, "Offtaker Portal")}
+          {renderPortalNav(OFFTAKER_CLEARED_NAV, "Institutional Portal")}
         </>
       ) : isOperator && impersonationMode === "producer" ? (
         /* ══════ ADMIN → PRODUCER IMPERSONATION ══════ */
@@ -515,7 +515,7 @@ function SidebarNav({
                   className="w-full flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gold hover:bg-gold/10 transition-all"
                 >
                   <Eye className="h-4 w-4 text-gold shrink-0" />
-                  <span>View Offtaker Portal</span>
+                  <span>View Institutional Portal</span>
                 </button>
                 <button
                   type="button"
@@ -541,6 +541,13 @@ function SidebarNav({
                   <Eye className="h-4 w-4 text-cyan-400 shrink-0" />
                   <span>View Investor Portal</span>
                 </button>
+                <Link
+                  href="/counterparty/compliance"
+                  className="w-full flex items-center gap-2.5 rounded-lg border border-violet-500/30 bg-violet-500/5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-violet-400 hover:bg-violet-500/10 transition-all"
+                >
+                  <Fingerprint className="h-4 w-4 text-violet-400 shrink-0" />
+                  <span>View Counterparty Compliance</span>
+                </Link>
               </>
             ) : (
               <>
@@ -548,7 +555,7 @@ function SidebarNav({
                   type="button"
                   onClick={() => handleImpersonate("offtaker")}
                   className="flex items-center justify-center rounded-lg border border-gold/30 bg-gold/5 p-2 text-gold hover:bg-gold/10 transition-all"
-                  title="View Offtaker Portal"
+                  title="View Institutional Portal"
                 >
                   <Eye className="h-4 w-4" />
                 </button>
@@ -576,6 +583,13 @@ function SidebarNav({
                 >
                   <Eye className="h-4 w-4" />
                 </button>
+                <Link
+                  href="/counterparty/compliance"
+                  className="flex items-center justify-center rounded-lg border border-violet-500/30 bg-violet-500/5 p-2 text-violet-400 hover:bg-violet-500/10 transition-all"
+                  title="View Counterparty Compliance"
+                >
+                  <Fingerprint className="h-4 w-4" />
+                </Link>
               </>
             )}
           </div>
