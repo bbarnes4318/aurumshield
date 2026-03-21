@@ -72,7 +72,6 @@ export default function InvestorLayout({ children }: { children: ReactNode }) {
                   : pathname.startsWith(item.href);
 
               const Icon = item.icon;
-              const goldwireActive = pathname === "/transactions/new" || pathname.startsWith("/transactions/new/");
 
               return (
                 <div key={item.href}>
@@ -88,34 +87,28 @@ export default function InvestorLayout({ children }: { children: ReactNode }) {
                     <Icon className="h-4 w-4" />
                     <span>{item.label}</span>
                   </Link>
-                  {/* Goldwire logo link — inserted after first nav item */}
+                  {/* Goldwire logo link — opens in new tab, user stays in investor portal */}
                   {idx === 0 && (
-                    <Link
+                    <a
                       href="/transactions/new"
-                      className={[
-                        "flex items-center gap-2 px-3 py-2 rounded-md transition-colors mt-0.5",
-                        goldwireActive
-                          ? "bg-slate-800"
-                          : "hover:bg-slate-800/50",
-                      ].join(" ")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-colors text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent mt-0.5"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src="/goldwire-icon.svg"
                         alt=""
-                        className="h-4 w-auto shrink-0"
+                        className="h-4 w-4 shrink-0"
                         aria-hidden="true"
-                        style={{ filter: goldwireActive ? "brightness(1.3)" : "brightness(0.85)" }}
+                        style={{ filter: "brightness(0.85)" }}
                       />
                       <span
-                        className={[
-                          "text-[13px] font-bold tracking-[0.15em] uppercase bg-linear-to-r from-[#F5EACF] via-[#D4AF37] to-[#BFA052] bg-clip-text text-transparent select-none",
-                          goldwireActive ? "opacity-100" : "opacity-70",
-                        ].join(" ")}
+                        className="text-[13px] font-bold tracking-[0.15em] uppercase bg-linear-to-r from-[#F5EACF] via-[#D4AF37] to-[#BFA052] bg-clip-text text-transparent select-none opacity-70"
                       >
                         GOLDWIRE
                       </span>
-                    </Link>
+                    </a>
                   )}
                 </div>
               );

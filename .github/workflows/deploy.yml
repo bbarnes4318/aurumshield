@@ -140,8 +140,9 @@ jobs:
 
           NEW_TASK_DEF=$(echo "$TASK_DEF" | \
             jq --arg IMAGE "$NEW_IMAGE" --arg NAME "$CONTAINER_NAME" \
-            '.containerDefinitions |= map(if .name == $NAME then .image = $IMAGE else . end) |
-             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+             '.containerDefinitions |= map(if .name == $NAME then .image = $IMAGE else . end) |
+              del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
+              del(.containerDefinitions[].healthCheck)')
 
           NEW_REVISION=$(aws ecs register-task-definition \
             --cli-input-json "$NEW_TASK_DEF" \
