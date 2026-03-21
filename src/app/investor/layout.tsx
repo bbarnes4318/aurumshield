@@ -10,12 +10,11 @@
 
    Structure:
      ┌─────────────────────────────────────────────┐
-     │  TELEMETRY STRIP (XAU/USD + network status) │
-     │  HEADER  h-14  (logo + role badge)          │
+     │  HEADER  h-12  (logo + role badge)          │
      ├──────┬──────────────────────────────────────┤
-     │ SIDE │  MAIN  (flex-1 min-h-0 scrollable)   │
+     │ SIDE │  MAIN  (flex-1 min-h-0 no scroll)   │
      │  BAR │                                       │
-     │ w-64 │                                       │
+     │ w-56 │                                       │
      │      │                                       │
      └──────┴──────────────────────────────────────┘
    ================================================================ */
@@ -24,8 +23,7 @@ import { type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
-import { useGoldPrice } from "@/hooks/use-gold-price";
-import { Activity, Wifi, Lock, Fingerprint, BarChart3, ShieldCheck, Landmark, PieChart } from "lucide-react";
+import { BarChart3, ShieldCheck, Landmark, PieChart } from "lucide-react";
 
 /* ── Navigation items ── */
 const NAV_ITEMS = [
@@ -37,65 +35,19 @@ const NAV_ITEMS = [
 
 export default function InvestorLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { data: goldPrice, isLoading: priceLoading } = useGoldPrice();
-  const spotPrice = goldPrice?.spotPriceUsd ?? 0;
 
   return (
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950 text-slate-300 text-sm">
-      {/* ── AMBIENT TELEMETRY STRIP ── */}
-      <div className="shrink-0 bg-black/40 border-b border-slate-800/60 px-6 py-2 flex items-center gap-6">
-        <div className="flex items-center gap-2">
-          <Activity className="h-3 w-3 text-slate-500" />
-          <span className="font-mono text-[9px] text-slate-500">XAU/USD:</span>
-          {priceLoading ? (
-            <span className="font-mono text-[10px] text-slate-600 animate-pulse">SYNCING...</span>
-          ) : (
-            <>
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
-              <span className="font-mono text-[10px] text-white font-bold tabular-nums">
-                {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(spotPrice)}
-              </span>
-            </>
-          )}
-          {goldPrice && (
-            <span className={`font-mono text-[9px] tabular-nums ${goldPrice.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {goldPrice.change24h >= 0 ? "+" : ""}{goldPrice.change24h.toFixed(2)}
-            </span>
-          )}
-        </div>
-        <div className="h-3 w-px bg-slate-800" />
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] animate-pulse" />
-          <Wifi className="h-3 w-3 text-emerald-400" />
-          <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase">
-            Network: Secure
-          </span>
-        </div>
-        <div className="h-3 w-px bg-slate-800" />
-        <div className="flex items-center gap-1.5">
-          <Lock className="h-3 w-3 text-slate-500" />
-          <span className="font-mono text-[9px] text-slate-500 tracking-wider uppercase">
-            End-to-End Encryption: Active
-          </span>
-        </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <Fingerprint className="h-3 w-3 text-slate-600" />
-          <span className="font-mono text-[9px] text-slate-600 tracking-wider">
-            SESSION AUTHENTICATED
-          </span>
-        </div>
-      </div>
-
       {/* ── HEADER ── */}
-      <header className="h-14 shrink-0 flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6">
-        {/* Logo + brand */}
+      <header className="h-12 shrink-0 flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6">
+        {/* Logo */}
         <div className="flex items-center gap-3">
-          <AppLogo className="h-8 w-auto" variant="dark" />
+          <AppLogo className="h-7 w-auto" variant="dark" />
         </div>
 
         {/* Role indicator */}
         <div className="flex items-center gap-3">
-          <span className="px-3 py-1 rounded border border-cyan-500/30 bg-cyan-500/10 text-xs font-mono font-semibold tracking-widest text-cyan-400 uppercase">
+          <span className="px-3 py-1 rounded border border-cyan-500/30 bg-cyan-500/10 text-[10px] font-mono font-semibold tracking-widest text-cyan-400 uppercase">
             LP Telemetry Terminal
           </span>
         </div>
@@ -104,15 +56,15 @@ export default function InvestorLayout({ children }: { children: ReactNode }) {
       {/* ── BODY: Sidebar + Main ── */}
       <div className="flex flex-1 min-h-0">
         {/* ── SIDEBAR ── */}
-        <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-900/50 flex flex-col">
+        <aside className="w-56 shrink-0 border-r border-slate-800 bg-slate-900/50 flex flex-col">
           {/* Section label */}
-          <div className="px-4 pt-4 pb-2">
+          <div className="px-4 pt-3 pb-1">
             <p className="font-mono text-[9px] text-slate-600 uppercase tracking-[0.15em] font-bold">
               Data Room
             </p>
           </div>
 
-          <nav className="flex-1 px-3 space-y-1">
+          <nav className="flex-1 px-3 space-y-0.5">
             {NAV_ITEMS.map((item, idx) => {
               const isActive =
                 item.href === "/investor"
@@ -127,7 +79,7 @@ export default function InvestorLayout({ children }: { children: ReactNode }) {
                   <Link
                     href={item.href}
                     className={[
-                      "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                      "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-colors",
                       isActive
                         ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
                         : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent",
@@ -141,7 +93,7 @@ export default function InvestorLayout({ children }: { children: ReactNode }) {
                     <Link
                       href="/transactions/new"
                       className={[
-                        "flex items-center gap-2 px-3 py-2.5 rounded-md transition-colors mt-1",
+                        "flex items-center gap-2 px-3 py-2 rounded-md transition-colors mt-0.5",
                         goldwireActive
                           ? "bg-slate-800"
                           : "hover:bg-slate-800/50",
@@ -171,7 +123,7 @@ export default function InvestorLayout({ children }: { children: ReactNode }) {
           </nav>
 
           {/* Sidebar footer */}
-          <div className="border-t border-slate-800 px-4 py-3">
+          <div className="border-t border-slate-800 px-4 py-2">
             <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">
               Investor Portal v1.0
             </p>
@@ -181,11 +133,12 @@ export default function InvestorLayout({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        {/* ── MAIN CONTENT ── */}
-        <main className="flex-1 min-h-0 overflow-y-auto relative p-4">
+        {/* ── MAIN CONTENT — zero-scroll, fills remaining viewport ── */}
+        <main className="flex-1 min-h-0 overflow-hidden relative">
           {children}
         </main>
       </div>
     </div>
   );
 }
+
