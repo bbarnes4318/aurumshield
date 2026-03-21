@@ -111,9 +111,10 @@ function BrokerComplianceGate({ children }: { children: ReactNode }) {
 
 /* ── Navigation items ── */
 const NAV_ITEMS = [
-  { href: "/marketplace",     label: "Marketplace",      icon: "◇" },
-  { href: "/broker/pipeline", label: "Deal Pipeline",    icon: "◈" },
-  { href: "/broker/clients",  label: "Client Network",   icon: "◻" },
+  { href: "/broker",           label: "Command Center",   icon: "◆" },
+  { href: "/broker/pipeline",  label: "Deal Pipeline",    icon: "◈" },
+  { href: "/broker/assets",    label: "LBMA Assets",      icon: "◇" },
+  { href: "/broker/clients",   label: "Client Network",   icon: "◻" },
 ] as const;
 
 export default function BrokerLayout({ children }: { children: ReactNode }) {
@@ -123,6 +124,7 @@ export default function BrokerLayout({ children }: { children: ReactNode }) {
 
   /* ── Hydration guard: prevent React #418 by skipping SSR render ── */
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line -- Hydration guard: setMounted(true) on mount is intentional
   useEffect(() => { setMounted(true); }, []);
   if (!mounted) {
     return <div className="absolute inset-0 bg-slate-950" />;
@@ -197,8 +199,8 @@ export default function BrokerLayout({ children }: { children: ReactNode }) {
             <nav className="flex-1 py-4 px-3 space-y-1">
               {NAV_ITEMS.map((item, idx) => {
                 const isActive =
-                  item.href === "/marketplace"
-                    ? pathname === "/marketplace" || pathname.startsWith("/marketplace/")
+                  item.href === "/broker"
+                    ? pathname === "/broker"
                     : pathname.startsWith(item.href);
 
                 const goldwireActive = pathname === "/transactions/new" || pathname.startsWith("/transactions/new/");

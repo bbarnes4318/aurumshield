@@ -39,6 +39,7 @@ import {
   GraduationCap,
   BarChart3,
   PieChart,
+  Boxes,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
@@ -162,9 +163,10 @@ const PRODUCER_NAV: NavItem[] = [
 
 /* ── Broker-visible nav items ── */
 const BROKER_NAV: NavItem[] = [
-  { label: "Marketplace",         href: "/marketplace",                     icon: Coins,           allowedRoles: BROKER_ROLES },
+  { label: "Command Center",      href: "/broker",                          icon: LayoutDashboard, allowedRoles: BROKER_ROLES },
   // Goldwire uses a custom logo renderer — see GoldwireNavLink below
   { label: "Deal Pipeline",       href: "/broker/pipeline",                 icon: ArrowRightLeft,  allowedRoles: BROKER_ROLES },
+  { label: "LBMA Assets",         href: "/broker/assets",                   icon: Boxes,           allowedRoles: BROKER_ROLES },
   { label: "Client Network",      href: "/broker/clients",                  icon: Users,           allowedRoles: BROKER_ROLES },
 ];
 
