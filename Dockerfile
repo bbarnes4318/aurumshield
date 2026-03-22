@@ -24,7 +24,6 @@ RUN npx tsc src/db/run-migration.ts \
   --esModuleInterop \
   --module commonjs \
   --moduleResolution node \
-  --resolveJsonImports \
   --skipLibCheck \
   --target es2020
 
