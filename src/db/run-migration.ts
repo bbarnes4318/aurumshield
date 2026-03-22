@@ -169,8 +169,23 @@ async function main() {
       await client.query('COMMIT');
       console.log(`  ✓ ${file} applied successfully`);
       applied++;
-    } catch (err) {
+    } catch (err: unknown) {
       await client.query('ROLLBACK');
+
+      // ── Handle "already exists" errors (42P07) gracefully ──
+      // This occurs when migrations were previously run manually (before the
+      // _migrations tracking table existed). The table/index/etc already exists
+      // in the database, so we record it as applied and move on.
+      const pgErr = err as { code?: string };
+      if (pgErr.code === '42P07' || pgErr.code === '23505') {
+        console.log(`  ⊘ ${file} (objects already exist — recording as applied)`);
+        await client.query(
+          'INSERT INTO _migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING',
+          [file],
+        );
+        continue;
+      }
+
       console.error(`  ✗ ${file} FAILED:`, err);
       process.exit(1);
     }
