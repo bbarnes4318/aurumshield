@@ -8,6 +8,9 @@
    If the entity is not found, returns Next.js notFound().
    ================================================================ */
 
+/** Prevent static prerender at build time — DB only available at runtime */
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { getBrokerClientById } from "@/actions/broker-crm-actions";
 import { EntityDetailShell } from "@/components/broker/EntityDetailShell";

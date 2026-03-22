@@ -13,6 +13,9 @@
      SANCTIONS BLOCK  → red
    ================================================================ */
 
+/** Prevent static prerender at build time — DB only available at runtime */
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { getBrokerClients } from "@/actions/broker-crm-actions";
 import { BrokerClientsRosterShell } from "@/components/broker/BrokerClientsRosterShell";
