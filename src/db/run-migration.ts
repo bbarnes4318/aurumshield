@@ -116,8 +116,34 @@ async function main() {
   );
   const executedSet = new Set(executed.map((r: { filename: string }) => r.filename));
 
-  // Read migration files
-  const migrationsDir = join(__dirname, 'migrations');
+  // Read migration files — resolve path for both dev and Docker production:
+  //   Dev:    __dirname = src/db        → src/db/migrations/
+  //   Docker: __dirname = db            → db/migrations/     (compiled output)
+  //   Also:   process.cwd()/db/migrations/ (Docker workdir = /app)
+  const candidates = [
+    join(__dirname, 'migrations'),
+    join(process.cwd(), 'db', 'migrations'),
+  ];
+
+  let migrationsDir = '';
+  for (const dir of candidates) {
+    try {
+      readdirSync(dir);
+      migrationsDir = dir;
+      break;
+    } catch {
+      // directory doesn't exist, try next
+    }
+  }
+
+  if (!migrationsDir) {
+    throw new Error(
+      `Could not find migrations directory. Tried: ${candidates.join(', ')}`,
+    );
+  }
+
+  console.log(`  Migration source: ${migrationsDir}`);
+
   const files = readdirSync(migrationsDir)
     .filter((f) => f.endsWith('.sql'))
     .sort();
