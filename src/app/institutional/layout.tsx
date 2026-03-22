@@ -34,7 +34,7 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading || isError) return;
     if (!isCleared) {
-      router.replace("/offtaker/onboarding/kyb");
+      router.replace("/institutional/compliance");
     }
   }, [isLoading, isError, isCleared, router]);
 

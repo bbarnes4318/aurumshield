@@ -112,7 +112,7 @@ export default function InstitutionalCompliancePage() {
       {!isCleared && !isLoading && (
         <div className="shrink-0">
           <Link
-            href="/offtaker/onboarding/kyb"
+            href="/perimeter/verify"
             className="flex items-center justify-center gap-2 rounded border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-yellow-400 hover:bg-yellow-500/20 transition-colors"
           >
             <Shield className="h-4 w-4" />

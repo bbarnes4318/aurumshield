@@ -144,7 +144,7 @@ export default function InstitutionalPortfolioPage() {
             State: <span className="text-violet-400 font-semibold">At Refinery (Assay)</span>
           </p>
           <Link
-            href="/institutional/logistics"
+            href="/institutional/orders"
             className="mt-2 inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-slate-200 transition-colors uppercase tracking-wider group"
           >
             Track Assets
@@ -221,7 +221,7 @@ export default function InstitutionalPortfolioPage() {
               </span>
               <span className="text-right">
                 <Link
-                  href="/institutional/logistics"
+                  href="/institutional/orders"
                   className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 hover:text-slate-300 transition-colors"
                 >
                   Track

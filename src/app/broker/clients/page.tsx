@@ -24,7 +24,12 @@ import { BrokerClientsRosterShell } from "@/components/broker/BrokerClientsRoste
 const CURRENT_BROKER_ID = "broker_123";
 
 export default async function BrokerClientsPage() {
-  const clients = await getBrokerClients(CURRENT_BROKER_ID);
+  let clients: Awaited<ReturnType<typeof getBrokerClients>> = [];
+  try {
+    clients = await getBrokerClients(CURRENT_BROKER_ID);
+  } catch {
+    // DB unavailable — render empty roster shell
+  }
 
   return <BrokerClientsRosterShell clients={clients} />;
 }
