@@ -162,7 +162,7 @@ const PANEL_STEP_LABELS: Record<PanelStep, string> = {
 /* ================================================================
    PAGE COMPONENT
    ================================================================ */
-export default function OfftakerMarketplacePage() {
+export default function InstitutionalMarketplacePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemoActive = searchParams.get("demo") === "active";
@@ -344,7 +344,7 @@ export default function OfftakerMarketplacePage() {
 
     const demoParam = isDemoActive ? "?demo=active" : "";
     setTimeout(() => {
-      router.push(`/offtaker/orders/${orderId}${demoParam}`);
+      router.push(`/institutional/orders/${orderId}${demoParam}`);
     }, 800);
   }, [phase, isExecuting, isDemoActive, router, selectedAsset, deliveryMode, destination, settlementRail, limitWarning, limitBlocked]);
 
@@ -383,7 +383,7 @@ export default function OfftakerMarketplacePage() {
           <div className="ml-auto flex items-center gap-2">
             <Shield className="h-3 w-3 text-slate-600" />
             <span className="font-mono text-[9px] text-slate-600 tracking-wider uppercase">
-              Offtaker Terminal · Perimeter Cleared
+              Institutional Terminal · Perimeter Cleared
             </span>
           </div>
         </div>
@@ -1197,3 +1197,5 @@ function WireField({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+

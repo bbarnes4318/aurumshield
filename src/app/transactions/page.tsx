@@ -2,13 +2,13 @@
    TRANSACTIONS / MARKETPLACE — Async Server Component
    ================================================================
    Institutional operators see the same Marketplace execution
-   terminal that cleared Offtakers use at /offtaker/marketplace.
+   terminal used by institutional buyers at /institutional/marketplace.
 
    The sidebar labels this route "Marketplace".
    ================================================================ */
 
-import OfftakerMarketplacePage from "@/app/offtaker/marketplace/page";
+import InstitutionalMarketplacePage from "@/app/institutional/marketplace/page";
 
 export default async function TransactionsPage() {
-  return <OfftakerMarketplacePage />;
+  return <InstitutionalMarketplacePage />;
 }

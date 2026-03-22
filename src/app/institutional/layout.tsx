@@ -1,55 +1,24 @@
 "use client";
 
 /* ================================================================
-   INSTITUTIONAL COMMAND CENTER LAYOUT — Side-by-Side Unified Architecture
-   ================================================================
-   Prime Brokerage terminal for Sovereign Wealth Funds and Family
-   Offices executing $50M+ gold allocations.
-
-   SECURITY: StrictComplianceGate wraps ALL children. No
-   institutional buyer sees this terminal without a COMPLETED
-   iDenfy/Veriff KYC/AML/KYB status.
-
-   Uses the *shared Topbar* from the main app-shell.
-
-   Structure:
-     ┌──────┬─────────────────────────────────────┐
-     │ LOGO │  TOPBAR h-16  (shared component)     │
-     │ h-16 │                                      │
-     ├──────┼─────────────────────────────────────┤
-     │ SIDE │  MAIN  (flex-1 min-h-0, child scroll)│
-     │  BAR │                                      │
-     │ w-64 │                                      │
-     └──────┴─────────────────────────────────────┘
+   INSTITUTIONAL COMMAND CENTER LAYOUT — PortalShell + StrictComplianceGate
    ================================================================ */
 
-import { type ReactNode, useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
-import { AppLogo } from "@/components/app-logo";
-import { Topbar } from "@/components/layout/topbar";
+import { type ReactNode, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { PortalShell } from "@/components/layout/portal-shell";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
 import {
   Loader2,
   ShieldAlert,
   Briefcase,
-  ArrowLeftRight,
-  ScanSearch,
   Store,
+  ClipboardList,
+  Shield,
 } from "lucide-react";
 
 /* ══════════════════════════════════════════════════════════════════
    STRICT COMPLIANCE GATE
-   ══════════════════════════════════════════════════════════════════
-   Institutional buyers CANNOT view ANY terminal content until their
-   iDenfy/Veriff verification status is COMPLETED. This is a hard
-   gate — no exceptions, no bypasses.
-
-   States:
-     - Loading  → secure terminal spinner
-     - Error    → retry state (no false redirects)
-     - !COMPLETED → forced redirect to KYB onboarding
-     - COMPLETED  → render children
    ══════════════════════════════════════════════════════════════════ */
 
 function StrictComplianceGate({ children }: { children: ReactNode }) {
@@ -64,13 +33,11 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isLoading || isError) return;
-
     if (!isCleared) {
       router.replace("/offtaker/onboarding/kyb");
     }
   }, [isLoading, isError, isCleared, router]);
 
-  // ── Loading ──
   if (isLoading) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
@@ -85,7 +52,6 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
     );
   }
 
-  // ── Error ──
   if (isError) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
@@ -100,7 +66,6 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
     );
   }
 
-  // ── Not cleared → redirect in progress ──
   if (!isCleared) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
@@ -118,122 +83,26 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/* ── Navigation items ── */
+/* ── Navigation: 4-Pillar Structure ── */
 const NAV_ITEMS = [
-  { href: "/institutional",              label: "Portfolio Overview",       icon: Briefcase      },
-  { href: "/institutional/settlements",  label: "Active Settlements (DvP)", icon: ArrowLeftRight },
-  { href: "/institutional/provenance",   label: "Asset Provenance",        icon: ScanSearch      },
-  { href: "/institutional/marketplace",  label: "Marketplace",             icon: Store           },
+  { href: "/institutional",             label: "Portfolio Overview", icon: Briefcase },
+  { href: "/institutional/marketplace", label: "Marketplace",       icon: Store },
+  { href: "/institutional/orders",      label: "Orders",            icon: ClipboardList },
+  { href: "/institutional/compliance",  label: "Compliance",        icon: Shield },
 ] as const;
 
 export default function InstitutionalLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-
   return (
-    <StrictComplianceGate>
-      <div className="absolute inset-0 flex overflow-hidden bg-slate-950 text-slate-300">
-
-        {/* ── LEFT SIDEBAR ── */}
-        <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-950 flex flex-col">
-          {/* Logo box — h-16 to match Topbar */}
-          <div className="h-16 shrink-0 flex items-center justify-center border-b border-slate-800 px-5">
-            <AppLogo className="h-8 w-auto" variant="dark" />
-          </div>
-
-          {/* Section label */}
-          <div className="px-4 pt-4 pb-2">
-            <p className="font-mono text-[9px] text-slate-600 uppercase tracking-[0.15em] font-bold">
-              Command Center
-            </p>
-          </div>
-
-          {/* Nav links */}
-          <nav className="flex-1 px-3 space-y-1">
-            {NAV_ITEMS.map((item, idx) => {
-              const isActive =
-                item.href === "/institutional"
-                  ? pathname === "/institutional"
-                  : pathname.startsWith(item.href);
-
-              const Icon = item.icon;
-
-              const goldwireActive = pathname === "/transactions/new" || pathname.startsWith("/transactions/new/");
-
-              return (
-                <div key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={[
-                      "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-slate-800 text-white"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent",
-                    ].join(" ")}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                  {/* Goldwire logo link — inserted after first nav item */}
-                  {idx === 0 && (
-                    <Link
-                      href="/transactions/new"
-                      className={[
-                        "flex items-center gap-2 px-3 py-2.5 rounded-md transition-colors mt-1",
-                        goldwireActive
-                          ? "bg-slate-800"
-                          : "hover:bg-slate-800/50",
-                      ].join(" ")}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="/goldwire-icon.svg"
-                        alt=""
-                        className="h-4 w-auto shrink-0"
-                        aria-hidden="true"
-                        style={{ filter: goldwireActive ? "brightness(1.3)" : "brightness(0.85)" }}
-                      />
-                      <span
-                        className={[
-                          "text-[13px] font-bold tracking-[0.15em] uppercase bg-linear-to-r from-[#F5EACF] via-[#D4AF37] to-[#BFA052] bg-clip-text text-transparent select-none",
-                          goldwireActive ? "opacity-100" : "opacity-70",
-                        ].join(" ")}
-                      >
-                        GOLDWIRE
-                      </span>
-                    </Link>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-
-          {/* Sidebar footer */}
-          <div className="border-t border-slate-800 px-4 py-3">
-            <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">
-              Institutional Terminal v1.0
-            </p>
-            <p className="text-[9px] font-mono text-slate-700 mt-0.5">
-              AurumShield Goldwire Network
-            </p>
-          </div>
-        </aside>
-
-        {/* ── RIGHT SIDE: Topbar + Main ── */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          {/* Shared Topbar — identical to main dashboard */}
-          <Topbar
-            collapsed={collapsed}
-            onToggleSidebar={() => setCollapsed((c) => !c)}
-          />
-
-          {/* Main Content */}
-          <main className="flex-1 min-h-0 flex flex-col relative">
-            {children}
-          </main>
-        </div>
-
-      </div>
-    </StrictComplianceGate>
+    <PortalShell
+      navItems={[...NAV_ITEMS]}
+      sectionLabel="Command Center"
+      portalLabel="Institutional Terminal v1.0"
+      portalSubLabel="AurumShield Goldwire Network"
+      complianceGate={StrictComplianceGate}
+      showGoldwire
+      goldwireHref="/transactions/new"
+    >
+      {children}
+    </PortalShell>
   );
 }

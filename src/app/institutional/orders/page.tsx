@@ -1,7 +1,7 @@
 "use client";
 
 /* ================================================================
-   TRADE BLOTTER — /offtaker/orders
+   TRADE BLOTTER — /institutional/orders
    ================================================================
    Ruthless, data-dense table of all historical and active atomic
    swaps. Click a row to open a slide-out detail panel — no page
@@ -357,7 +357,7 @@ function TradeDrawer({
               {/* Track Asset — orders with movement logistics */}
               {TRACKABLE_LOGISTICS.includes(trade.logisticsState) && (
                 <Link
-                  href={`/offtaker/orders/${trade.id}/logistics`}
+                  href={`/institutional/orders/${trade.id}/logistics`}
                   className="w-full flex items-center justify-center gap-2 rounded border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-blue-400 hover:bg-blue-500/20 transition-colors"
                 >
                   <Truck className="h-3.5 w-3.5" />
@@ -417,7 +417,7 @@ function TradeDrawer({
    PAGE COMPONENT
    ================================================================ */
 
-export default function TradeBlotterPage() {
+export default function InstitutionalOrdersPage() {
   const router = useRouter();
   const { data: onboardingState, isLoading: complianceLoading, isError } = useOnboardingState();
   const isCleared = onboardingState?.status === "COMPLETED";
@@ -483,7 +483,7 @@ export default function TradeBlotterPage() {
   /* ── Hard Ejection ── */
   useEffect(() => {
     if (!complianceLoading && !isError && !isCleared) {
-      router.replace("/offtaker/org/select");
+      router.replace("/institutional/org/select");
     }
   }, [complianceLoading, isCleared, isError, router]);
 
@@ -682,7 +682,7 @@ export default function TradeBlotterPage() {
                   <span className="col-span-2 flex items-center justify-end gap-2">
                     {TRACKABLE_LOGISTICS.includes(trade.logisticsState) && (
                       <Link
-                        href={`/offtaker/orders/${trade.id}/logistics`}
+                        href={`/institutional/orders/${trade.id}/logistics`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1 rounded border border-blue-500/30 bg-blue-500/10 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-blue-400 hover:bg-blue-500/20 transition-colors"
                       >
@@ -724,3 +724,5 @@ export default function TradeBlotterPage() {
     </div>
   );
 }
+
+

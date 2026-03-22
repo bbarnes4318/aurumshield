@@ -16,7 +16,9 @@
    ================================================================ */
 
 import Link from "next/link";
+import { AlertTriangle, Shield } from "lucide-react";
 import { useGoldPrice, formatSpotPrice } from "@/hooks/use-gold-price";
+import { useAmlStatus } from "@/hooks/use-aml-status";
 
 /* ── Mock deal pipeline data ── */
 const MOCK_DEALS = [
@@ -69,9 +71,31 @@ const useKpis = () => {
 export default function BrokerCommandCenter() {
   const kpis = useKpis();
   const gold = useGoldPrice();
+  const { data: amlStatus, isLoading: amlLoading } = useAmlStatus();
+  const isAmlComplete = amlStatus?.isComplete ?? false;
 
   return (
     <div className="absolute inset-0 flex flex-col p-4 overflow-hidden gap-4">
+      {/* ── AML TRAINING BANNER ── */}
+      {!isAmlComplete && !amlLoading && (
+        <div className="shrink-0 flex items-center gap-3 px-4 py-3 rounded border border-yellow-500/30 bg-yellow-500/10">
+          <AlertTriangle className="h-5 w-5 text-yellow-400 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-yellow-300">AML Training Incomplete</p>
+            <p className="text-[11px] text-yellow-400/70 mt-0.5">
+              Complete mandatory AML training to maintain broker accreditation.
+            </p>
+          </div>
+          <Link
+            href="/broker/compliance"
+            className="shrink-0 font-mono text-[10px] text-yellow-300 border border-yellow-500/30 px-4 py-2 hover:bg-yellow-500/20 transition-colors uppercase tracking-wider font-bold"
+          >
+            <Shield className="inline h-3 w-3 mr-1.5 -mt-0.5" />
+            Complete Now →
+          </Link>
+        </div>
+      )}
+
       {/* ── TOP KPIs ── */}
       <div className="shrink-0 grid grid-cols-4 gap-3">
         {kpis.map((kpi) => (
