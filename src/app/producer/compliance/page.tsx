@@ -315,9 +315,9 @@ export default function ProducerCompliancePage() {
               key={pillar.id}
               className={`rounded border transition-colors ${
                 pillarAction
-                  ? "border-yellow-500/30 bg-yellow-500/[0.02]"
+                  ? "border-yellow-500/30 bg-yellow-500/2"
                   : pillarVerified
-                    ? "border-emerald-500/20 bg-emerald-500/[0.02]"
+                    ? "border-emerald-500/20 bg-emerald-500/2"
                     : "border-slate-800 bg-slate-900/30"
               }`}
             >

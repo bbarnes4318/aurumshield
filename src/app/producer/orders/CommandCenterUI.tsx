@@ -190,7 +190,7 @@ export default function CommandCenterUI({
       ) : (
         <div className="flex-1 min-h-0 flex gap-0">
           {/* ─── LEFT: Inventory Table (3/5) ─── */}
-          <div className="flex-[3] flex flex-col border-r border-slate-800">
+          <div className="flex-3 flex flex-col border-r border-slate-800">
             {/* Table Header */}
             <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-900/50">
               <h2 className="font-mono text-[10px] text-slate-400 tracking-[0.15em] uppercase">
@@ -275,7 +275,7 @@ export default function CommandCenterUI({
           </div>
 
           {/* ─── RIGHT: Capital Radar (2/5) ─── */}
-          <div className="flex-[2] flex flex-col">
+          <div className="flex-2 flex flex-col">
             {/* Radar Header */}
             <div className="shrink-0 px-4 py-2 border-b border-slate-800 bg-slate-900/50">
               <div className="flex items-center gap-2">

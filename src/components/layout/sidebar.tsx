@@ -255,7 +255,7 @@ function NavLink({
   );
 }
 
-/* ── Goldwire Logo Nav Link — renders icon + gold gradient text instead of a standard nav item ── */
+/* ── Goldwire Logo Nav Link — renders official goldwire-logo.svg instead of a standard nav item ── */
 function GoldwireNavLink({
   collapsed,
   pathname,
@@ -282,26 +282,16 @@ function GoldwireNavLink({
         )}
         aria-current={isActive ? "page" : undefined}
       >
-        {/* Icon mark — always visible */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/goldwire-icon.svg"
-          alt=""
-          className="h-4 w-auto shrink-0"
-          aria-hidden="true"
+          src="/goldwire-logo.svg"
+          alt="Goldwire"
+          className={cn(
+            "w-auto shrink-0",
+            collapsed ? "h-4" : "h-4"
+          )}
           style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
         />
-        {/* Text — only when expanded */}
-        {!collapsed && (
-          <span
-            className={cn(
-              "text-[13px] font-bold tracking-[0.15em] uppercase bg-linear-to-r from-[#F5EACF] via-[#D4AF37] to-[#BFA052] bg-clip-text text-transparent select-none",
-              isActive ? "opacity-100" : "opacity-70"
-            )}
-          >
-            GOLDWIRE
-          </span>
-        )}
       </Link>
     </li>
   );
