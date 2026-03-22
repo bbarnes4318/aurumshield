@@ -1,7 +1,7 @@
 "use client";
 
 /* ================================================================
-   INSTITUTIONAL COMMAND CENTER LAYOUT — Zero-Scroll Inset Shell
+   INSTITUTIONAL COMMAND CENTER LAYOUT — Side-by-Side Unified Architecture
    ================================================================
    Prime Brokerage terminal for Sovereign Wealth Funds and Family
    Offices executing $50M+ gold allocations.
@@ -10,15 +10,23 @@
    institutional buyer sees this terminal without a COMPLETED
    iDenfy/Veriff KYC/AML/KYB status.
 
+   MATHEMATICAL ALIGNMENT STANDARD:
+     Left Logo Box:     h-[88px]  (32px + 56px = 88px)
+     Right Telemetry:   h-8       (32px)
+     Right Header:      h-14      (56px)
+     ───────────────────────────────────────────
+     TOTAL:             88px = 88px  ✓ CONTINUOUS LINE
+
    Structure:
-     ┌─────────────────────────────────────────────┐
-     │  HEADER  h-14  (org name + live spot ticker) │
-     ├──────┬──────────────────────────────────────┤
-     │ SIDE │  MAIN  (flex-1 min-h-0, child scroll) │
-     │  BAR │                                       │
-     │ w-64 │                                       │
-     │      │                                       │
-     └──────┴──────────────────────────────────────┘
+     ┌──────┬─────────────────────────────────────┐
+     │ LOGO │  TELEMETRY STRIP  h-8               │
+     │ BOX  ├─────────────────────────────────────┤
+     │ 88px │  HEADER  h-14  (org + ticker)        │
+     ├──────┼─────────────────────────────────────┤
+     │ SIDE │  MAIN  (flex-1 min-h-0, child scroll)│
+     │  BAR │                                      │
+     │ w-64 │                                      │
+     └──────┴─────────────────────────────────────┘
    ================================================================ */
 
 import { type ReactNode, useEffect } from "react";
@@ -36,6 +44,9 @@ import {
   ArrowLeftRight,
   ScanSearch,
   Store,
+  Wifi,
+  Lock,
+  Fingerprint,
 } from "lucide-react";
 
 /* ══════════════════════════════════════════════════════════════════
@@ -135,10 +146,11 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
   return (
     <StrictComplianceGate>
       <div className="absolute inset-0 flex overflow-hidden bg-slate-950 text-slate-300">
-        {/* ── SIDEBAR ── */}
+
+        {/* ── LEFT SIDEBAR ── */}
         <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-900/50 flex flex-col">
-          {/* Logo */}
-          <div className="h-14 shrink-0 flex items-center px-5 border-b border-slate-800">
+          {/* MATHEMATICALLY LOCKED LOGO BOX (32px + 56px = 88px) */}
+          <div className="h-[88px] shrink-0 flex items-center justify-center border-b border-slate-800 px-5">
             <AppLogo className="h-8 w-auto" variant="dark" />
           </div>
 
@@ -220,9 +232,33 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
           </div>
         </aside>
 
-        {/* ── RIGHT SIDE: Header + Main ── */}
+        {/* ── RIGHT SIDE: Telemetry + Header + Main ── */}
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* ── HEADER (h-14) ── */}
+          {/* 1. Telemetry Strip (h-8) */}
+          <div className="h-8 shrink-0 bg-black/40 border-b border-slate-800/60 px-6 flex items-center gap-6">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] animate-pulse" />
+              <Wifi className="h-3 w-3 text-emerald-400" />
+              <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase">
+                Network: Secure
+              </span>
+            </div>
+            <div className="h-3 w-px bg-slate-800" />
+            <div className="flex items-center gap-1.5">
+              <Lock className="h-3 w-3 text-slate-500" />
+              <span className="font-mono text-[9px] text-slate-500 tracking-wider uppercase">
+                End-to-End Encryption: Active
+              </span>
+            </div>
+            <div className="ml-auto flex items-center gap-1.5">
+              <Fingerprint className="h-3 w-3 text-slate-600" />
+              <span className="font-mono text-[9px] text-slate-600 tracking-wider">
+                SESSION AUTHENTICATED
+              </span>
+            </div>
+          </div>
+
+          {/* 2. Main Header (h-14) */}
           <header className="h-14 shrink-0 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6">
             {/* Org name + role badge */}
             <div className="flex items-center gap-4">
@@ -258,11 +294,12 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
             </div>
           </header>
 
-          {/* ── MAIN CONTENT ── */}
+          {/* 3. Main Content */}
           <main className="flex-1 min-h-0 flex flex-col relative">
             {children}
           </main>
         </div>
+
       </div>
     </StrictComplianceGate>
   );

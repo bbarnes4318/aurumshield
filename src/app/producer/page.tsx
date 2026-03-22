@@ -165,24 +165,37 @@ export default function ProducerTerminalPage() {
 
   return (
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950 text-sm">
-      {/* ═══════════ HEADER ═══════════ */}
-      <header className="shrink-0 px-4 py-2 border-b border-slate-800 bg-slate-900 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      {/* ═══════════ HEADER — h-[88px] (32px telemetry + 56px title) ═══════════ */}
+      {/* 1. Telemetry Strip (h-8) */}
+      <div className="h-8 shrink-0 bg-black/40 border-b border-slate-800/60 px-6 flex items-center gap-6">
+        <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase">
+            Systems Nominal
+          </span>
+        </div>
+        <div className="h-3 w-px bg-slate-800" />
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-[9px] text-slate-500 tracking-wider uppercase">
+            <Clock className="h-3 w-3 inline mr-1 -mt-px" />
+            {new Date().toISOString().slice(0, 16).replace("T", " ")} UTC
+          </span>
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
+          <span className="font-mono text-[8px] text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 tracking-wider uppercase">
+            SYSTEMS NOMINAL
+          </span>
+        </div>
+      </div>
+
+      {/* 2. Title Strip (h-14) */}
+      <header className="h-14 shrink-0 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6">
+        <div className="flex items-center gap-3">
           <span className="font-mono text-gold-primary text-xs tracking-[0.25em] uppercase font-bold">
             Producer Terminal
           </span>
           <span className="font-mono text-[9px] text-slate-600 tracking-wider uppercase">
             Industrial Operations & Doré Intake
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="font-mono text-[9px] text-slate-600 tracking-wider uppercase">
-            <Clock className="h-3 w-3 inline mr-1 -mt-px" />
-            {new Date().toISOString().slice(0, 16).replace("T", " ")} UTC
-          </span>
-          <span className="font-mono text-[8px] text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 tracking-wider uppercase">
-            SYSTEMS NOMINAL
           </span>
         </div>
       </header>

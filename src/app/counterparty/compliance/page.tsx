@@ -242,7 +242,7 @@ export default function CounterpartyCompliancePage() {
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col p-4 bg-slate-950 text-slate-300 overflow-hidden">
+    <div className="absolute inset-0 flex flex-col p-4 text-slate-300 overflow-hidden">
 
       {/* ═══════════════════════════════════════════════
           HEADER STRIP
