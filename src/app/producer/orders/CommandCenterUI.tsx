@@ -166,7 +166,7 @@ export default function CommandCenterUI({
               Producer Command Center
             </span>
             {isDemo && (
-              <span className="ml-1 font-mono text-[8px] text-amber-500 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 tracking-wider uppercase">
+              <span className="ml-1 font-mono text-[8px] text-yellow-500 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 tracking-wider uppercase">
                 DEMO
               </span>
             )}
@@ -199,10 +199,10 @@ export default function CommandCenterUI({
             accent="emerald"
           />
           <MetricBlock
-            icon={<FlaskConical className="h-4 w-4 text-amber-400" />}
+            icon={<FlaskConical className="h-4 w-4 text-slate-400" />}
             label="Doré in Refinery (Est.)"
             value={`${fmtOz(metrics.doreInRefineryOz)} oz`}
-            accent="amber"
+            accent="slate"
           />
           <MetricBlock
             icon={<DollarSign className="h-4 w-4 text-gold-primary" />}
@@ -288,7 +288,7 @@ export default function CommandCenterUI({
                           <td className="px-4 py-3">
                             <span className={`font-mono text-[10px] tracking-wider uppercase ${
                               asset.form === "RAW_DORE"
-                                ? "text-amber-400"
+                                ? "text-yellow-400"
                                 : "text-slate-400"
                             }`}>
                               {asset.form === "RAW_DORE" ? "RAW DORÉ" : "GOOD DELIVERY"}
@@ -299,7 +299,7 @@ export default function CommandCenterUI({
                           <td className="px-4 py-3 text-right">
                             <span className="font-mono text-xs text-white tabular-nums">
                               {asset.estimated && (
-                                <span className="text-amber-400/70 mr-1 text-[10px]">(Est)</span>
+                                <span className="text-slate-500 mr-1 text-[10px]">(Est)</span>
                               )}
                               {fmtOz(asset.weightOz)} oz
                             </span>
@@ -308,9 +308,9 @@ export default function CommandCenterUI({
                           {/* Status Badge */}
                           <td className="px-4 py-3">
                             {asset.form === "RAW_DORE" ? (
-                              <span className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                                <span className="font-mono text-[9px] text-amber-400 tracking-wider uppercase font-bold">
+                              <span className="inline-flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                                <span className="font-mono text-[9px] text-yellow-400 tracking-wider uppercase font-bold">
                                   LBMA Refinery: Processing
                                 </span>
                               </span>
@@ -469,13 +469,13 @@ function MetricBlock({
   icon: React.ReactNode;
   label: string;
   value: string;
-  accent: "emerald" | "amber" | "gold";
+  accent: "emerald" | "slate" | "gold";
 }) {
   const borderAccent =
     accent === "emerald"
       ? "border-t-emerald-500/40"
-      : accent === "amber"
-        ? "border-t-amber-500/40"
+      : accent === "slate"
+        ? "border-t-slate-500/40"
         : "border-t-gold-primary/40";
 
   return (

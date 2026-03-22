@@ -452,7 +452,7 @@ export default function AssetIngestionPage() {
 
                       <div className="border-t border-slate-800 pt-4 mt-4">
                         <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase block mb-2">Selected Asset Form</span>
-                        <span className={`font-mono text-sm font-bold ${assetForm === "RAW_DORE" ? "text-amber-400" : "text-gold-primary"}`}>
+                        <span className={`font-mono text-sm font-bold ${assetForm === "RAW_DORE" ? "text-yellow-400" : "text-gold-primary"}`}>
                           {assetForm === "RAW_DORE" ? "RAW DORÉ" : "GOOD DELIVERY BULLION"}
                         </span>
                       </div>

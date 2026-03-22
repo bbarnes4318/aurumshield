@@ -29,7 +29,6 @@ import {
   Clock,
   ChevronRight,
   AlertTriangle,
-  MapPin,
   Shield,
   CheckCircle2,
 } from "lucide-react";
@@ -202,7 +201,7 @@ export default function ProducerTerminalPage() {
 
       {/* ═══════════ METRICS STRIP ═══════════ */}
       <div className="shrink-0 grid grid-cols-4 gap-px bg-slate-800 border-b border-slate-800">
-        <MetricCell icon={<FlaskConical className="h-3 w-3 text-amber-400" />} label="Total Extracted (MTD)" value={`${fmtKg(totalExtractedKg)} kg`} accent="amber" />
+        <MetricCell icon={<FlaskConical className="h-3 w-3 text-slate-400" />} label="Total Extracted (MTD)" value={`${fmtKg(totalExtractedKg)} kg`} accent="slate" />
         <MetricCell icon={<Gauge className="h-3 w-3 text-emerald-400" />} label="Active Yields" value={`${MOCK_YIELDS.length} tracked`} accent="emerald" />
         <MetricCell icon={<Package className="h-3 w-3 text-gold-primary" />} label="Vaulted Doré" value={`${fmtKg(vaultedKg)} kg`} accent="gold" />
         <MetricCell icon={<Truck className="h-3 w-3 text-cyan-400" />} label="Awaiting Transport" value={`${awaitingTransport} batches`} accent="cyan" />
@@ -219,7 +218,7 @@ export default function ProducerTerminalPage() {
             {/* ── Live Extraction Yields ── */}
             <div className="border border-slate-800 bg-slate-900/50 rounded-lg flex flex-col min-h-0">
               <div className="shrink-0 px-3 py-1.5 border-b border-slate-800 flex items-center gap-2">
-                <Pickaxe className="h-3 w-3 text-amber-400" />
+                <Pickaxe className="h-3 w-3 text-slate-400" />
                 <span className="font-mono text-[9px] text-slate-400 tracking-[0.15em] uppercase font-bold">Live Extraction Yields</span>
               </div>
               <div className="flex-1 min-h-0 overflow-hidden">
@@ -274,8 +273,8 @@ export default function ProducerTerminalPage() {
                         <td className="px-2 py-1.5 font-mono text-[10px] text-slate-400">{v.vaultLocation}</td>
                         <td className="px-2 py-1.5">
                           {v.awaitingTransport ? (
-                            <span className="inline-flex items-center gap-1 text-amber-400 font-mono text-[8px] tracking-wider uppercase font-bold">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                            <span className="inline-flex items-center gap-1 text-yellow-400 font-mono text-[8px] tracking-wider uppercase font-bold">
+                              <span className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
                               AWAITING
                             </span>
                           ) : (
@@ -320,10 +319,6 @@ export default function ProducerTerminalPage() {
               <div className="flex items-start gap-0">
                 {TRANSIT_LEGS.map((leg, idx) => {
                   const isLast = idx === TRANSIT_LEGS.length - 1;
-                  const dotColor =
-                    leg.status === "COMPLETED" ? "bg-emerald-400" :
-                    leg.status === "IN_PROGRESS" ? "bg-cyan-400 animate-pulse" :
-                    "bg-slate-600";
                   const lineColor =
                     leg.status === "COMPLETED" ? "bg-emerald-500/40" :
                     leg.status === "IN_PROGRESS" ? "bg-cyan-500/30" :
@@ -533,10 +528,10 @@ function MetricCell({
   icon: React.ReactNode;
   label: string;
   value: string;
-  accent: "amber" | "emerald" | "gold" | "cyan";
+  accent: "slate" | "emerald" | "gold" | "cyan";
 }) {
   const border =
-    accent === "amber" ? "border-t-amber-500/40" :
+    accent === "slate" ? "border-t-slate-500/40" :
     accent === "emerald" ? "border-t-emerald-500/40" :
     accent === "cyan" ? "border-t-cyan-500/40" :
     "border-t-gold-primary/40";
@@ -557,7 +552,7 @@ function StatusBadge({ status }: { status: string }) {
     status === "ASSAYED"
       ? { text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", dot: "bg-emerald-400" }
       : status === "PENDING_ASSAY"
-        ? { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", dot: "bg-amber-400 animate-pulse" }
+        ? { text: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30", dot: "bg-yellow-400 animate-pulse" }
         : { text: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", dot: "bg-cyan-400 animate-pulse" };
 
   const label = status === "PENDING_ASSAY" ? "PENDING" : status === "IN_TRANSIT" ? "TRANSIT" : status;

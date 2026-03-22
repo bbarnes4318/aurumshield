@@ -24,12 +24,12 @@ const MOCK_DEALS = [
   { id: "BRK-002", counterparty: "Meridian Capital Partners", bars: 3,  weightOz: 1200,  notional: 3_183_600,  status: "IN TRANSIT",          statusColor: "text-blue-400" },
   { id: "BRK-003", counterparty: "Pacific Bullion Trust",     bars: 8,  weightOz: 3200,  notional: 8_489_600,  status: "CLEARING",            statusColor: "text-emerald-400" },
   { id: "BRK-004", counterparty: "Nordic Reserve AG",         bars: 5,  weightOz: 2000,  notional: 5_306_000,  status: "AWAITING FUNDING",    statusColor: "text-yellow-400" },
-  { id: "BRK-005", counterparty: "Caspian Trade Finance",     bars: 20, weightOz: 8000,  notional: 21_224_000, status: "ESCROW OPEN",         statusColor: "text-amber-400" },
+  { id: "BRK-005", counterparty: "Caspian Trade Finance",     bars: 20, weightOz: 8000,  notional: 21_224_000, status: "ESCROW OPEN",         statusColor: "text-yellow-400" },
   { id: "BRK-006", counterparty: "Emirates Gold DMCC",        bars: 2,  weightOz: 800,   notional: 2_122_400,  status: "SETTLED",             statusColor: "text-slate-500" },
   { id: "BRK-007", counterparty: "Helvetia Heritage SA",      bars: 6,  weightOz: 2400,  notional: 6_367_200,  status: "IN TRANSIT",          statusColor: "text-blue-400" },
   { id: "BRK-008", counterparty: "Shanghai Gold Exchange",    bars: 15, weightOz: 6000,  notional: 15_918_000, status: "CLEARING",            statusColor: "text-emerald-400" },
   { id: "BRK-009", counterparty: "Rand Refinery Ltd",         bars: 4,  weightOz: 1600,  notional: 4_244_800,  status: "AWAITING FUNDING",    statusColor: "text-yellow-400" },
-  { id: "BRK-010", counterparty: "Banco del Oro SA",          bars: 10, weightOz: 4000,  notional: 10_612_000, status: "ESCROW OPEN",         statusColor: "text-amber-400" },
+  { id: "BRK-010", counterparty: "Banco del Oro SA",          bars: 10, weightOz: 4000,  notional: 10_612_000, status: "ESCROW OPEN",         statusColor: "text-yellow-400" },
 ] as const;
 
 /* ── Mock commission payouts ── */
@@ -123,7 +123,7 @@ export default function BrokerCommandCenter() {
                     key={deal.id}
                     className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors"
                   >
-                    <td className="px-4 py-2.5 font-mono text-xs text-amber-400/80">
+                    <td className="px-4 py-2.5 font-mono text-xs text-slate-400">
                       {deal.id}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-slate-300">
@@ -207,7 +207,7 @@ export default function BrokerCommandCenter() {
           {/* Quick Action */}
           <Link
             href="/broker/deals/new"
-            className="shrink-0 flex items-center justify-center gap-2 rounded border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-400 hover:bg-amber-500/20 transition-colors"
+            className="shrink-0 flex items-center justify-center gap-2 rounded border border-slate-700 bg-white px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100 transition-colors"
           >
             <span className="text-base leading-none">+</span>
             Structure New Deal

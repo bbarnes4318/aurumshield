@@ -41,7 +41,7 @@ const MOCK_INVENTORY = [
 /* ── Verification status styling ── */
 const STATUS_STYLES: Record<string, { text: string; dot: string; icon: React.ComponentType<{ className?: string }> }> = {
   VERIFIED: { text: "text-emerald-400", dot: "bg-emerald-400", icon: CheckCircle2 },
-  PENDING:  { text: "text-amber-400",   dot: "bg-amber-400",   icon: Clock },
+  PENDING:  { text: "text-yellow-400",   dot: "bg-yellow-400",   icon: Clock },
   REJECTED: { text: "text-red-400",     dot: "bg-red-400",     icon: AlertTriangle },
 };
 
@@ -102,7 +102,7 @@ export default function BrokerAssetsPage() {
         </div>
         <div className="rounded border border-slate-800 bg-slate-900/70 px-4 py-3">
           <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest leading-none">Pending Review</p>
-          <p className="mt-1.5 text-xl font-semibold font-mono text-amber-400 leading-none">{pendingCount}</p>
+          <p className="mt-1.5 text-xl font-semibold font-mono text-yellow-400 leading-none">{pendingCount}</p>
           <p className="mt-1 text-[10px] text-slate-500 font-mono">awaiting assay</p>
         </div>
         <div className="rounded border border-slate-800 bg-slate-900/70 px-4 py-3">
@@ -148,7 +148,7 @@ export default function BrokerAssetsPage() {
                       key={bar.serial}
                       className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors"
                     >
-                      <td className="px-4 py-2.5 text-xs text-amber-400/80 font-semibold">{bar.serial}</td>
+                      <td className="px-4 py-2.5 text-xs text-slate-400 font-semibold">{bar.serial}</td>
                       <td className="px-4 py-2.5 text-xs text-slate-300">{bar.refiner}</td>
                       <td className="px-4 py-2.5 text-xs text-slate-400">{bar.vault}</td>
                       <td className="px-4 py-2.5 text-right text-xs text-slate-200 tabular-nums">{fmtOz(bar.weightOz)} oz</td>
@@ -189,7 +189,7 @@ export default function BrokerAssetsPage() {
                 onChange={(e) => setCertSerial(e.target.value.toUpperCase())}
                 placeholder="PAMP-2025-XXXXXX"
                 disabled={isSubmitting}
-                className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2 font-mono text-sm text-white placeholder:text-slate-600 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-colors disabled:opacity-50"
+                className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2 font-mono text-sm text-white placeholder:text-slate-600 focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 focus:outline-none transition-colors disabled:opacity-50"
               />
             </div>
 
@@ -203,7 +203,7 @@ export default function BrokerAssetsPage() {
                 value={certRefiner}
                 onChange={(e) => setCertRefiner(e.target.value)}
                 disabled={isSubmitting}
-                className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2 font-mono text-sm text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-colors disabled:opacity-50"
+                className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2 font-mono text-sm text-white focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 focus:outline-none transition-colors disabled:opacity-50"
               >
                 <option value="">Select Refiner…</option>
                 <option value="PAMP SA">PAMP SA</option>
@@ -224,7 +224,7 @@ export default function BrokerAssetsPage() {
                 Good Delivery Certificate (PDF)
               </label>
               <div
-                className="w-full bg-slate-950 border border-dashed border-slate-700 rounded-sm px-3 py-4 text-center cursor-pointer hover:border-amber-500/40 transition-colors"
+                className="w-full bg-slate-950 border border-dashed border-slate-700 rounded-sm px-3 py-4 text-center cursor-pointer hover:border-slate-500/40 transition-colors"
                 onClick={() => document.getElementById("cert-file")?.click()}
               >
                 <Upload className="h-5 w-5 text-slate-600 mx-auto mb-1" />
@@ -256,7 +256,7 @@ export default function BrokerAssetsPage() {
               <p className="font-mono text-xs text-slate-700 flex items-center gap-1">
                 <span className="text-slate-700 select-none">{"> "}</span>
                 AWAITING_UPLOAD
-                <span className="inline-block w-1.5 h-3 bg-amber-400 ml-1 animate-pulse" />
+                <span className="inline-block w-1.5 h-3 bg-slate-400 ml-1 animate-pulse" />
               </p>
             </div>
 
@@ -267,7 +267,7 @@ export default function BrokerAssetsPage() {
               className={`w-full font-bold text-sm tracking-wide py-3 flex items-center justify-center gap-2 transition-colors font-mono rounded ${
                 isSubmitting || !canSubmit
                   ? "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
-                  : "bg-amber-500 text-slate-950 hover:bg-amber-400 cursor-pointer"
+                  : "bg-white text-slate-950 hover:bg-slate-100 cursor-pointer"
               }`}
             >
               {isSubmitting ? (

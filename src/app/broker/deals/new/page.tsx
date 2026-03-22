@@ -160,7 +160,7 @@ export default function DealStructuringWizard() {
         <div className="flex gap-3 mt-4">
           <button
             onClick={() => router.push("/broker/pipeline")}
-            className="px-6 py-2.5 rounded border border-amber-500/30 bg-amber-500/10 text-sm font-semibold text-amber-400 hover:bg-amber-500/20 transition-colors"
+            className="px-6 py-2.5 rounded border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
           >
             View Pipeline
           </button>
@@ -187,7 +187,7 @@ export default function DealStructuringWizard() {
                 <span
                   className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-[11px] font-mono font-bold ${
                     step === s.num
-                      ? "bg-amber-500 text-slate-950"
+                      ? "bg-white text-slate-950"
                       : step > s.num
                         ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                         : "bg-slate-800 text-slate-500 border border-slate-700"
@@ -197,7 +197,7 @@ export default function DealStructuringWizard() {
                 </span>
                 <span
                   className={`text-[11px] font-mono uppercase tracking-wider ${
-                    step === s.num ? "text-amber-400" : step > s.num ? "text-emerald-400/60" : "text-slate-600"
+                    step === s.num ? "text-white" : step > s.num ? "text-emerald-400/60" : "text-slate-600"
                   }`}
                 >
                   {s.label}
@@ -243,7 +243,7 @@ export default function DealStructuringWizard() {
                     value={buyerEmail}
                     onChange={(e) => setBuyerEmail(e.target.value)}
                     placeholder="buyer@institution.com"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-colors"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 focus:outline-none transition-colors"
                   />
                   {step1Errors.buyerEmail && (
                     <p className="text-red-400 text-[10px] font-mono mt-1">{step1Errors.buyerEmail}</p>
@@ -261,7 +261,7 @@ export default function DealStructuringWizard() {
                     value={sellerEmail}
                     onChange={(e) => setSellerEmail(e.target.value)}
                     placeholder="seller@refinery.com"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-colors"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 focus:outline-none transition-colors"
                   />
                   {step1Errors.sellerEmail && (
                     <p className="text-red-400 text-[10px] font-mono mt-1">{step1Errors.sellerEmail}</p>
@@ -274,7 +274,7 @@ export default function DealStructuringWizard() {
                 <button
                   type="button"
                   onClick={handleNext1}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded bg-amber-500 text-slate-950 text-sm font-semibold hover:bg-amber-400 transition-colors"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded bg-white text-slate-950 text-sm font-semibold hover:bg-slate-100 transition-colors"
                 >
                   Continue
                   <ChevronRight className="h-4 w-4" />
@@ -305,7 +305,7 @@ export default function DealStructuringWizard() {
                     placeholder="1200"
                     min="100"
                     max="50000"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-colors tabular-nums"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 focus:outline-none transition-colors tabular-nums"
                   />
                   {step2Errors.weightOz && (
                     <p className="text-red-400 text-[10px] font-mono mt-1">{step2Errors.weightOz}</p>
@@ -326,7 +326,7 @@ export default function DealStructuringWizard() {
                     step="0.01"
                     min="90"
                     max="100"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-colors tabular-nums"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 focus:outline-none transition-colors tabular-nums"
                   />
                   {step2Errors.purity && (
                     <p className="text-red-400 text-[10px] font-mono mt-1">{step2Errors.purity}</p>
@@ -342,7 +342,7 @@ export default function DealStructuringWizard() {
                     id="partner-refinery"
                     value={partnerRefinery}
                     onChange={(e) => setPartnerRefinery(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-colors"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 focus:outline-none transition-colors"
                   >
                     <option value="">Select Partner Refinery…</option>
                     {PARTNER_REFINERIES.map((r) => (
@@ -384,7 +384,7 @@ export default function DealStructuringWizard() {
                 <button
                   type="button"
                   onClick={handleNext2}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded bg-amber-500 text-slate-950 text-sm font-semibold hover:bg-amber-400 transition-colors"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded bg-white text-slate-950 text-sm font-semibold hover:bg-slate-100 transition-colors"
                 >
                   Continue
                   <ChevronRight className="h-4 w-4" />
@@ -415,7 +415,7 @@ export default function DealStructuringWizard() {
                     placeholder="50"
                     min="5"
                     max="200"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 focus:outline-none transition-colors tabular-nums"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-sm px-3 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 focus:outline-none transition-colors tabular-nums"
                   />
                   {step3Errors.commissionBps && (
                     <p className="text-red-400 text-[10px] font-mono mt-1">{step3Errors.commissionBps}</p>
@@ -471,7 +471,7 @@ export default function DealStructuringWizard() {
                   className={`flex items-center gap-2 px-6 py-2.5 rounded text-sm font-semibold transition-colors ${
                     isSubmitting
                       ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                      : "bg-amber-500 text-slate-950 hover:bg-amber-400 cursor-pointer"
+                      : "bg-white text-slate-950 hover:bg-slate-100 cursor-pointer"
                   }`}
                 >
                   {isSubmitting ? (

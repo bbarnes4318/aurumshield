@@ -10,18 +10,12 @@
    institutional buyer sees this terminal without a COMPLETED
    iDenfy/Veriff KYC/AML/KYB status.
 
-   MATHEMATICAL ALIGNMENT STANDARD:
-     Left Logo Box:     h-[88px]  (32px + 56px = 88px)
-     Right Telemetry:   h-8       (32px)
-     Right Header:      h-14      (56px)
-     ───────────────────────────────────────────
-     TOTAL:             88px = 88px  ✓ CONTINUOUS LINE
+   Uses the *shared Topbar* from the main app-shell.
 
    Structure:
      ┌──────┬─────────────────────────────────────┐
-     │ LOGO │  TELEMETRY STRIP  h-8               │
-     │ BOX  ├─────────────────────────────────────┤
-     │ 88px │  HEADER  h-14  (org + ticker)        │
+     │ LOGO │  TOPBAR h-16  (shared component)     │
+     │ h-16 │                                      │
      ├──────┼─────────────────────────────────────┤
      │ SIDE │  MAIN  (flex-1 min-h-0, child scroll)│
      │  BAR │                                      │
@@ -29,24 +23,19 @@
      └──────┴─────────────────────────────────────┘
    ================================================================ */
 
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
-import { useGoldPrice } from "@/hooks/use-gold-price";
-import { useAuth } from "@/providers/auth-provider";
+import { Topbar } from "@/components/layout/topbar";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
 import {
-  Activity,
   Loader2,
   ShieldAlert,
   Briefcase,
   ArrowLeftRight,
   ScanSearch,
   Store,
-  Wifi,
-  Lock,
-  Fingerprint,
 } from "lucide-react";
 
 /* ══════════════════════════════════════════════════════════════════
@@ -85,7 +74,7 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 text-amber-400 animate-spin mb-4" />
+        <Loader2 className="h-8 w-8 text-slate-400 animate-spin mb-4" />
         <span className="font-mono text-[11px] text-slate-500 tracking-[0.2em] uppercase">
           Verifying Institutional Compliance Perimeter
         </span>
@@ -115,8 +104,8 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
   if (!isCleared) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
-        <ShieldAlert className="h-8 w-8 text-amber-400 mb-4" />
-        <span className="font-mono text-[11px] text-amber-400 tracking-wider uppercase">
+        <ShieldAlert className="h-8 w-8 text-slate-400 mb-4" />
+        <span className="font-mono text-[11px] text-slate-400 tracking-wider uppercase">
           Institutional Compliance Clearance Required
         </span>
         <span className="font-mono text-[9px] text-slate-600 mt-1">
@@ -139,18 +128,16 @@ const NAV_ITEMS = [
 
 export default function InstitutionalLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { data: goldPrice, isLoading: priceLoading } = useGoldPrice();
-  const { org } = useAuth();
-  const spotPrice = goldPrice?.spotPriceUsd ?? 0;
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <StrictComplianceGate>
       <div className="absolute inset-0 flex overflow-hidden bg-slate-950 text-slate-300">
 
         {/* ── LEFT SIDEBAR ── */}
-        <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-900/50 flex flex-col">
-          {/* MATHEMATICALLY LOCKED LOGO BOX (32px + 56px = 88px) */}
-          <div className="h-[88px] shrink-0 flex items-center justify-center border-b border-slate-800 px-5">
+        <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-950 flex flex-col">
+          {/* Logo box — h-16 to match Topbar */}
+          <div className="h-16 shrink-0 flex items-center justify-center border-b border-slate-800 px-5">
             <AppLogo className="h-8 w-auto" variant="dark" />
           </div>
 
@@ -180,7 +167,7 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
                     className={[
                       "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        ? "bg-slate-800 text-white"
                         : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent",
                     ].join(" ")}
                   >
@@ -232,69 +219,15 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
           </div>
         </aside>
 
-        {/* ── RIGHT SIDE: Telemetry + Header + Main ── */}
+        {/* ── RIGHT SIDE: Topbar + Main ── */}
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* 1. Telemetry Strip (h-8) */}
-          <div className="h-8 shrink-0 bg-black/40 border-b border-slate-800/60 px-6 flex items-center gap-6">
-            <div className="flex items-center gap-1.5">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] animate-pulse" />
-              <Wifi className="h-3 w-3 text-emerald-400" />
-              <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase">
-                Network: Secure
-              </span>
-            </div>
-            <div className="h-3 w-px bg-slate-800" />
-            <div className="flex items-center gap-1.5">
-              <Lock className="h-3 w-3 text-slate-500" />
-              <span className="font-mono text-[9px] text-slate-500 tracking-wider uppercase">
-                End-to-End Encryption: Active
-              </span>
-            </div>
-            <div className="ml-auto flex items-center gap-1.5">
-              <Fingerprint className="h-3 w-3 text-slate-600" />
-              <span className="font-mono text-[9px] text-slate-600 tracking-wider">
-                SESSION AUTHENTICATED
-              </span>
-            </div>
-          </div>
+          {/* Shared Topbar — identical to main dashboard */}
+          <Topbar
+            collapsed={collapsed}
+            onToggleSidebar={() => setCollapsed((c) => !c)}
+          />
 
-          {/* 2. Main Header (h-14) */}
-          <header className="h-14 shrink-0 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6">
-            {/* Org name + role badge */}
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-white truncate max-w-[280px]">
-                {org?.legalName ?? "Institutional Account"}
-              </span>
-              <span className="px-2.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-[10px] font-mono font-semibold tracking-widest text-amber-400 uppercase">
-                Prime Brokerage
-              </span>
-            </div>
-
-            {/* Live Spot Price Ticker */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Activity className="h-3.5 w-3.5 text-slate-500" />
-                <span className="font-mono text-[10px] text-slate-500 uppercase">XAU/USD</span>
-              </div>
-              {priceLoading ? (
-                <span className="font-mono text-[11px] text-slate-600 animate-pulse">SYNCING...</span>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
-                  <span className="font-mono text-sm text-white font-bold tabular-nums">
-                    {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(spotPrice)}
-                  </span>
-                  {goldPrice && (
-                    <span className={`font-mono text-[10px] tabular-nums ${goldPrice.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {goldPrice.change24h >= 0 ? "▲" : "▼"} {Math.abs(goldPrice.change24h).toFixed(2)}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </header>
-
-          {/* 3. Main Content */}
+          {/* Main Content */}
           <main className="flex-1 min-h-0 flex flex-col relative">
             {children}
           </main>

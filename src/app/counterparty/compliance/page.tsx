@@ -131,28 +131,28 @@ function getKycConfig(state: KycState) {
     case "UNDER_REVIEW":
       return {
         label: "UNDER REVIEW",
-        color: "text-amber-400",
-        bgColor: "bg-amber-500/10",
-        borderColor: "border-amber-500/30",
-        pulseColor: "bg-amber-400",
+        color: "text-yellow-400",
+        bgColor: "bg-yellow-500/10",
+        borderColor: "border-yellow-500/30",
+        pulseColor: "bg-yellow-400",
         icon: Clock,
       };
     case "PENDING_LIVENESS":
       return {
         label: "PENDING LIVENESS",
-        color: "text-amber-400",
-        bgColor: "bg-amber-500/10",
-        borderColor: "border-amber-500/30",
-        pulseColor: "bg-amber-400",
+        color: "text-yellow-400",
+        bgColor: "bg-yellow-500/10",
+        borderColor: "border-yellow-500/30",
+        pulseColor: "bg-yellow-400",
         icon: Fingerprint,
       };
     case "PENDING_DOCUMENTS":
       return {
         label: "PENDING DOCUMENTS",
-        color: "text-amber-400",
-        bgColor: "bg-amber-500/10",
-        borderColor: "border-amber-500/30",
-        pulseColor: "bg-amber-400",
+        color: "text-yellow-400",
+        bgColor: "bg-yellow-500/10",
+        borderColor: "border-yellow-500/30",
+        pulseColor: "bg-yellow-400",
         icon: FileText,
       };
     case "REJECTED":
@@ -182,7 +182,7 @@ function getChecklistIcon(status: ComplianceCheckItem["status"]) {
     case "complete":
       return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />;
     case "pending":
-      return <Clock className="h-3.5 w-3.5 text-amber-400" />;
+      return <Clock className="h-3.5 w-3.5 text-yellow-400" />;
     case "required":
       return <AlertTriangle className="h-3.5 w-3.5 text-red-400" />;
   }
@@ -249,7 +249,7 @@ export default function CounterpartyCompliancePage() {
          ═══════════════════════════════════════════════ */}
       <header className="shrink-0 flex items-center justify-between border-b border-slate-800 bg-black/40 rounded-t px-5 py-3 mb-4">
         <div className="flex items-center gap-3">
-          <Shield className="h-5 w-5 text-amber-400" />
+          <Shield className="h-5 w-5 text-slate-400" />
           <div>
             <h1 className="font-mono text-sm font-bold text-white tracking-wide uppercase">
               Counterparty Verification Perimeter
@@ -403,7 +403,7 @@ export default function CounterpartyCompliancePage() {
                         item.status === "complete"
                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                           : item.status === "pending"
-                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
                           : "bg-red-500/10 text-red-400 border border-red-500/20"
                       }`}>
                         {item.status}
@@ -425,11 +425,11 @@ export default function CounterpartyCompliancePage() {
         <div className="col-span-2 flex flex-col gap-4 min-h-0">
 
           {/* Idenfy Gateway Card */}
-          <div className="border-2 border-amber-500/20 rounded bg-linear-to-b from-amber-500/5 to-transparent flex-1 flex flex-col">
-            <div className="px-5 py-4 border-b border-amber-500/10">
+          <div className="border-2 border-slate-700 rounded bg-linear-to-b from-slate-800/50 to-transparent flex-1 flex flex-col">
+            <div className="px-5 py-4 border-b border-slate-700">
               <div className="flex items-center gap-2 mb-2">
-                <Scan className="h-4 w-4 text-amber-400" />
-                <span className="font-mono text-[10px] font-bold text-amber-400 uppercase tracking-[0.15em]">
+                <Scan className="h-4 w-4 text-slate-400" />
+                <span className="font-mono text-[10px] font-bold text-slate-300 uppercase tracking-[0.15em]">
                   Idenfy Compliance Gateway
                 </span>
               </div>
@@ -470,7 +470,7 @@ export default function CounterpartyCompliancePage() {
                   },
                 ].map((item) => (
                   <div key={item.step} className="flex items-start gap-3">
-                    <span className="font-mono text-[10px] font-bold text-amber-400/60 mt-0.5 shrink-0">
+                    <span className="font-mono text-[10px] font-bold text-slate-500 mt-0.5 shrink-0">
                       {item.step}
                     </span>
                     <div>
@@ -495,8 +495,8 @@ export default function CounterpartyCompliancePage() {
                     entity.kycState === "APPROVED"
                       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 cursor-default"
                       : isInitializing
-                      ? "border-amber-500/30 bg-amber-500/10 text-amber-400 cursor-wait"
-                      : "border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/60 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] cursor-pointer active:scale-[0.98]"
+                      ? "border-slate-600 bg-slate-800 text-slate-400 cursor-wait"
+                      : "border-slate-600 bg-white text-slate-950 hover:bg-slate-100 hover:border-slate-500 cursor-pointer active:scale-[0.98]"
                   }`}
                 >
                   {entity.kycState === "APPROVED" ? (
@@ -506,7 +506,7 @@ export default function CounterpartyCompliancePage() {
                     </>
                   ) : isInitializing ? (
                     <>
-                      <div className="h-4 w-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                      <div className="h-4 w-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
                       Initializing Secure Session…
                     </>
                   ) : (

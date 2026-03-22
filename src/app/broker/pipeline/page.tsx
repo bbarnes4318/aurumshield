@@ -25,11 +25,11 @@ const MOCK_DEALS = [
   { id: "BRK-002", asset: "LBMA 400oz Good Delivery × 3",    notionalUsd: 3_183_600,  status: "IN TRANSIT",         statusColor: "text-blue-400",    feeBps: 35, escrowLocked: true,  lastPing: "45 sec ago" },
   { id: "BRK-003", asset: "Unrefined Doré — 3,200 oz gross", notionalUsd: 8_489_600,  status: "CLEARING",           statusColor: "text-emerald-400", feeBps: 45, escrowLocked: true,  lastPing: "5 min ago" },
   { id: "BRK-004", asset: "LBMA 400oz Good Delivery × 5",    notionalUsd: 5_306_000,  status: "AWAITING FUNDING",   statusColor: "text-yellow-400",  feeBps: 50, escrowLocked: false, lastPing: "12 min ago" },
-  { id: "BRK-005", asset: "LBMA 400oz Good Delivery × 20",   notionalUsd: 21_224_000, status: "ESCROW OPEN",        statusColor: "text-amber-400",   feeBps: 40, escrowLocked: false, lastPing: "1 min ago" },
+  { id: "BRK-005", asset: "LBMA 400oz Good Delivery × 20",   notionalUsd: 21_224_000, status: "ESCROW OPEN",        statusColor: "text-yellow-400",   feeBps: 40, escrowLocked: false, lastPing: "1 min ago" },
   { id: "BRK-006", asset: "LBMA 400oz Good Delivery × 2",    notionalUsd: 2_122_400,  status: "SETTLED",            statusColor: "text-slate-500",   feeBps: 50, escrowLocked: false, lastPing: "3 days ago" },
   { id: "BRK-007", asset: "Unrefined Doré — 2,400 oz gross", notionalUsd: 6_367_200,  status: "IN TRANSIT",         statusColor: "text-blue-400",    feeBps: 30, escrowLocked: true,  lastPing: "30 sec ago" },
   { id: "BRK-008", asset: "LBMA 400oz Good Delivery × 15",   notionalUsd: 15_918_000, status: "CLEARING",           statusColor: "text-emerald-400", feeBps: 25, escrowLocked: true,  lastPing: "8 min ago" },
-  { id: "BRK-009", asset: "LBMA 400oz Good Delivery × 4",    notionalUsd: 4_244_800,  status: "ESCROW OPEN",        statusColor: "text-amber-400",   feeBps: 50, escrowLocked: false, lastPing: "22 min ago" },
+  { id: "BRK-009", asset: "LBMA 400oz Good Delivery × 4",    notionalUsd: 4_244_800,  status: "ESCROW OPEN",        statusColor: "text-yellow-400",   feeBps: 50, escrowLocked: false, lastPing: "22 min ago" },
   { id: "BRK-010", asset: "Unrefined Doré — 4,000 oz gross", notionalUsd: 10_612_000, status: "AWAITING FUNDING",   statusColor: "text-yellow-400",  feeBps: 40, escrowLocked: false, lastPing: "6 min ago" },
 ] as const;
 
@@ -91,7 +91,7 @@ export default function BrokerPipelinePage() {
           <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest leading-none">
             Pending Escrow Locks
           </p>
-          <p className="mt-1.5 text-xl font-semibold font-mono text-amber-400 leading-none tabular-nums">
+          <p className="mt-1.5 text-xl font-semibold font-mono text-yellow-400 leading-none tabular-nums">
             {pendingEscrowLocks}
           </p>
           <p className="mt-1 text-[10px] text-slate-500 font-mono">
@@ -122,13 +122,13 @@ export default function BrokerPipelinePage() {
                   className={[
                     "border-b border-slate-800/50 cursor-pointer transition-colors",
                     isSelected
-                      ? "bg-slate-800/50 ring-1 ring-inset ring-amber-500/20"
+                      ? "bg-slate-800/50 ring-1 ring-inset ring-slate-600/30"
                       : "hover:bg-slate-900/50",
                   ].join(" ")}
                   onClick={() => setSelectedDealId(deal.id)}
                 >
                   {/* Deal ID */}
-                  <td className="px-4 py-2.5 text-xs text-amber-400/80 font-semibold">
+                  <td className="px-4 py-2.5 text-xs text-slate-400 font-semibold">
                     {deal.id}
                   </td>
 

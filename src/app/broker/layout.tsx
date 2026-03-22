@@ -9,18 +9,14 @@
    Unverified brokers are violently ejected to the iDenfy AML
    gauntlet (/offtaker/onboarding/kyb) before seeing ANY broker UI.
 
-   MATHEMATICAL ALIGNMENT STANDARD:
-     Left Logo Box:     h-[88px]  (32px + 56px = 88px)
-     Right Telemetry:   h-8       (32px)
-     Right Header:      h-14      (56px)
-     ───────────────────────────────────────────
-     TOTAL:             88px = 88px  ✓ CONTINUOUS LINE
+   Uses the *shared Topbar* from the main app-shell so every
+   portal has an identical header (XAU/USD ticker, system status,
+   user dropdown).
 
    Structure:
      ┌──────┬─────────────────────────────────────┐
-     │ LOGO │  TELEMETRY STRIP  h-8  (XAU/USD)    │
-     │ BOX  ├─────────────────────────────────────┤
-     │ 88px │  HEADER  h-14  (role badge)          │
+     │ LOGO │  TOPBAR h-16  (shared component)     │
+     │ h-16 │                                      │
      ├──────┼─────────────────────────────────────┤
      │ SIDE │  MAIN  (flex-1 min-h-0 scrollable)  │
      │  BAR │                                      │
@@ -32,11 +28,11 @@ import { type ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
-import { useGoldPrice } from "@/hooks/use-gold-price";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
 import { useAuth } from "@/providers/auth-provider";
+import { Topbar } from "@/components/layout/topbar";
 import type { UserRole } from "@/lib/mock-data";
-import { Activity, Wifi, Lock, Fingerprint, Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert } from "lucide-react";
 
 /* ── Operator roles that bypass the compliance gate (admin impersonation) ── */
 const OPERATOR_ROLES: UserRole[] = [
@@ -95,7 +91,7 @@ function BrokerComplianceGate({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 text-amber-400 animate-spin mb-4" />
+        <Loader2 className="h-8 w-8 text-slate-400 animate-spin mb-4" />
         <span className="font-mono text-[11px] text-slate-500 tracking-[0.2em] uppercase">
           Verifying Broker Compliance Perimeter
         </span>
@@ -125,8 +121,8 @@ function BrokerComplianceGate({ children }: { children: ReactNode }) {
   if (!isCleared) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
-        <ShieldAlert className="h-8 w-8 text-amber-400 mb-4" />
-        <span className="font-mono text-[11px] text-amber-400 tracking-wider uppercase">
+        <ShieldAlert className="h-8 w-8 text-slate-400 mb-4" />
+        <span className="font-mono text-[11px] text-slate-400 tracking-wider uppercase">
           Compliance Clearance Required
         </span>
         <span className="font-mono text-[9px] text-slate-600 mt-1">
@@ -150,8 +146,9 @@ const NAV_ITEMS = [
 
 export default function BrokerLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { data: goldPrice, isLoading: priceLoading } = useGoldPrice();
-  const spotPrice = goldPrice?.spotPriceUsd ?? 0;
+
+  /* ── Sidebar collapse state (needed for Topbar props) ── */
+  const [collapsed, setCollapsed] = useState(false);
 
   /* ── Hydration guard: prevent React #418 by skipping SSR render ── */
   const [mounted, setMounted] = useState(false);
@@ -166,9 +163,9 @@ export default function BrokerLayout({ children }: { children: ReactNode }) {
       <div className="absolute inset-0 flex overflow-hidden bg-slate-950 text-slate-300" suppressHydrationWarning>
 
         {/* ── LEFT SIDEBAR ── */}
-        <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-900/50 flex flex-col">
-          {/* MATHEMATICALLY LOCKED LOGO BOX (32px + 56px = 88px) */}
-          <div className="h-[88px] shrink-0 flex items-center justify-center border-b border-slate-800 px-5">
+        <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-950 flex flex-col">
+          {/* Logo box — h-16 to match Topbar */}
+          <div className="h-16 shrink-0 flex items-center justify-center border-b border-slate-800 px-5">
             <AppLogo className="h-8 w-auto" variant="dark" />
           </div>
 
@@ -187,9 +184,9 @@ export default function BrokerLayout({ children }: { children: ReactNode }) {
                   <Link
                     href={item.href}
                     className={[
-                      "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                      "flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] font-medium transition-colors",
                       isActive
-                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        ? "bg-slate-800 text-white"
                         : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent",
                     ].join(" ")}
                   >
@@ -237,9 +234,9 @@ export default function BrokerLayout({ children }: { children: ReactNode }) {
               <Link
                 href="/compliance/training"
                 className={[
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] font-medium transition-colors",
                   pathname.startsWith("/compliance/training")
-                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                    ? "bg-slate-800 text-white"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent",
                 ].join(" ")}
               >
@@ -259,61 +256,13 @@ export default function BrokerLayout({ children }: { children: ReactNode }) {
 
         {/* ── RIGHT MAIN CONTENT ── */}
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* 1. Telemetry Strip (h-8) */}
-          <div className="h-8 shrink-0 bg-black/40 border-b border-slate-800/60 px-6 flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Activity className="h-3 w-3 text-slate-500" />
-              <span className="font-mono text-[9px] text-slate-500">XAU/USD:</span>
-              {priceLoading ? (
-                <span className="font-mono text-[10px] text-slate-600 animate-pulse">SYNCING...</span>
-              ) : (
-                <>
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
-                  <span className="font-mono text-[10px] text-white font-bold tabular-nums">
-                    {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(spotPrice)}
-                  </span>
-                </>
-              )}
-              {goldPrice && (
-                <span className={`font-mono text-[9px] tabular-nums ${goldPrice.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {goldPrice.change24h >= 0 ? "+" : ""}{goldPrice.change24h.toFixed(2)}
-                </span>
-              )}
-            </div>
-            <div className="h-3 w-px bg-slate-800" />
-            <div className="flex items-center gap-1.5">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] animate-pulse" />
-              <Wifi className="h-3 w-3 text-emerald-400" />
-              <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase">
-                Network: Secure
-              </span>
-            </div>
-            <div className="h-3 w-px bg-slate-800" />
-            <div className="flex items-center gap-1.5">
-              <Lock className="h-3 w-3 text-slate-500" />
-              <span className="font-mono text-[9px] text-slate-500 tracking-wider uppercase">
-                End-to-End Encryption: Active
-              </span>
-            </div>
-            <div className="ml-auto flex items-center gap-1.5">
-              <Fingerprint className="h-3 w-3 text-slate-600" />
-              <span className="font-mono text-[9px] text-slate-600 tracking-wider">
-                SESSION AUTHENTICATED
-              </span>
-            </div>
-          </div>
+          {/* Shared Topbar — identical to main dashboard */}
+          <Topbar
+            collapsed={collapsed}
+            onToggleSidebar={() => setCollapsed((c) => !c)}
+          />
 
-          {/* 2. Main Header (h-14) */}
-          <header className="h-14 shrink-0 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6">
-            {/* Role indicator */}
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded border border-amber-500/30 bg-amber-500/10 text-xs font-mono font-semibold tracking-widest text-amber-400 uppercase">
-                Broker Terminal
-              </span>
-            </div>
-          </header>
-
-          {/* 3. Main Scrollable Content */}
+          {/* Main Scrollable Content */}
           <main className="flex-1 min-h-0 overflow-y-auto relative">
             {children}
           </main>

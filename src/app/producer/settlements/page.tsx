@@ -13,7 +13,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Shield,
-  Banknote,
   CheckCircle2,
   Clock,
   ArrowUpRight,
@@ -112,7 +111,7 @@ export default function ProducerSettlementsPage() {
             Producer Settlement Ledger
           </span>
           {isDemo && (
-            <span className="ml-1 font-mono text-[8px] text-amber-500 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 tracking-wider uppercase">
+            <span className="ml-1 font-mono text-[8px] text-yellow-500 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 tracking-wider uppercase">
               DEMO
             </span>
           )}

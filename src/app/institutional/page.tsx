@@ -36,7 +36,7 @@ const SETTLEMENTS = [
     counterparty: "Perth Mint",
     notional: "$8,200,000",
     state: "AWAITING_ASSAY",
-    stateColor: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+    stateColor: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
   },
   {
     ref: "DvP-2026-0415",
@@ -100,7 +100,7 @@ export default function InstitutionalPortfolioPage() {
         {/* Vaulted Holdings */}
         <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-4 flex flex-col justify-between">
           <div className="flex items-center gap-2 mb-3">
-            <Vault className="h-4 w-4 text-amber-400" />
+            <Vault className="h-4 w-4 text-slate-400" />
             <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
               Vaulted Holdings
             </p>
@@ -145,7 +145,7 @@ export default function InstitutionalPortfolioPage() {
           </p>
           <Link
             href="/institutional/logistics"
-            className="mt-2 inline-flex items-center gap-1 text-[10px] font-mono text-amber-400 hover:text-amber-300 transition-colors uppercase tracking-wider group"
+            className="mt-2 inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-slate-200 transition-colors uppercase tracking-wider group"
           >
             Track Assets
             <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
@@ -222,7 +222,7 @@ export default function InstitutionalPortfolioPage() {
               <span className="text-right">
                 <Link
                   href="/institutional/logistics"
-                  className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 hover:text-amber-400 transition-colors"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 hover:text-slate-300 transition-colors"
                 >
                   Track
                   <ExternalLink className="h-3 w-3" />
@@ -256,7 +256,7 @@ export default function InstitutionalPortfolioPage() {
                 </div>
                 <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-linear-to-r from-amber-500/80 to-amber-400"
+                    className="h-full rounded-full bg-linear-to-r from-emerald-500/80 to-emerald-400"
                     style={{ width: `${j.pct}%` }}
                   />
                 </div>
