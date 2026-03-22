@@ -3,9 +3,8 @@
 /* ================================================================
    PRODUCER COMMAND CENTER UI — Client Component
    ================================================================
-   Interactive dashboard UI for the Producer Command Center.
-   Receives all data (mock or live) as props from the Server
-   Component wrapper. Handles zero-state toggle (demo only).
+   Zero-scroll viewport: absolute inset-0 flex flex-col overflow-hidden.
+   Tables and lists use internal scrolling only.
    ================================================================ */
 
 import { useState } from "react";
@@ -21,7 +20,6 @@ import {
   Eye,
   Radio,
 } from "lucide-react";
-import ProducerTelemetryFooter from "@/components/producer/ProducerTelemetryFooter";
 
 /* ----------------------------------------------------------------
    TYPES
@@ -65,24 +63,15 @@ interface CommandCenterUIProps {
    FORMATTERS
    ================================================================ */
 function fmtOz(value: number): string {
-  return value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtUsd(value: number): string {
-  return (
-    "$" +
-    value.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })
-  );
+  return "$" + value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 /* ================================================================
-   MOCK DATA — Preserved for demo/investor presentations
+   MOCK DATA
    ================================================================ */
 const MOCK_INVENTORY: InventoryAsset[] = [
   { id: "AUR-GD-7721", form: "GOOD_DELIVERY", weightOz: 400.125, estimated: false, status: "VAULT_VERIFIED" },
@@ -124,7 +113,7 @@ const ZERO_METRICS: CommandCenterMetrics = {
 };
 
 /* ================================================================
-   COMPONENT
+   COMPONENT — ZERO-SCROLL VIEWPORT
    ================================================================ */
 export default function CommandCenterUI({
   inventory: liveInventory,
@@ -132,46 +121,28 @@ export default function CommandCenterUI({
   metrics: liveMetrics,
   isDemo,
 }: CommandCenterUIProps) {
-  /* Toggle between populated and empty state for demonstration */
   const [showZeroState, setShowZeroState] = useState(false);
 
-  /* ── Dual-mode data resolution ── */
-  const inventory = isDemo
-    ? showZeroState
-      ? []
-      : MOCK_INVENTORY
-    : liveInventory;
-
-  const settlements = isDemo
-    ? showZeroState
-      ? []
-      : MOCK_SETTLEMENTS
-    : liveSettlements;
-
-  const metrics = isDemo
-    ? showZeroState
-      ? ZERO_METRICS
-      : MOCK_METRICS
-    : liveMetrics;
+  const inventory = isDemo ? (showZeroState ? [] : MOCK_INVENTORY) : liveInventory;
+  const settlements = isDemo ? (showZeroState ? [] : MOCK_SETTLEMENTS) : liveSettlements;
+  const metrics = isDemo ? (showZeroState ? ZERO_METRICS : MOCK_METRICS) : liveMetrics;
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-14">
-      <div className="max-w-7xl mx-auto p-6 pt-10">
-
-        {/* ── Page Header ── */}
-        <div className="flex items-center justify-between mb-1">
+    <div className="absolute inset-0 flex flex-col overflow-hidden">
+      {/* ── Header ── */}
+      <div className="shrink-0 px-4 py-2.5 border-b border-slate-800">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Radio className="h-4 w-4 text-gold-primary" />
-            <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
+            <Radio className="h-3.5 w-3.5 text-[#C6A86B]" />
+            <span className="font-mono text-[#C6A86B] text-[10px] tracking-[0.3em] uppercase">
               Producer Command Center
             </span>
             {isDemo && (
-              <span className="ml-1 font-mono text-[8px] text-yellow-500 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 tracking-wider uppercase">
+              <span className="font-mono text-[8px] text-yellow-500 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 tracking-wider uppercase">
                 DEMO
               </span>
             )}
           </div>
-          {/* Dev toggle for zero-state preview — only in demo mode */}
           {isDemo && (
             <button
               onClick={() => setShowZeroState(!showZeroState)}
@@ -181,285 +152,215 @@ export default function CommandCenterUI({
             </button>
           )}
         </div>
-        <h1 className="font-mono text-2xl text-white font-bold tracking-tight mb-1">
-          Industrial Operations Overview
-        </h1>
-        <p className="font-mono text-[11px] text-slate-600 mb-8">
-          REAL-TIME VAULTING · REFINERY PIPELINE · SETTLEMENT RADAR
-        </p>
+      </div>
 
-        {/* ════════════════════════════════════════════════════════
-           METRICS STRIP (4 blocks)
-           ════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-slate-800 border border-slate-800 mb-8">
-          <MetricBlock
-            icon={<Vault className="h-4 w-4 text-emerald-400" />}
-            label="Vaulted Good Delivery"
-            value={`${fmtOz(metrics.vaultedGoodDeliveryOz)} oz`}
-            accent="emerald"
-          />
-          <MetricBlock
-            icon={<FlaskConical className="h-4 w-4 text-slate-400" />}
-            label="Doré in Refinery (Est.)"
-            value={`${fmtOz(metrics.doreInRefineryOz)} oz`}
-            accent="slate"
-          />
-          <MetricBlock
-            icon={<DollarSign className="h-4 w-4 text-gold-primary" />}
-            label="Pending Capital Inbound"
-            value={fmtUsd(metrics.pendingCapital)}
-            accent="gold"
-          />
-          <MetricBlock
-            icon={<TrendingUp className="h-4 w-4 text-emerald-400" />}
-            label="YTD Cleared Capital"
-            value={fmtUsd(metrics.ytdClearedCapital)}
-            accent="emerald"
-          />
-        </div>
+      {/* ── Metrics Strip ── */}
+      <div className="shrink-0 grid grid-cols-4 gap-px bg-slate-800 border-b border-slate-800">
+        <MetricBlock
+          icon={<Vault className="h-3.5 w-3.5 text-emerald-400" />}
+          label="Vaulted Good Delivery"
+          value={`${fmtOz(metrics.vaultedGoodDeliveryOz)} oz`}
+          accent="emerald"
+        />
+        <MetricBlock
+          icon={<FlaskConical className="h-3.5 w-3.5 text-slate-400" />}
+          label="Doré in Refinery (Est.)"
+          value={`${fmtOz(metrics.doreInRefineryOz)} oz`}
+          accent="slate"
+        />
+        <MetricBlock
+          icon={<DollarSign className="h-3.5 w-3.5 text-[#C6A86B]" />}
+          label="Pending Capital Inbound"
+          value={fmtUsd(metrics.pendingCapital)}
+          accent="gold"
+        />
+        <MetricBlock
+          icon={<TrendingUp className="h-3.5 w-3.5 text-emerald-400" />}
+          label="YTD Cleared Capital"
+          value={fmtUsd(metrics.ytdClearedCapital)}
+          accent="emerald"
+        />
+      </div>
 
-        {/* ════════════════════════════════════════════════════════
-           ZERO STATE
-           ════════════════════════════════════════════════════════ */}
-        {inventory.length === 0 ? (
+      {/* ── Main Content — fills remaining viewport ── */}
+      {inventory.length === 0 ? (
+        <div className="flex-1 min-h-0 flex items-center justify-center">
           <ZeroState />
-        ) : (
-          /* ════════════════════════════════════════════════════════
-             TWO-COLUMN LAYOUT: Inventory Grid + Capital Radar
-             ════════════════════════════════════════════════════════ */
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-
-            {/* ─── INVENTORY & YIELD GRID (Left — 3/5) ─── */}
-            <div className="xl:col-span-3">
-              <div className="bg-slate-900 border border-slate-800">
-                {/* Grid Header */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-800">
-                  <h2 className="font-mono text-xs text-slate-400 tracking-[0.15em] uppercase">
-                    Active Inventory
-                  </h2>
-                  <Link
-                    href="/producer/inventory/new"
-                    className="group flex items-center gap-2 bg-gold-primary/10 border border-gold-primary/30 px-3 py-1.5 hover:bg-gold-primary/20 transition-colors"
-                  >
-                    <Plus className="h-3 w-3 text-gold-primary" />
-                    <span className="font-mono text-[10px] text-gold-primary font-bold tracking-wider uppercase">
-                      Ingest New Asset
-                    </span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-gold-primary animate-pulse" />
-                  </Link>
-                </div>
-
-                {/* Dense Data Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-800">
-                        <th className="text-left font-mono text-[9px] text-slate-600 tracking-wider uppercase px-4 py-3">
-                          Asset ID
-                        </th>
-                        <th className="text-left font-mono text-[9px] text-slate-600 tracking-wider uppercase px-4 py-3">
-                          Form
-                        </th>
-                        <th className="text-right font-mono text-[9px] text-slate-600 tracking-wider uppercase px-4 py-3">
-                          Weight
-                        </th>
-                        <th className="text-left font-mono text-[9px] text-slate-600 tracking-wider uppercase px-4 py-3">
-                          Status
-                        </th>
-                        <th className="text-right font-mono text-[9px] text-slate-600 tracking-wider uppercase px-4 py-3">
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inventory.map((asset) => (
-                        <tr
-                          key={asset.id}
-                          className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors"
-                        >
-                          {/* Asset ID */}
-                          <td className="px-4 py-3">
-                            <span className="font-mono text-xs text-white tracking-wide">
-                              {asset.id}
-                            </span>
-                          </td>
-
-                          {/* Form */}
-                          <td className="px-4 py-3">
-                            <span className={`font-mono text-[10px] tracking-wider uppercase ${
-                              asset.form === "RAW_DORE"
-                                ? "text-yellow-400"
-                                : "text-slate-400"
-                            }`}>
-                              {asset.form === "RAW_DORE" ? "RAW DORÉ" : "GOOD DELIVERY"}
-                            </span>
-                          </td>
-
-                          {/* Weight */}
-                          <td className="px-4 py-3 text-right">
-                            <span className="font-mono text-xs text-white tabular-nums">
-                              {asset.estimated && (
-                                <span className="text-slate-500 mr-1 text-[10px]">(Est)</span>
-                              )}
-                              {fmtOz(asset.weightOz)} oz
-                            </span>
-                          </td>
-
-                          {/* Status Badge */}
-                          <td className="px-4 py-3">
-                            {asset.form === "RAW_DORE" ? (
-                              <span className="inline-flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
-                                <span className="font-mono text-[9px] text-yellow-400 tracking-wider uppercase font-bold">
-                                  LBMA Refinery: Processing
-                                </span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                                <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase font-bold">
-                                  Vault Verified
-                                </span>
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Action */}
-                          <td className="px-4 py-3 text-right">
-                            <Link
-                              href={`/producer/orders/${asset.id}/settlement${isDemo ? '?demo=active' : ''}`}
-                              className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-500 hover:text-gold-primary tracking-wider uppercase transition-colors cursor-pointer"
-                            >
-                              <Eye className="h-3 w-3" />
-                              View
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Grid Footer */}
-                <div className="px-4 py-3 border-t border-slate-800 flex items-center justify-between">
-                  <span className="font-mono text-[9px] text-slate-600 tracking-wider uppercase">
-                    {inventory.length} Active Assets
-                  </span>
-                  <span className="font-mono text-[9px] text-slate-700 tracking-wider uppercase">
-                    TOKEN_STANDARD: ERC-3643 · PROVENANCE: IMMUTABLE
-                  </span>
-                </div>
-              </div>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 flex gap-0">
+          {/* ─── LEFT: Inventory Table (3/5) ─── */}
+          <div className="flex-[3] flex flex-col border-r border-slate-800">
+            {/* Table Header */}
+            <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-900/50">
+              <h2 className="font-mono text-[10px] text-slate-400 tracking-[0.15em] uppercase">
+                Active Inventory
+              </h2>
+              <Link
+                href="/producer/inventory/new"
+                className="group flex items-center gap-1.5 bg-[#C6A86B]/10 border border-[#C6A86B]/30 px-2.5 py-1 hover:bg-[#C6A86B]/20 transition-colors"
+              >
+                <Plus className="h-3 w-3 text-[#C6A86B]" />
+                <span className="font-mono text-[9px] text-[#C6A86B] font-bold tracking-wider uppercase">
+                  Ingest New Asset
+                </span>
+              </Link>
             </div>
 
-            {/* ─── INBOUND CAPITAL RADAR (Right — 2/5) ─── */}
-            <div className="xl:col-span-2">
-              <div className="bg-slate-900 border border-slate-800 h-full flex flex-col">
-                {/* Radar Header */}
-                <div className="p-4 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-gold-primary animate-pulse" />
-                    <h2 className="font-mono text-xs text-slate-400 tracking-[0.15em] uppercase">
-                      Inbound Capital Radar
-                    </h2>
-                  </div>
-                  <p className="font-mono text-[9px] text-slate-700 tracking-wider mt-1 uppercase">
-                    Settlement Engine → Producer Payout Tracking
-                  </p>
-                </div>
+            {/* Column Headers */}
+            <div className="shrink-0 grid grid-cols-12 gap-2 px-4 py-2 border-b border-slate-800 bg-black/40">
+              <span className="col-span-3 font-mono text-[9px] text-slate-600 tracking-wider uppercase font-bold">Asset ID</span>
+              <span className="col-span-2 font-mono text-[9px] text-slate-600 tracking-wider uppercase font-bold">Form</span>
+              <span className="col-span-2 font-mono text-[9px] text-slate-600 tracking-wider uppercase font-bold text-right">Weight</span>
+              <span className="col-span-3 font-mono text-[9px] text-slate-600 tracking-wider uppercase font-bold">Status</span>
+              <span className="col-span-2 font-mono text-[9px] text-slate-600 tracking-wider uppercase font-bold text-right">Action</span>
+            </div>
 
-                {/* Settlement List */}
-                <div className="flex-1 divide-y divide-slate-800/50">
-                  {settlements.map((s) => (
+            {/* Scrollable Rows */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {inventory.map((asset) => (
+                <div
+                  key={asset.id}
+                  className="grid grid-cols-12 gap-2 px-4 py-2.5 border-b border-slate-800/50 hover:bg-slate-900/50 transition-colors"
+                >
+                  <span className="col-span-3 font-mono text-xs text-white tracking-wide">{asset.id}</span>
+                  <span className={`col-span-2 font-mono text-[10px] tracking-wider uppercase ${
+                    asset.form === "RAW_DORE" ? "text-yellow-400" : "text-slate-400"
+                  }`}>
+                    {asset.form === "RAW_DORE" ? "RAW DORÉ" : "GOOD DELIVERY"}
+                  </span>
+                  <span className="col-span-2 font-mono text-xs text-white tabular-nums text-right">
+                    {asset.estimated && <span className="text-slate-500 mr-1 text-[9px]">(Est)</span>}
+                    {fmtOz(asset.weightOz)} oz
+                  </span>
+                  <span className="col-span-3">
+                    {asset.form === "RAW_DORE" ? (
+                      <span className="inline-flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/30 px-1.5 py-0.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                        <span className="font-mono text-[8px] text-yellow-400 tracking-wider uppercase font-bold">
+                          Refinery: Processing
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        <span className="font-mono text-[8px] text-emerald-400 tracking-wider uppercase font-bold">
+                          Vault Verified
+                        </span>
+                      </span>
+                    )}
+                  </span>
+                  <span className="col-span-2 text-right">
                     <Link
-                      key={s.orderId}
-                      href={`/producer/orders/${s.orderId}/settlement${isDemo ? '?demo=active' : ''}`}
-                      className="block px-4 py-3 hover:bg-slate-800/30 transition-colors cursor-pointer"
+                      href={`/producer/orders/${asset.id}/settlement${isDemo ? '?demo=active' : ''}`}
+                      className="inline-flex items-center gap-1 font-mono text-[9px] text-slate-500 hover:text-[#C6A86B] tracking-wider uppercase transition-colors"
                     >
-                      {/* Top row: Order + Amount */}
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-mono text-xs text-white tracking-wide">
-                          {s.orderId}
-                        </span>
-                        <span className={`font-mono text-sm font-bold tabular-nums ${
-                          s.rail === "FEDWIRE" ? "text-gold-primary" : "text-cyan-400"
-                        }`}>
-                          {fmtUsd(s.amount)}
-                        </span>
-                      </div>
-
-                      {/* Bottom row: Rail + Status */}
-                      <div className="flex items-center justify-between">
-                        <span className={`font-mono text-[9px] tracking-wider uppercase ${
-                          s.rail === "FEDWIRE" ? "text-gold-primary/60" : "text-cyan-400/60"
-                        }`}>
-                          RAIL: {s.railLabel}
-                        </span>
-
-                        <div className="flex items-center gap-1.5">
-                          {(s.status === "IN_FLIGHT" || s.status === "BROADCASTED") && (
-                            <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${
-                              s.rail === "FEDWIRE" ? "bg-gold-primary" : "bg-cyan-400"
-                            }`} />
-                          )}
-                          <span className={`font-mono text-[9px] tracking-wider uppercase font-bold ${
-                            s.status === "SETTLED"
-                              ? "text-emerald-400"
-                              : s.status === "IN_FLIGHT"
-                                ? s.rail === "FEDWIRE" ? "text-gold-primary" : "text-cyan-400"
-                                : s.rail === "FEDWIRE" ? "text-gold-primary/80" : "text-cyan-400/80"
-                          }`}>
-                            {s.status === "IN_FLIGHT" ? "IN FLIGHT" : s.status}
-                          </span>
-                        </div>
-                      </div>
+                      <Eye className="h-3 w-3" />
+                      View
                     </Link>
-                  ))}
+                  </span>
                 </div>
+              ))}
+            </div>
 
-                {/* Radar Footer */}
-                <div className="px-4 py-3 border-t border-slate-800 mt-auto">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-gold-primary" />
-                        <span className="font-mono text-[8px] text-slate-600 tracking-wider uppercase">
-                          Fedwire
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                        <span className="font-mono text-[8px] text-slate-600 tracking-wider uppercase">
-                          USDT
-                        </span>
-                      </span>
-                    </div>
-                    <span className="font-mono text-[8px] text-slate-700 tracking-wider uppercase">
-                      Column Bank · Turnkey MPC
+            {/* Table Footer */}
+            <div className="shrink-0 px-4 py-2 border-t border-slate-800 flex items-center justify-between bg-black/40">
+              <span className="font-mono text-[9px] text-slate-600 tracking-wider uppercase">
+                {inventory.length} Active Assets
+              </span>
+              <span className="font-mono text-[8px] text-slate-700 tracking-wider uppercase">
+                ERC-3643 · IMMUTABLE PROVENANCE
+              </span>
+            </div>
+          </div>
+
+          {/* ─── RIGHT: Capital Radar (2/5) ─── */}
+          <div className="flex-[2] flex flex-col">
+            {/* Radar Header */}
+            <div className="shrink-0 px-4 py-2 border-b border-slate-800 bg-slate-900/50">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#C6A86B] animate-pulse" />
+                <h2 className="font-mono text-[10px] text-slate-400 tracking-[0.15em] uppercase">
+                  Inbound Capital Radar
+                </h2>
+              </div>
+              <p className="font-mono text-[8px] text-slate-700 tracking-wider mt-0.5 uppercase">
+                Settlement Engine → Producer Payout Tracking
+              </p>
+            </div>
+
+            {/* Scrollable Settlement List */}
+            <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-800/50">
+              {settlements.map((s) => (
+                <Link
+                  key={s.orderId}
+                  href={`/producer/orders/${s.orderId}/settlement${isDemo ? '?demo=active' : ''}`}
+                  className="block px-4 py-2.5 hover:bg-slate-800/30 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-xs text-white tracking-wide">{s.orderId}</span>
+                    <span className={`font-mono text-sm font-bold tabular-nums ${
+                      s.rail === "FEDWIRE" ? "text-[#C6A86B]" : "text-cyan-400"
+                    }`}>
+                      {fmtUsd(s.amount)}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`font-mono text-[8px] tracking-wider uppercase ${
+                      s.rail === "FEDWIRE" ? "text-[#C6A86B]/60" : "text-cyan-400/60"
+                    }`}>
+                      RAIL: {s.railLabel}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {(s.status === "IN_FLIGHT" || s.status === "BROADCASTED") && (
+                        <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${
+                          s.rail === "FEDWIRE" ? "bg-[#C6A86B]" : "bg-cyan-400"
+                        }`} />
+                      )}
+                      <span className={`font-mono text-[9px] tracking-wider uppercase font-bold ${
+                        s.status === "SETTLED"
+                          ? "text-emerald-400"
+                          : s.status === "IN_FLIGHT"
+                            ? s.rail === "FEDWIRE" ? "text-[#C6A86B]" : "text-cyan-400"
+                            : s.rail === "FEDWIRE" ? "text-[#C6A86B]/80" : "text-cyan-400/80"
+                      }`}>
+                        {s.status === "IN_FLIGHT" ? "IN FLIGHT" : s.status}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Radar Footer */}
+            <div className="shrink-0 px-4 py-2 border-t border-slate-800 bg-black/40">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#C6A86B]" />
+                    <span className="font-mono text-[8px] text-slate-600 tracking-wider uppercase">Fedwire</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                    <span className="font-mono text-[8px] text-slate-600 tracking-wider uppercase">USDT</span>
+                  </span>
                 </div>
+                <span className="font-mono text-[8px] text-slate-700 tracking-wider uppercase">
+                  Column Bank · Turnkey MPC
+                </span>
               </div>
             </div>
           </div>
-        )}
-
-        {/* ── Footer trust line ── */}
-        <p className="mt-10 text-center font-mono text-[10px] text-slate-700 tracking-wider">
-          AurumShield Clearing · Producer Command Center · LBMA Fire-Assay Pipeline · Goldwire Settlement Engine
-        </p>
-      </div>
-
-      <ProducerTelemetryFooter />
+        </div>
+      )}
     </div>
   );
 }
 
 /* ════════════════════════════════════════════════════════════════
-   SUB-COMPONENTS (Inlined — no broken imports)
+   SUB-COMPONENTS
    ════════════════════════════════════════════════════════════════ */
 
-/* ── Metric Block ── */
 function MetricBlock({
   icon,
   label,
@@ -476,57 +377,42 @@ function MetricBlock({
       ? "border-t-emerald-500/40"
       : accent === "slate"
         ? "border-t-slate-500/40"
-        : "border-t-gold-primary/40";
+        : "border-t-[#C6A86B]/40";
 
   return (
-    <div className={`bg-slate-900 p-5 border-t-2 ${borderAccent}`}>
-      <div className="flex items-center gap-2 mb-3">
+    <div className={`bg-slate-900 px-4 py-3 border-t-2 ${borderAccent}`}>
+      <div className="flex items-center gap-1.5 mb-1.5">
         {icon}
-        <span className="font-mono text-[9px] text-slate-500 tracking-wider uppercase">
-          {label}
-        </span>
+        <span className="font-mono text-[8px] text-slate-500 tracking-wider uppercase">{label}</span>
       </div>
-      <p className="font-mono text-xl text-white font-bold tabular-nums tracking-tight">
+      <p className="font-mono text-lg text-white font-bold tabular-nums tracking-tight leading-none">
         {value}
       </p>
     </div>
   );
 }
 
-/* ── Zero State ── */
 function ZeroState() {
   return (
-    <div className="bg-slate-900 border border-slate-800 py-20 px-8 flex flex-col items-center justify-center text-center">
-      {/* Imposing target icon */}
-      <div className="h-20 w-20 border-2 border-dashed border-slate-700 flex items-center justify-center mb-8">
-        <Target className="h-10 w-10 text-slate-600" />
+    <div className="flex flex-col items-center justify-center text-center px-8">
+      <div className="h-16 w-16 border-2 border-dashed border-slate-700 flex items-center justify-center mb-6">
+        <Target className="h-8 w-8 text-slate-600" />
       </div>
-
-      <h2 className="font-mono text-lg text-white font-bold tracking-tight mb-3">
+      <h2 className="font-mono text-lg text-white font-bold tracking-tight mb-2">
         No Active Inventory
       </h2>
-      <p className="font-mono text-xs text-slate-500 max-w-md leading-relaxed mb-2">
-        Your inventory registry is empty. Upload a certified Fire Assay Report
-        to mint your first cryptographic title and register physical bullion
-        on the AurumShield ledger.
+      <p className="font-mono text-xs text-slate-500 max-w-md leading-relaxed mb-6">
+        Upload a certified Fire Assay Report to mint your first cryptographic title
+        and register physical bullion on the AurumShield ledger.
       </p>
-      <p className="font-mono text-[10px] text-slate-600 max-w-sm mb-8">
-        Once minted, your Digital Twin (ERC-3643) becomes tradeable on the
-        Goldwire Settlement Network.
-      </p>
-
       <Link
         href="/producer/inventory/new"
-        className="group flex items-center gap-2 bg-gold-primary text-slate-950 px-6 py-3 font-mono text-sm font-bold tracking-wider uppercase hover:bg-gold-hover transition-colors"
+        className="group flex items-center gap-2 bg-[#C6A86B] text-slate-950 px-6 py-3 font-mono text-sm font-bold tracking-wider uppercase hover:bg-[#d4b94d] transition-colors"
       >
         <Plus className="h-4 w-4" />
         Ingest First Asset
         <ArrowUpRight className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
       </Link>
-
-      <span className="font-mono text-[9px] text-slate-700 uppercase tracking-wider mt-4">
-        ASSAY REPORT REQUIRED · VLM PARSER ENGAGED
-      </span>
     </div>
   );
 }
