@@ -13,8 +13,10 @@ import { useDemo } from "@/providers/demo-provider";
 import { useTour } from "@/demo/tour-engine/TourProvider";
 import { RoleRouter } from "@/components/auth/RoleRouter";
 
-/** Routes that render WITHOUT the app shell (sidebar/topbar) */
-const PUBLIC_ROUTES = [
+/** Routes that render WITHOUT the app shell (sidebar/topbar).
+ *  Includes public pages AND portal routes that have their own
+ *  Side-by-Side layout (sidebar + header + main). */
+const SHELL_BYPASS_ROUTES = [
   "/",
   "/login",
   "/signup",
@@ -29,6 +31,12 @@ const PUBLIC_ROUTES = [
   "/investor-brief",
   "/simple-home",
   "/institutional-portal",
+  // ── Portal routes with their own Side-by-Side layout ──
+  "/broker",
+  "/investor",
+  "/counterparty",
+  "/institutional",
+  "/producer",
 ];
 
 interface AppShellProps {
@@ -39,7 +47,7 @@ export function AppShell({ children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const isPublic = PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"));
+  const isPublic = SHELL_BYPASS_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"));
   const { isDemo, presentationMode, scenarioName } = useDemo();
   const { state: tourState } = useTour();
   const isTourActive =
