@@ -453,7 +453,9 @@ a.card-base:hover {
   .print-hide,
   aside,
   nav,
-  header[data-topbar] {
+  header,
+  header[data-topbar],
+  [data-tour-topbar] {
     display: none !important;
   }
 

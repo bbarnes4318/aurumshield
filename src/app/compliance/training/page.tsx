@@ -39,8 +39,13 @@ import {
   Scale,
   Eye,
   Award,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { certifyAmlCompletion } from "@/actions/compliance-training-actions";
+import { useAmlStatus } from "@/hooks/use-aml-status";
+import { useAuth } from "@/providers/auth-provider";
+import { useQueryClient } from "@tanstack/react-query";
 
 /* ================================================================
    CURRICULUM DATA — Sourced from docs/legal/
@@ -379,6 +384,10 @@ interface TrainingState {
    ================================================================ */
 
 export default function AmlTrainingPage() {
+  const { user } = useAuth();
+  const { data: amlStatus, isLoading: amlLoading } = useAmlStatus();
+  const queryClient = useQueryClient();
+
   const [state, setState] = useState<TrainingState>({
     currentModule: 0,
     currentSlide: 0,
@@ -393,6 +402,9 @@ export default function AmlTrainingPage() {
   });
 
   const [isPending, startTransition] = useTransition();
+
+  /* ── "Already Completed" state ── */
+  const alreadyCompleted = amlStatus?.isComplete === true && state.step !== "complete";
 
   const currentMod = CURRICULUM[state.currentModule];
   const isLastModule = state.currentModule === CURRICULUM.length - 1;
@@ -522,8 +534,9 @@ export default function AmlTrainingPage() {
     if (state.attestationName.trim().length < 3) return;
 
     startTransition(async () => {
-      // TODO: Replace 'demo-user' with real authenticated userId when auth is fully bound
-      const result = await certifyAmlCompletion("demo-user", "BROKER");
+      const userId = user?.id ?? "anonymous";
+      const role = (user?.role ?? "BROKER").toUpperCase();
+      const result = await certifyAmlCompletion(userId, role);
 
       if (result.success) {
         setState((s) => ({
@@ -532,6 +545,8 @@ export default function AmlTrainingPage() {
           certificateId: result.certificateId ?? null,
           attestationHash: result.attestationHash ?? null,
         }));
+        // Invalidate the aml-status cache so useAmlStatus picks up the new state
+        queryClient.invalidateQueries({ queryKey: ["aml-status"] });
       } else {
         console.error("[AML_TRAINING] Certification failed:", result.error);
         const hex = Math.random().toString(16).substring(2, 6).toUpperCase();
@@ -543,7 +558,12 @@ export default function AmlTrainingPage() {
         }));
       }
     });
-  }, [state.attestationName, startTransition]);
+  }, [state.attestationName, startTransition, user, queryClient]);
+
+  /* ── Print / PDF export ── */
+  const handlePrintCertificate = useCallback(() => {
+    window.print();
+  }, []);
 
   /* ── Footer button state ── */
   const canGoPrevious =
@@ -557,6 +577,130 @@ export default function AmlTrainingPage() {
   /* ════════════════════════════════════════════
      RENDER
      ════════════════════════════════════════════ */
+
+  /* ── Loading state while checking AML status ── */
+  if (amlLoading) {
+    return (
+      <div className="-mx-6 -mt-6 -mb-6 lg:-mx-8 flex h-[calc(100vh-4rem)] items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
+          <span className="font-mono text-[11px] text-slate-500 tracking-[0.2em] uppercase">
+            Verifying AML Compliance Status
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Already completed — show certificate immediately ── */
+  if (alreadyCompleted) {
+    const completionDate = amlStatus?.completedAt
+      ? new Date(amlStatus.completedAt).toLocaleDateString("en-US", {
+          year: "numeric", month: "long", day: "numeric",
+        })
+      : new Date().toLocaleDateString("en-US", {
+          year: "numeric", month: "long", day: "numeric",
+        });
+
+    const validUntil = (() => {
+      const base = amlStatus?.completedAt ? new Date(amlStatus.completedAt) : new Date();
+      base.setFullYear(base.getFullYear() + 1);
+      return base.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    })();
+
+    return (
+      <div className="-mx-6 -mt-6 -mb-6 lg:-mx-8 flex h-[calc(100vh-4rem)] items-center justify-center bg-slate-950 print:bg-white print:h-auto print:m-0">
+        <div className="w-full max-w-xl px-4">
+          {/* Print-optimized certificate */}
+          <div id="aml-certificate" className="border-2 border-emerald-500/30 rounded-xl bg-linear-to-b from-slate-900 to-slate-950 shadow-[0_0_60px_rgba(52,211,153,0.08)] overflow-hidden print:border-slate-300 print:bg-white print:shadow-none">
+            <div className="h-1 bg-linear-to-r from-emerald-500 via-amber-400 to-emerald-500 print:bg-slate-800" />
+
+            <div className="text-center pt-6 pb-3 px-6">
+              <div className="flex justify-center mb-3">
+                <div className="w-14 h-14 rounded-full border-2 border-emerald-500/40 bg-emerald-500/10 flex items-center justify-center print:border-slate-400 print:bg-slate-100">
+                  <Award className="h-7 w-7 text-emerald-400 print:text-slate-700" />
+                </div>
+              </div>
+              <p className="font-mono text-[9px] text-emerald-400/60 uppercase tracking-[0.2em] mb-0.5 print:text-slate-500">
+                PVN LLC d/b/a AurumShield — Compliance Division
+              </p>
+              <h2 className="text-xl font-bold text-white tracking-wide print:text-black">
+                Certificate of Compliance
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5 print:text-slate-600">
+                Bank Secrecy Act / Anti-Money Laundering Training
+              </p>
+            </div>
+
+            <div className="mx-6 border-t border-slate-700/50 print:border-slate-300" />
+
+            <div className="px-6 py-4 text-center">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1 print:text-slate-500">
+                This certifies that
+              </p>
+              <p className="text-lg font-bold text-white mb-1 print:text-black">
+                {user?.name ?? "Authorized Personnel"}
+              </p>
+              <p className="text-xs text-slate-400 leading-relaxed max-w-md mx-auto print:text-slate-600">
+                has successfully completed all required modules of the
+                AurumShield AML/BSA Training Program in accordance with
+                FinCEN 31 CFR Part 1027.
+              </p>
+            </div>
+
+            <div className="mx-6 mb-4 border border-slate-700/50 rounded-lg bg-slate-950/40 divide-y divide-slate-800/50 text-xs print:border-slate-300 print:bg-slate-50 print:divide-slate-200">
+              {[
+                { label: "Date Issued", value: completionDate },
+                { label: "Valid Until", value: validUntil },
+                { label: "Standard", value: "FinCEN 31 CFR § 1027" },
+                { label: "Curriculum", value: "BSA/AML, Supply Chain DD, TBML, SAR Filing" },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between px-4 py-2">
+                  <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider print:text-slate-500">
+                    {row.label}
+                  </span>
+                  <span className="font-mono text-slate-300 text-right print:text-slate-700">
+                    {row.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-slate-700/50 px-6 py-3 flex items-center justify-between bg-slate-950/40 print:bg-slate-50 print:border-slate-300">
+              <div className="flex items-center gap-1.5">
+                <Shield className="h-3 w-3 text-emerald-400/60 print:text-slate-500" />
+                <span className="font-mono text-[9px] text-emerald-400/60 uppercase tracking-wider print:text-slate-500">
+                  Verified
+                </span>
+              </div>
+              <span className="font-mono text-[9px] text-slate-600 uppercase tracking-wider print:text-slate-500">
+                Retained 5 years per BSA § 1010.410
+              </span>
+            </div>
+          </div>
+
+          {/* Action buttons — hidden when printing */}
+          <div className="flex items-center justify-center gap-3 mt-4 print:hidden">
+            <button
+              onClick={handlePrintCertificate}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 font-mono text-xs font-bold text-emerald-400 uppercase tracking-wider hover:bg-emerald-500/20 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Print / Save PDF
+            </button>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-700 bg-slate-800/50 font-mono text-xs font-bold text-slate-300 uppercase tracking-wider hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              Return to Command Center
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="-mx-6 -mt-6 -mb-6 lg:-mx-8 flex h-[calc(100vh-4rem)]" >
       {/* ═══════════════════════════════════════
@@ -993,141 +1137,94 @@ export default function AmlTrainingPage() {
               </div>
             )}
 
-            {/* ────────── COMPLETE — Certificate View ────────── */}
+            {/* ────────── COMPLETE — Certificate View (just-certified) ────────── */}
             {state.step === "complete" && state.certificateId && (
-              <div className="flex flex-col items-center py-4">
-                {/* Certificate Card */}
-                <div className="w-full max-w-2xl border-2 border-emerald-500/30 rounded-xl bg-linear-to-b from-slate-900 to-slate-950 shadow-[0_0_60px_rgba(52,211,153,0.08)] overflow-hidden">
-                  {/* Certificate Top Border Accent */}
-                  <div className="h-1.5 bg-linear-to-r from-emerald-500 via-amber-400 to-emerald-500" />
+              <div className="flex flex-col items-center justify-center min-h-full py-2 print:py-0 print:bg-white">
+                <div id="aml-certificate" className="w-full max-w-xl border-2 border-emerald-500/30 rounded-xl bg-linear-to-b from-slate-900 to-slate-950 shadow-[0_0_60px_rgba(52,211,153,0.08)] overflow-hidden print:border-slate-300 print:bg-white print:shadow-none">
+                  <div className="h-1 bg-linear-to-r from-emerald-500 via-amber-400 to-emerald-500 print:bg-slate-800" />
 
-                  {/* Certificate Header */}
-                  <div className="text-center pt-8 pb-4 px-8">
-                    <div className="flex justify-center mb-4">
-                      <div className="w-20 h-20 rounded-full border-2 border-emerald-500/40 bg-emerald-500/10 flex items-center justify-center shadow-[0_0_30px_rgba(52,211,153,0.15)]">
-                        <Award className="h-10 w-10 text-emerald-400" />
+                  <div className="text-center pt-5 pb-2 px-6">
+                    <div className="flex justify-center mb-2">
+                      <div className="w-14 h-14 rounded-full border-2 border-emerald-500/40 bg-emerald-500/10 flex items-center justify-center print:border-slate-400 print:bg-slate-100">
+                        <Award className="h-7 w-7 text-emerald-400 print:text-slate-700" />
                       </div>
                     </div>
-                    <p className="font-mono text-[10px] text-emerald-400/60 uppercase tracking-[0.2em] mb-1">
+                    <p className="font-mono text-[9px] text-emerald-400/60 uppercase tracking-[0.2em] mb-0.5 print:text-slate-500">
                       PVN LLC d/b/a AurumShield — Compliance Division
                     </p>
-                    <h2 className="text-2xl font-bold text-white tracking-wide">
+                    <h2 className="text-xl font-bold text-white tracking-wide print:text-black">
                       Certificate of Compliance
                     </h2>
-                    <p className="text-sm text-slate-400 mt-1">
+                    <p className="text-xs text-slate-400 mt-0.5 print:text-slate-600">
                       Bank Secrecy Act / Anti-Money Laundering Training
                     </p>
                   </div>
 
-                  {/* Divider */}
-                  <div className="mx-8 border-t border-slate-700/50" />
+                  <div className="mx-6 border-t border-slate-700/50 print:border-slate-300" />
 
-                  {/* Certificate Body */}
-                  <div className="px-8 py-6 text-center">
-                    <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">
+                  <div className="px-6 py-3 text-center">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1 print:text-slate-500">
                       This certifies that
                     </p>
-                    <p className="text-xl font-bold text-white mb-2">
+                    <p className="text-lg font-bold text-white mb-1 print:text-black">
                       {state.attestationName}
                     </p>
-                    <p className="text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
+                    <p className="text-xs text-slate-400 leading-relaxed max-w-md mx-auto print:text-slate-600">
                       has successfully completed all required modules of the
                       AurumShield AML/BSA Training Program in accordance with
-                      FinCEN 31 CFR Part 1027 and the Bank Secrecy Act
-                      (31 U.S.C. §§ 5311–5332).
+                      FinCEN 31 CFR Part 1027.
                     </p>
                   </div>
 
-                  {/* Certificate Details Grid */}
-                  <div className="mx-8 mb-6 border border-slate-700/50 rounded-lg bg-slate-950/40 divide-y divide-slate-800/50">
+                  <div className="mx-6 mb-3 border border-slate-700/50 rounded-lg bg-slate-950/40 divide-y divide-slate-800/50 text-xs print:border-slate-300 print:bg-slate-50 print:divide-slate-200">
                     {[
-                      {
-                        label: "Certificate ID",
-                        value: state.certificateId,
-                        highlight: true,
-                      },
-                      {
-                        label: "Date Issued",
-                        value: new Date().toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        }),
-                      },
-                      {
-                        label: "Valid Until",
-                        value: (() => {
-                          const d = new Date();
-                          d.setFullYear(d.getFullYear() + 1);
-                          return d.toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          });
-                        })(),
-                      },
-                      {
-                        label: "Regulatory Standard",
-                        value: "FinCEN 31 CFR § 1027 — Annual AML Certification",
-                      },
-                      {
-                        label: "Curriculum",
-                        value:
-                          "BSA/AML, Part 1027, Supply Chain DD, TBML Typologies, SAR Filing",
-                      },
-                      {
-                        label: "Attestation Hash",
-                        value:
-                          state.attestationHash?.substring(0, 40) + "...",
-                      },
-                      {
-                        label: "Audit Event",
-                        value: "CLEARING_CERTIFICATE_ISSUED ✓",
-                        highlight: true,
-                      },
+                      { label: "Certificate ID", value: state.certificateId, highlight: true },
+                      { label: "Date Issued", value: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) },
+                      { label: "Valid Until", value: (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }); })() },
+                      { label: "Standard", value: "FinCEN 31 CFR § 1027" },
+                      { label: "Attestation Hash", value: state.attestationHash?.substring(0, 40) + "..." },
                     ].map((row) => (
-                      <div
-                        key={row.label}
-                        className="flex items-center justify-between px-4 py-2.5"
-                      >
-                        <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">
+                      <div key={row.label} className="flex items-center justify-between px-4 py-2">
+                        <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider print:text-slate-500">
                           {row.label}
                         </span>
-                        <span
-                          className={`font-mono text-xs text-right ${
-                            row.highlight
-                              ? "font-bold text-emerald-400"
-                              : "text-slate-300"
-                          }`}
-                        >
+                        <span className={`font-mono text-right ${row.highlight ? "font-bold text-emerald-400 print:text-slate-800" : "text-slate-300 print:text-slate-700"}`}>
                           {row.value}
                         </span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Certificate Footer */}
-                  <div className="border-t border-slate-700/50 px-8 py-4 flex items-center justify-between bg-slate-950/40">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-3.5 w-3.5 text-emerald-400/60" />
-                      <span className="font-mono text-[9px] text-emerald-400/60 uppercase tracking-wider">
+                  <div className="border-t border-slate-700/50 px-6 py-2.5 flex items-center justify-between bg-slate-950/40 print:bg-slate-50 print:border-slate-300">
+                    <div className="flex items-center gap-1.5">
+                      <Shield className="h-3 w-3 text-emerald-400/60 print:text-slate-500" />
+                      <span className="font-mono text-[9px] text-emerald-400/60 uppercase tracking-wider print:text-slate-500">
                         Cryptographically Verified
                       </span>
                     </div>
-                    <span className="font-mono text-[9px] text-slate-600 uppercase tracking-wider">
-                      Retained for 5 years per BSA § 1010.410
+                    <span className="font-mono text-[9px] text-slate-600 uppercase tracking-wider print:text-slate-500">
+                      Retained 5 years per BSA § 1010.410
                     </span>
                   </div>
                 </div>
 
-                {/* Return Button */}
-                <Link
-                  href="/dashboard"
-                  className="mt-6 flex items-center gap-2 px-6 py-2.5 rounded-lg border border-slate-700 bg-slate-800/50 font-mono text-xs font-bold text-slate-300 uppercase tracking-wider hover:bg-slate-800 hover:text-white transition-colors"
-                >
-                  Return to Command Center
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
+                {/* Action buttons — hidden when printing */}
+                <div className="flex items-center gap-3 mt-4 print:hidden">
+                  <button
+                    onClick={handlePrintCertificate}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 font-mono text-xs font-bold text-emerald-400 uppercase tracking-wider hover:bg-emerald-500/20 transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Print / Save PDF
+                  </button>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-700 bg-slate-800/50 font-mono text-xs font-bold text-slate-300 uppercase tracking-wider hover:bg-slate-800 hover:text-white transition-colors"
+                  >
+                    Return to Command Center
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               </div>
             )}
           </div>
