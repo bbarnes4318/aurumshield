@@ -7,9 +7,8 @@
    This page captures the mine-level origin data and Chain of
    Custody documentation. On submission, navigates to inventory.
 
-   NOTE: Producers land on /producer (SCADA terminal) by default.
-   This page is accessed via sidebar when a producer needs to
-   submit or update their origin credentials.
+   ZERO-SCROLL: absolute inset-0 layout — everything fits in one
+   viewport with no scrollbars. Compressed header + grid form.
    ================================================================ */
 
 import { useState } from "react";
@@ -18,7 +17,6 @@ import { MapPin } from "lucide-react";
 import LbmaVerificationPanel, {
   type LbmaAccreditationData,
 } from "@/components/compliance/LbmaVerificationPanel";
-import ProducerTelemetryFooter from "@/components/producer/ProducerTelemetryFooter";
 
 export default function ProducerAccreditationPage() {
   const router = useRouter();
@@ -42,41 +40,46 @@ export default function ProducerAccreditationPage() {
   };
 
   return (
-    <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
-      <div className="flex-1 min-h-0 flex flex-col max-w-4xl w-full mx-auto px-6 py-3">
-        {/* ── Header ── */}
-        <div className="mb-2 shrink-0">
-          <div className="flex items-center gap-3 mb-3">
-            <MapPin className="h-4 w-4 text-gold-primary" />
-            <span className="font-mono text-gold-primary text-xs tracking-[0.3em] uppercase">
-              Producer Origin Dossier
-            </span>
+    <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950">
+      {/* ── Compact Header ── */}
+      <div className="shrink-0 border-b border-slate-800 px-5 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gold-primary/10">
+              <MapPin className="h-3.5 w-3.5 text-gold-primary" />
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold text-white tracking-tight">
+                Mine Origin &amp; Chain of Custody
+              </h1>
+              <p className="text-[9px] text-slate-500 font-mono tracking-wider uppercase">
+                Producer Origin Dossier · Provenance Verification · OECD Compliance
+              </p>
+            </div>
           </div>
-
-          <h1 className="text-2xl font-bold tracking-tight text-white mb-2">
-            Mine Origin & Chain of Custody
-          </h1>
-
-          <p className="font-mono text-slate-500 text-sm leading-relaxed max-w-2xl">
-            Submit your mine identification, origin country, and Chain of
-            Custody documentation. All Doré intake is verified for provenance
-            and OECD conflict-mineral compliance before transport dispatch.
-          </p>
         </div>
+      </div>
 
-        {/* ── Origin Dossier Form (reusable component) ── */}
+      {/* ── Form fills remaining viewport ── */}
+      <div className="flex-1 min-h-0 flex flex-col px-5 py-3">
         <LbmaVerificationPanel
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
         />
-
-        <p className="mt-4 text-center font-mono text-[10px] text-slate-700 tracking-wider shrink-0">
-          AurumShield Clearing · Origin Provenance Engine · Producer Perimeter
-          Enforcement
-        </p>
       </div>
 
-      <ProducerTelemetryFooter />
+      {/* ── Footer ── */}
+      <div className="shrink-0 border-t border-slate-800 bg-black/60 px-5 py-1.5 flex items-center justify-between">
+        <p className="font-mono text-[8px] text-slate-700 tracking-wider uppercase">
+          AurumShield Clearing · Origin Provenance Engine · Producer Perimeter Enforcement
+        </p>
+        <div className="flex items-center gap-1.5">
+          <span className="bg-emerald-500 animate-pulse w-1.5 h-1.5 rounded-full shrink-0" />
+          <span className="font-mono text-[8px] text-slate-600 tracking-wider uppercase">
+            DORÉ INTAKE: ONLINE
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

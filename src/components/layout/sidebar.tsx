@@ -288,7 +288,7 @@ function GoldwireNavLink({
           alt="Goldwire"
           className={cn(
             "w-auto shrink-0",
-            collapsed ? "h-4" : "h-4"
+            collapsed ? "h-12" : "h-12"
           )}
           style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
         />

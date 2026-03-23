@@ -15,7 +15,7 @@ export function GoldwireBrandLogo({ className = "" }: { className?: string }) {
       <img
         src="/goldwire-logo.svg"
         alt="Goldwire"
-        className="h-10 md:h-11 lg:h-12 w-auto"
+        className="h-30 md:h-33 lg:h-36 w-auto"
       />
     </div>
   );

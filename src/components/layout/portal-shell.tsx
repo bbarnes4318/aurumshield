@@ -73,7 +73,7 @@ function GoldwireNavLink({ href, pathname }: { href: string; pathname: string })
       <img
         src="/goldwire-logo.svg"
         alt="Goldwire"
-        className="h-4 w-auto shrink-0"
+        className="h-12 w-auto shrink-0"
         style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
       />
     </Link>

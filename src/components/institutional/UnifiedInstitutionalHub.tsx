@@ -16,7 +16,6 @@ import {
   Radio,
   Landmark,
   ArrowRight,
-  Building2,
   Fingerprint,
   ExternalLink,
 } from "lucide-react";
@@ -104,7 +103,8 @@ export function UnifiedInstitutionalHub() {
 
   // Cleanup timers on unmount
   useEffect(() => {
-    return () => timersRef.current.forEach(clearTimeout);
+    const timers = timersRef.current;
+    return () => timers.forEach(clearTimeout);
   }, []);
 
   // ── Compliance Run ──
@@ -650,8 +650,8 @@ export function UnifiedInstitutionalHub() {
                 <Image
                   src="/goldwire-logo.svg"
                   alt="Goldwire"
-                  width={16}
-                  height={16}
+                  width={48}
+                  height={48}
                   className="opacity-90 transition-opacity group-hover:opacity-100"
                 />
                 <span>Launch Goldwire Liquidity Network</span>
