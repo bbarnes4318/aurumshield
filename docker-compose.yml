@@ -1,0 +1,32 @@
+# ================================================================
+# AurumShield — Local Development Compose
+# ================================================================
+# Runs the Next.js app alongside the air-gapped Yente (OpenSanctions)
+# AML/PEP screening engine. No counterparty data leaves this network.
+#
+# Usage:  docker compose up --build
+#
+# NOTE TO OPERATOR:
+#   In production (AWS ECS Fargate), yente runs as a sidecar container
+#   in the same Task Definition. You must add the yente container to
+#   taskdef-current.json with port 8000 exposed internally.
+# ================================================================
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    depends_on:
+      - yente
+
+  yente:
+    image: ghcr.io/opensanctions/yente:latest
+    ports:
+      - "8000:8000"
+    environment:
+      # We trigger syncs manually via the /api/cron/sync-sanctions webhook.
+      # Setting YENTE_SYNC_EVERY=0 disables the built-in periodic sync.
+      - YENTE_SYNC_EVERY=0

@@ -5,6 +5,11 @@
    ================================================================
    Strictly-typed, broker_id-isolated CRUD operations for the
    broker_crm_entities table (Mini-CRM / Book of Business).
+   
+   AML PERIMETER (027):
+     createBrokerClient now screens every entity against the
+     air-gapped OpenSanctions/Yente engine BEFORE inserting.
+     Fail-closed: if screening is unavailable, the insert is blocked.
 
    Security:
      - Every query scopes by broker_id to prevent IDOR
@@ -18,6 +23,8 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { screenCounterpartyEntity } from "@/actions/compliance-screening-actions";
+import { emitAuditEvent } from "@/lib/audit-logger";
 
 /* ── Row type returned by the database ── */
 
@@ -142,9 +149,15 @@ export async function getBrokerClientById(
 /* ================================================================
    3. CREATE BROKER CLIENT
    ================================================================
-   Validates payload via Zod, inserts a new CRM entity, and
-   revalidates the roster page so the new entity appears
-   instantly without a full page reload.
+   AML PERIMETER ENFORCEMENT:
+     Before any database write, the entity is screened against the
+     air-gapped OpenSanctions/Yente engine.
+
+     - REJECTED → audit log + abort + COMPLIANCE_REJECTED error
+     - Network error → abort + COMPLIANCE_OFFLINE error
+     - CLEARED → proceed with INSERT
+
+   INVARIANT: This function NEVER inserts an unscreened entity.
    ================================================================ */
 
 export async function createBrokerClient(
@@ -162,7 +175,95 @@ export async function createBrokerClient(
 
   const payload = parsed.data;
 
-  // ── 2. Insert ──
+  // ── 2. AML/PEP Screening ── FAIL-CLOSED ──
+  try {
+    const screening = await screenCounterpartyEntity(
+      payload.legalName,
+      payload.jurisdiction,
+    );
+
+    if (screening.status === "REJECTED") {
+      // Log the rejection to the audit table
+      const { getPoolClient: getAuditClient } = await import("@/lib/db");
+      const auditClient = await getAuditClient();
+      try {
+        await auditClient.query(
+          `INSERT INTO aml_screening_audit
+             (entity_name, jurisdiction, screening_result, match_score, match_id, reason, screened_by, source_action)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            payload.legalName,
+            payload.jurisdiction ?? null,
+            "REJECTED",
+            screening.matchScore,
+            screening.matchId,
+            screening.reason,
+            payload.brokerId,
+            "CREATE_BROKER_CLIENT",
+          ],
+        );
+      } finally {
+        auditClient.release();
+      }
+
+      emitAuditEvent("AML_WATCHLIST_BLOCK", "CRITICAL", {
+        legalName: payload.legalName,
+        jurisdiction: payload.jurisdiction ?? "N/A",
+        matchId: screening.matchId,
+        matchScore: screening.matchScore,
+        matchName: screening.matchName,
+        brokerId: payload.brokerId,
+      });
+
+      return {
+        success: false,
+        error: "COMPLIANCE_LOCK: Entity flagged by global AML perimeter.",
+        code: "COMPLIANCE_REJECTED",
+      };
+    }
+
+    // Screening CLEARED — log for audit trail
+    const { getPoolClient: getAuditClient2 } = await import("@/lib/db");
+    const auditClient2 = await getAuditClient2();
+    try {
+      await auditClient2.query(
+        `INSERT INTO aml_screening_audit
+           (entity_name, jurisdiction, screening_result, match_score, match_id, reason, screened_by, source_action)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          payload.legalName,
+          payload.jurisdiction ?? null,
+          "CLEARED",
+          null,
+          null,
+          null,
+          payload.brokerId,
+          "CREATE_BROKER_CLIENT",
+        ],
+      );
+    } finally {
+      auditClient2.release();
+    }
+  } catch (err) {
+    // FAIL-CLOSED: If screening is offline, block the insert entirely
+    const message = err instanceof Error ? err.message : "Unknown screening error";
+    console.error("[BrokerCRM] AML screening failed:", message);
+
+    emitAuditEvent("AML_SCREENING_OFFLINE", "P1_ALERT", {
+      legalName: payload.legalName,
+      jurisdiction: payload.jurisdiction ?? "N/A",
+      error: message,
+      brokerId: payload.brokerId,
+    });
+
+    return {
+      success: false,
+      error: "COMPLIANCE_OFFLINE: Cannot verify entity at this time.",
+      code: "COMPLIANCE_OFFLINE",
+    };
+  }
+
+  // ── 3. Insert (only reached if screening CLEARED) ──
   const { getPoolClient } = await import("@/lib/db");
   const client = await getPoolClient();
 
@@ -187,7 +288,7 @@ export async function createBrokerClient(
       ],
     );
 
-    // ── 3. Revalidate roster page ──
+    // ── 4. Revalidate roster page ──
     revalidatePath("/broker/clients");
 
     return { success: true, data: rows[0] };
