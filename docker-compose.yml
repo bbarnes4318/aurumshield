@@ -30,3 +30,6 @@ services:
       # We trigger syncs manually via the /api/cron/sync-sanctions webhook.
       # Setting YENTE_SYNC_EVERY=0 disables the built-in periodic sync.
       - YENTE_SYNC_EVERY=0
+      # OpenSanctions API key — required for dataset downloads
+      - YENTE_API_KEY=beec5d9ce319e4523f19d6d38502f716
+
