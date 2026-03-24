@@ -111,6 +111,7 @@ const OPERATOR_OPS: NavItem[] = [
 
 /* Risk & Compliance */
 const OPERATOR_RISK: NavItem[] = [
+  { label: "Compliance Inbox",   href: "/compliance/inbox",       icon: Shield,          allowedRoles: OPERATOR_ROLES },
   { label: "Compliance & Audit",  href: "/audit",                  icon: FileCheck,       allowedRoles: OPERATOR_ROLES },
   { label: "Claims",              href: "/claims",                 icon: AlertTriangle,   allowedRoles: OPERATOR_ROLES },
   { label: "Supervisory",         href: "/supervisory",            icon: Eye,             allowedRoles: OPERATOR_ROLES },

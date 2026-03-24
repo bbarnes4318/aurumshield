@@ -1,6 +1,14 @@
 /* ================================================================
    COMPLIANCE CASE MODEL — Domain Types & PostgreSQL CRUD
    ================================================================
+   ⚠️  V1 LEGACY — This file operates on the `compliance_cases` table
+   (raw SQL, user-facing onboarding flow). The V3 Compliance OS uses
+   `co_cases` via Drizzle ORM (see: src/db/schema/compliance.ts).
+
+   This file should be deprecated when V3 subject onboarding UI is
+   built. Until then, it coexists with V3 for the Veriff/iDenfy
+   buyer verification flow.
+
    Central data model for the unified KYC/KYB case management
    system. Each user has at most one active ComplianceCase that
    tracks their verification journey from OPEN → APPROVED.

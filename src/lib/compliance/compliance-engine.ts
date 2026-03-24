@@ -1,6 +1,16 @@
 /* ================================================================
    MODULAR COMPLIANCE FAÇADE — Multi-Vendor Routing Engine
    ================================================================
+   ⚠️  V1 LEGACY — This file uses the V1 `compliance_cases` table
+   (via models.ts) and a trade-centered authorization model
+   (`authorizeTradeExecution`). The V3 Compliance OS replaces
+   this with `settlement-authorization-service.ts` using the
+   6-gate refinery-centered pipeline.
+
+   This file should be deprecated when V3 subject onboarding is
+   complete. Until then, it powers the frontend Veriff/iDenfy
+   KYC/KYB routing flow and trade-level proof-of-funds checks.
+
    Centralized entry point for all compliance checks. Wraps existing
    enterprise adapters (Veriff, iDenfy, GLEIF, Column) into a single
    dynamic orchestration layer.
@@ -340,9 +350,12 @@ export async function evaluateCounterpartyReadiness(
 
       /* ── Step 4: AML/Sanctions sub-checks from Veriff decision ── */
       // Process decision to get AML results
-      const decision: VeriffKYBDecision = processKYBDecision({
-        sessionId: complianceCase.veriffSessionId,
-      });
+      const webhookPayload = { sessionId: complianceCase.veriffSessionId };
+      const decision: VeriffKYBDecision = processKYBDecision(
+        JSON.stringify(webhookPayload),
+        null, // signature validated at webhook ingestion, not here
+        webhookPayload,
+      );
 
       const amlCheck: VeriffCheckResult | undefined = decision.checkResults.find(
         (r) => r.checkType === "AML_SCREENING",

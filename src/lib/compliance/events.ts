@@ -1,6 +1,15 @@
 /* ================================================================
    COMPLIANCE EVENTS — Logging, Querying & Distributed Pub/Sub
    ================================================================
+   ⚠️  V1 LEGACY — This file operates on the `compliance_events`
+   table (raw SQL, user-facing SSE pub/sub). The V3 Compliance OS
+   uses `co_audit_events` via Drizzle ORM + hash-chaining
+   (see: src/lib/compliance/audit-log.ts).
+
+   This file should be deprecated when V3 real-time event
+   streaming is built. Until then, it powers the frontend
+   compliance SSE stream for buyer onboarding.
+
    Provides:
      1. appendComplianceEvent() — idempotent DB insert
      2. getEventsForCase()      — query events for timeline
@@ -99,6 +108,7 @@ const localSubscribers = new Map<string, Set<EventCallback>>();
  * on the first subscribeCaseEvents() call and kept alive with
  * automatic reconnect.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- referenced in ensureListener error/end handlers
 let listenerClient: import("pg").Client | null = null;
 let listenerReady = false;
 let listenerStarting = false;

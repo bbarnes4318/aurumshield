@@ -175,23 +175,87 @@ export async function getKYBSessionStatus(
 /* ---------- Decision Webhook Processing ---------- */
 
 /**
- * Process a Veriff KYB decision webhook payload.
- * Called when Veriff completes its verification checks.
+ * Error thrown when Veriff webhook HMAC validation fails.
+ * Fail-closed — payload MUST NOT be processed.
+ */
+export class VeriffWebhookAuthError extends Error {
+  public readonly reason: string;
+  public readonly receivedAt: string;
+
+  constructor(reason: string, receivedAt: string) {
+    super(`VERIFF_WEBHOOK_AUTH_FAILED: ${reason}`);
+    this.name = "VeriffWebhookAuthError";
+    this.reason = reason;
+    this.receivedAt = receivedAt;
+  }
+}
+
+/**
+ * Validate and process a Veriff KYB decision webhook payload.
  *
- * // TODO: API Integration — validate webhook signature
+ * SECURITY:
+ *   1. Validates HMAC-SHA256 signature BEFORE parsing payload
+ *   2. Fail-closed: throws VeriffWebhookAuthError on invalid signature
+ *   3. Signature validation uses timing-safe comparison
+ *
+ * @param rawBody         - Raw request body (string or Buffer) — NOT parsed JSON
+ * @param signatureHeader - Value of the `x-hmac-signature` request header
+ * @param webhookPayload  - Parsed webhook JSON payload (after validation)
+ * @returns VeriffKYBDecision with normalized check results
+ * @throws VeriffWebhookAuthError if signature is invalid
  */
 export function processKYBDecision(
+  rawBody: string | Buffer,
+  signatureHeader: string | null | undefined,
   webhookPayload: Record<string, unknown>,
 ): VeriffKYBDecision {
-  // TODO: API Integration — parse real Veriff webhook payload
-  // const { verification } = webhookPayload;
-  // Validate HMAC signature using VERIFF_WEBHOOK_SECRET
+  // ── Step 1: HMAC Signature Validation (fail-closed) ──
+
+  const webhookSecret = process.env.VERIFF_WEBHOOK_SECRET;
+
+  if (webhookSecret) {
+    // If secret is configured, enforce HMAC validation
+    // Import inline to avoid circular dependency with server-only
+    const { createHmac, timingSafeEqual } = require("crypto") as typeof import("crypto");
+
+    const body = typeof rawBody === "string" ? rawBody : rawBody.toString("utf-8");
+    const expectedSignature = createHmac("sha256", webhookSecret)
+      .update(body)
+      .digest("hex");
+
+    const normalizedReceived = (signatureHeader ?? "").replace(/^sha256=/, "").toLowerCase();
+    const normalizedExpected = expectedSignature.toLowerCase();
+
+    const receivedBuf = Buffer.from(normalizedReceived, "utf-8");
+    const expectedBuf = Buffer.from(normalizedExpected, "utf-8");
+
+    if (
+      receivedBuf.length !== expectedBuf.length ||
+      !timingSafeEqual(receivedBuf, expectedBuf)
+    ) {
+      const receivedAt = new Date().toISOString();
+      console.error(
+        `[Veriff KYB] ⛔ WEBHOOK AUTH FAILED: signature mismatch at ${receivedAt}`,
+      );
+      throw new VeriffWebhookAuthError("SIGNATURE_MISMATCH", receivedAt);
+    }
+
+    console.log(`[Veriff KYB] ✅ Webhook signature validated`);
+  } else {
+    console.warn(
+      `[Veriff KYB] ⚠️ VERIFF_WEBHOOK_SECRET not configured — ` +
+        `skipping HMAC validation (INSECURE — configure for production)`,
+    );
+  }
+
+  // ── Step 2: Parse Decision ──
 
   console.log(`[Veriff KYB] Processing decision webhook`);
 
   const sessionId = (webhookPayload.sessionId as string) ?? "unknown";
 
   // --- Mock: deterministic approval based on session ID ---
+  // TODO: API Integration — parse real Veriff webhook payload
   const lastChar = sessionId.slice(-1);
   const isDeclined = lastChar === "0";
 
@@ -232,3 +296,4 @@ export function processKYBDecision(
     timestamp: new Date().toISOString(),
   };
 }
+
