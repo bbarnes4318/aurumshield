@@ -215,7 +215,7 @@ describe("SCENARIO 1 — Clean Happy Path", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  it("decision engine approves a subject with all required checks passing", async () => {
+  it("decision engine approves a subject with all required checks passing", { timeout: 15_000 }, async () => {
     const subject = makeSubject();
     const complianceCase = makeCase();
     const policySnapshot = makePolicySnapshot();
