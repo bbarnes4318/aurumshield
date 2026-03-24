@@ -47,6 +47,9 @@ import { requireComplianceCapability, AuthError } from "../authz";
 describe("RSK-012: Fail-Closed Authorization Enforcement", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Silence expected authz/compliance fallback log noise
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   /* ────────────────────────────────────────────── */

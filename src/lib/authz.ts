@@ -3,8 +3,17 @@
    ================================================================
    Policy helpers for use in API routes and Server Actions.
    Each helper validates the current session and enforces role or
-   capability requirements. Falls back to mock auth when Clerk
-   is not configured.
+   capability requirements.
+
+   ⚠️  TRUST BOUNDARY:
+   - When isProductionAuth() is true, identity is sourced from
+     Clerk's auth() + currentUser(). This is the ONLY authoritative
+     path for protected settlement and compliance workflows.
+   - When isProductionAuth() is false (demo/local-dev), a mock
+     session is returned with authSource: "demo-mock". This is
+     NOT authoritative for financial execution. Server actions
+     that gate financial operations SHOULD call
+     requireProductionAuth() to enforce real Clerk identity.
 
    Institutional Role Model:
      INSTITUTION_TRADER    — Executes trades on behalf of an institution
@@ -21,9 +30,12 @@
      const session = await requireSession();
      const trader  = await requireRole("INSTITUTION_TRADER");
      const cap     = await requireComplianceCapability("LOCK_PRICE");
+     // For settlement-critical flows:
+     const session = await requireProductionAuth();
    ================================================================ */
 
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { isProductionAuth, getAuthMode, AUTH_MODE_LABELS } from "@/lib/auth-mode";
 
 /* ── Types ── */
 
@@ -107,11 +119,8 @@ const CLERK_ROLE_MAP: Record<string, UserRole> = {
   "org:treasury": "INSTITUTION_TREASURY",
 };
 
-/* ── Check if Clerk is configured ── */
-const CLERK_ENABLED =
-  typeof process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === "string" &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "YOUR_PUBLISHABLE_KEY" &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
+/* ── Check if Clerk is configured (delegates to centralized auth-mode) ── */
+const CLERK_ENABLED = isProductionAuth();
 
 /* ================================================================
    SESSION HELPERS
@@ -125,6 +134,12 @@ export interface AuthSession {
   email: string | null;
   /** LEI code from organization metadata (required for institutional roles) */
   leiCode: string | null;
+  /**
+   * Source of the identity:
+   * - "clerk" = Clerk-verified server session (authoritative)
+   * - "demo-mock" = localStorage-backed mock (NOT authoritative for protected actions)
+   */
+  authSource: "clerk" | "demo-mock";
 }
 
 /**
@@ -133,7 +148,15 @@ export interface AuthSession {
  */
 export async function requireSession(): Promise<AuthSession> {
   if (!CLERK_ENABLED) {
-    // Demo mode — return a mock session for server-side checks.
+    // ⚠️ DEMO FALLBACK — NOT authoritative for protected actions.
+    // This session is returned when Clerk is not configured (demo/local-dev).
+    // Server actions that gate financial execution SHOULD call
+    // requireProductionAuth() instead to enforce real Clerk identity.
+    console.warn(
+      `[AUTHZ] ⚠️ requireSession() returning DEMO-MOCK identity. ` +
+      `Auth mode: ${AUTH_MODE_LABELS[getAuthMode()]}. ` +
+      `This identity is NOT authoritative for settlement or compliance flows.`,
+    );
     return {
       userId: "demo-user",
       role: "INSTITUTION_TRADER",
@@ -141,6 +164,7 @@ export async function requireSession(): Promise<AuthSession> {
       orgId: null,
       email: "demo@aurumshield.io",
       leiCode: "MOCK00DEMO00LEI00001",
+      authSource: "demo-mock",
     };
   }
 
@@ -169,6 +193,7 @@ export async function requireSession(): Promise<AuthSession> {
     orgId: orgId ?? null,
     email: user?.primaryEmailAddress?.emailAddress ?? null,
     leiCode,
+    authSource: "clerk",
   };
 }
 
@@ -233,6 +258,27 @@ export async function requireBuyer(): Promise<AuthSession> {
 /** @deprecated Use requireTrader() */
 export async function requireSeller(): Promise<AuthSession> {
   return requireTrader();
+}
+
+/**
+ * Require a Clerk-verified production auth session.
+ * Throws 401 if the current session is demo-mock.
+ *
+ * Use this for settlement-critical, compliance-critical, or
+ * financial execution flows where demo/mock identity MUST NOT
+ * be accepted as authoritative.
+ */
+export async function requireProductionAuth(): Promise<AuthSession> {
+  const session = await requireSession();
+  if (session.authSource !== "clerk") {
+    throw new AuthError(
+      401,
+      `PRODUCTION_AUTH_REQUIRED: This action requires Clerk-verified authentication. ` +
+        `Current auth source: "${session.authSource}". ` +
+        `Demo/mock identities are not accepted for this operation.`,
+    );
+  }
+  return session;
 }
 
 /* ================================================================
@@ -398,7 +444,14 @@ const REVERIFICATION_MAX_AGE_MS = 5 * 60 * 1000;
  */
 export async function requireReverification(): Promise<void> {
   if (!CLERK_ENABLED) {
-    // Demo mode — skip reverification
+    // ⚠️ Demo/local-dev mode — reverification is skipped.
+    // This is acceptable because demo mode cannot execute real
+    // financial transactions. Log for visibility.
+    console.warn(
+      `[AUTHZ] ⚠️ requireReverification() SKIPPED — ` +
+      `Auth mode: ${AUTH_MODE_LABELS[getAuthMode()]}. ` +
+      `Step-up auth is only enforced in production mode.`,
+    );
     return;
   }
 

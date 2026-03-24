@@ -3,11 +3,11 @@
    GET /api/settlement-status/[id]
 
    Enables client-side polling of settlement case status after the
-   Moov webhook persists state changes. Returns the latest status,
+   Column Bank webhook persists state changes. Returns the latest status,
    activation status, and key boolean flags for the settlement UI.
 
    This route reads from the in-memory settlement store (which is
-   hydrated by the Moov webhook handler). In production, this would
+   hydrated by the banking webhook handler). In production, this would
    read directly from PostgreSQL.
    ================================================================ */
 

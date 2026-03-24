@@ -1,0 +1,29 @@
+# ================================================================
+# AurumShield — Integration Test Database
+# ================================================================
+# Ephemeral PostgreSQL 16 container for real DB-backed integration
+# tests. NO volume mount — fully destroyed on `docker compose down`.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up -d
+#   npm run test:integration
+#   docker compose -f docker-compose.test.yml down
+#
+# Port 5433 avoids collision with any local/dev Postgres on 5432.
+# ================================================================
+
+services:
+  test-db:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: aurumshield_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d aurumshield_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    # No volumes — fully ephemeral

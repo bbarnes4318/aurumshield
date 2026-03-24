@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-AurumShield is a sovereign-grade physical gold settlement platform built with institutional security controls at every layer of the stack — from TLS termination to cryptographic certificate signing, from three-tier network isolation to immutable double-entry financial ledgers. This report details every security measure implemented across authentication, infrastructure, payment processing, data protection, and compliance.
+AurumShield is an institutional physical gold settlement platform built with security controls at every layer of the stack — from TLS termination to cryptographic certificate signing, from three-tier network isolation to immutable double-entry financial ledgers. This report details every security measure implemented across authentication, infrastructure, payment processing, data protection, and compliance.
 
 The platform handles high-value physical gold transactions where a single settlement can exceed $500,000. Every architectural decision reflects this fiduciary obligation: **zero** API keys in source code, **zero** public access to databases or containers, **zero** plaintext credentials in deployment pipelines, and mathematically enforced financial integrity through balanced double-entry clearing journals.
 
@@ -93,7 +93,7 @@ graph TB
     Internet["Internet (0.0.0.0/0)"] --> ALB["Application Load Balancer<br/>Public Subnets: 10.0.1.0/24, 10.0.2.0/24"]
     ALB -->|"Port 3000 ONLY"| ECS["ECS Fargate Tasks<br/>Private Subnets: 10.0.3.0/24, 10.0.4.0/24"]
     ECS -->|"Port 5432 ONLY"| RDS["RDS PostgreSQL 15<br/>Private Subnets (no public IP)"]
-    ECS -->|"NAT Gateway"| ExternalAPIs["External APIs<br/>(Column, Modern Treasury, Turnkey, Veriff)"]
+    ECS -->|"NAT Gateway"| ExternalAPIs["External APIs<br/>(Column, Turnkey, Veriff)"]
     
     style ALB fill:#1a365d,color:#fff
     style ECS fill:#1a365d,color:#fff
@@ -153,13 +153,11 @@ The platform manages **25+ discrete secrets** across these categories:
 |---|---|
 | **Authentication** | Clerk secret key, Clerk webhook signing secret |
 | **Banking (Fedwire)** | Column API key, Column webhook secret |
-| **Banking (RTGS)** | Modern Treasury API key, Modern Treasury organization ID |
 | **MPC Wallets** | Turnkey API public key, Turnkey API private key, Turnkey organization ID |
-| **Identity Verification** | Veriff API key, Veriff API secret, Persona API key, Persona webhook secret |
+| **Identity Verification** | Veriff API key, Veriff API secret |
 | **AML/Sanctions** | OpenSanctions API key |
 | **Device Fraud** | Fingerprint.com server secret |
 | **E-Signature** | DocuSign API credentials, Dropbox Sign API key |
-| **Escrow** | Moov public key, Moov secret key, Moov webhook secret |
 | **Market Data** | Bloomberg B-PIPE credentials |
 | **Cryptographic Signing** | KMS certificate key ID (RSA_2048) |
 | **Observability** | Datadog API key |
@@ -251,12 +249,11 @@ The platform implements **four strictly scoped IAM roles**:
 
 ### 5.1 Multi-Rail Banking Architecture
 
-AurumShield implements a **dual-rail settlement architecture** with three integrated banking partners:
+AurumShield implements a **dual-rail settlement architecture** with two integrated banking partners:
 
 | Rail | Provider | Function | Security Model |
 |---|---|---|---|
 | **Fedwire (Primary)** | Column Bank | Direct Fedwire transfers, virtual FBO accounts | Bearer token auth, HMAC-SHA256 webhooks |
-| **RTGS (Secondary)** | Modern Treasury | Payment orders, internal book transfers | API key + Org ID, per-call client initialization |
 | **Digital (Bridge)** | Turnkey | MPC wallets for USDC/USDT settlement | X-Stamp cryptographic request signing (no Bearer tokens) |
 
 ### 5.2 Column Bank — Per-Settlement Virtual Accounts
@@ -285,7 +282,6 @@ Every payment operation enforces idempotency at multiple levels:
 | Layer | Mechanism |
 |---|---|
 | **Database** | `UNIQUE (idempotency_key)` constraint on `payouts` and `settlement_finality` tables |
-| **Modern Treasury** | `idempotency_key` parameter on every payment order |
 | **Column Bank** | `transfer_id`-based deduplication in webhook handler |
 | **Settlement Engine** | Per-settlement `idempotency_key` UUID on `settlement_cases` |
 | **Clearing Journals** | `idempotencyKey` check before posting — duplicate journals return existing record |
@@ -551,11 +547,12 @@ CONSTRAINT chk_amount_positive CHECK (amount_cents > 0)
 
 ### 11.2 AML / Sanctions Screening
 
-| Provider | Integration |
-|---|---|
-| **OpenSanctions** | API-based sanctions list screening |
+| Provider | Integration | Status |
+|---|---|---|
+| **OpenSanctions (Yente)** | Self-hosted API-based sanctions/PEP list screening | Live — fail-closed with `COMPLIANCE_OFFLINE` on any API error |
+| **Elliptic** | HMAC-SHA256 authenticated KYT (crypto wallet screening) | Adapter implemented, live integration pending API key provisioning |
 
-API key stored in Secrets Manager; screening results are recorded in the verification case audit trail.
+API keys stored in Secrets Manager; screening results are recorded in the compliance audit trail. Sanctions screening checks have a 180-day TTL and are proactively re-screened via weekly cron job.
 
 ### 11.3 E-Signature
 
@@ -568,7 +565,7 @@ API key stored in Secrets Manager; screening results are recorded in the verific
 
 ## 12. Database Schema Security
 
-AurumShield's PostgreSQL schema is defined across **17 versioned migrations** that enforce data integrity at the database level:
+AurumShield's PostgreSQL schema is defined across **28 versioned migrations** that enforce data integrity at the database level:
 
 | Migration | Security Controls |
 |---|---|
@@ -580,6 +577,7 @@ AurumShield's PostgreSQL schema is defined across **17 versioned migrations** th
 | `015_clerk_identity` | Clerk identity mapping with `UNIQUE (clerk_id)` |
 | `016_veriff_idempotency` | Idempotency keys for verification sessions |
 | `017_dvp_atomic_swap_states` | Atomic swap state transitions for DvP finality |
+| `018-028` | iDenfy multi-vendor, asset provenance, doré/refinery schema, logistics tracking, USDT settlement, logistics hubs, broker schema/CRM, AML training/screening audit, compliance OS foundation |
 
 ### Key Database Constraints
 
@@ -625,8 +623,7 @@ graph LR
     end
     
     subgraph "Banking Layer"
-        Column["Column Bank<br/>Fedwire + Virtual FBO"]
-        MT["Modern Treasury<br/>Fedwire/RTGS + Fee Sweep"]
+        Column["Column Bank<br/>Fedwire + Virtual FBO + Fee Sweep"]
         Turnkey["Turnkey MPC<br/>Per-Settlement HSM Wallets"]
     end
     
@@ -657,7 +654,7 @@ graph LR
 | Auto-managed database passwords | ✅ Implemented |
 | All secrets in Secrets Manager (25+) | ✅ Implemented |
 | No static AWS keys in CI/CD | ✅ OIDC Federation |
-| HMAC-SHA256 webhook signature verification | ✅ All webhook endpoints |
+| HMAC-SHA256 webhook signature verification | ✅ Clerk + Column (live), Veriff + iDenfy (graceful degradation in dev) |
 | Timing-safe signature comparison | ✅ Column webhook |
 | Parameterized SQL (zero interpolation) | ✅ All queries |
 | Zod schema validation on all inputs | ✅ Forms + webhooks |
@@ -676,4 +673,4 @@ graph LR
 
 ---
 
-*This report reflects the security architecture as implemented and verified through source code review and infrastructure-as-code audit on March 12, 2026. All controls described herein are implemented in production code and are verifiable through the Git repository and AWS Console.*
+*This report reflects the security architecture as implemented and verified through source code review and infrastructure-as-code audit on March 12, 2026, with accuracy revisions on March 23, 2026. Infrastructure controls (VPC, RDS, ALB, IAM, Secrets Manager) are implemented in production. Application-layer controls (settlement state machine, ledger immutability, RBAC, webhook verification) are implemented in production code. Several third-party provider integrations (Veriff KYB sessions, Bloomberg B-PIPE, GLEIF LEI lookups, Brink's/Malca-Amit logistics APIs) currently use mock adapters with TODO markers for live API wiring; their webhook handlers and data models are production-ready, but live provider responses are not yet flowing. All controls are verifiable through the Git repository and AWS Console.*

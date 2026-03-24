@@ -50,6 +50,51 @@ export const subjectTypeEnum = pgEnum("co_subject_type", [
   "INTERNAL_USER",
 ]);
 
+/** Subject risk tier — drives the check matrix in the decision engine. */
+export const riskTierEnum = pgEnum("co_risk_tier", [
+  "STANDARD",
+  "HIGH",
+  "ENHANCED",
+]);
+
+/** Check lifecycle status — drives completeness evaluation. */
+export const checkStatusEnum = pgEnum("co_check_status", [
+  "PENDING",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "ERROR",
+  "EXPIRED",
+]);
+
+/** Decision type — INTERIM decisions route to review, FINAL decisions close cases. */
+export const decisionTypeEnum = pgEnum("co_decision_type", [
+  "INTERIM",
+  "FINAL",
+]);
+
+/** Decision outcome — the rendered compliance verdict. */
+export const decisionOutcomeEnum = pgEnum("co_decision_outcome", [
+  "APPROVED",
+  "REJECTED",
+  "MANUAL_REVIEW",
+]);
+
+/** Chain-of-custody event verification status. */
+export const custodyVerificationStatusEnum = pgEnum("co_custody_verification_status", [
+  "PENDING",
+  "VERIFIED",
+  "FAILED",
+]);
+
+/** Payment rail for settlement authorization. */
+export const paymentRailEnum = pgEnum("co_payment_rail", [
+  "WIRE",
+  "USDC",
+  "USDT",
+  "FEDWIRE",
+  "TURNKEY_MPC",
+]);
+
 export const caseTypeEnum = pgEnum("co_case_type", [
   "ONBOARDING",
   "PERIODIC_REVIEW",
@@ -187,7 +232,7 @@ export const coSubjects = pgTable(
     userId: uuid("user_id"),
     entityId: uuid("entity_id"),
     legalName: varchar("legal_name", { length: 512 }).notNull(),
-    riskTier: varchar("risk_tier", { length: 50 }).notNull().default("STANDARD"),
+    riskTier: riskTierEnum("risk_tier").notNull().default("STANDARD"),
     status: subjectStatusEnum("status").notNull().default("ACTIVE"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -269,7 +314,7 @@ export const coChecks = pgTable(
       .references(() => coCases.id, { onDelete: "restrict" }),
     checkType: checkTypeEnum("check_type").notNull(),
     provider: varchar("provider", { length: 100 }).notNull(),
-    status: varchar("status", { length: 50 }).notNull().default("PENDING"),
+    status: checkStatusEnum("status").notNull().default("PENDING"),
     resultCode: varchar("result_code", { length: 100 }),
     normalizedVerdict: normalizedVerdictEnum("normalized_verdict"),
     rawPayloadRef: text("raw_payload_ref"),
@@ -301,8 +346,8 @@ export const coDecisions = pgTable(
     subjectId: uuid("subject_id")
       .notNull()
       .references(() => coSubjects.id, { onDelete: "restrict" }),
-    decisionType: varchar("decision_type", { length: 20 }).notNull(),
-    decision: varchar("decision", { length: 50 }).notNull(),
+    decisionType: decisionTypeEnum("decision_type").notNull(),
+    decision: decisionOutcomeEnum("decision").notNull(),
     reasonCodes: jsonb("reason_codes").notNull().default([]),
     decisionHash: text("decision_hash").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
@@ -401,7 +446,7 @@ export const coChainOfCustodyEvents = pgTable(
     partyFrom: varchar("party_from", { length: 255 }),
     partyTo: varchar("party_to", { length: 255 }),
     sealNumber: varchar("seal_number", { length: 100 }),
-    verificationStatus: varchar("verification_status", { length: 50 }).notNull().default("PENDING"),
+    verificationStatus: custodyVerificationStatusEnum("verification_status").notNull().default("PENDING"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -500,7 +545,7 @@ export const coSettlementAuthorizations = pgTable(
       .references(() => coCases.id, { onDelete: "restrict" }),
     verdict: settlementVerdictEnum("verdict").notNull(),
     payableValue: numeric("payable_value", { precision: 15, scale: 2 }).notNull(),
-    paymentRail: varchar("payment_rail", { length: 100 }).notNull(),
+    paymentRail: paymentRailEnum("payment_rail").notNull(),
     policySnapshotId: uuid("policy_snapshot_id")
       .notNull()
       .references(() => coPolicySnapshots.id, { onDelete: "restrict" }),
@@ -720,3 +765,28 @@ export type CoCaseTaskInsert = typeof coCaseTasks.$inferInsert;
 
 export type CoSettlementGate = typeof coSettlementGates.$inferSelect;
 export type CoSettlementGateInsert = typeof coSettlementGates.$inferInsert;
+
+// ─── DERIVED ENUM TYPE ALIASES ─────────────────────────────────────────────────
+// Central vocabulary types derived from pgEnum definitions.
+// Import these in services to enforce compile-time type safety.
+
+/** Subject risk tier: STANDARD, HIGH, ENHANCED */
+export type RiskTier = CoSubject["riskTier"];
+
+/** Check lifecycle status: PENDING, IN_PROGRESS, COMPLETED, ERROR, EXPIRED */
+export type CheckStatus = CoCheck["status"];
+
+/** Decision type: INTERIM, FINAL */
+export type DecisionType = CoDecision["decisionType"];
+
+/** Decision outcome: APPROVED, REJECTED, MANUAL_REVIEW */
+export type DecisionOutcome = CoDecision["decision"];
+
+/** Custody event verification: PENDING, VERIFIED, FAILED */
+export type CustodyVerificationStatus = CoChainOfCustodyEvent["verificationStatus"];
+
+/** Payment rail: WIRE, USDC, USDT, FEDWIRE, TURNKEY_MPC */
+export type PaymentRail = CoSettlementAuthorization["paymentRail"];
+
+/** Subject type: INDIVIDUAL, ENTITY, SUPPLIER, REFINERY, INTERNAL_USER */
+export type SubjectType = CoSubject["subjectType"];

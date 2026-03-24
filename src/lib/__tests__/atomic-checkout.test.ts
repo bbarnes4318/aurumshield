@@ -12,7 +12,7 @@
  * corresponding order, and concurrent requests must not double-allocate.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   executeAtomicCheckout,
   createReservation,
@@ -702,6 +702,11 @@ describe("quote oracle binding — RSK-004 invariants", () => {
    ============================================ */
 
 describe("Ledger Integrity & Replay Guard (RSK-003)", () => {
+  beforeEach(() => {
+    // Silence expected settlement-rail DB-miss console.error noise
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
   it("generateIdempotencyKey is deterministic for identical inputs", async () => {
     const { generateIdempotencyKey } = await import("../settlement-rail");
 

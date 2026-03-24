@@ -18,7 +18,7 @@ import {
 } from "@/lib/banking/column-adapter";
 import { TurnkeyService } from "@/lib/banking/turnkey-adapter";
 import { z } from "zod";
-import { requireSession } from "@/lib/authz";
+import { requireSession, requireProductionAuth } from "@/lib/authz";
 
 /* ================================================================
    ZOD SCHEMAS — Server Action Input Validation
@@ -60,8 +60,8 @@ export async function triggerSettlementPayouts(
   amount: number,
   fee: number,
 ): Promise<SettlementPayoutResult> {
-  /* ── Session Auth ── */
-  await requireSession();
+  /* ── Production Auth: Outbound payout is settlement-critical — demo-mock identity REJECTED ── */
+  await requireProductionAuth();
 
   /* ── Zod Boundary Validation ── */
   const parsed = TriggerSettlementPayoutsSchema.safeParse({ settlementId, sellerAccountId, amount, fee });

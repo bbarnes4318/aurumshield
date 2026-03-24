@@ -35,7 +35,7 @@ import {
   coSettlementAuthorizations,
   coSettlementGates,
 } from "@/db/schema/compliance";
-import type { CoSettlementGateInsert } from "@/db/schema/compliance";
+import type { CoSettlementGateInsert, PaymentRail } from "@/db/schema/compliance";
 import { getDb } from "@/db/drizzle";
 import { appendEvent } from "./audit-log";
 import { generateEvidenceHash } from "./evidence-hashing";
@@ -62,7 +62,7 @@ export interface SettlementAuthorizationResult {
   refineryLotId: string;
   buyerSubjectId: string;
   payableValue: string | null;
-  paymentRail: string;
+  paymentRail: PaymentRail | null;
   decisionHash: string;
   policySnapshotId: string | null;
   settlementAuthorizationId: string | null;
@@ -156,7 +156,7 @@ function buildFailedResult(
     refineryLotId,
     buyerSubjectId,
     payableValue: null,
-    paymentRail: "NONE",
+    paymentRail: null,
     decisionHash,
     policySnapshotId: null,
     settlementAuthorizationId: null,
@@ -186,7 +186,7 @@ function buildFailedResult(
 export async function authorizeSettlement(
   refineryLotId: string,
   buyerSubjectId: string,
-  paymentRail: string,
+  paymentRail: PaymentRail,
   userId: string,
 ): Promise<SettlementAuthorizationResult> {
   const db = await getDb();

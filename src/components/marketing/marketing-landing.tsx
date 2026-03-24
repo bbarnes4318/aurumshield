@@ -679,7 +679,7 @@ function ArchitectureSection() {
                     </h3>
                     <p className="text-base leading-relaxed text-gray-300 max-w-md">
                       Atomic DvP settlement, SHA-256 clearing certificates,
-                      dual-rail payment routing (Moov / Modern Treasury), and
+                      Column Bank settlement infrastructure, and
                       append-only audit ledger with tamper-evident hashing.
                     </p>
                   </div>

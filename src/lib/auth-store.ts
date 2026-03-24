@@ -1,6 +1,16 @@
 /* ================================================================
-   AUTH STORE — Single source of truth for session + user store
+   AUTH STORE — localStorage-backed session + user store
    ================================================================
+   ⚠️  DEMO/DEV ONLY — NOT AUTHORITATIVE FOR PROTECTED ACTIONS
+   
+   This module provides a localStorage-backed authentication store
+   for demo mode and local development when Clerk is not configured.
+   
+   CRITICAL: The identity provided by this store is NOT authoritative
+   for settlement, compliance, or financial execution flows. Server
+   actions MUST use requireSession() or requireProductionAuth() from
+   authz.ts for trusted identity verification.
+   
    - Deterministic token generation (no randomness)
    - localStorage-backed user store, initialized from fixtures
    - 12-hour session expiry
@@ -99,12 +109,13 @@ export function getCurrentUser(): User | null {
 }
 
 /**
- * Get the current User object or throw.
- * Use in UI where auth is guaranteed by <RequireAuth>.
+ * Get the current mock User object or throw.
+ * ⚠️  DEMO/DEV ONLY. This returns localStorage-backed identity.
+ * For server-authoritative identity, use requireSession() from authz.ts.
  */
-export function requireUser(): User {
+export function requireMockUser(): User {
   const user = getCurrentUser();
-  if (!user) throw new Error("AUTH_REQUIRED: No authenticated user");
+  if (!user) throw new Error("AUTH_REQUIRED: No mock user session (demo/dev only)");
   return user;
 }
 

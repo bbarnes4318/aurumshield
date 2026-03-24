@@ -78,6 +78,10 @@ function nextOrderId(orders: { id: string }[]): string {
 export async function createRetailOrder(
   input: CreateRetailOrderInput,
 ): Promise<CreateRetailOrderResult> {
+  /* ── Session Auth: Order creation requires authenticated session ── */
+  const { requireSession } = await import("@/lib/authz");
+  await requireSession();
+
   const state = loadMarketplaceState();
 
   const orderId = nextOrderId(state.orders);

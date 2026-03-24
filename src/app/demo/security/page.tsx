@@ -470,9 +470,9 @@ export default function SecurityArchitecturePage() {
                 <div className="wt-grid-3">
                   {[
                     { cat: "Authentication", items: "Clerk secret key, webhook signing" },
-                    { cat: "Banking", items: "Column API, Modern Treasury, Turnkey MPC" },
-                    { cat: "KYC/KYB", items: "Veriff, Persona, OpenSanctions" },
-                    { cat: "Escrow", items: "Moov public/secret keys" },
+                    { cat: "Banking", items: "Column API, Turnkey MPC" },
+                    { cat: "KYC/KYB", items: "Veriff, iDenfy, OpenSanctions" },
+                    { cat: "Settlement", items: "Column webhook secret, idempotency keys" },
                     { cat: "E-Signature", items: "DocuSign, Dropbox Sign" },
                     { cat: "Cryptography", items: "KMS certificate key ID (RSA-2048)" },
                   ].map((g) => (
@@ -558,10 +558,10 @@ No wildcard Resource: "*" — every secret is individually enumerated in IAM pol
                       <td>Bearer token, HMAC-SHA256 webhooks</td>
                     </tr>
                     <tr>
-                      <td style={{ fontWeight: 500, color: "var(--info)" }}>RTGS (Secondary)</td>
-                      <td>Modern Treasury</td>
-                      <td>Payment orders, book transfers</td>
-                      <td>API key + Org ID</td>
+                      <td style={{ fontWeight: 500, color: "var(--info)" }}>ACH (Secondary)</td>
+                      <td>Column Bank</td>
+                      <td>ACH transfers, book transfers</td>
+                      <td>API key + webhook HMAC</td>
                     </tr>
                     <tr>
                       <td style={{ fontWeight: 500, color: "var(--success)" }}>Digital (Bridge)</td>
@@ -715,8 +715,8 @@ No wildcard Resource: "*" — every secret is individually enumerated in IAM pol
                       <td>Biometric identity verification (KYB)</td>
                     </tr>
                     <tr>
-                      <td style={{ fontWeight: 500 }}>Persona</td>
-                      <td>Know Your Customer (KYC) questionnaire</td>
+                      <td style={{ fontWeight: 500 }}>iDenfy</td>
+                      <td>Know Your Customer (KYC) verification</td>
                     </tr>
                     <tr>
                       <td style={{ fontWeight: 500 }}>DIRO</td>

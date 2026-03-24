@@ -419,8 +419,8 @@ export default async function PlatformCapabilitiesPage() {
             <p>
               What began as a clearing engine has matured into a full-spectrum institutional
               platform: entity-level KYB verification with deterministic LEI matching via
-              the Global LEI Foundation (GLEIF), dual-rail settlement
-              through Moov and Modern Treasury, actuarial transit insurance, real-time
+              the Global LEI Foundation (GLEIF), Column Bank settlement
+              infrastructure, actuarial transit insurance, real-time
               gold pricing from a Bloomberg/Refinitiv/OANDA multi-oracle medianizer,
               hardware-key WebAuthn authentication with Enterprise SSO (SAML/OIDC),
               and document verification through AWS Textract — all governed by a
@@ -444,7 +444,7 @@ export default async function PlatformCapabilitiesPage() {
               </li>
               <li>
                 <strong>Dual-Rail Settlement</strong><br />
-                Moov for instant payouts with automatic failover to Modern Treasury wire/RTGS — both with cryptographic idempotency.
+                Column Bank for Fedwire settlement with automatic failover to ACH — both with cryptographic idempotency.
               </li>
               <li>
                 <strong>Enterprise KYB &amp; LEI Entity Resolution</strong><br />
@@ -547,7 +547,7 @@ export default async function PlatformCapabilitiesPage() {
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
                 <strong>Dual-Rail Settlement</strong>
-                <span>Moov for instant payouts and Modern Treasury for wire/RTGS execution — with automatic failover and deterministic idempotency.</span>
+                <span>Column Bank for Fedwire settlement with automatic failover to ACH — deterministic idempotency on every leg.</span>
               </div>
               <div className="plat-engine-box" style={{ borderTop: "3px solid var(--gold)" }}>
                 <strong>Sovereign Armored Logistics</strong>
@@ -620,7 +620,7 @@ export default async function PlatformCapabilitiesPage() {
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Settlement Rails</span>
-                Moov (Instant Payout) · Modern Treasury (Wire/RTGS) · Idempotency Guard · Finality Persistence
+                Column Bank (Fedwire / ACH) · Turnkey (MPC / Digital) · Idempotency Guard · Finality Persistence
               </div>
               <div className="plat-layer">
                 <span className="plat-layer-title">Identity &amp; Verification</span>
@@ -941,7 +941,7 @@ export default async function PlatformCapabilitiesPage() {
             <h3>Phase 2: Legacy Correspondent Banking (General Availability)</h3>
             <p>
               Upon MSB compliance clearance, traditional USD wire deposits will be enabled
-              via our Dual-Rail Settlement infrastructure (Moov + Modern Treasury). Legacy
+              via our Column Bank settlement infrastructure. Legacy
               banking requires a 30-45 day underwriting period before activation.
             </p>
             <div className="plat-takeaway">
@@ -1010,13 +1010,13 @@ export default async function PlatformCapabilitiesPage() {
                 <tbody>
                   <tr>
                     <td><strong>Primary</strong></td>
-                    <td>Moov Financial</td>
-                    <td>Instant payouts, ACH transfers, and fee sweeps for standard-value transactions.</td>
+                    <td>Column Bank</td>
+                    <td>Fedwire payouts, ACH transfers, and fee sweeps for all transactions.</td>
                   </tr>
                   <tr>
-                    <td><strong>Fallback</strong></td>
-                    <td>Modern Treasury</td>
-                    <td>Wire/RTGS execution for enterprise-threshold transactions (&gt;$250K) or when the primary rail is unavailable.</td>
+                    <td><strong>Digital</strong></td>
+                    <td>Turnkey MPC</td>
+                    <td>USDC/USDT bridging for stablecoin-native counterparties and digital off-ramps.</td>
                   </tr>
                 </tbody>
               </table>
@@ -1025,9 +1025,9 @@ export default async function PlatformCapabilitiesPage() {
             <h3>Rail Selection Logic</h3>
             <p>
               Rail mode is configurable via environment: <span className="plat-code">auto</span> (intelligent routing
-              based on amount thresholds), <span className="plat-code">moov_only</span>, or{" "}
-              <span className="plat-code">modern_treasury_only</span>. In auto mode, transactions exceeding
-              the enterprise threshold are routed to Modern Treasury for wire execution.
+              based on amount thresholds), <span className="plat-code">column_fedwire</span>, or{" "}
+              <span className="plat-code">column_ach</span>. In auto mode, transactions exceeding
+              the enterprise threshold are routed via Fedwire for same-day settlement.
             </p>
 
             <h3>Idempotency &amp; Finality</h3>
@@ -1035,7 +1035,7 @@ export default async function PlatformCapabilitiesPage() {
               <span className="plat-callout-title">Deterministic Idempotency Keys</span>
               Every payout generates a SHA-256 idempotency key from{" "}
               <span className="plat-code">settlement_id | payee_id | amount_cents | action_type</span>.
-              This key is passed to both Moov and Modern Treasury, persisted in the payouts
+              This key is passed to Column Bank, persisted in the payouts
               table, and checked before every execution attempt. Prior payouts with
               SUBMITTED or COMPLETED status trigger an{" "}
               <span className="plat-code">IDEMPOTENCY_CONFLICT</span> response — never re-execution.
@@ -1531,7 +1531,7 @@ export default async function PlatformCapabilitiesPage() {
                   </tr>
                   <tr>
                     <td><strong>Settlement Resilience</strong></td>
-                    <td>Dual-Rail (Moov + Modern Treasury) + Idempotency Guard</td>
+                    <td>Column Bank (Fedwire / ACH) + Turnkey (MPC) + Idempotency Guard</td>
                     <td><span className="plat-status-success">✓ No Single Point of Failure</span></td>
                   </tr>
                 </tbody>

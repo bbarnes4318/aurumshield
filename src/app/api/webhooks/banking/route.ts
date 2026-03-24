@@ -1,20 +1,25 @@
 /* ================================================================
-   MODERN TREASURY WEBHOOK INGESTION ROUTE
+   COLUMN BANK WEBHOOK INGESTION ROUTE
    POST /api/webhooks/banking
 
-   Receives webhook events from Modern Treasury, verifies the HMAC
+   Receives webhook events from Column Bank, verifies the HMAC
    signature, and triggers the settlement engine's CONFIRM_FUNDS_FINAL
    action when a payment completes.
 
+   PROVIDER HISTORY:
+     Previously received Modern Treasury webhooks.
+     Updated 2026-03-24 to reflect Column Bank as the active
+     settlement rail.
+
    Architectural rules:
    1. Never mutate state directly — load → apply → persist (via adapter)
-   2. Actor attribution: actorRole "admin", actorUserId "mt-webhook-system"
+   2. Actor attribution: actorRole "admin", actorUserId "column-webhook-system"
    3. Reject any request that fails signature validation with 401
    ================================================================ */
 
 import { NextResponse } from "next/server";
 import { z } from "zod/v4";
-import { verifyModernTreasurySignature } from "@/lib/webhook-verify";
+import { verifyBankingWebhookSignature } from "@/lib/webhook-verify";
 import { applySettlementAction } from "@/lib/settlement-engine";
 import type { SettlementState } from "@/lib/settlement-engine";
 import type { SettlementCase, LedgerEntry } from "@/lib/mock-data";
@@ -22,39 +27,39 @@ import { loadSettlementState, saveSettlementState } from "@/lib/settlement-store
 import { getDbClient } from "@/lib/db";
 import { recordSettlementFinality, updatePayoutStatus } from "@/lib/settlement-rail";
 
-/* ---------- Zod Schema: Modern Treasury Webhook Payload ---------- */
+/* ---------- Zod Schema: Column Bank Webhook Payload ---------- */
 
 /**
- * Modern Treasury sends nested payloads. We only care about:
+ * Column Bank sends nested payloads. We only care about:
  * - event type: "expected_payment.updated" | "payment_order.completed"
  * - metadata.settlementId: the AurumShield settlement ID we embedded
- *   when creating the expected payment / payment order in MT.
+ *   when creating the payment order via Column.
  * - status: for filtering only completed events
  */
-const MTWebhookMetadataSchema = z.object({
+const BankingWebhookMetadataSchema = z.object({
   settlementId: z.string().min(1, "settlementId is required in metadata"),
   idempotencyKey: z.string().optional(),
   leg: z.string().optional(),
 });
 
-const MTWebhookDataSchema = z.object({
+const BankingWebhookDataSchema = z.object({
   id: z.string(),
   status: z.string(),
   amount: z.number().optional(),
   currency: z.string().optional(),
-  metadata: MTWebhookMetadataSchema,
+  metadata: BankingWebhookMetadataSchema,
 });
 
-const MTWebhookPayloadSchema = z.object({
+const BankingWebhookPayloadSchema = z.object({
   event: z.enum(["expected_payment.updated", "payment_order.completed"]),
-  data: MTWebhookDataSchema,
+  data: BankingWebhookDataSchema,
 });
 
-type MTWebhookPayload = z.infer<typeof MTWebhookPayloadSchema>;
+type BankingWebhookPayload = z.infer<typeof BankingWebhookPayloadSchema>;
 
 /* ---------- Completed Status Sets ---------- */
 
-/** Modern Treasury statuses that indicate funds have actually landed. */
+/** Statuses that indicate funds have actually landed. */
 const COMPLETED_STATUSES: Record<string, ReadonlySet<string>> = {
   "expected_payment.updated": new Set(["reconciled"]),
   "payment_order.completed": new Set(["completed"]),
@@ -65,7 +70,7 @@ const COMPLETED_STATUSES: Record<string, ReadonlySet<string>> = {
 const WEBHOOK_ACTOR = {
   action: "CONFIRM_FUNDS_FINAL",
   actorRole: "admin",
-  actorUserId: "mt-webhook-system",
+  actorUserId: "column-webhook-system",
 } as const;
 
 /**
@@ -112,12 +117,12 @@ async function persistWebhookUpdateToDatabase(
     }
 
     console.log(
-      `[MT-WEBHOOK] Persisted settlement ${settlementId} status → ${engineResult.settlement.status} (${engineResult.ledgerEntries.length} ledger entries)`,
+      `[COLUMN-WEBHOOK] Persisted settlement ${settlementId} status → ${engineResult.settlement.status} (${engineResult.ledgerEntries.length} ledger entries)`,
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(
-      `[MT-WEBHOOK] Database persistence error for ${settlementId}:`,
+      `[COLUMN-WEBHOOK] Database persistence error for ${settlementId}:`,
       message,
     );
     // Fail-open: settlement engine state was updated in-memory already
@@ -136,17 +141,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   const signature = request.headers.get("X-Signature") ?? "";
 
   /* ── Step 2: Signature verification ── */
-  const webhookSecret = process.env.MODERN_TREASURY_WEBHOOK_KEY;
+  const webhookSecret = process.env.COLUMN_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error("[MT-WEBHOOK] MODERN_TREASURY_WEBHOOK_KEY is not configured");
+    console.error("[COLUMN-WEBHOOK] COLUMN_WEBHOOK_SECRET is not configured");
     return NextResponse.json(
       { error: "Webhook endpoint is not configured" },
       { status: 500 },
     );
   }
 
-  if (!verifyModernTreasurySignature(rawBody, signature, webhookSecret)) {
-    console.warn("[MT-WEBHOOK] Signature verification failed");
+  if (!verifyBankingWebhookSignature(rawBody, signature, webhookSecret)) {
+    console.warn("[COLUMN-WEBHOOK] Signature verification failed");
     return NextResponse.json(
       { error: "Invalid signature" },
       { status: 401 },
@@ -164,9 +169,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const validation = MTWebhookPayloadSchema.safeParse(parsed);
+  const validation = BankingWebhookPayloadSchema.safeParse(parsed);
   if (!validation.success) {
-    console.warn("[MT-WEBHOOK] Payload validation failed:", validation.error.issues);
+    console.warn("[COLUMN-WEBHOOK] Payload validation failed:", validation.error.issues);
     return NextResponse.json(
       {
         error: "Invalid webhook payload",
@@ -176,7 +181,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const payload: MTWebhookPayload = validation.data;
+  const payload: BankingWebhookPayload = validation.data;
   const { event, data } = payload;
   const { settlementId } = data.metadata;
 
@@ -185,13 +190,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!completedSet || !completedSet.has(data.status)) {
     // Legitimate event but not a completion — acknowledge without action
     console.log(
-      `[MT-WEBHOOK] Ignoring ${event} with status="${data.status}" for settlement ${settlementId}`,
+      `[COLUMN-WEBHOOK] Ignoring ${event} with status="${data.status}" for settlement ${settlementId}`,
     );
     return NextResponse.json({ received: true, action: "ignored", reason: "non-terminal status" });
   }
 
   console.log(
-    `[MT-WEBHOOK] Processing ${event} (status=${data.status}) for settlement ${settlementId}`,
+    `[COLUMN-WEBHOOK] Processing ${event} (status=${data.status}) for settlement ${settlementId}`,
   );
 
   /* ── Step 4: Load settlement state ── */
@@ -200,7 +205,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   /* ── Step 4b: Find the settlement ── */
   const settlement = currentState.settlements.find((s) => s.id === settlementId);
   if (!settlement) {
-    console.warn(`[MT-WEBHOOK] Settlement ${settlementId} not found`);
+    console.warn(`[COLUMN-WEBHOOK] Settlement ${settlementId} not found`);
     return NextResponse.json(
       { error: "Settlement not found", settlementId },
       { status: 404 },
@@ -210,7 +215,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   /* ── Step 4c: Idempotency check ── */
   if (settlement.fundsConfirmedFinal) {
     console.log(
-      `[MT-WEBHOOK] Settlement ${settlementId} already has fundsConfirmedFinal=true — idempotent skip`,
+      `[COLUMN-WEBHOOK] Settlement ${settlementId} already has fundsConfirmedFinal=true — idempotent skip`,
     );
     return NextResponse.json({
       received: true,
@@ -235,10 +240,9 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!result.ok) {
     console.error(
-      `[MT-WEBHOOK] Engine rejected CONFIRM_FUNDS_FINAL for ${settlementId}: ${result.code} — ${result.message}`,
+      `[COLUMN-WEBHOOK] Engine rejected CONFIRM_FUNDS_FINAL for ${settlementId}: ${result.code} — ${result.message}`,
     );
-    // Return 200 to MT so it doesn't retry on business-logic errors
-    // (e.g. ACTIVATION_REQUIRED, TERMINAL_STATE). These are not transient.
+    // Return 200 so the provider doesn't retry on business-logic errors
     return NextResponse.json({
       received: true,
       action: "rejected",
@@ -255,7 +259,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   saveSettlementState(result.state);
 
   /* ── Step 6c: Record settlement finality + update payout status ── */
-  const idemKey = data.metadata.idempotencyKey ?? `mt:${data.id}`;
+  const idemKey = data.metadata.idempotencyKey ?? `col:${data.id}`;
   const finalityStatus: "COMPLETED" | "FAILED" = completedSet.has(data.status)
     ? "COMPLETED"
     : "FAILED";
@@ -270,7 +274,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     leg: (data.metadata.leg as "seller_payout" | "fee_sweep") ?? "seller_payout",
     isFallback: false,
   }).catch((err) => {
-    console.error(`[MT-WEBHOOK] Failed to record settlement finality:`, err);
+    console.error(`[COLUMN-WEBHOOK] Failed to record settlement finality:`, err);
   });
 
   updatePayoutStatus({
@@ -278,11 +282,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     status: finalityStatus,
     externalId: data.id,
   }).catch((err) => {
-    console.error(`[MT-WEBHOOK] Failed to update payout status:`, err);
+    console.error(`[COLUMN-WEBHOOK] Failed to update payout status:`, err);
   });
 
   console.log(
-    `[MT-WEBHOOK] CONFIRM_FUNDS_FINAL applied successfully for settlement ${settlementId}`,
+    `[COLUMN-WEBHOOK] CONFIRM_FUNDS_FINAL applied successfully for settlement ${settlementId}`,
   );
 
   return NextResponse.json({

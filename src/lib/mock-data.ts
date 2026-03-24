@@ -3819,7 +3819,7 @@ export interface SettlementCase {
   railSubmittedAt?: string;
   /** Timestamp when rail confirmed receipt/completion */
   railConfirmedAt?: string;
-  /** External rail reference ID (Modern Treasury payment ID) */
+  /** External rail reference ID (Column Bank payment ID) */
   railReferenceId?: string;
   /** Selected funding route — determines settlement rail (Fedwire vs USDT/Turnkey MPC). */
   fundingRoute?: 'fedwire' | 'stablecoin';

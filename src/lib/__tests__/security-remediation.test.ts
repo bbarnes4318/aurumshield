@@ -142,7 +142,6 @@ describe("Task 2: Webhook Fail-Closed (Zero Dev Bypass)", () => {
 describe("Task 3: Server Action Hardening", () => {
   /* ── Files requiring requireSession ── */
   const sessionFiles = [
-    { name: "settlement-actions", key: "settlementActions" },
     { name: "banking", key: "banking" },
     { name: "notifications", key: "notifications" },
     { name: "logistics", key: "logistics_sa" },
@@ -155,6 +154,19 @@ describe("Task 3: Server Action Hardening", () => {
       const src = sources[sf.key];
       expect(src).toContain("requireSession");
       expect(src).toContain("await requireSession()");
+    });
+  }
+
+  /* ── Files requiring requireProductionAuth (stricter than requireSession) ── */
+  const productionAuthFiles = [
+    { name: "settlement-actions", key: "settlementActions" },
+  ] as const;
+
+  for (const pf of productionAuthFiles) {
+    it(`${pf.name} imports and calls requireProductionAuth`, () => {
+      const src = sources[pf.key];
+      expect(src).toContain("requireProductionAuth");
+      expect(src).toContain("await requireProductionAuth()");
     });
   }
 

@@ -95,6 +95,10 @@ type CrmResult<T = void> = CrmActionSuccess<T> | CrmActionError;
 export async function getBrokerClients(
   brokerId: string,
 ): Promise<BrokerCrmEntity[]> {
+  /* ── Role Auth: Broker CRM is role-gated ── */
+  const { requireRole } = await import("@/lib/authz");
+  await requireRole("BROKER");
+
   const { getPoolClient } = await import("@/lib/db");
   const client = await getPoolClient();
 
@@ -127,6 +131,10 @@ export async function getBrokerClientById(
   clientId: string,
   brokerId: string,
 ): Promise<BrokerCrmEntity | null> {
+  /* ── Role Auth: Broker CRM is role-gated ── */
+  const { requireRole } = await import("@/lib/authz");
+  await requireRole("BROKER");
+
   const { getPoolClient } = await import("@/lib/db");
   const client = await getPoolClient();
 
@@ -163,6 +171,10 @@ export async function getBrokerClientById(
 export async function createBrokerClient(
   rawPayload: unknown,
 ): Promise<CrmResult<BrokerCrmEntity>> {
+  /* ── Role Auth: Broker CRM is role-gated ── */
+  const { requireRole } = await import("@/lib/authz");
+  await requireRole("BROKER");
+
   // ── 1. Validate ──
   const parsed = CreateBrokerClientSchema.safeParse(rawPayload);
   if (!parsed.success) {
@@ -326,6 +338,10 @@ export async function updateBrokerClientNotes(
       code: "VALIDATION_ERROR",
     };
   }
+
+  /* ── Role Auth: Broker CRM is role-gated ── */
+  const { requireRole } = await import("@/lib/authz");
+  await requireRole("BROKER");
 
   const { getPoolClient } = await import("@/lib/db");
   const client = await getPoolClient();

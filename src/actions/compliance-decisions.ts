@@ -18,6 +18,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireProductionAuth } from "@/lib/authz";
 import {
   assignCase,
   completeTask,
@@ -47,6 +48,9 @@ export async function assignCaseAction(
   reviewerId: string,
 ): Promise<ActionResult> {
   try {
+    /* ── Production Auth: Case assignment is compliance-critical ── */
+    await requireProductionAuth();
+
     const result = await assignCase(caseId, reviewerId, reviewerId);
 
     revalidatePath(`/compliance/inbox/${caseId}`);
@@ -89,6 +93,9 @@ export async function completeTaskAction(
         errorType: "ValidationError",
       };
     }
+
+    /* ── Production Auth: Task completion is compliance-critical ── */
+    await requireProductionAuth();
 
     const result = await completeTask(taskId, userId, notes);
 
@@ -142,6 +149,9 @@ export async function submitDispositionAction(
         errorType: "ValidationError",
       };
     }
+
+    /* ── Production Auth: Final disposition is compliance-critical — demo-mock REJECTED ── */
+    await requireProductionAuth();
 
     const result = await dispositionCase(
       caseId,

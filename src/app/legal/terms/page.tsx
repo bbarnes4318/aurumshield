@@ -260,7 +260,7 @@ export default function TermsPage() {
           AurumShield shall not be held liable for any delay, settlement
           failure, or loss caused by events beyond our reasonable control,
           including but not limited to acts of God, sovereign embargoes, global
-          banking network outages (e.g., SWIFT/Moov failures), systemic internet
+          banking network outages (e.g., Fedwire/Column Bank failures), systemic internet
           failures, or acts of war.
         </li>
         <li>

@@ -312,8 +312,8 @@ export default async function TechnicalOverviewPage() {
             AurumShield&apos;s architecture is designed around three core principles:{" "}
             <strong>fail-closed security</strong> (every protected operation
             requires DB-verified compliance approval and valid LEI/role),{" "}
-            <strong>dual-rail settlement resilience</strong> (automatic failover
-            between Modern Treasury Fedwire and Moov wallet-to-wallet rails), and{" "}
+            <strong>Column Bank settlement resilience</strong> (Fedwire and ACH
+            rails with automatic failover and idempotency), and{" "}
             <strong>forensic auditability</strong> (every state transition produces
             tamper-evident, SHA-256 hashed audit events with maker-checker
             cryptographic binding via WebAuthn signatures).
@@ -626,7 +626,7 @@ export default async function TechnicalOverviewPage() {
               <p>
                 <strong>In Transit:</strong> All external traffic terminates at AWS
                 ALB with ACM-provisioned TLS certificates. Webhook payloads from
-                Modern Treasury are verified using{" "}
+                Column Bank are verified using{" "}
                 <strong>HMAC-SHA256 with timing-safe comparison</strong> (
                 <code>webhook-verify.ts</code>) to prevent timing attacks. Clearing
                 certificates signed with <strong>AWS KMS ECDSA</strong> for
@@ -730,7 +730,7 @@ export default async function TechnicalOverviewPage() {
                 <tr>
                   <td rowSpan={3}><strong>PCI-DSS</strong></td>
                   <td>Payment Routing</td>
-                  <td>Dual-rail via PCI-compliant processors (Modern Treasury, Moov) — no raw card data</td>
+                  <td>Settlement via Column Bank (Fedwire / ACH) — no raw card data</td>
                   <td><code>settlement-rail.ts</code></td>
                 </tr>
                 <tr>
@@ -821,9 +821,9 @@ export default async function TechnicalOverviewPage() {
               <div className="to-table-wrap">
                 <table className="to-table">
                   <tbody>
-                    <tr><td><strong>Primary Rail</strong></td><td>Modern Treasury v3 (Fedwire / RTGS)</td></tr>
-                    <tr><td><strong>Secondary Rail</strong></td><td>Moov (wallet-to-wallet, OAuth2)</td></tr>
-                    <tr><td><strong>Rail Selection</strong></td><td>Auto: Moov default, MT for ≥$250K</td></tr>
+                    <tr><td><strong>Primary Rail</strong></td><td>Column Bank (Fedwire / ACH)</td></tr>
+                    <tr><td><strong>Secondary Rail</strong></td><td>Turnkey MPC (USDC/USDT)</td></tr>
+                    <tr><td><strong>Rail Selection</strong></td><td>Auto: Fedwire default, ACH fallback</td></tr>
                     <tr><td><strong>Fallback</strong></td><td>Automatic with finality check</td></tr>
                     <tr><td><strong>Idempotency</strong></td><td>SHA-256: settlement_id|payee_id|amount|action</td></tr>
                     <tr><td><strong>Clearing</strong></td><td>Double-entry balanced debit/credit journals</td></tr>
@@ -882,7 +882,7 @@ export default async function TechnicalOverviewPage() {
             enforce{" "}
             <strong>payload-level cryptographic verification</strong>:
             <br /><br />
-            <strong>Modern Treasury:</strong> HMAC-SHA256 in{" "}
+            <strong>Column Bank:</strong> HMAC-SHA256 in{" "}
             <code>X-Signature</code> header, timing-safe comparison via{" "}
             <code>timingSafeEqual()</code>.
             <br />

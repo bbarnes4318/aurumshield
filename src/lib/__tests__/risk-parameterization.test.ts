@@ -96,6 +96,9 @@ describe("RSK-010: Dynamic Operational Risk Parameterization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     invalidateRiskConfigCache();
+    // Silence expected DB-fallback log noise (these paths are intentionally exercised)
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   /* ────────────────────────────────────────────── */

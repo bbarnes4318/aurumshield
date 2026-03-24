@@ -1,7 +1,7 @@
 # AURUMSHIELD — AI AGENT KNOWLEDGE BASE
 
-**Version:** 1.0
-**Last Updated:** February 27, 2026
+**Version:** 2.0
+**Last Updated:** March 2026
 **Classification:** Internal — AI Agent Operational Reference
 
 ---
@@ -9,7 +9,7 @@
 ## SECTION 1: PLATFORM IDENTITY & POSITIONING
 
 **Question: What is AurumShield?**
-Answer: AurumShield is an institutional-grade deterministic physical gold clearinghouse and settlement infrastructure. It provides a marketplace for buying and selling physical gold, backed by a robust Delivery versus Payment, or D V P, escrow system. It manages end-to-end clearing, risk management, capital controls, and physical logistics. AurumShield is not a retail consumer product. It is private clearing infrastructure reserved for qualified institutional participants, sovereign entities, and tier-1 liquidity providers.
+Answer: AurumShield is an institutional-grade deterministic physical gold clearinghouse and settlement infrastructure. It operates a refinery-centered settlement model: gold is sourced directly from mines, transported via controlled armored logistics (Brink's, Malca-Amit), sent to an accredited refinery for mandatory assay testing, and only after the refinery determines actual purity, recoverable gold weight, and payable value does the platform authorize settlement. The buyer pays exclusively for assay-confirmed payable output. AurumShield provides a marketplace for buying and selling physical gold, backed by a robust Delivery versus Payment, or D V P, escrow system with a 6-gate fail-closed settlement authorization pipeline. It manages end-to-end clearing, risk management, capital controls, and physical logistics. AurumShield is not a retail consumer product. It is private clearing infrastructure reserved for qualified institutional participants, sovereign entities, and tier-1 liquidity providers.
 
 **Question: Who is AurumShield designed for?**
 Answer: AurumShield is designed exclusively for institutional counterparties. This includes accredited commodities brokers, financial institutions, corporate treasuries, sovereign wealth funds, ultra-high-net-worth asset managers, and prime brokerages. Retail consumer participation is strictly prohibited. Individual broker-dealers may also apply through our vetting process.
@@ -37,7 +37,7 @@ Answer: Atomic Settlement is the instantaneous, simultaneous, and irrevocable ex
 Answer: Herstatt Risk, also called Settlement Risk, occurs in traditional trading when the delivery of an asset and the payment for that asset happen at different times. This creates a window where one counterparty has delivered but the other has not yet paid. AurumShield's D V P escrow architecture mathematically eliminates this risk by ensuring neither fiat capital nor physical commodity titles are released until all conditions are simultaneously and atomically satisfied.
 
 **Question: Where does your pricing data come from?**
-Answer: All marketplace pricing, trade execution, and margin calculations are powered by multi-oracle medianized pricing. We aggregate real-time data from three institutional sources: Bloomberg B-PIPE, Refinitiv, and OANDA. We also utilize fix pricing from the London Bullion Market Association, or L B M A. A 15 basis point circuit breaker automatically triggers a marketplace FREEZE if pricing feed divergence exceeds safe thresholds.
+Answer: Marketplace pricing and margin calculations use institutional pricing data sources. The platform integrates with Bloomberg B-PIPE for real-time gold pricing data, with the L B M A fix price as the benchmark reference. Note: The Bloomberg B-PIPE adapter is currently mock-backed pending live A P I provisioning. A circuit breaker automatically triggers a marketplace FREEZE if pricing feed divergence exceeds safe thresholds.
 
 **Question: What is the collateral requirement for trades?**
 Answer: Before a price lock, the buyer's firm must post 5 percent collateral from their Corporate Wallet. This fractional collateral requirement replaces legacy 100 percent pre-funding models, drastically unlocking capital efficiency and improving Return on Equity for participating trading desks. The collateral is managed through our capital engine and does not compromise the escrow's integrity.
@@ -52,7 +52,7 @@ Answer: If a wire transfer fails after the T plus 1 settlement window, the syste
 Answer: Once a trade is settled on the AurumShield clearing ledger, a Gold Clearing Certificate is issued. This certificate is cryptographically signed with S H A 256, and in production environments, additionally signed with A W S K M S E C D S A. The certificate is written to an append-only ledger and serves as definitive, tamper-evident proof of the settlement for both regulatory and audit purposes.
 
 **Question: What settlement rails does AurumShield use?**
-Answer: AurumShield operates a dual-rail settlement architecture. The primary rail is Modern Treasury, which processes payments via Fedwire, the Federal Reserve's real-time gross settlement system. The secondary rail is Moov, which handles wallet-to-wallet transfers. For transactions of 250 thousand dollars or more, Modern Treasury is automatically selected. The system includes automatic failover, so if one rail is unavailable, the other takes over seamlessly. Each payout carries a deterministic S H A 256 idempotency key to prevent duplicate transactions.
+Answer: AurumShield operates a dual-rail settlement architecture. The primary rail is Column Bank, which processes U S D payments via Fedwire, the Federal Reserve's real-time gross settlement system. The secondary rail is Turnkey, which processes U S D T stablecoin payouts via M P C E R C 20 transfers on-chain. Rail selection is determined by payout currency: U S D routes to Column Bank, U S D T routes to Turnkey. There is no automatic failover between rails. If a rail fails, the settlement halts for manual intervention to prevent duplicate payouts. Each payout carries a deterministic S H A 256 idempotency key, persisted in a dedicated payouts table with O N CONFLICT deduplication.
 
 ---
 
@@ -68,7 +68,7 @@ Answer: No. Once Atomic Settlement has been executed and recorded on the AurumSh
 Answer: A trade can be cancelled before settlement only if it has not yet reached the APPROVED_UNSETTLED state. Once an order transitions past PENDING_CHECKER_APPROVAL and is approved by the Treasury officer, the settlement process becomes automatic and cannot be interrupted.
 
 **Question: What is the Trade State Machine?**
-Answer: Every order on AurumShield transitions through a strict state machine defined in our settlement engine. The states are: DRAFT, then PENDING_COLLATERAL, then PENDING_CHECKER_APPROVAL, then APPROVED_UNSETTLED, then SETTLEMENT_PENDING, and finally SETTLED. Terminal failure states include SLASH_COLLATERAL for wire failures, REJECTED_COMPLIANCE for compliance failures, CANCELLED for pre-settlement cancellations, and FAILED for system errors. Only authorized roles can trigger each transition, and any illegal transition attempt generates a forensic alert with full actor and entity context.
+Answer: Every order on AurumShield transitions through a strict state machine defined in our settlement engine. The primary happy path is: DRAFT, then ESCROW_OPEN, then AWAITING_FUNDS, then FUNDS_HELD, then ASSET_ALLOCATED, then DVP_READY, then AUTHORIZED, then DVP_EXECUTED, then PROCESSING_RAIL, and finally SETTLED. Edge states include AMBIGUOUS_STATE for treasury reconciliation, AWAITING_FUNDS_RELEASE for delivery confirmed but funds not yet cleared, REVERSED, FAILED, and CANCELLED. The PROCESSING_RAIL state locks all manual actions, and only system webhooks from Column Bank or Turnkey can transition the settlement out of this state. Only authorized roles can trigger each transition, and any illegal transition attempt generates a forensic alert with full actor and entity context.
 
 **Question: What is a Gold Clearing Certificate?**
 Answer: A Gold Clearing Certificate is the final, immutable record of a completed settlement. It is issued by the certificate engine after confirmed delivery. Each certificate has a unique identifier in the format A S dash G C dash date dash 8 hexadecimal characters dash sequence number. The payload is serialized and signed with S H A 256. In production, it is additionally signed with A W S K M S E C D S A for non-repudiation. Each certificate includes the buyer and seller L E I numbers, asset details, fee breakdown, and which settlement rail was used.
@@ -81,7 +81,7 @@ Answer: A Gold Clearing Certificate is the final, immutable record of a complete
 Answer: Onboarding is strictly institutional. Counterparties must complete rigorous identity verification, including submitting certified articles of incorporation, active Legal Entity Identifiers, certificates of good standing, operating agreements, and complete Ultimate Beneficial Owner disclosures for any individual or entity holding a 10 percent or greater controlling interest.
 
 **Question: How does AurumShield verify identities and prevent fraud?**
-Answer: We utilize multiple enterprise partners for verification. We use Persona to conduct biometric facial liveness checks on corporate officers and Ultimate Beneficial Owners. We use Diro to perform cryptographic document forensics on uploaded bank statements, utility bills, and corporate filings to detect forged documents and verify data provenance. We use the G L E I F A P I for deterministic Legal Entity Identifier resolution. We use Fingerprint dot com for device trust fingerprinting and bot detection. We use A W S Textract for optical character recognition verification of documents.
+Answer: We utilize multiple enterprise partners for verification. We use Veriff for biometric facial liveness checks and government I D document verification for corporate officers and Ultimate Beneficial Owners. We use i Denfy for additional A M L screening with webhook-based verification results. We use Open Sanctions for sanctions and P E P screening against O F A C, U N, E U, U K, and Australian watchlists. We use the G L E I F A P I for deterministic Legal Entity Identifier resolution. We use Fingerprint dot com for device trust fingerprinting and bot detection. We use A W S Textract for optical character recognition verification of assay reports and compliance documents.
 
 **Question: What is the Compliance Gate?**
 Answer: The Compliance Gate is a mathematical prerequisite built natively into the settlement ledger. Compliance is not merely a policy layer. It is an algorithmic precondition for platform utilization. A transaction cannot be initiated, and the D V P escrow cannot be locked, unless both the buyer and the seller possess an active, verified compliance state. If either party's compliance state drops to Pending, Suspended, or Flagged at any millisecond prior to settlement, the deterministic engine automatically halts the transaction, freezes in-flight capital routing, and suspends logistics dispatch.
@@ -108,7 +108,10 @@ Answer: Yes. In the event of a severe compliance breach, suspected fraud, or leg
 Answer: In strict accordance with the Bank Secrecy Act and international financial regulations, all K Y C and A M L documentation, biometric verification logs, continuous screening results, and transactional clearing ledgers are retained securely for a minimum of seven years following the termination of a counterparty relationship, irrespective of standard data deletion requests.
 
 **Question: What authentication methods does the platform use?**
-Answer: AurumShield enforces authentication via Hardware Keys and Web Authn passkeys, as well as Enterprise Single Sign-On through S A M L and O I D C protocols, supporting providers like Okta and Microsoft Entra I D. Traditional S M S one-time passwords have been fully removed from the platform for security reasons.
+Answer: AurumShield enforces authentication via Hardware Keys and Web Authn passkeys, as well as T O T P two-factor authentication via authenticator apps. Enterprise Single Sign-On is supported through S A M L and O I D C protocols, supporting providers like Okta and Microsoft Entra I D.
+
+**Question: What is the V3 Compliance Operating System?**
+Answer: AurumShield operates a normalized Compliance Operating System, known as V3, built on a dedicated co underscore prefix database schema. This system manages compliance subjects, cases, individual checks with normalized verdicts, algorithmic decisions with cryptographic evidence hashes, and immutable policy snapshots. Every check type has a configurable time-to-live, or T T L. When a check expires, it is marked EXPIRED and treated as MISSING by the decision engine. Sanctions and P E P screenings expire after 180 days, K Y C and K Y B checks expire after 365 days, liveness checks expire after 730 days, and wallet K Y T screenings expire after just 1 day. Automated cron jobs run daily and weekly to scan for expired checks, rescreen subjects, and open periodic review cases. The V3 Compliance OS also powers the 6-gate settlement authorization pipeline, which gates every settlement through buyer approval, supplier approval, shipment integrity, refinery truth, payment readiness, and policy hash verification.
 
 ---
 
@@ -128,7 +131,7 @@ Answer: Purity and weight are verified through the mandatory Assay Report provid
 ## SECTION 6: FINANCIALS, BANKING & CAPITAL CONTROLS
 
 **Question: How does the platform handle fiat capital and wire transfers?**
-Answer: AurumShield integrates with enterprise banking adapters. Our primary banking partner is Moov for wallet-to-wallet transfers and standard capital operations. For high-value settlements of 250 thousand dollars or more, we use Modern Treasury which routes through Fedwire, the Federal Reserve's real-time gross settlement system. The system automatically selects the optimal rail and includes automatic failover between the two.
+Answer: AurumShield integrates with enterprise banking adapters. Our primary fiat banking partner is Column Bank, which processes U S D payments via Fedwire, the Federal Reserve's real-time gross settlement system. For stablecoin payouts, we use Turnkey, which processes U S D T via M P C E R C 20 transfers. Rail selection is deterministic based on payout currency. The system does not include automatic failover between rails. Each payout carries a cryptographic idempotency key and is recorded before execution to prevent duplicate transfers.
 
 **Question: What are intraday capital controls?**
 Answer: The platform dynamically calculates real-time Value at Risk and Tail Value at Risk for all active counterparties. AurumShield enforces five escalating control modes based on risk exposure: NORMAL, then THROTTLE_RESERVATIONS, then FREEZE_CONVERSIONS, then FREEZE_MARKETPLACE, and finally EMERGENCY_HALT. If an institution approaches or breaches their algorithmic risk limits, the system will automatically reject new transactions or require the posting of additional margin.
@@ -140,7 +143,7 @@ Answer: The Transaction Risk Index, or T R I, is a score computed by our policy 
 Answer: All financial values on the platform are stored as B I G I N T integers representing cents or basis points. AurumShield never uses floating-point math for financial calculations. This prevents rounding errors and ensures mathematical precision across all settlement, margin, and capital calculations.
 
 **Question: What is a Corporate Wallet?**
-Answer: A Corporate Wallet is the on-platform financial account associated with each institutional counterparty. It is used to hold capital for collateral posting, receive settlement funds, and track intraday margin states. Capital in the Corporate Wallet is managed through integration with our banking rails, Moov and Modern Treasury.
+Answer: A Corporate Wallet is the on-platform financial account associated with each institutional counterparty. It is used to hold capital for collateral posting, receive settlement funds, and track intraday margin states. Capital in the Corporate Wallet is managed through integration with our banking rails, Column Bank for U S D and Turnkey for U S D T.
 
 ---
 
@@ -178,7 +181,7 @@ Answer: To protect the clearinghouse from systemic defaults, losses are absorbed
 Answer: Under no circumstances shall AurumShield's total aggregate liability to any counterparty, whether in contract, tort, or otherwise, exceed the total recoverable limits of our active institutional reinsurance policies explicitly covering the specific failure event at the time the claim was filed. AurumShield does not accept liability for indirect, incidental, punitive, or consequential damages, including lost profits or reputational damage.
 
 **Question: What is Force Majeure in the context of AurumShield?**
-Answer: AurumShield shall not be held liable for any delay, settlement failure, or loss caused by events beyond our reasonable control. This includes acts of God, sovereign embargoes, global banking network outages such as S W I F T or Moov failures, systemic internet failures, or acts of war.
+Answer: AurumShield shall not be held liable for any delay, settlement failure, or loss caused by events beyond our reasonable control. This includes acts of God, sovereign embargoes, global banking network outages such as S W I F T or Fedwire disruptions, systemic internet failures, or acts of war.
 
 ---
 
@@ -200,7 +203,7 @@ Answer: Yes. AurumShield operates under a strict fail-closed security model. Thi
 Answer: AurumShield implements three-tier Security Group isolation on A W S. The Application Load Balancer accepts public internet traffic on ports 80 and 443. The application containers only accept traffic from the Load Balancer. The database only accepts connections from the application containers. E C S tasks run in private subnets with no public I P address, and outbound traffic routes through a N A T Gateway. The database is never publicly accessible.
 
 **Question: What is AurumShield's privacy policy regarding data sales?**
-Answer: AurumShield does not and will never sell counterparty data. We share data strictly with certified enterprise sub-processors required to operate the platform's infrastructure, including Persona for identity verification, Moov for banking, Malca-Amit and Brinks for logistics, and DocuSign for contract management.
+Answer: AurumShield does not and will never sell counterparty data. We share data strictly with certified enterprise sub-processors required to operate the platform's infrastructure, including Veriff and i Denfy for identity verification, Column Bank and Turnkey for banking, Malca-Amit and Brinks for logistics, and Dropbox Sign for contract management.
 
 **Question: Can I request deletion of my data under G D P R?**
 Answer: Because AurumShield is a heavily regulated financial platform, your Right to Erasure is explicitly superseded by our legal obligations under Anti-Money Laundering laws and the Bank Secrecy Act, as well as the technical realities of our immutable audit ledgers. Data committed to the clearing ledger cannot be structurally deleted. Deletion requests will only be honored for marketing communications or data not tied to compliance or financial execution.

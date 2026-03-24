@@ -56,7 +56,9 @@ export function emitMetric(
 ): void {
   metrics[name] += increment;
   // TODO: Forward to Datadog/CloudWatch/OTel
-  console.log(`[METRIC] ${name} = ${metrics[name]} (+${increment})`);
+  if (process.env.NODE_ENV !== "test") {
+    console.log(`[METRIC] ${name} = ${metrics[name]} (+${increment})`);
+  }
 }
 
 /* ── Distributed Event Bus — PostgreSQL LISTEN/NOTIFY ── */
@@ -187,9 +189,11 @@ async function ensureListener(): Promise<void> {
     listenerReady = true;
     listenerStarting = false;
 
-    console.log(
-      `[COMPLIANCE] PG LISTEN active on channel "${PG_CHANNEL}" (node=${NODE_ID})`,
-    );
+    if (process.env.NODE_ENV !== "test") {
+      console.log(
+        `[COMPLIANCE] PG LISTEN active on channel "${PG_CHANNEL}" (node=${NODE_ID})`,
+      );
+    }
   } catch (err) {
     listenerStarting = false;
     console.error("[COMPLIANCE] Failed to start PG listener:", err);

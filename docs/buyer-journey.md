@@ -12,7 +12,7 @@ flowchart LR
   B --> C["3 — Marketplace\nBrowsing"]
   C --> D["4 — Reservation\n& Quoting"]
   D --> E["5 — Checkout &\nBill of Sale"]
-  E --> F["6 — Settlement\nLifecycle"]
+  E --> F["6 — Settlement &\nRefinery Pipeline"]
   F --> G["7 — Payout &\nFee Sweep"]
   G --> H["8 — Logistics &\nDelivery"]
   H --> I["9 — Certificate\n& Notifications"]
@@ -59,10 +59,10 @@ Before the buyer can transact, they must pass the identity perimeter. This is a 
 | --- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Buyer navigates to `/onboarding` wizard (3-step progressive disclosure)   | Next.js page with **Zod** form validation                                                                                                                                                                                                          |
 | 2   | **Step 1 — Email & Phone Confirmation** (sync, instant)                   | [verification-engine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/verification-engine.ts) `submitStep("email_phone")`                                                                                                                  |
-| 3   | **Step 2 — Government ID Capture**                                        | **Persona** embedded flow (`withpersona.com/api/v1`) via [kyc-adapters.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/kyc-adapters.ts)                                                                                                   |
-| 4   | **Step 3 — Selfie Liveness Check**                                        | **Persona** biometric liveness via `PersonaKycProvider.verifyLiveness()`                                                                                                                                                                           |
+| 3   | **Step 2 — Government ID Capture**                                        | **Veriff** session via [kyc-adapters.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/kyc-adapters.ts) (`VeriffKycProvider.verifyIdentityDocument()`)                                                                                       |
+| 4   | **Step 3 — Selfie Liveness Check**                                        | **Veriff** biometric liveness via `VeriffKycProvider.verifyLiveness()`                                                                                                                                                                             |
 | 5   | **Step 4 — Sanctions & PEP Screening**                                    | **OpenSanctions** API via `OpenSanctionsAmlProvider` — screens against OFAC SDN, EU Consolidated, UN Security Council, HMT UK, DFAT Australia                                                                                                      |
-| 6   | Async steps transition to `PROCESSING` state                              | Webhooks via [/api/webhooks/persona/route.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/persona) and [/api/webhooks/verification/route.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/verification) |
+| 6   | Async steps transition to `PROCESSING` state                              | Webhooks via [/api/webhooks/veriff/route.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/veriff) and [/api/webhooks/idenfy/route.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/idenfy)               |
 | 7   | Provider webhook fires → `processProviderWebhook()` → `PASSED` / `FAILED` | [verification-engine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/verification-engine.ts)                                                                                                                                              |
 | 8   | Risk tier computed from step outcomes: `LOW`, `ELEVATED`, `HIGH`          | `computeRiskTier()` in verification-engine                                                                                                                                                                                                         |
 | 9   | Case status computed: `APPROVED`, `PENDING`, `REJECTED`                   | `computeCaseStatus()` → persisted to `users.kyc_status` in **PostgreSQL** (RDS)                                                                                                                                                                    |
@@ -74,15 +74,24 @@ If the buyer is an organization (`company`), additional steps are required:
 
 | #   | Additional Step                             | Tool                                 |
 | --- | ------------------------------------------- | ------------------------------------ |
-| 1   | Business Registration verification          | **Persona** business inquiry         |
-| 2   | Ultimate Beneficial Owner (UBO) Declaration | **Persona** UBO capture              |
-| 3   | Proof of Registered Address                 | **Diro** address verification        |
-| 4   | Source of Funds Declaration                 | **OpenSanctions** extended screening |
+| 1   | Business Registration verification          | **Veriff KYB** via `VeriffKybProvider`  |
+| 2   | Ultimate Beneficial Owner (UBO) Declaration | **Veriff KYB** UBO capture              |
+| 3   | Proof of Registered Address                 | **Diro** address verification (webhook) |
+| 4   | Source of Funds Declaration                 | **OpenSanctions** extended screening    |
+
+### V3 Compliance OS
+
+The V1 verification perimeter above handles frontend onboarding. The V3 Compliance OS (`co_*` tables) provides normalized compliance infrastructure:
+- **Subjects** (`co_subjects`) — entity records with risk tier, jurisdiction, and status
+- **Check Freshness** — TTL-based expiration (SANCTIONS: 180d, KYC_ID: 365d, LIVENESS: 730d, WALLET_KYT: 1d)
+- **Periodic Rescreening** — `/api/cron/stale-check-sweep` (daily) and `/api/cron/sanctions-refresh` (weekly)
+- **Settlement Authorization** — 6-gate pipeline gated by compliance status (see Phase 6)
 
 ### Key files
 
 - [verification-engine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/verification-engine.ts) — case lifecycle, step submission, webhook processing
-- [kyc-adapters.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/kyc-adapters.ts) — Persona + OpenSanctions adapter interfaces
+- [kyc-adapters.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/kyc-adapters.ts) — Veriff (KYC/KYB) + OpenSanctions (AML) adapter interfaces
+- [compliance/idenfy-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/compliance/idenfy-adapter.ts) — iDenfy AML adapter
 - [/api/user/kyc-status/route.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/user/kyc-status/route.ts) — PostgreSQL live KYC status query
 
 ---
@@ -172,43 +181,59 @@ Buyer confirms the purchase. The reservation converts to an order. A legally bin
 
 ---
 
-## Phase 6 — Settlement Lifecycle (DvP)
+## Phase 6 — Settlement & Refinery Pipeline
 
 ### What happens
 
-The order enters the settlement engine, which manages a multi-step Delivery-versus-Payment (DvP) lifecycle with role-based governance and an append-only ledger.
+The order enters the settlement engine, which manages a multi-stage Delivery-versus-Payment (DvP) lifecycle with role-based governance and an append-only ledger. In parallel, the refinery-centered pipeline validates physical gold through shipment tracking, chain-of-custody verification, and assay confirmation.
 
-### Steps
+### Settlement State Machine
 
 | #   | Action                                              | Tool / System                                                                                                                    | Authorized Role(s)        |
 | --- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | 1   | Settlement case opened from the order               | `openSettlementFromOrder()` in [settlement-engine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-engine.ts) | Automatic                 |
 | 2   | Initial status: `ESCROW_OPEN`                       | Settlement state machine                                                                                                         | —                         |
 | 3   | `CONFIRM_FUNDS_FINAL` — verify buyer funds received | `applySettlementAction()`                                                                                                        | **Admin**, **Treasury**   |
-| 4   | Status → `FUNDS_CONFIRMED`                          | Ledger entry appended                                                                                                            | —                         |
+| 4   | Status → `AWAITING_FUNDS` → `FUNDS_HELD`            | Column Bank inbound wire webhook confirms receipt                                                                                | —                         |
 | 5   | `ALLOCATE_GOLD` — allocate physical gold from vault | `applySettlementAction()`                                                                                                        | **Admin**, **Vault Ops**  |
-| 6   | Status → `GOLD_ALLOCATED`                           | Ledger entry appended                                                                                                            | —                         |
-| 7   | `VERIFY_IDENTITY` — final identity re-verification  | `applySettlementAction()`                                                                                                        | **Admin**, **Compliance** |
-| 8   | Checks buyer's verification case status             | `computeSettlementRequirements()` + `loadVerificationCase()`                                                                     | —                         |
-| 9   | Status → `IDENTITY_VERIFIED`                        | Ledger entry appended                                                                                                            | —                         |
-| 10  | `AUTHORIZE` — authorize DvP execution               | `applySettlementAction()`                                                                                                        | **Admin**, **Compliance** |
-| 11  | Status → `AUTHORIZED`                               | Ledger entry appended                                                                                                            | —                         |
-| 12  | `EXECUTE_DVP` — atomic Delivery-versus-Payment      | `applySettlementAction()`                                                                                                        | **Admin**, **Treasury**   |
-| 13  | Status → `SETTLED` 🏆                               | Final ledger entry: `DVP_EXECUTED`                                                                                               | —                         |
+| 6   | Status → `ASSET_ALLOCATED`                          | Ledger entry appended                                                                                                            | —                         |
+| 7   | `AUTHORIZE` — authorize DvP execution               | `applySettlementAction()`                                                                                                        | **Admin**, **Compliance** |
+| 8   | Status → `DVP_READY` → `AUTHORIZED`                 | Capital snapshot frozen into ledger entry                                                                                        | —                         |
+| 9   | `EXECUTE_DVP` — atomic Delivery-versus-Payment      | `applySettlementAction()`                                                                                                        | **Admin**, **Treasury**   |
+| 10  | Status → `DVP_EXECUTED` → `PROCESSING_RAIL`         | Payout triggered via settlement-rail.ts                                                                                          | —                         |
+| 11  | Rail webhook confirms → `SETTLED` 🏆                | Column Bank or Turnkey webhook confirmation                                                                                      | System                    |
 
-### Settlement Requirements (Advisory UI)
+**Edge states:** `AMBIGUOUS_STATE` (treasury reconciliation required), `AWAITING_FUNDS_RELEASE` (delivery confirmed but funds not yet cleared), `REVERSED`, `FAILED`, `CANCELLED`.
 
-`computeSettlementRequirements()` surfaces blockers/warnings for each stage:
+### 6-Gate Settlement Authorization (V3)
 
-- Missing buyer identity verification
-- Corridor-level restrictions
-- Hub-level compliance rules
-- Capital adequacy checks
+Before funds can move, the settlement must pass a fail-closed 6-gate pipeline:
+
+| Gate | Validation |
+|---|---|
+| **BUYER_APPROVAL** | Subject ACTIVE with APPROVED compliance case |
+| **SUPPLIER_APPROVAL** | Supplier ACTIVE, no sanctions exposure |
+| **SHIPMENT_INTEGRITY** | Shipment not QUARANTINED, custody events VERIFIED |
+| **REFINERY_TRUTH** | Assay COMPLETE, payable gold weight confirmed |
+| **PAYMENT_READINESS** | Source-of-funds verified, checks fresh (90-day TTL) |
+| **POLICY_HASH** | Policy snapshot captured, decision hash generated |
+
+### Refinery Pipeline
+
+| Stage | What Happens |
+|---|---|
+| Shipment | Gold moves mine → refinery via armored custody (Brink's / Malca-Amit) |
+| Chain-of-Custody | Events: PICKUP → TRANSIT_START → CUSTOMS_EXPORT → CUSTOMS_IMPORT → REFINERY_INTAKE |
+| Assay | Refinery determines actual purity (millesimal fineness), recoverable gold, payable value |
+| Physical Validation | Fineness ≥995.0‰, weight variance ≤2%, value delta check |
+| Settlement Authorization | 6-gate pipeline above — no partial authorizations |
 
 ### Key files
 
-- [settlement-engine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-engine.ts) — full DvP lifecycle
-- [settlement-store.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-store.ts) — persistence
+- [settlement-engine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-engine.ts) — full DvP lifecycle and state machine
+- [compliance/settlement-authorization-service.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/compliance/settlement-authorization-service.ts) — 6-gate pipeline
+- [compliance/physical-validation-engine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/compliance/physical-validation-engine.ts) — assay and shipment validation
+- [state-machine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/state-machine.ts) — deterministic state transitions
 
 ---
 
@@ -216,33 +241,31 @@ The order enters the settlement engine, which manages a multi-step Delivery-vers
 
 ### What happens
 
-Once `SETTLED`, the financial payout is executed via the dual-rail settlement system. The seller receives their funds and platform fees are swept to the revenue account.
+Once `DVP_EXECUTED`, the financial payout is executed via the dual-rail settlement system. The seller receives their funds and platform fees are swept to the revenue account.
 
 ### Steps
 
 | #   | Action                                                                                  | Tool / System                                                                                                                                                                                       |
 | --- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `routeSettlement()` called with payout request                                          | [settlement-rail.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-rail.ts) — dual-rail router                                                                                    |
-| 2   | **Rail selection logic:**                                                               |                                                                                                                                                                                                     |
-|     | — If `SETTLEMENT_RAIL=moov` → Moov exclusively                                          | Env var config                                                                                                                                                                                      |
-|     | — If `SETTLEMENT_RAIL=modern_treasury` → Modern Treasury exclusively                    | Env var config                                                                                                                                                                                      |
-|     | — If `auto` (default): notional ≤ $250k → **Moov**, > $250k → **Modern Treasury**       | `getEnterpriseThreshold()` = $250,000                                                                                                                                                               |
-| 3a  | **Moov path** — wallet-to-wallet transfer                                               | [moov-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/moov-adapter.ts) → `api.moov.io`                                                                                             |
-|     | — OAuth2 auth (Basic Auth → Bearer token)                                               | `getAccessToken()` with token caching                                                                                                                                                               |
-|     | — Seller payout transfer created                                                        | `POST /transfers`                                                                                                                                                                                   |
-|     | — Platform fee sweep transfer created                                                   | `POST /transfers`                                                                                                                                                                                   |
-| 3b  | **Modern Treasury path** — Fedwire / RTGS wire                                          | [banking-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/banking-adapter.ts) → `modern-treasury` SDK                                                                               |
-|     | — Seller payout payment order (wire, debit)                                             | `mt.paymentOrders.create({ type: "wire" })`                                                                                                                                                         |
-|     | — Fee sweep payment order (book, internal transfer)                                     | `mt.paymentOrders.create({ type: "book" })`                                                                                                                                                         |
-| 4   | **Fallback**: If Moov fails in `auto` mode → automatic retry on Modern Treasury         | `executeMoovWithFallback()` → `executeFallback()`                                                                                                                                                   |
-| 5   | Result returned with `railUsed`, `externalIds`, `sellerPayoutCents`, `platformFeeCents` | Structured `SettlementPayoutResult`                                                                                                                                                                 |
-| 6   | Banking webhooks received for status updates                                            | [/api/webhooks/banking](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/banking) and [/api/webhooks/moov](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/moov) |
+| 2   | **Rail selection logic (by payout currency):**                                          |                                                                                                                                                                                                     |
+|     | — `USD` → **Column Bank** (Fedwire / RTGS)                                              | [banking/column-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/banking/column-adapter.ts)                                                                                         |
+|     | — `USDT` → **Turnkey** (MPC ERC-20 transfer)                                            | [banking/turnkey-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/banking/turnkey-adapter.ts)                                                                                       |
+| 3a  | **Column path** — outbound Fedwire                                                      | `columnBankService.initiateOutboundWire()` → Fedwire via Column API                                                                                                                                 |
+|     | — Idempotency key = SHA-256(settlement_id \| payee_id \| amount_cents \| action_type)   | `generateIdempotencyKey()` — prevents duplicate payouts                                                                                                                                             |
+|     | — Payout recorded to `payouts` table before execution                                   | `recordPayoutAttempt()` — ON CONFLICT dedup                                                                                                                                                         |
+| 3b  | **Turnkey path** — MPC wallet-to-wallet USDT transfer                                   | `turnkeyService.executeOutboundPayout()` → ERC-20 on-chain                                                                                                                                          |
+| 4   | **No fallback** between rails — failure = `SettlementRailError` + halt                   | Manual intervention required                                                                                                                                                                        |
+| 5   | Settlement transitions to `PROCESSING_RAIL` — all manual actions locked                 | State machine enforces: only system webhooks can transition out                                                                                                                                      |
+| 6   | Banking webhooks received for status updates                                            | [/api/webhooks/column](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/column) and [/api/webhooks/banking](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/banking) |
+| 7   | `CONFIRM_RAIL_SETTLED` → settlement transitions to `SETTLED` 🏆                         | Finality recorded in `settlement_finality` table                                                                                                                                                     |
 
 ### Key files
 
-- [settlement-rail.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-rail.ts) — dual-rail router
-- [banking-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/banking-adapter.ts) — Modern Treasury (Fedwire)
-- [moov-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/moov-adapter.ts) — Moov (wallet-to-wallet)
+- [settlement-rail.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-rail.ts) — dual-rail router (Column + Turnkey)
+- [banking/column-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/banking/column-adapter.ts) — Column Bank (Fedwire)
+- [banking/turnkey-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/banking/turnkey-adapter.ts) — Turnkey (MPC/USDT)
+
 
 ---
 
@@ -250,34 +273,27 @@ Once `SETTLED`, the financial payout is executed via the dual-rail settlement sy
 
 ### What happens
 
-Physical gold is shipped from the vault to the buyer. The logistics carrier is automatically selected based on notional value.
+Physical gold is shipped via controlled armored logistics. The carrier is determined by notional value. All institutional shipments use sovereign-grade carriers.
 
 ### Steps
 
 | #   | Action                                                      | Tool / System                                                                                                           |
 | --- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Logistics routing** — carrier selection by notional value | [settlement-rail.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-rail.ts) → `routeLogistics()`      |
-|     | — Notional ≤ $50,000 → **EasyPost** (USPS Registered Mail)  | `LOGISTICS_THRESHOLD_CENTS = 5,000,000`                                                                                 |
-|     | — Notional > $50,000 → **Brink's** (armored courier)        | Enterprise logistics path                                                                                               |
-| 2   | **EasyPost path** — shipment created                        | [easypost-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/easypost-adapter.ts) → `api.easypost.com/v2` |
-|     | — Origin: AurumShield Vault (1 Federal Reserve Plaza, NY)   | `VAULT_ORIGIN_ADDRESS`                                                                                                  |
-|     | — Parcel dimensions computed from gold weight               | `goldParcel(weightOz)` — density 19.32 g/cm³                                                                            |
-|     | — USPS Registered Mail rate selected                        | `createShipmentQuote()` → `registeredMailRate`                                                                          |
-|     | — Rate purchased, tracking code generated                   | `purchaseRate()` → `{ trackingCode, shipmentId }`                                                                       |
-| 3   | **Tracking** — shipment events polled                       | `trackShipment(trackingCode, "USPS")` → `EasyPostTracker`                                                               |
-|     | — Events: accepted, in_transit, out_for_delivery, delivered | `EasyPostTrackingEvent[]` with city/state/zip                                                                           |
+|     | — Notional ≤ $500,000 → **Brink's** (armored courier)       | Standard institutional shipment                                                                                          |
+|     | — Notional > $500,000 → **Malca-Amit** (high-value/intl)    | High-value or international routing                                                                                      |
+| 2   | **Chain-of-custody tracking** — events logged at each handoff | Events: PICKUP → TRANSIT_START → CUSTOMS_EXPORT → CUSTOMS_IMPORT → TRANSIT_END → REFINERY_INTAKE                       |
+| 3   | **Logistics webhook** processes delivery confirmation        | [/api/webhooks/logistics/route.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/logistics/route.ts) |
+|     | — Funds confirmed → settlement transitions toward DvP        | `DVP_EXECUTED` via settlement-engine.ts                                                                                  |
+|     | — Funds NOT confirmed → `AWAITING_FUNDS_RELEASE`             | Parked state until wire clears                                                                                           |
 | 4   | Transit insurance active during shipping                    | **Insurance Engine** coverage per Phase 4 quote                                                                         |
 
-### Delivery Module
-
-| File                                                                       | Purpose                                    |
-| -------------------------------------------------------------------------- | ------------------------------------------ |
-| [delivery/](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/delivery) | Delivery orchestration and status tracking |
+> **Integration status:** Brink's and Malca-Amit logistics API adapters have defined interfaces but currently return mock responses (TODO markers). Webhook processing and chain-of-custody event logic are fully implemented.
 
 ### Key files
 
-- [easypost-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/easypost-adapter.ts) — USPS Registered Mail
-- [settlement-rail.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-rail.ts) — `routeLogistics()`
+- [settlement-rail.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-rail.ts) — `routeLogistics()` (Brink's / Malca-Amit)
+- [/api/webhooks/logistics/route.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/logistics/route.ts) — delivery confirmation processing
 - [insurance-engine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/insurance-engine.ts) — transit coverage
 
 ---
@@ -321,26 +337,30 @@ Once the settlement reaches `SETTLED` status, a deterministic Gold Clearing Cert
 
 ## Complete Tool & Integration Registry
 
-| Tool / Service      | Purpose                               | Adapter File                                                                                                | API Endpoint                  |
-| ------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| **Persona**         | KYC — ID document, liveness, UBO      | [kyc-adapters.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/kyc-adapters.ts)                     | `withpersona.com/api/v1`      |
-| **OpenSanctions**   | AML — sanctions & PEP screening       | [kyc-adapters.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/kyc-adapters.ts)                     | OpenSanctions API             |
-| **Diro**            | Address document verification         | [verification-engine.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/verification-engine.ts)       | Diro API                      |
-| **Fingerprint.com** | Device fingerprinting + bot detection | [fingerprint-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/fingerprint-adapter.ts)       | `api.fpjs.io`                 |
-| **OANDA**           | Live XAU/USD spot price               | [oanda-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/oanda-adapter.ts)                   | `api-fxpractice.oanda.com/v3` |
-| **Modern Treasury** | Fedwire / RTGS wire payouts           | [banking-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/banking-adapter.ts)               | Modern Treasury SDK           |
-| **Moov**            | Wallet-to-wallet transfers            | [moov-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/moov-adapter.ts)                     | `api.moov.io`                 |
-| **EasyPost**        | USPS Registered Mail shipping         | [easypost-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/easypost-adapter.ts)             | `api.easypost.com/v2`         |
-| **Brink's**         | Armored courier (>$50k notional)      | [settlement-rail.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-rail.ts)               | Enterprise API                |
-| **Dropbox Sign**    | Bill of Sale e-signatures             | [dropbox-sign-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/dropbox-sign-adapter.ts)     | `api.hellosign.com/v3`        |
-| **AWS Textract**    | Assay report OCR (provenance)         | [textract-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/textract-adapter.ts)             | AWS Textract API              |
-| **LBMA**            | Good Delivery List refiner validation | [lbma-service.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/lbma-service.ts)                     | LBMA data cache               |
-| **Resend**          | Email notifications                   | [communications-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/communications-adapter.ts) | Resend SDK                    |
-| **Fractel**         | SMS notifications                     | [communications-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/communications-adapter.ts) | `api.fractel.net/v1`          |
-| **PostgreSQL**      | User data, KYC status                 | [db.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/db.ts)                                         | **AWS RDS** (private subnets) |
-| **AWS ECS Fargate** | App hosting (2 tasks, rolling deploy) | Infra (Terraform)                                                                                           | `us-east-2`                   |
-| **AWS ALB**         | Load balancing + HTTPS termination    | Infra (Terraform)                                                                                           | ACM cert                      |
-| **Route 53**        | DNS → ALB routing                     | Infra (Terraform)                                                                                           | `aurumshield.vip`             |
+| Tool / Service      | Purpose                               | Adapter File                                                                                                | Status |
+| ------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------ |
+| **Veriff**          | KYC — ID document, liveness, KYB      | [kyc-adapters.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/kyc-adapters.ts)                     | Mock-backed (falls back when API key absent) |
+| **iDenfy**          | AML — identity verification + AML     | [compliance/idenfy-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/compliance/idenfy-adapter.ts) | Webhook handler implemented |
+| **OpenSanctions**   | AML — sanctions & PEP screening       | [kyc-adapters.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/kyc-adapters.ts)                     | Mock-backed (falls back when API key absent) |
+| **Elliptic**        | KYT — wallet address screening        | [compliance/elliptic-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/compliance/elliptic-adapter.ts) | Adapter implemented, pending API key |
+| **Diro**            | Address document verification         | Webhook at [/api/webhooks/diro](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/app/api/webhooks/diro)      | Webhook handler implemented |
+| **Fingerprint.com** | Device fingerprinting + bot detection | [fingerprint-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/fingerprint-adapter.ts)       | Mock-backed |
+| **OANDA**           | Live XAU/USD spot price               | Inline pricing logic                                                                                        | TODO: Dedicated adapter |
+| **Column Bank**     | USD Fedwire / RTGS wire payouts       | [banking/column-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/banking/column-adapter.ts) | Implemented (balance check mock) |
+| **Turnkey**         | USDT MPC ERC-20 payouts               | [banking/turnkey-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/banking/turnkey-adapter.ts) | Implemented |
+
+| **Brink's**         | Armored courier (≤$500k)              | [settlement-rail.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-rail.ts)               | Interface defined, mock responses |
+| **Malca-Amit**      | High-value armored courier (>$500k)   | [settlement-rail.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/settlement-rail.ts)               | Interface defined, mock responses |
+| **Dropbox Sign**    | Bill of Sale e-signatures             | [dropbox-sign-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/dropbox-sign-adapter.ts)     | Implemented |
+| **AWS Textract**    | Assay report OCR (provenance)         | [textract-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/textract-adapter.ts)             | Implemented |
+| **LBMA**            | Good Delivery List refiner validation | [lbma-service.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/lbma-service.ts)                     | Implemented |
+| **Resend**          | Email notifications                   | [communications-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/communications-adapter.ts) | Implemented |
+| **Fractel**         | SMS notifications                     | [communications-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/communications-adapter.ts) | Implemented |
+| **GLEIF**           | LEI validation                        | [compliance/gleif-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/compliance/gleif-adapter.ts) | Mock-backed |
+| **Inscribe.ai**     | Document fraud detection              | [compliance/inscribe-adapter.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/compliance/inscribe-adapter.ts) | Mock-backed |
+| **PostgreSQL**      | All persistent state                  | [db.ts](file:///c:/Users/jimbo/OneDrive/Desktop/gold/src/lib/db.ts)                                         | **AWS RDS** (private subnets) |
+| **AWS ECS Fargate** | App hosting (2 tasks, rolling deploy) | Infra (Terraform)                                                                                           | Production |
+| **AWS ALB**         | Load balancing + HTTPS termination    | Infra (Terraform)                                                                                           | Production |
 
 ---
 
@@ -348,13 +368,11 @@ Once the settlement reaches `SETTLED` status, a deterministic Gold Clearing Cert
 
 ```mermaid
 flowchart TD
-  A["Settlement Payout Request"] --> B{"SETTLEMENT_RAIL env var?"}
-  B -->|"moov"| C["Moov exclusively"]
-  B -->|"modern_treasury"| D["Modern Treasury exclusively"]
-  B -->|"auto (default)"| E{"Notional value?"}
-  E -->|"≤ $250,000"| F["Moov (wallet-to-wallet)"]
-  E -->|"> $250,000"| G["Modern Treasury (Fedwire)"]
-  F -->|"Fails"| H["Automatic fallback → Modern Treasury"]
+  A["Settlement Payout Request"] --> B{"Payout currency?"}
+  B -->|"USD"| C["Column Bank (Fedwire)"]
+  B -->|"USDT"| D["Turnkey (MPC ERC-20)"]
+  C -->|"Fails"| E["SettlementRailError — HALT"]
+  D -->|"Fails"| E
 ```
 
 ## Logistics Carrier Decision Matrix
@@ -362,6 +380,6 @@ flowchart TD
 ```mermaid
 flowchart TD
   A["Shipment Required"] --> B{"Notional value?"}
-  B -->|"≤ $50,000"| C["EasyPost — USPS Registered Mail"]
-  B -->|"> $50,000"| D["Brink's — Armored Courier"]
+  B -->|"≤ $500,000"| C["Brink's — Armored Courier"]
+  B -->|"> $500,000"| D["Malca-Amit — High-Value / International"]
 ```

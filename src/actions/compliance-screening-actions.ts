@@ -79,6 +79,10 @@ export async function screenCounterpartyEntity(
   legalName: string,
   jurisdiction?: string,
 ): Promise<ScreeningResult> {
+  /* ── Production Auth: Sanctions screening is compliance-critical — demo-mock identity REJECTED ── */
+  const { requireProductionAuth } = await import("@/lib/authz");
+  await requireProductionAuth();
+
   // ── 1. Build the Yente match payload ──
   const properties: Record<string, string[]> = {
     name: [legalName],

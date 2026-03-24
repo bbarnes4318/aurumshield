@@ -440,7 +440,7 @@ export interface CheckoutIdempotencyKeyResult {
  * Generate a UUIDv4 idempotency key for the checkout transaction.
  *
  * This key is generated once at order-creation time and propagated
- * downstream to settlement-rail.ts for Modern Treasury
+ * downstream to settlement-rail.ts for Column Bank
  * (idempotency_key param).
  *
  * The key is distinct from the settlement rail's deterministic SHA-256

@@ -155,10 +155,10 @@ Added to `V3_EVENT_TYPES` and `V3EventPayloadMap`:
 
 ## Remaining Risks
 
-1. ~~No automated cron wiring yet~~ → **CLOSED** (closure pass)
-2. **iDenfy AML sub-check parsing** — webhook handler captures AML metadata but doesn't normalize individual AML service results into separate co_checks yet
-3. ~~Settlement gate persistence is schema-only~~ → **CLOSED** (closure pass)
-4. **Veriff remains mock-backed** — HMAC validation works but session creation/status still use deterministic mock responses
+1. ~~No automated cron wiring~~ → **CLOSED** — cron routes wired at `/api/cron/stale-check-sweep` and `/api/cron/sanctions-refresh`
+2. **iDenfy AML sub-check parsing** — webhook handler captures AML metadata but does not yet normalize individual AML service results into separate `co_checks` rows
+3. ~~Settlement gate persistence is schema-only~~ → **CLOSED** — `persistGateResults()` writes per-gate rows on every authorization
+4. **Veriff remains mock-backed** — HMAC webhook validation works, but session creation/status still use deterministic mock responses (TODO: API Integration markers in `veriff-kyb-adapter.ts`)
 
 ---
 

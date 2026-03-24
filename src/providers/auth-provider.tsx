@@ -6,16 +6,21 @@
    This provider implements the Adapter Pattern:
 
    1. When Clerk is configured (valid publishable key) AND user is
-      signed in via Clerk, identity is sourced from Clerk's session
-      and organization membership. Roles map from Clerk org roles
-      to the application's UserRole type.
+      on a Clerk-protected route, identity is sourced EXCLUSIVELY
+      from Clerk's session and organization membership. Roles map
+      from Clerk org roles to the application's UserRole type.
+      ⚠️  Demo/mock identity is NEVER consulted in this path.
 
-   2. When in demo mode (NEXT_PUBLIC_DEMO_MODE=true + ?demo=true),
-      the provider falls back to localStorage-based mock auth for
-      deterministic demo scenarios and guided tours.
+   2. When on a bypass route (demo, marketing, dev) OR when Clerk
+      is not configured, the provider falls back to MockAuthProvider
+      which uses localStorage-backed mock auth for demo scenarios.
+      ⚠️  Mock identity is NOT authoritative for protected server
+      actions. Server actions independently verify via authz.ts.
 
    3. The exported useAuth() hook and AuthContextValue interface
       remain identical — all 25+ consumer components work unchanged.
+      The `authSource` field indicates whether identity is
+      Clerk-verified ("clerk") or mock ("mock").
 
    Key assumptions:
    - Clerk Organization roles map to UserRole via CLERK_ROLE_MAP
@@ -34,6 +39,7 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { useUser, useOrganization } from "@clerk/nextjs";
+import { isClerkConfigured } from "@/lib/auth-mode";
 import type { User, Org, UserRole } from "@/lib/mock-data";
 import {
   getSession,
@@ -73,11 +79,12 @@ const CLERK_ROLE_MAP: Record<string, UserRole> = {
 
 const DEFAULT_ROLE: UserRole = "buyer";
 
-/** Check if Clerk is configured with real (non-placeholder) keys */
-function isClerkConfigured(): boolean {
-  const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  return !!key && key !== "YOUR_PUBLISHABLE_KEY" && key.startsWith("pk_");
-}
+/** Check if Clerk is configured with real (non-placeholder) keys.
+ *  Delegates to centralized auth-mode.ts.
+ *  ⚠️  This is a client-side check. Server-side callers should use
+ *  isProductionAuth() from auth-mode.ts instead.
+ */
+const clerkReady = isClerkConfigured();
 
 /* ---------- Context Shape ---------- */
 
@@ -86,6 +93,13 @@ interface AuthContextValue {
   org: Org | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /**
+   * Source of the current identity:
+   * - "clerk" = Clerk-verified session (authoritative for protected actions)
+   * - "mock" = localStorage-backed demo/dev session (NOT authoritative)
+   * - "loading" = session is still resolving
+   */
+  authSource: "clerk" | "mock" | "loading";
   login: (email: string) => { success: boolean; error?: string };
   signup: (data: {
     email: string;
@@ -158,7 +172,6 @@ function ensureInit() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const clerkEnabled = isClerkConfigured();
 
   // ── Routes where Clerk hooks should NOT be called ──
   // ClerkProvider is always mounted (see clerk-wrapper.tsx), but on
@@ -183,36 +196,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
     );
 
-  if (clerkEnabled && !isBypassRoute) {
+  if (clerkReady && !isBypassRoute) {
     return <ClerkAuthAdapter>{children}</ClerkAuthAdapter>;
   }
 
   return <MockAuthProvider>{children}</MockAuthProvider>;
 }
 
-/* ---------- Clerk Auth Adapter ---------- */
+/* ---------- Clerk Auth Adapter ----------
+ * ⚠️  TRUST BOUNDARY: When this adapter is active, identity is
+ * sourced EXCLUSIVELY from Clerk. Demo/mock store is NOT consulted.
+ * This prevents localStorage-backed mock users from shadowing
+ * real Clerk sessions.
+ */
 
 function ClerkAuthAdapter({ children }: { children: ReactNode }) {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const { organization, membership } = useOrganization();
 
-  // Also initialize mock store for demo-mode fallback
-  ensureInit();
-  const mockState = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  );
-
-  // Determine if we're in demo mode (demo users bypass Clerk)
-  const isDemoSession = mockState.user !== null && !isSignedIn;
-
   // Map Clerk user → AurumShield User
   const user: User | null = useMemo(() => {
-    if (isDemoSession && mockState.user) {
-      return mockState.user;
-    }
-
     if (!isLoaded || !isSignedIn || !clerkUser) return null;
 
     // Derive role from Clerk org membership
@@ -240,16 +243,10 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
     clerkUser,
     organization,
     membership,
-    isDemoSession,
-    mockState.user,
   ]);
 
   // Map Clerk org → AurumShield Org
   const org: Org | null = useMemo(() => {
-    if (isDemoSession && mockState.org) {
-      return mockState.org;
-    }
-
     if (!organization) return null;
 
     return {
@@ -260,24 +257,21 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
       createdAt:
         organization.createdAt?.toISOString() ?? new Date().toISOString(),
     };
-  }, [organization, isDemoSession, mockState.org]);
+  }, [organization]);
 
   const isAuthenticated = !!user;
   const isLoading = !isLoaded;
+  const authSource = isLoading ? "loading" as const : "clerk" as const;
 
-  // Mock login for demo mode (even when Clerk is configured)
+  // Clerk adapter does NOT support mock login/signup.
+  // Sign-in/sign-up must go through Clerk's flows.
   const login = useCallback(
-    (email: string): { success: boolean; error?: string } => {
-      const u = findUserByEmail(email);
-      if (!u)
-        return {
-          success: false,
-          error: "No account found. Use Clerk sign-in for real accounts.",
-        };
-      createSession(u.id);
-      updateUser(u.id, { lastLoginAt: new Date().toISOString() });
-      syncFromStorage();
-      return { success: true };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (_email: string): { success: boolean; error?: string } => {
+      return {
+        success: false,
+        error: "Please use Clerk sign-in for real accounts.",
+      };
     },
     [],
   );
@@ -291,7 +285,6 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
       orgType: "individual" | "company";
       jurisdiction: string;
     }): { success: boolean; error?: string } => {
-      // When Clerk is enabled, signup should go through Clerk's SignUp flow
       return {
         success: false,
         error: "Please use the sign-up form to create an account.",
@@ -301,15 +294,12 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
-    // Clear mock session (for demo users)
-    storeLogout();
-    snapshot = { user: null, org: null };
-    emitChange();
-    // Clerk sign-out is handled by Clerk's UserButton component
+    // Clerk sign-out is handled by Clerk's UserButton component.
+    // No mock store interaction in this adapter.
   }, []);
 
   const refreshUser = useCallback(() => {
-    syncFromStorage();
+    // Clerk handles session refresh automatically.
   }, []);
 
   return (
@@ -319,6 +309,7 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
         org,
         isAuthenticated,
         isLoading,
+        authSource,
         login,
         signup,
         logout,
@@ -330,7 +321,10 @@ function ClerkAuthAdapter({ children }: { children: ReactNode }) {
   );
 }
 
-/* ---------- Mock Auth Provider (Demo / Clerk-not-configured) ---------- */
+/* ---------- Mock Auth Provider (⚠️ Demo / Clerk-not-configured) ----------
+ * Identity from this provider is NOT authoritative for protected
+ * server actions. Server actions independently verify via authz.ts.
+ */
 
 function MockAuthProvider({ children }: { children: ReactNode }) {
   ensureInit();
@@ -346,6 +340,7 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
   // We consider loading=false because synchronous localStorage read
   // happens before first render via ensureInit()
   const isLoading = typeof window === "undefined";
+  const authSource = "mock" as const;
 
   const refreshUser = useCallback(() => {
     syncFromStorage();
@@ -426,6 +421,7 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
         org,
         isAuthenticated,
         isLoading,
+        authSource,
         login,
         signup,
         logout,

@@ -43,16 +43,17 @@
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import {
   coSubjects,
   coCases,
   coChecks,
   coDecisions,
   coPolicySnapshots,
-  type CoCase,
   type CoCheck,
   type CoSubject,
+  type RiskTier,
+  type SubjectType,
 } from "@/db/schema/compliance";
 import { getDb } from "@/db/drizzle";
 import { appendEvent } from "./audit-log";
@@ -66,7 +67,7 @@ type CheckType = CoCheck["checkType"];
  * Maps (subjectType, riskTier) → required check types.
  * If a subject type is not listed here, it cannot be evaluated.
  */
-const REQUIRED_CHECKS_MATRIX: Record<string, Record<string, CheckType[]>> = {
+const REQUIRED_CHECKS_MATRIX: Record<SubjectType, Partial<Record<RiskTier, CheckType[]>>> = {
   INDIVIDUAL: {
     STANDARD: [
       "KYC_ID",
@@ -208,7 +209,7 @@ export interface DecisionResult {
   caseId: string;
   subjectId: string;
   subjectType: CoSubject["subjectType"];
-  riskTier: string;
+  riskTier: RiskTier;
   decisionId: string | null;
   decisionHash: string;
   policySnapshotId: string | null;
@@ -796,7 +797,7 @@ export async function evaluateSubjectCase(
  *   HIGH:     180 days
  *   ENHANCED: 90 days
  */
-function calculateDecisionExpiry(riskTier: string): Date {
+function calculateDecisionExpiry(riskTier: RiskTier): Date {
   const now = Date.now();
   const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -816,8 +817,8 @@ function calculateDecisionExpiry(riskTier: string): Date {
  * Useful for UI to show which checks are still needed.
  */
 export function getRequiredChecks(
-  subjectType: string,
-  riskTier: string,
+  subjectType: SubjectType,
+  riskTier: RiskTier,
 ): CheckType[] {
   const tierMatrix = REQUIRED_CHECKS_MATRIX[subjectType];
   if (!tierMatrix) return [];

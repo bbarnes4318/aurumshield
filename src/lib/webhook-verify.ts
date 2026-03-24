@@ -1,5 +1,5 @@
 /* ================================================================
-   MODERN TREASURY WEBHOOK SIGNATURE VERIFICATION
+   COLUMN BANK WEBHOOK SIGNATURE VERIFICATION
    Uses HMAC-SHA256 with timing-safe comparison.
    Zero external dependencies — Node built-in crypto only.
    ================================================================ */
@@ -7,18 +7,18 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
 /**
- * Verify a Modern Treasury webhook signature.
+ * Verify a Column Bank webhook signature.
  *
- * Modern Treasury signs the raw request body with HMAC-SHA256 using
+ * Column Bank signs the raw request body with HMAC-SHA256 using
  * the webhook secret key, and sends the hex-encoded digest in the
- * `X-Signature` header.
+ * request header.
  *
- * @param rawBody   - The raw request body string (must match exactly what MT signed)
- * @param signature - The value of the `X-Signature` header from the request
- * @param secret    - The `MODERN_TREASURY_WEBHOOK_KEY` from environment variables
+ * @param rawBody   - The raw request body string (must match exactly what was signed)
+ * @param signature - The value of the signature header from the request
+ * @param secret    - The `COLUMN_WEBHOOK_SECRET` from environment variables
  * @returns `true` if the signature is valid, `false` otherwise
  */
-export function verifyModernTreasurySignature(
+export function verifyBankingWebhookSignature(
   rawBody: string,
   signature: string,
   secret: string,

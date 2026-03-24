@@ -60,6 +60,10 @@ export async function resolveAmbiguousState(
   resolution: ResolutionAction,
   isDemo: boolean = false,
 ): Promise<ResolutionResult> {
+  /* ── Production Auth: Settlement resolution is financially final — demo-mock identity REJECTED ── */
+  const { requireProductionAuth } = await import("@/lib/authz");
+  await requireProductionAuth();
+
   /* ── Admin Auth: Only treasury operators can resolve ambiguous state ── */
   await requireAdmin();
 

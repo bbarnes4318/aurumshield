@@ -308,7 +308,9 @@ export function registerSettlementRail(
   rail: ISettlementRail,
 ): void {
   _railRegistry.set(railName, rail);
-  console.log(`[SETTLEMENT-RAIL] Registered rail: ${railName} (${rail.name})`);
+  if (process.env.NODE_ENV !== "test") {
+    console.log(`[SETTLEMENT-RAIL] Registered rail: ${railName} (${rail.name})`);
+  }
 }
 
 /* ---------- Router ---------- */

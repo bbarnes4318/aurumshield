@@ -60,6 +60,10 @@ function makeEvent(overrides?: Partial<ComplianceEvent>): ComplianceEvent {
 describe("RSK-008: Distributed Event Bus (PG LISTEN/NOTIFY)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Silence expected [METRIC] and [COMPLIANCE] PG LISTEN log noise
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
     // Reset metrics
     metrics.sse_connection_established = 0;
     metrics.sse_event_delivered_cross_node = 0;

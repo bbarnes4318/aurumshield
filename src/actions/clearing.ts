@@ -140,6 +140,10 @@ export async function manuallyClearFunds(
   freightCostUsd?: number,
   destinationZip?: string,
 ): Promise<ClearFundsResult> {
+  /* ── Production Auth: Fund clearing is settlement-critical — demo-mock identity REJECTED ── */
+  const { requireProductionAuth } = await import("@/lib/authz");
+  await requireProductionAuth();
+
   /* ── Admin Auth: Only operators can manually clear funds ── */
   await requireAdmin();
 

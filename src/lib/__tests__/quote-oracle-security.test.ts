@@ -40,6 +40,8 @@ import { createQuote, type CreateQuoteInput } from "../pricing/quote-engine";
 describe("RSK-011: Pricing Oracle & Premium Hardening", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Silence expected [B-PIPE] pricing log noise from bpipe-adapter
+    vi.spyOn(console, "debug").mockImplementation(() => {});
   });
 
   /* ────────────────────────────────────────────── */

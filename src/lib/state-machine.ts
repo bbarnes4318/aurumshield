@@ -120,10 +120,10 @@ export const TRADE_TRANSITIONS: ReadonlyMap<TradeStatus, ReadonlySet<TradeStatus
  */
 export type SettlementLifecycleStatus =
   | "PENDING_RAIL"       // Awaiting rail execution
-  | "RAIL_SUBMITTED"     // Payout submitted to Moov/MT
+  | "RAIL_SUBMITTED"     // Payout submitted to Column Bank
   | "CLEARED"            // Terminal: funds confirmed delivered
   | "FAILED_RETRY"       // Non-terminal: failed, eligible for retry
-  | "AMBIGUOUS_STATE"    // Non-terminal: Moov outcome unknown, manual review required
+  | "AMBIGUOUS_STATE"    // Non-terminal: rail outcome unknown, manual review required
   | "CANCELLED";         // Terminal: cancelled before execution
 
 /** All settlement lifecycle statuses. */

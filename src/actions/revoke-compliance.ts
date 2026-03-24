@@ -19,7 +19,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { upsertOnboardingState } from "@/lib/compliance/onboarding-state";
-import { requireSession } from "@/lib/authz";
+import { requireProductionAuth } from "@/lib/authz";
 
 /* ── Input Schema (empty — userId comes from session) ── */
 const revokeComplianceSchema = z.object({});
@@ -43,7 +43,7 @@ export async function revokeCompliance(
   /* 2. Authenticate — userId always from server session */
   let userId: string;
   try {
-    const session = await requireSession();
+    const session = await requireProductionAuth();
     userId = session.userId;
   } catch {
     return { success: false, error: "Authentication required" };

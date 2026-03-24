@@ -59,6 +59,9 @@ function mockDbRow(status: ComplianceCaseStatus) {
 describe("RSK-009: Cryptographic State Machine Confinement", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Silence expected [COMPLIANCE] Case state transition log noise
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   /* ────────────────────────────────────────────── */

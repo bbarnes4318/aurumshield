@@ -18,7 +18,7 @@
 import { createHash, randomUUID } from "crypto";
 import { getPoolClient } from "@/lib/db";
 import { z } from "zod";
-import { requireSession } from "@/lib/authz";
+import { requireProductionAuth } from "@/lib/authz";
 
 /* ================================================================
    TYPES
@@ -223,8 +223,8 @@ export async function executeAtomicSwap(
   orderId: string,
   producerId: string,
 ): Promise<AtomicSwapResult> {
-  /* ── Session Auth: Only authenticated users can trigger DvP ── */
-  await requireSession();
+  /* ── Production Auth: DvP is settlement-critical — demo-mock identity REJECTED ── */
+  await requireProductionAuth();
 
   /* ── Zod Boundary Validation ── */
   const parsed = ExecuteAtomicSwapSchema.safeParse({ orderId, producerId });

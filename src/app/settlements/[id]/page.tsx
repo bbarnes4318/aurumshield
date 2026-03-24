@@ -670,10 +670,10 @@ function SettlementDetailContent() {
                 Double-Spend Risk — Manual Reconciliation Required
               </p>
               <p className="text-xs text-text leading-relaxed">
-                This settlement&apos;s Moov payout outcome is indeterminate. A timeout or network error
-                occurred during the transfer, and the status-check poll could not confirm whether Moov
+                This settlement&apos;s payout outcome is indeterminate. A timeout or network error
+                occurred during the transfer, and the status-check poll could not confirm whether Column Bank
                 executed the payout. <span className="font-semibold text-danger">DO NOT re-execute the payout</span> until
-                a Treasury Admin has verified the transfer status in the Moov dashboard.
+                a Treasury Admin has verified the transfer status in the Column Bank dashboard.
               </p>
               <div className="flex items-center gap-3 pt-1 text-[10px] text-text-faint">
                 <span className="inline-flex items-center gap-1">

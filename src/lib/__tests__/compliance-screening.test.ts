@@ -32,6 +32,28 @@ vi.mock("@/lib/audit-logger", () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+/* ── Mock authz so requireProductionAuth doesn't throw in test ── */
+vi.mock("@/lib/authz", () => ({
+  requireProductionAuth: vi.fn().mockResolvedValue({
+    userId: "test-user",
+    role: "compliance",
+    kycStatus: "APPROVED",
+    orgId: null,
+    email: "test@aurumshield.io",
+    leiCode: "TEST00MOCK00LEI00001",
+    authSource: "clerk",
+  }),
+  requireSession: vi.fn().mockResolvedValue({
+    userId: "test-user",
+    role: "compliance",
+    kycStatus: "APPROVED",
+    orgId: null,
+    email: "test@aurumshield.io",
+    leiCode: "TEST00MOCK00LEI00001",
+    authSource: "clerk",
+  }),
+}));
+
 /* ── Import AFTER mocks ── */
 import { screenCounterpartyEntity } from "@/actions/compliance-screening-actions";
 import { emitAuditEvent } from "@/lib/audit-logger";
@@ -191,10 +213,14 @@ describe("AML/PEP Screening Engine — screenCounterpartyEntity", () => {
     });
 
     it("throws COMPLIANCE_OFFLINE on AbortController timeout", async () => {
-      // Simulate a fetch that never resolves (triggering the AbortController)
+      // Simulate a fetch that never resolves until abort fires
       mockFetch.mockImplementationOnce(
         (_url: string, init: { signal: AbortSignal }) =>
           new Promise((_resolve, reject) => {
+            if (init.signal.aborted) {
+              reject(new DOMException("The operation was aborted.", "AbortError"));
+              return;
+            }
             init.signal.addEventListener("abort", () =>
               reject(new DOMException("The operation was aborted.", "AbortError")),
             );
@@ -203,10 +229,17 @@ describe("AML/PEP Screening Engine — screenCounterpartyEntity", () => {
 
       const promise = screenCounterpartyEntity("Slow Entity");
 
-      // Advance timers past the 3000ms timeout
+      // IMPORTANT: Attach the rejection handler BEFORE advancing timers.
+      // If we advance timers first, the promise rejects during advancement,
+      // and Node flags it as PromiseRejectionHandledWarning because the
+      // .rejects.toThrow() handler isn't attached until after advanceTimersByTimeAsync returns.
+      const assertion = expect(promise).rejects.toThrow("COMPLIANCE_OFFLINE");
+
+      // Now advance timers past the 3000ms timeout to fire the AbortController.
+      // The rejection handler is already attached, so Node won't warn.
       await vi.advanceTimersByTimeAsync(3_100);
 
-      await expect(promise).rejects.toThrow("COMPLIANCE_OFFLINE");
+      await assertion;
     });
 
     it("throws COMPLIANCE_OFFLINE when Yente returns HTTP 500", async () => {

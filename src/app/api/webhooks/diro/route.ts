@@ -9,7 +9,7 @@
    1. Verify HMAC signature (DIRO_WEBHOOK_SECRET)
    2. Zod-validate the payload
    3. Extract accountName, routingNumber, accountNumber
-   4. Pass directly to registerSellerBank (Modern Treasury)
+   4. Pass directly to registerSellerBank (Column Bank)
    5. Return the counterparty_id — raw bank data is NEVER stored
 
    Architectural rules:
@@ -142,7 +142,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     `[DIRO-WEBHOOK] Processing verified bank account for seller ${sellerUserId} (verificationId=${verificationId})`,
   );
 
-  /* ── Step 4: Hand off to Modern Treasury via registerSellerBank ── */
+  /* ── Step 4: Hand off to Column Bank via registerSellerBank ── */
   // The raw routingNumber and accountNumber are passed directly to MT
   // and are NEVER stored in our database or logs.
   const result = await registerSellerBank(
@@ -153,7 +153,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!result.success) {
     console.error(
-      `[DIRO-WEBHOOK] Modern Treasury counterparty creation failed for seller ${sellerUserId}:`,
+      `[DIRO-WEBHOOK] Column Bank counterparty creation failed for seller ${sellerUserId}:`,
       result.error,
     );
     return NextResponse.json(

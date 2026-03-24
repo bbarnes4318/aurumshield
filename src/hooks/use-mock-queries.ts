@@ -528,7 +528,7 @@ const DEMO_CONTACTS: Record<string, { email: string }> = {
 const DEFAULT_CONTACT = { email: "unknown@aurumshield.vip" };
 
 /* ---------- Demo banking constants (cents) ---------- */
-/** Placeholder Modern Treasury external account ID for demo sellers */
+/** Placeholder Column Bank external account ID for demo sellers */
 const DEMO_SELLER_EXTERNAL_ACCOUNT_ID = "demo-ext-acct-seller-001";
 /** Demo notional settlement value: $5,000.00 = 500_000 cents */
 const DEMO_SETTLEMENT_AMOUNT_CENTS = 500_000_00;
@@ -624,7 +624,7 @@ export function useApplySettlementAction() {
           console.error("[AurumShield] Settlement notification failed:", err);
         });
 
-        // ── Trigger Modern Treasury outbound payouts ──
+        // ── Trigger Column Bank outbound payouts ──
         // Fire-and-forget — server action, no secrets exposed to client
         // TODO: Replace demo constants with real settlement amounts / seller
         //       external account IDs from the settlement data model once

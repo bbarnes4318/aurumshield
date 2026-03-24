@@ -69,11 +69,18 @@ export function RoleRouter() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const role: UserRole = user?.role ?? "offtaker";
+
+  // ⚠️ FAIL-CLOSED: If user is null, do NOT redirect.
+  // Without a confirmed identity, we cannot determine the correct portal.
+  // The RequireAuth guard upstream will handle the redirect to /login.
+  const role: UserRole | null = user?.role ?? null;
 
   useEffect(() => {
     // Only intercept specific generic routes
     if (!INTERCEPT_ROUTES.includes(pathname)) return;
+
+    // ⚠️ FAIL-CLOSED: No role = no redirect. Wait for auth to resolve.
+    if (!role) return;
 
     // ── Operators proceed to /dashboard — no redirect ──
     if (OPERATOR_ROLES.includes(role)) return;

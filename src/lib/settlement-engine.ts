@@ -505,7 +505,7 @@ export function computeSettlementRequirements(
   if (settlement.status === "AMBIGUOUS_STATE") {
     blockers.push(
       "SETTLEMENT LOCKED — Ambiguous payout state detected. Transfer outcome is unknown. " +
-      "Treasury Admin must reconcile with the Modern Treasury dashboard and resolve this settlement before any further actions."
+      "Treasury Admin must reconcile with the Column Bank dashboard and resolve this settlement before any further actions."
     );
   }
 
@@ -875,7 +875,7 @@ export function applySettlementAction(
       }
 
       settlement.status = "SETTLED";
-      const confirmedRail = settlement.fundingRoute === "stablecoin" ? "Turnkey MPC" : "Modern Treasury";
+      const confirmedRail = settlement.fundingRoute === "stablecoin" ? "Turnkey MPC" : "Column Bank";
       addLedger(
         "STATUS_CHANGED",
         `Rail settlement confirmed — payout completed via ${confirmedRail}. Settlement finalized at ${now}.`,

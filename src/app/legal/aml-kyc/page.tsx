@@ -74,7 +74,7 @@ export default function AmlKycPage() {
       <h2 className="text-xl font-bold text-white mt-12 mb-4">ARTICLE 5: CONTINUOUS MONITORING AND SANCTIONS SCREENING</h2>
       <p className="text-gray-300 leading-relaxed mb-4 font-semibold border-l-2 border-gold pl-4">KYC at AurumShield is not a one-time onboarding event; it is a continuous, automated lifecycle.</p>
       <ul className="list-disc pl-6 text-gray-300 space-y-2 mb-8">
-        <li><strong className="text-white">5.1. Real-Time Screening:</strong> Counterparties, UBOs, and associated banking nodes (routed via Moov) are continuously screened via automated API feeds against global watchlists, including but not limited to OFAC Specially Designated Nationals (SDN), UN Security Council resolutions, the EU Consolidated List, and UK HM Treasury lists.</li>
+        <li><strong className="text-white">5.1. Real-Time Screening:</strong> Counterparties, UBOs, and associated banking nodes (routed via Column Bank) are continuously screened via automated API feeds against global watchlists, including but not limited to OFAC Specially Designated Nationals (SDN), UN Security Council resolutions, the EU Consolidated List, and UK HM Treasury lists.</li>
         <li><strong className="text-white">5.2. Adverse Media and PEPs:</strong> We conduct ongoing screening for Politically Exposed Persons (PEPs) and negative/adverse media coverage indicating potential involvement in financial crime or regulatory censure. Matches trigger immediate account suspension pending manual review by AurumShield&apos;s Chief Compliance Officer.</li>
       </ul>
 

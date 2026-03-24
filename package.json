@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "npx tsx src/db/run-migration.ts",
-    "db:seed-hubs": "npx tsx src/db/seed-logistics-hubs.ts"
+    "db:seed-hubs": "npx tsx src/db/seed-logistics-hubs.ts",
+    "test:integration:up": "docker compose -f docker-compose.test.yml up -d --wait",
+    "test:integration": "vitest run --config vitest.config.integration.ts",
+    "test:integration:down": "docker compose -f docker-compose.test.yml down"
   },
   "dependencies": {
     "@aws-sdk/client-kms": "^3.997.0",
@@ -41,7 +44,6 @@
     "framer-motion": "^12.34.3",
     "jspdf": "^4.2.0",
     "lucide-react": "^0.564.0",
-    "modern-treasury": "^3.3.0",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
     "pg": "^8.18.0",

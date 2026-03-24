@@ -6,7 +6,7 @@
 
 **Document Classification**: Confidential — Investor & Partner Distribution Only
 
-**Version**: 1.3.0 · February 2026
+**Version**: 1.4.0 · March 2026
 
 **Prepared by**: AurumShield Engineering
 
@@ -36,18 +36,20 @@
 
 ## 1. Executive Summary
 
-AurumShield is a sovereign clearing platform purpose-built for the institutional physical gold market. It addresses the fundamental structural risk that has plagued precious metals trading for decades: **the absence of a central clearing mechanism for physical gold transactions**.
+AurumShield is an institutional clearing platform purpose-built for the physical gold market. It addresses the fundamental structural risk that has plagued precious metals trading for decades: **the absence of a central clearing mechanism for physical gold transactions**.
 
-Today, institutional gold trades settle bilaterally — buyer and seller complete their respective obligations (payment and physical delivery) independently, often with significant temporal gaps. This creates **principal risk**: the possibility that one party delivers while the other defaults. In standardized financial markets, central clearing counterparties (CCPs) eliminated this risk decades ago. Physical gold markets have no equivalent infrastructure.
+The platform is **refinery-centered**: gold is sourced directly from mines, transported via controlled armored logistics (Brink's, Malca-Amit), sent to an accredited refinery for mandatory assay testing, and only after the refinery determines actual purity, recoverable gold weight, and payable value does the platform authorize settlement. The buyer pays exclusively for assay-confirmed payable output.
 
 AurumShield fills this gap by providing:
 
+- **Refinery-Centered Settlement**: Mine → Armored Logistics → Refinery → Assay → Settlement Authorization → Payout. No settlement without assay confirmation.
+- **6-Gate Fail-Closed Settlement Authorization**: Every settlement must pass buyer approval, supplier approval, shipment integrity, refinery truth, funding readiness, and policy hash gates before funds move.
 - **Atomic Delivery-versus-Payment (DvP)**: Title and payment transfer simultaneously in a single deterministic operation — no settlement gap.
 - **Continuous Capital Adequacy Monitoring**: Real-time exposure tracking with deterministic breach detection and automated enforcement.
 - **Deterministic Policy Enforcement**: Transaction risk scoring, capital validation, and approval tiering that cannot be bypassed or discretionally overridden.
 - **Cryptographic Settlement Finality**: SHA-256 signed clearing certificates proving settlement completion with immutable ledger integrity.
-- **Institutional Verification Perimeter**: Multi-step KYC/KYB with sanctions screening, liveness checks, and beneficial ownership verification.
-- **Three-Part Evidence Packing**: Assay reports, chain-of-custody certificates, and seller attestations required before any gold enters the marketplace.
+- **V3 Compliance Operating System**: Normalized `co_*` schema with subjects, cases, checks, decisions, and policy snapshots — all with TTL-based freshness gating and periodic rescreening.
+- **Chain-of-Custody Tracking**: Append-only custody event records from mine pickup through refinery intake, with integrity verification at every handoff.
 - **Sovereign Audit Architecture**: Append-only ledger with full actor and role attribution, frozen capital snapshots, and regulator-ready case dossier generation.
 
 The platform is fully operational and deployed in production at [aurumshield.vip](https://aurumshield.vip), running on AWS ECS Fargate with zero-downtime rolling deployments, HTTPS termination, and continuous health monitoring.
@@ -130,11 +132,15 @@ The platform consists of seven pure deterministic engines, each responsible for 
 
 ### 4.1 Settlement Lifecycle
 
-The settlement engine implements a **six-stage deterministic lifecycle** for every gold transaction:
+The settlement engine implements a **multi-stage deterministic lifecycle** for every gold transaction. The primary happy path is:
 
 ```
-ESCROW_OPEN → AWAITING_FUNDS → AWAITING_GOLD → AWAITING_VERIFICATION → READY_TO_SETTLE → AUTHORIZED → SETTLED
+DRAFT → ESCROW_OPEN → AWAITING_FUNDS → FUNDS_HELD → ASSET_ALLOCATED → DVP_READY → AUTHORIZED → DVP_EXECUTED → PROCESSING_RAIL → SETTLED
 ```
+
+Additional states handle edge cases: `AWAITING_GOLD`, `AWAITING_VERIFICATION`, `READY_TO_SETTLE` (V1 compatibility), `AMBIGUOUS_STATE` (treasury reconciliation required), `AWAITING_FUNDS_RELEASE` (delivery confirmed but funds not yet cleared), `FUNDS_CLEARED_READY_FOR_RELEASE`, `TITLE_TRANSFERRED_AND_COMPLETED`, `REVERSED`, `FAILED`, `CANCELLED`.
+
+The `PROCESSING_RAIL` state locks all manual actions — only system webhooks (from Column Bank or Turnkey) can transition the settlement out of this state.
 
 Each transition is governed by:
 
@@ -318,6 +324,47 @@ A full compliance checklist is run at order conversion:
 
 ---
 
+## 6.7 Refinery-Centered Pipeline (V3 Architecture)
+
+The V3 architecture introduces a mandatory refinery-centered flow for physical gold settlement. This supplements the marketplace and capital engine with physical validation:
+
+### Pipeline Stages
+
+1. **Shipment Creation** — supplier, custodian (Brink's or Malca-Amit), origin country, destination refinery, declared weight.
+2. **Chain-of-Custody Events** — append-only custody records at each handoff: PICKUP, TRANSIT_START, CUSTOMS_EXPORT, CUSTOMS_IMPORT, TRANSIT_END, REFINERY_INTAKE. Each event includes custodian ID, location, weight measurement, and verification status.
+3. **Shipment Review** — integrity validation: seal integrity, handoff count, missing segments, QUARANTINED transitions on failure.
+4. **Refinery Lot** — created on intake with gross weight, net weight, fineness (millesimal), recoverable gold, and payable value.
+5. **Assay Confirmation** — refinery determines actual purity and payable gold weight. Status: INTAKE → SAMPLING → ASSAYING → COMPLETE.
+6. **Physical Validation** — economics check: fineness floor (≥995.0‰), weight variance (≤2%), value delta validation against declared vs assayed amounts.
+7. **Settlement Authorization** — 6-gate fail-closed pipeline (see Section 6.8).
+
+### Data Model
+
+| Table | Purpose |
+|---|---|
+| `co_physical_shipments` | Mine-to-refinery shipment tracking |
+| `co_chain_of_custody_events` | Append-only custody handoff records |
+| `co_refinery_lots` | Assay results (fineness, recoverable gold, payable value) |
+
+> **Note:** Brink's and Malca-Amit logistics adapters are implemented with defined interfaces but currently use mock responses (TODO: API Integration markers). Chain-of-custody event recording and shipment review logic are fully implemented.
+
+### 6.8 Settlement Authorization Service (6-Gate Pipeline)
+
+Every settlement must pass a 6-gate fail-closed pipeline before funds can move:
+
+| Gate | What It Validates |
+|---|---|
+| **BUYER_APPROVAL** | Subject is ACTIVE with an APPROVED compliance case |
+| **SUPPLIER_APPROVAL** | Supplier is ACTIVE with no sanctions exposure |
+| **SHIPMENT_INTEGRITY** | Shipment not QUARANTINED, all chain-of-custody events VERIFIED |
+| **REFINERY_TRUTH** | Assay COMPLETE, payable gold weight determined |
+| **PAYMENT_READINESS** | Source-of-funds or wallet screening verified and fresh (90-day TTL) |
+| **POLICY_HASH** | Policy snapshot captured, cryptographic decision hash generated |
+
+Gate results are persisted to `co_settlement_gates` for audit queryability. Any single gate failure halts the entire authorization — there are no partial authorizations.
+
+---
+
 ## 7. Verification & Identity Perimeter
 
 ### 7.1 Architecture
@@ -366,6 +413,32 @@ Every verification step produces an evidence stub — a structured attestation d
 - Source classifier (SYSTEM_GENERATED)
 
 Evidence items are persisted in a separate evidence store and can be retrieved by step ID or user ID for audit purposes.
+
+### 7.5 V3 Compliance Operating System
+
+The V3 Compliance OS (`co_*` tables, Migration 028) provides a normalized compliance architecture that operates alongside the V1 verification perimeter:
+
+| Table | Purpose |
+|---|---|
+| `co_subjects` | Entities under compliance supervision (risk tier, status, jurisdiction) |
+| `co_cases` | Verification lifecycle containers (IDENTITY_VERIFICATION, SETTLEMENT_AUTHORIZATION, PERIODIC_REVIEW) |
+| `co_checks` | Individual screening results with normalized verdicts (PASS/FAIL/REVIEW/EXPIRED) |
+| `co_decisions` | Algorithmic verdicts with cryptographic evidence hashes |
+| `co_policy_snapshots` | Immutable policy state captured at decision time |
+| `co_review_tasks` | Manual review assignments (four-eyes enforcement) |
+| `co_wallet_addresses` | Crypto wallet registration |
+| `co_wallet_screenings` | KYT screening results (Elliptic adapter) |
+| `co_audit_events` | Immutable compliance event log with hash-chaining |
+
+**Check Freshness (TTL Gating):** Every check type has a configurable TTL. Expired checks are marked with `EXPIRED` verdict and treated as `MISSING` by the decision engine:
+- SANCTIONS/PEP/ADVERSE_MEDIA → 180 days
+- KYC_ID/KYB/UBO/LEI/SOF/SOW → 365 days
+- LIVENESS → 730 days
+- WALLET_KYT → 1 day
+
+**Periodic Rescreening:** Production cron routes at `/api/cron/stale-check-sweep` (daily) and `/api/cron/sanctions-refresh` (weekly) automatically scan subjects, mark expired checks, and open `PERIODIC_REVIEW` cases.
+
+**V1 ↔ V3 Coexistence:** The V1 verification perimeter (`compliance_cases` table) still powers the frontend KYC/KYB onboarding flow via Veriff/iDenfy. The V3 system handles the refinery-centered settlement authorization pipeline. Both will coexist until V3 subject onboarding UI is built.
 
 ---
 
@@ -671,7 +744,7 @@ AurumShield's architecture is designed to align with the following regulatory fr
 
 ## 16. Banking Architecture & Fiat Custody
 
-AurumShield does not commingle corporate operating funds with client treasury deposits. All inbound US Dollar fiat is routed via Modern Treasury API directly into an FBO (For Benefit Of) ledgered account held at a regulated Tier-1 US partner bank. The proprietary PostgreSQL state-machine (`src/lib/settlement-engine.ts`) acts as the sub-ledger, ensuring mathematically deterministic 1:1 parity between the bank's FBO balance and the client's vaulted gold title.
+AurumShield does not commingle corporate operating funds with client treasury deposits. All inbound US Dollar fiat is routed via Column Bank API directly into an FBO (For Benefit Of) ledgered account held at a regulated Tier-1 US partner bank. The proprietary PostgreSQL state-machine (`src/lib/settlement-engine.ts`) acts as the sub-ledger, ensuring mathematically deterministic 1:1 parity between the bank's FBO balance and the client's vaulted gold title.
 
 ### 16.1 Fund Segregation Architecture
 
@@ -680,7 +753,7 @@ The platform enforces a strict two-account topology at the banking layer:
 | Account                          | Purpose                                                               | Institution                       | Access                                           |
 | -------------------------------- | --------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------ |
 | **Operating Account**            | Platform revenue, clearing fees, payroll, and corporate expenses      | Tier-1 US partner bank            | AurumShield corporate officers only              |
-| **FBO (For Benefit Of) Account** | Client treasury deposits — fiat held in escrow pending DvP settlement | Tier-1 US partner bank (ledgered) | Programmatic access via Modern Treasury API only |
+| **FBO (For Benefit Of) Account** | Client treasury deposits — fiat held in escrow pending DvP settlement | Tier-1 US partner bank (ledgered) | Programmatic access via Column Bank API only |
 
 No single operator or API key has simultaneous write access to both accounts. The FBO account is held "for the benefit of" each counterparty and is legally segregated from AurumShield's corporate balance sheet.
 
@@ -691,7 +764,7 @@ Counterparty Bank
        │
        ▼
 ┌──────────────────────────────────┐
-│   Modern Treasury API            │
+│   Column Bank API                 │
 │   (Payment Orders + Webhooks)    │
 ├──────────────────────────────────┤
 │   FBO Ledgered Account           │
@@ -715,7 +788,7 @@ Counterparty Bank
 └──────────────────────────────────┘
 ```
 
-All inbound wires are received into the FBO account. The Modern Treasury API issues webhook confirmations that trigger the settlement engine's `CONFIRM_FUNDS_FINAL` action, updating the sub-ledger. No funds are recognized in the system until the banking rail confirms receipt.
+All inbound wires are received into the FBO account. The Column Bank API issues webhook confirmations that trigger the settlement engine's `CONFIRM_FUNDS_FINAL` action, updating the sub-ledger. No funds are recognized in the system until the banking rail confirms receipt.
 
 ### 16.3 Sub-Ledger Parity Invariant
 
@@ -736,9 +809,9 @@ This guarantee ensures that the AurumShield sub-ledger can never drift from the 
 When a DvP settlement executes (`EXECUTE_DVP` action), the settlement engine:
 
 1. **Posts a balanced clearing journal** — debit escrow, credit seller proceeds + platform fee.
-2. **Submits a payment order** to Modern Treasury specifying the FBO account as the originating account.
+2. **Submits a payment order** to Column Bank specifying the FBO account as the originating account.
 3. **Transitions to `PROCESSING_RAIL`** — a locked state where no manual actions are permitted until the rail confirms.
-4. **Receives webhook confirmation** from Modern Treasury (`CONFIRM_RAIL_SETTLED`), finalizing the settlement as `SETTLED`.
+4. **Receives webhook confirmation** from Column Bank (`CONFIRM_RAIL_SETTLED`), finalizing the settlement as `SETTLED`.
 5. **Platform fees** are swept from the FBO account to the Operating Account via a separate, reconciled transfer.
 
 At no point does client treasury capital pass through AurumShield's operating balance. The FBO account acts as the sole custodial intermediary.
@@ -747,7 +820,7 @@ At no point does client treasury capital pass through AurumShield's operating ba
 
 | Control                       | Implementation                                                                                           |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **No Commingling**            | Separate FBO and Operating accounts at the bank level; programmatic API segregation via Modern Treasury  |
+| **No Commingling**            | Separate FBO and Operating accounts at the bank level; programmatic API segregation via Column Bank      |
 | **Sub-Ledger Reconciliation** | Double-entry journal with balance assertion — any imbalance is a fatal `UnbalancedJournalError`          |
 | **Idempotent Clearing**       | Each journal carries a unique `idempotencyKey` (UUID); duplicate submissions return the existing journal |
 | **Audit Trail**               | Every fund movement produces append-only ledger entries with actor role, user ID, and timestamp          |
@@ -801,7 +874,14 @@ For the purposes of BaaS partner bank due diligence (Cross River Bank, Evolve Ba
 | Capital          | `IntradayCapitalSnapshot` | capitalBase, grossExposureNotional, ecr, hardstopUtilization, breachLevel, topDrivers                   |
 | Capital Controls | `CapitalControlDecision`  | mode, blocks, limits, snapshotHash, reasons                                                             |
 | Certificate      | `ClearingCertificate`     | certificateNumber, signatureHash, asset, economics, counterparties                                      |
-| Verification     | `VerificationCase`        | userId, track, steps, status, riskTier                                                                  |
+| V1 Verification  | `ComplianceCase`          | userId, status, tier, entityType, verifiedBy, veriffSessionId (table: `compliance_cases`)               |
+| V3 Compliance    | `co_subjects`             | legalName, entityType, riskTier, status, jurisdiction                                                   |
+| V3 Compliance    | `co_cases`                | subjectId, caseType, status, priority, policySnapshotId                                                 |
+| V3 Compliance    | `co_checks`               | caseId, checkType, status, normalizedVerdict, completedAt, rawPayloadRef                                |
+| V3 Compliance    | `co_decisions`            | caseId, verdict, decisionHash, evidenceHash, decidedBy                                                  |
+| V3 Physical      | `co_physical_shipments`   | supplierId, refineryId, custodianId, status, declaredWeightG                                            |
+| V3 Physical      | `co_refinery_lots`        | shipmentId, grossWeightG, netWeightG, finenessMils, payableGoldG                                        |
+| V3 Settlement    | `co_settlement_gates`     | authorizationId, gateName, gateResult, evidencePayload                                                  |
 | Breach           | `BreachEvent`             | id, type, level, message, snapshot                                                                      |
 
 ### D. API Reference Count
@@ -820,6 +900,22 @@ For the purposes of BaaS partner bank due diligence (Cross River Bank, Evolve Ba
 
 ---
 
-_AurumShield — Sovereign Clearing Infrastructure for Institutional Precious Metals_
+## Accuracy Disclosure
+
+This document describes the implemented platform architecture as of March 2026. The following integrations use mock adapters with defined interfaces pending live API provisioning:
+
+- **Bloomberg B-PIPE** — gold price feed adapter (mock)
+- **Brink's / Malca-Amit** — armored logistics APIs (mock)
+- **GLEIF** — LEI validation (mock)
+- **Inscribe.ai** — document fraud detection (mock)
+- **Veriff KYB** — session creation/status (mock; HMAC webhook verification implemented)
+- **Column Bank** — balance check endpoint (mock; account creation and outbound wires implemented)
+- **Elliptic** — wallet KYT screening adapter (implemented, pending API key)
+
+The V1 marketplace engine (Sections 6, 8) and V3 refinery-centered compliance OS (Sections 6.7–6.8, 7.5) coexist in the codebase. Both are operational.
+
+---
+
+_AurumShield — Institutional Clearing Infrastructure for Physical Precious Metals_
 
 _© 2026 AurumShield. All rights reserved._

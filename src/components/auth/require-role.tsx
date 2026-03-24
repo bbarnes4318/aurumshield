@@ -6,6 +6,13 @@
    - Wraps RequireAuth to guarantee a session exists
    - If user role ∉ allowedRoles → shows access-denied message
    - Otherwise renders children
+
+   ⚠️  TRUST BOUNDARY: This is a PRESENTATION-ONLY gate.
+   It uses client-side auth context (useAuth()) which may return
+   demo/mock identity when Clerk is not configured. Server actions
+   MUST independently verify via requireRole() or requireSession()
+   from authz.ts. Do NOT rely on this component as the sole
+   authorization check for privileged operations.
    ================================================================ */
 
 import { useAuth } from "@/providers/auth-provider";
