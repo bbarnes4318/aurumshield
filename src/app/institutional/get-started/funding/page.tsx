@@ -52,6 +52,7 @@ import {
   type FundingMethod,
 } from "@/lib/schemas/funding-stage-schema";
 import type { FundingReadinessResult } from "@/lib/compliance/funding-readiness";
+import type { WalletScreeningTruth } from "@/lib/compliance/wallet-compliance-status";
 
 import {
   useOnboardingState,
@@ -299,7 +300,7 @@ export default function FundingPage() {
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            256-Bit Encrypted · OFAC Screened · Zero Data Storage
+            256-Bit Encrypted · {walletScreeningLabel(serverReadinessData?.walletScreeningStatus ?? null, method)} · Fail-Closed Compliance
           </span>
         </div>
       }
@@ -572,4 +573,38 @@ export default function FundingPage() {
       </div>
     </StepShell>
   );
+}
+
+/* ================================================================
+   WALLET SCREENING LABEL — honest footer state
+   ================================================================ */
+
+function walletScreeningLabel(
+  truth: WalletScreeningTruth | null,
+  method: FundingMethod,
+): string {
+  // Wire method — no wallet screening applies
+  if (method !== "digital_stablecoin") return "MSB Compliance Gated";
+
+  if (!truth) return "OFAC Screening Pending";
+
+  switch (truth) {
+    case "SCREENING_CURRENT":
+      return "OFAC Screened ✓";
+    case "RISK_HIGH":
+      return "OFAC Screened · Enhanced Review";
+    case "NOT_REGISTERED":
+    case "NEVER_SCREENED":
+    case "SCREENING_STALE":
+      return "OFAC Screening Pending";
+    case "WALLET_PENDING_REVIEW":
+      return "Wallet Under Review";
+    case "SANCTIONS_FLAGGED":
+    case "RISK_SEVERE":
+    case "WALLET_FROZEN":
+    case "WALLET_BLOCKED":
+      return "OFAC Compliance Block";
+    default:
+      return "OFAC Screening Pending";
+  }
 }

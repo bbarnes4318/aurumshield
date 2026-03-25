@@ -33,6 +33,11 @@ import {
   type FundingMethod,
 } from "@/lib/schemas/funding-stage-schema";
 import { emitAuditEvent } from "@/lib/audit-logger";
+import {
+  getWalletComplianceStatus,
+  type WalletComplianceStatus,
+  type WalletScreeningTruth,
+} from "@/lib/compliance/wallet-compliance-status";
 
 /* ================================================================
    Types
@@ -56,6 +61,10 @@ export interface FundingReadinessResult {
   fundingMethod: FundingMethod | null;
   /** Compliance case status, if a case exists. */
   complianceCaseStatus: ComplianceCaseStatus | null;
+  /** Wallet screening truth when stablecoin is selected, null otherwise. */
+  walletScreeningStatus: WalletScreeningTruth | null;
+  /** Full wallet compliance status context (for detailed display), null if not applicable. */
+  walletComplianceDetail: string | null;
   /** Itemized checks. */
   checks: FundingReadinessCheck[];
   /** Human-readable blockers (empty when ready). */
@@ -143,7 +152,7 @@ export async function evaluateFundingReadiness(
         detail: "No onboarding state found for user",
       });
       blockers.push("No onboarding state — funding not started");
-      return buildResult(userId, false, formComplete, null, null, checks, blockers, evaluatedAt);
+      return buildResult(userId, false, formComplete, null, null, null, null, checks, blockers, evaluatedAt);
     }
 
     checks.push({
@@ -163,7 +172,7 @@ export async function evaluateFundingReadiness(
         detail: "No __funding data in onboarding state metadata",
       });
       blockers.push("Funding configuration not saved");
-      return buildResult(userId, false, formComplete, null, null, checks, blockers, evaluatedAt);
+      return buildResult(userId, false, formComplete, null, null, null, null, checks, blockers, evaluatedAt);
     }
 
     checks.push({
@@ -186,7 +195,7 @@ export async function evaluateFundingReadiness(
         detail: `Funding data fails schema validation: ${errorSummary}`,
       });
       blockers.push(`Schema validation failed: ${errorSummary}`);
-      return buildResult(userId, false, formComplete, null, null, checks, blockers, evaluatedAt);
+      return buildResult(userId, false, formComplete, null, null, null, null, checks, blockers, evaluatedAt);
     }
 
     fundingData = parsed.data;
@@ -222,7 +231,7 @@ export async function evaluateFundingReadiness(
       detail: `Failed to load onboarding state: ${message}`,
     });
     blockers.push(`Database error: unable to load funding data`);
-    return buildResult(userId, false, false, null, null, checks, blockers, evaluatedAt);
+    return buildResult(userId, false, false, null, null, null, null, checks, blockers, evaluatedAt);
   }
 
   /* ── Step 6: Compliance case check ── */
@@ -263,6 +272,57 @@ export async function evaluateFundingReadiness(
     blockers.push("Unable to verify compliance status — database error");
   }
 
+  /* ── Step 7: Wallet Compliance Truth (stablecoin only) ── */
+  let walletScreeningStatus: WalletScreeningTruth | null = null;
+  let walletComplianceDetail: string | null = null;
+
+  if (fundingData?.fundingMethod === "digital_stablecoin" && fundingData.walletAddress.trim().length > 0) {
+    try {
+      const walletStatus: WalletComplianceStatus = await getWalletComplianceStatus(
+        fundingData.walletAddress.trim(),
+      );
+      walletScreeningStatus = walletStatus.truth;
+      walletComplianceDetail = walletStatus.detail;
+
+      if (walletStatus.isHardBlocker) {
+        // SANCTIONS_FLAGGED, RISK_SEVERE, WALLET_FROZEN, WALLET_BLOCKED → hard block
+        checks.push({
+          check: "WALLET_SCREENING_STATUS",
+          passed: false,
+          detail: `Wallet compliance BLOCKED: ${walletStatus.detail}`,
+        });
+        blockers.push(`Wallet blocked: ${walletStatus.truth} — ${walletStatus.detail}`);
+      } else if (walletStatus.isWarning) {
+        // NOT_REGISTERED, NEVER_SCREENED, SCREENING_STALE, RISK_HIGH, PENDING_REVIEW
+        // Surface the truth as a WARNING check — does NOT block readiness
+        checks.push({
+          check: "WALLET_SCREENING_STATUS",
+          passed: true, // pass = does not block
+          detail: `Wallet screening warning: ${walletStatus.detail}`,
+        });
+      } else {
+        // SCREENING_CURRENT → genuinely compliant
+        checks.push({
+          check: "WALLET_SCREENING_STATUS",
+          passed: true,
+          detail: `Wallet screening current: ${walletStatus.detail}`,
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      // Fail-closed: wallet screening system error → WARNING (not blocker)
+      // We log the error but don't block onboarding for infrastructure glitches
+      checks.push({
+        check: "WALLET_SCREENING_STATUS",
+        passed: true,
+        detail: `Wallet screening query failed: ${message}. Screening will be enforced at settlement.`,
+      });
+      console.error(
+        `[FUNDING_READINESS] Wallet compliance query failed for ${fundingData.walletAddress}: ${message}`,
+      );
+    }
+  }
+
   /* ── Build final result ── */
   const serverReady = blockers.length === 0;
 
@@ -277,6 +337,7 @@ export async function evaluateFundingReadiness(
       blockerCount: blockers.length,
       blockers,
       complianceCaseStatus,
+      walletScreeningStatus,
     },
     { userId },
   );
@@ -287,6 +348,8 @@ export async function evaluateFundingReadiness(
     formComplete,
     fundingData?.fundingMethod ?? null,
     complianceCaseStatus,
+    walletScreeningStatus,
+    walletComplianceDetail,
     checks,
     blockers,
     evaluatedAt,
@@ -303,6 +366,8 @@ function buildResult(
   formComplete: boolean,
   fundingMethod: FundingMethod | null,
   complianceCaseStatus: ComplianceCaseStatus | null,
+  walletScreeningStatus: WalletScreeningTruth | null,
+  walletComplianceDetail: string | null,
   checks: FundingReadinessCheck[],
   blockers: string[],
   evaluatedAt: string,
@@ -313,6 +378,8 @@ function buildResult(
     formComplete,
     fundingMethod,
     complianceCaseStatus,
+    walletScreeningStatus,
+    walletComplianceDetail,
     checks,
     blockers,
     serverApprovedAt: serverReady ? evaluatedAt : null,

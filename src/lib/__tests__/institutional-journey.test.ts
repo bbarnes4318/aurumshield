@@ -804,3 +804,167 @@ describe("organizationStageSchema", () => {
   });
 });
 
+/* ================================================================
+   deriveWalletScreeningTruth — wallet compliance status derivation
+   ================================================================ */
+
+import {
+  deriveWalletScreeningTruth,
+  isWalletHardBlocker,
+  isWalletWarning,
+  type WalletScreeningTruth,
+} from "@/lib/compliance/wallet-compliance-status";
+
+describe("deriveWalletScreeningTruth", () => {
+  const now = new Date("2026-03-25T06:00:00Z");
+
+  it("returns NOT_REGISTERED when wallet is null", () => {
+    expect(deriveWalletScreeningTruth(null, null, now)).toBe("NOT_REGISTERED");
+  });
+
+  it("returns WALLET_FROZEN for frozen wallet", () => {
+    expect(deriveWalletScreeningTruth({ status: "FROZEN" }, null, now)).toBe("WALLET_FROZEN");
+  });
+
+  it("returns WALLET_BLOCKED for blocked wallet", () => {
+    expect(deriveWalletScreeningTruth({ status: "BLOCKED" }, null, now)).toBe("WALLET_BLOCKED");
+  });
+
+  it("returns WALLET_PENDING_REVIEW for pending review wallet", () => {
+    expect(deriveWalletScreeningTruth({ status: "PENDING_REVIEW" }, null, now)).toBe("WALLET_PENDING_REVIEW");
+  });
+
+  it("returns NEVER_SCREENED for active wallet with no screening", () => {
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, null, now)).toBe("NEVER_SCREENED");
+  });
+
+  it("returns SCREENING_STALE when screening is > 24h old", () => {
+    const staleScreening = {
+      screenedAt: new Date("2026-03-23T00:00:00Z"), // 54h old
+      sanctionsExposure: false,
+      riskTier: "LOW",
+    };
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, staleScreening, now)).toBe("SCREENING_STALE");
+  });
+
+  it("returns SANCTIONS_FLAGGED when sanctions exposure is true", () => {
+    const sanctionedScreening = {
+      screenedAt: new Date("2026-03-25T05:00:00Z"), // 1h old
+      sanctionsExposure: true,
+      riskTier: "LOW",
+    };
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, sanctionedScreening, now)).toBe("SANCTIONS_FLAGGED");
+  });
+
+  it("returns RISK_SEVERE for SEVERE risk tier", () => {
+    const severeScreening = {
+      screenedAt: new Date("2026-03-25T05:00:00Z"),
+      sanctionsExposure: false,
+      riskTier: "SEVERE",
+    };
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, severeScreening, now)).toBe("RISK_SEVERE");
+  });
+
+  it("returns RISK_HIGH for HIGH risk tier", () => {
+    const highScreening = {
+      screenedAt: new Date("2026-03-25T05:00:00Z"),
+      sanctionsExposure: false,
+      riskTier: "HIGH",
+    };
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, highScreening, now)).toBe("RISK_HIGH");
+  });
+
+  it("returns SCREENING_CURRENT for fresh LOW risk screening", () => {
+    const cleanScreening = {
+      screenedAt: new Date("2026-03-25T05:00:00Z"),
+      sanctionsExposure: false,
+      riskTier: "LOW",
+    };
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, cleanScreening, now)).toBe("SCREENING_CURRENT");
+  });
+
+  it("returns SCREENING_CURRENT for fresh MEDIUM risk screening", () => {
+    const mediumScreening = {
+      screenedAt: new Date("2026-03-25T04:00:00Z"),
+      sanctionsExposure: false,
+      riskTier: "MEDIUM",
+    };
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, mediumScreening, now)).toBe("SCREENING_CURRENT");
+  });
+
+  it("sanctions check takes precedence over risk tier", () => {
+    // Even with LOW risk tier, sanctions exposure should flag
+    const sanctionedLow = {
+      screenedAt: new Date("2026-03-25T05:00:00Z"),
+      sanctionsExposure: true,
+      riskTier: "LOW",
+    };
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, sanctionedLow, now)).toBe("SANCTIONS_FLAGGED");
+  });
+
+  it("stale screening takes precedence over clean risk", () => {
+    // Even with LOW risk, stale screening should flag
+    const staleClean = {
+      screenedAt: new Date("2026-03-24T00:00:00Z"), // 30h old
+      sanctionsExposure: false,
+      riskTier: "LOW",
+    };
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, staleClean, now)).toBe("SCREENING_STALE");
+  });
+
+  it("accepts string dates for screenedAt", () => {
+    const stringDate = {
+      screenedAt: "2026-03-25T05:30:00Z",
+      sanctionsExposure: false,
+      riskTier: "LOW",
+    };
+    expect(deriveWalletScreeningTruth({ status: "ACTIVE" }, stringDate, now)).toBe("SCREENING_CURRENT");
+  });
+});
+
+/* ================================================================
+   isWalletHardBlocker / isWalletWarning — classification helpers
+   ================================================================ */
+
+describe("isWalletHardBlocker", () => {
+  const blockers: WalletScreeningTruth[] = [
+    "SANCTIONS_FLAGGED", "RISK_SEVERE", "WALLET_FROZEN", "WALLET_BLOCKED",
+  ];
+  const nonBlockers: WalletScreeningTruth[] = [
+    "NOT_REGISTERED", "NEVER_SCREENED", "SCREENING_STALE",
+    "RISK_HIGH", "SCREENING_CURRENT", "WALLET_PENDING_REVIEW",
+  ];
+
+  for (const truth of blockers) {
+    it(`${truth} is a hard blocker`, () => {
+      expect(isWalletHardBlocker(truth)).toBe(true);
+    });
+  }
+  for (const truth of nonBlockers) {
+    it(`${truth} is NOT a hard blocker`, () => {
+      expect(isWalletHardBlocker(truth)).toBe(false);
+    });
+  }
+});
+
+describe("isWalletWarning", () => {
+  const warnings: WalletScreeningTruth[] = [
+    "NOT_REGISTERED", "NEVER_SCREENED", "SCREENING_STALE",
+    "WALLET_PENDING_REVIEW", "RISK_HIGH",
+  ];
+  const nonWarnings: WalletScreeningTruth[] = [
+    "SANCTIONS_FLAGGED", "RISK_SEVERE", "WALLET_FROZEN",
+    "WALLET_BLOCKED", "SCREENING_CURRENT",
+  ];
+
+  for (const truth of warnings) {
+    it(`${truth} is a warning`, () => {
+      expect(isWalletWarning(truth)).toBe(true);
+    });
+  }
+  for (const truth of nonWarnings) {
+    it(`${truth} is NOT a warning`, () => {
+      expect(isWalletWarning(truth)).toBe(false);
+    });
+  }
+});
