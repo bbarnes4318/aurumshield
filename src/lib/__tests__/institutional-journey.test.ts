@@ -513,6 +513,9 @@ describe("isFundingReady", () => {
 import {
   isVerificationComplete,
   VERIFICATION_STAGE_DEFAULTS,
+  deriveVerificationFromCase,
+  getVerificationStatusLabel,
+  type ComplianceCaseStatusLite,
 } from "@/lib/schemas/verification-stage-schema";
 
 describe("isVerificationComplete", () => {
@@ -542,6 +545,118 @@ describe("isVerificationComplete", () => {
     ).toBe(true);
   });
 });
+
+/* ================================================================
+   deriveVerificationFromCase — authoritative compliance case mapping
+   ================================================================ */
+
+describe("deriveVerificationFromCase", () => {
+  it("returns all false for null (no case)", () => {
+    const result = deriveVerificationFromCase(null);
+    expect(result).toEqual(VERIFICATION_STAGE_DEFAULTS);
+    expect(isVerificationComplete(result)).toBe(false);
+  });
+
+  it("returns all false for OPEN status", () => {
+    const result = deriveVerificationFromCase("OPEN");
+    expect(result).toEqual(VERIFICATION_STAGE_DEFAULTS);
+  });
+
+  it("returns all false for PENDING_USER status", () => {
+    const result = deriveVerificationFromCase("PENDING_USER");
+    expect(result.entityVerificationPassed).toBe(false);
+    expect(result.uboReviewPassed).toBe(false);
+    expect(result.screeningPassed).toBe(false);
+    expect(result.complianceReviewPassed).toBe(false);
+  });
+
+  it("returns entity=true for PENDING_PROVIDER", () => {
+    const result = deriveVerificationFromCase("PENDING_PROVIDER");
+    expect(result.entityVerificationPassed).toBe(true);
+    expect(result.uboReviewPassed).toBe(false);
+    expect(result.screeningPassed).toBe(false);
+    expect(result.complianceReviewPassed).toBe(false);
+  });
+
+  it("returns entity+ubo+screening=true for UNDER_REVIEW", () => {
+    const result = deriveVerificationFromCase("UNDER_REVIEW");
+    expect(result.entityVerificationPassed).toBe(true);
+    expect(result.uboReviewPassed).toBe(true);
+    expect(result.screeningPassed).toBe(true);
+    expect(result.complianceReviewPassed).toBe(false);
+  });
+
+  it("returns all true for APPROVED", () => {
+    const result = deriveVerificationFromCase("APPROVED");
+    expect(result.entityVerificationPassed).toBe(true);
+    expect(result.uboReviewPassed).toBe(true);
+    expect(result.screeningPassed).toBe(true);
+    expect(result.complianceReviewPassed).toBe(true);
+    expect(isVerificationComplete(result)).toBe(true);
+  });
+
+  it("returns all false for REJECTED (fail-closed)", () => {
+    const result = deriveVerificationFromCase("REJECTED");
+    expect(result).toEqual(VERIFICATION_STAGE_DEFAULTS);
+  });
+
+  it("returns all false for CLOSED (fail-closed)", () => {
+    const result = deriveVerificationFromCase("CLOSED");
+    expect(result).toEqual(VERIFICATION_STAGE_DEFAULTS);
+  });
+
+  it("APPROVED is the only status that passes isVerificationComplete", () => {
+    const statuses: ComplianceCaseStatusLite[] = [
+      "OPEN", "PENDING_USER", "PENDING_PROVIDER",
+      "UNDER_REVIEW", "APPROVED", "REJECTED", "CLOSED",
+    ];
+    for (const status of statuses) {
+      const result = deriveVerificationFromCase(status);
+      if (status === "APPROVED") {
+        expect(isVerificationComplete(result)).toBe(true);
+      } else {
+        expect(isVerificationComplete(result)).toBe(false);
+      }
+    }
+  });
+});
+
+/* ================================================================
+   getVerificationStatusLabel — human-readable status labels
+   ================================================================ */
+
+describe("getVerificationStatusLabel", () => {
+  it("returns informative label for null (no case)", () => {
+    const label = getVerificationStatusLabel(null);
+    expect(label).toContain("not started");
+  });
+
+  it("returns success label for APPROVED", () => {
+    const label = getVerificationStatusLabel("APPROVED");
+    expect(label).toContain("verified");
+  });
+
+  it("returns review label for UNDER_REVIEW", () => {
+    const label = getVerificationStatusLabel("UNDER_REVIEW");
+    expect(label).toContain("review");
+  });
+
+  it("returns processing label for PENDING_PROVIDER", () => {
+    const label = getVerificationStatusLabel("PENDING_PROVIDER");
+    expect(label).toContain("processing");
+  });
+
+  it("returns action required for PENDING_USER", () => {
+    const label = getVerificationStatusLabel("PENDING_USER");
+    expect(label).toContain("Action required");
+  });
+
+  it("returns rejection label for REJECTED", () => {
+    const label = getVerificationStatusLabel("REJECTED");
+    expect(label).toContain("not approved");
+  });
+});
+
 
 /* ================================================================
    Organization Stage — schema defaults validation

@@ -3,25 +3,24 @@
 /* ================================================================
    VERIFICATION — /institutional/get-started/verification
    ================================================================
-   Guided Verification stage: the system runs entity verification,
-   UBO review, AML screening, and compliance cross-checks as four
-   calm milestones instead of a dense compliance wall.
+   Guided Verification stage: renders the entity verification,
+   UBO review, AML screening, and compliance review milestones
+   from AUTHORITATIVE compliance case state.
 
-   One calm screen. One auto-running checklist. One action.
+   Milestone status is derived from the user's compliance_cases
+   row via useComplianceCaseVerification(). No simulated timers.
+
+   One calm screen. One authoritative checklist. One action.
 
    Reuses:
-     • KYB entity verification simulation pattern
-       (StepKYBEntityVerification — staggered timers)
-     • AML screening simulation pattern
-       (StepAMLScreening — auto-run on mount)
+     • compliance_cases.status as the single source of truth
      • AutoCheckList (guided-flow component)
      • onboarding state persistence (useSaveOnboardingState)
      • journey stage helpers (advance to FUNDING)
 
-   Does NOT reuse:
-     • OnboardingWizard orchestrator
-     • Legacy FormProvider / react-hook-form context
-     • Legacy dense sub-check cards or watchlist grids
+   Progression rule:
+     "Continue to Funding" is enabled ONLY when all 4 milestones
+     are true — which requires compliance_cases.status === APPROVED.
    ================================================================ */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -42,8 +41,6 @@ import {
 import { ReviewCard } from "@/components/institutional-flow/ReviewCard";
 
 import {
-  VERIFICATION_STAGE_DEFAULTS,
-  isVerificationComplete,
   type VerificationStageData,
 } from "@/lib/schemas/verification-stage-schema";
 
@@ -52,6 +49,10 @@ import {
   useSaveOnboardingState,
 } from "@/hooks/use-onboarding-state";
 
+import {
+  useComplianceCaseVerification,
+} from "@/hooks/use-compliance-case";
+
 /* ================================================================
    MILESTONE DEFINITIONS
    ================================================================ */
@@ -59,38 +60,39 @@ import {
 interface MilestoneDefinition {
   key: keyof VerificationStageData;
   label: string;
-  description: string;
-  /** Simulated duration in ms before this milestone completes */
-  simulatedDelay: number;
+  descriptionPending: string;
+  descriptionActive: string;
+  descriptionDone: string;
 }
 
 const MILESTONES: MilestoneDefinition[] = [
   {
     key: "entityVerificationPassed",
     label: "Entity Verification",
-    description: "Corporate registry and KYB checks against national databases",
-    simulatedDelay: 2500,
+    descriptionPending: "Corporate registry and KYB checks against national databases",
+    descriptionActive: "Verifying entity registration and corporate structure…",
+    descriptionDone: "Entity registration and corporate structure verified",
   },
   {
     key: "uboReviewPassed",
     label: "Representative & UBO Review",
-    description:
-      "Verifying beneficial owners and authorized representatives",
-    simulatedDelay: 4000,
+    descriptionPending: "Verifying beneficial owners and authorized representatives",
+    descriptionActive: "Provider is reviewing beneficial ownership declarations…",
+    descriptionDone: "Beneficial owners and authorized representatives verified",
   },
   {
     key: "screeningPassed",
     label: "Global AML / Sanctions Screening",
-    description:
-      "Screening against OFAC, EU, UN, HMT, and DFAT watchlists",
-    simulatedDelay: 5500,
+    descriptionPending: "Screening against OFAC, EU, UN, HMT, and DFAT watchlists",
+    descriptionActive: "Running AML and sanctions screening checks…",
+    descriptionDone: "AML and sanctions screening passed — no matches found",
   },
   {
     key: "complianceReviewPassed",
     label: "Compliance Review",
-    description:
-      "Final cross-check and risk assessment",
-    simulatedDelay: 7000,
+    descriptionPending: "Final cross-check and risk assessment",
+    descriptionActive: "Final compliance review in progress…",
+    descriptionDone: "Compliance review complete — entity cleared",
   },
 ];
 
@@ -98,23 +100,41 @@ const MILESTONES: MilestoneDefinition[] = [
    HELPERS
    ================================================================ */
 
-/** Derive AutoCheckList items from milestone data. */
+/** Derive AutoCheckList items from authoritative milestone data. */
 function milestoneToCheckItems(
   data: VerificationStageData,
-  activeKeys: Set<string>,
 ): CheckItem[] {
+  /* Walk through milestones in order. The first false milestone is
+     "active" (currently being processed). All after it are "pending". */
+  let foundFirstIncomplete = false;
+
   return MILESTONES.map((m) => {
-    let status: CheckItemStatus = "pending";
-    if (data[m.key]) {
-      status = "done";
-    } else if (activeKeys.has(m.key)) {
-      status = "active";
+    const passed = data[m.key];
+
+    if (passed) {
+      return {
+        key: m.key,
+        label: m.label,
+        description: m.descriptionDone,
+        status: "done" as CheckItemStatus,
+      };
     }
+
+    if (!foundFirstIncomplete) {
+      foundFirstIncomplete = true;
+      return {
+        key: m.key,
+        label: m.label,
+        description: m.descriptionActive,
+        status: "active" as CheckItemStatus,
+      };
+    }
+
     return {
       key: m.key,
       label: m.label,
-      description: m.description,
-      status,
+      description: m.descriptionPending,
+      status: "pending" as CheckItemStatus,
     };
   });
 }
@@ -131,20 +151,23 @@ function completedCount(data: VerificationStageData): number {
 export default function VerificationPage() {
   const router = useRouter();
 
-  /* ── State hooks ── */
+  /* ── Authoritative state from compliance case ── */
+  const {
+    milestones: authoritativeMilestones,
+    allComplete,
+    caseStatus,
+    statusLabel,
+    isLoading: caseLoading,
+  } = useComplianceCaseVerification();
+
+  /* ── Onboarding state hooks ── */
   const { data: onboardingState, isLoading: stateLoading } =
     useOnboardingState();
   const saveMutation = useSaveOnboardingState();
 
   /* ── Local state ── */
-  const [milestoneData, setMilestoneData] = useState<VerificationStageData>(
-    VERIFICATION_STAGE_DEFAULTS,
-  );
-  const [activeKeys, setActiveKeys] = useState<Set<string>>(new Set());
-  const [simulationStarted, setSimulationStarted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const hasRestoredRef = useRef(false);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   /* ── Organization data for review card ── */
   const [orgSummary, setOrgSummary] = useState<{
@@ -153,7 +176,7 @@ export default function VerificationPage() {
     representative: string;
   } | null>(null);
 
-  /* ── Restore milestone data from persisted state ── */
+  /* ── Restore organization summary from persisted state ── */
   useEffect(() => {
     if (hasRestoredRef.current) return;
     if (stateLoading) return;
@@ -163,17 +186,6 @@ export default function VerificationPage() {
     queueMicrotask(() => {
       if (onboardingState?.metadataJson) {
         const meta = onboardingState.metadataJson as Record<string, unknown>;
-
-        // Restore verification milestones
-        const saved = meta.__verification as
-          | Partial<VerificationStageData>
-          | undefined;
-        if (saved && typeof saved === "object") {
-          setMilestoneData({
-            ...VERIFICATION_STAGE_DEFAULTS,
-            ...saved,
-          });
-        }
 
         // Extract org summary for review card
         const org = meta.__organization as Record<string, unknown> | undefined;
@@ -188,50 +200,10 @@ export default function VerificationPage() {
     });
   }, [stateLoading, onboardingState]);
 
-  /* ── Simulated verification run ── */
-  useEffect(() => {
-    if (stateLoading || simulationStarted) return;
-    setSimulationStarted(true);
-
-    // Determine which milestones STILL need simulation
-    const pendingMilestones = MILESTONES.filter((m) => !milestoneData[m.key]);
-
-    if (pendingMilestones.length === 0) return; // all already done
-
-    // Mark pending milestones as active immediately
-    queueMicrotask(() => {
-      setActiveKeys(new Set(pendingMilestones.map((m) => m.key)));
-    });
-
-    // Stagger completion — delay is relative to the first pending milestone
-    const baseDelay = pendingMilestones[0].simulatedDelay;
-    pendingMilestones.forEach((milestone) => {
-      const adjustedDelay = milestone.simulatedDelay - baseDelay + 1500;
-      const t = setTimeout(() => {
-        setMilestoneData((prev) => ({
-          ...prev,
-          [milestone.key]: true,
-        }));
-        setActiveKeys((prev) => {
-          const next = new Set(prev);
-          next.delete(milestone.key);
-          return next;
-        });
-      }, adjustedDelay);
-      timersRef.current.push(t);
-    });
-
-    return () => {
-      timersRef.current.forEach(clearTimeout);
-      timersRef.current = [];
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stateLoading, simulationStarted]);
-
   /* ── Derived state ── */
-  const allComplete = isVerificationComplete(milestoneData);
-  const completed = completedCount(milestoneData);
-  const checkItems = milestoneToCheckItems(milestoneData, activeKeys);
+  const completed = completedCount(authoritativeMilestones);
+  const checkItems = milestoneToCheckItems(authoritativeMilestones);
+  const isAnyActive = checkItems.some((item) => item.status === "active");
 
   /* ── Submit: persist → advance → navigate to funding ── */
   const handleContinue = useCallback(async () => {
@@ -243,7 +215,7 @@ export default function VerificationPage() {
         currentStep: 2,
         status: "IN_PROGRESS",
         metadataJson: {
-          __verification: milestoneData,
+          __verification: authoritativeMilestones,
           __journey: { stage: "FUNDING", firstTradeCompleted: false },
         },
       });
@@ -253,7 +225,7 @@ export default function VerificationPage() {
       // mutation error handled by TanStack Query — stays on page
       setIsSaving(false);
     }
-  }, [allComplete, milestoneData, saveMutation, router]);
+  }, [allComplete, authoritativeMilestones, saveMutation, router]);
 
   /* ── Save and return later ── */
   const handleSaveAndExit = useCallback(async () => {
@@ -264,7 +236,7 @@ export default function VerificationPage() {
         currentStep: 2,
         status: "IN_PROGRESS",
         metadataJson: {
-          __verification: milestoneData,
+          __verification: authoritativeMilestones,
           __journey: { stage: "VERIFICATION", firstTradeCompleted: false },
         },
       });
@@ -273,14 +245,14 @@ export default function VerificationPage() {
     }
 
     router.push("/institutional/get-started/welcome");
-  }, [milestoneData, saveMutation, router]);
+  }, [authoritativeMilestones, saveMutation, router]);
 
   /* ── Loading state ── */
-  if (stateLoading) {
+  if (stateLoading || caseLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
         <Loader2 className="h-8 w-8 text-[#C6A86B] animate-spin" />
-        <p className="text-sm text-slate-500">Loading your progress…</p>
+        <p className="text-sm text-slate-500">Loading your verification status…</p>
       </div>
     );
   }
@@ -289,7 +261,7 @@ export default function VerificationPage() {
     <StepShell
       icon={ShieldCheck}
       headline="Verification"
-      description="We're running a series of checks to verify your entity, representatives, and compliance status. This usually takes just a moment."
+      description="Your entity verification status is shown below. Each milestone reflects the current state of your compliance checks with our verification provider."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
@@ -315,19 +287,32 @@ export default function VerificationPage() {
         {/* ── Milestone Checklist ── */}
         <AutoCheckList items={checkItems} />
 
-        {/* ── Progress summary ── */}
+        {/* ── Progress summary — authoritative status ── */}
         <div className="flex items-center justify-center gap-2 text-[11px]">
           {allComplete ? (
             <span className="text-[#3fae7a] font-semibold">
-              All checks passed — your entity is verified
+              {statusLabel}
             </span>
           ) : (
             <span className="text-slate-500">
               {completed} of {MILESTONES.length} checks complete
-              {activeKeys.size > 0 && " · screening in progress…"}
+              {isAnyActive && " · " + statusLabel}
             </span>
           )}
         </div>
+
+        {/* ── Compliance case info (when not yet started) ── */}
+        {!caseStatus && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-slate-800/50 bg-slate-900/30 px-4 py-3">
+            <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-slate-600" />
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              No active verification case found. Your compliance checks will
+              begin once your entity registration is submitted to our
+              verification provider. This may happen automatically or require
+              you to complete an identity verification step.
+            </p>
+          </div>
+        )}
 
         {/* ── Primary Action ── */}
         <StickyPrimaryAction
