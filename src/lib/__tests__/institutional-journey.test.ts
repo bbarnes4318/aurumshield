@@ -507,6 +507,35 @@ describe("isFundingReady", () => {
 });
 
 /* ================================================================
+   deriveFundingReadinessStatus — three-state UI readiness helper
+   ================================================================ */
+
+import {
+  deriveFundingReadinessStatus,
+} from "@/lib/schemas/funding-stage-schema";
+
+describe("deriveFundingReadinessStatus", () => {
+  it("returns NOT_CONFIGURED when form fields are incomplete", () => {
+    expect(deriveFundingReadinessStatus(false, null)).toBe("NOT_CONFIGURED");
+    expect(deriveFundingReadinessStatus(false, false)).toBe("NOT_CONFIGURED");
+  });
+
+  it("returns FORM_COMPLETE when form is done but server not yet ready", () => {
+    expect(deriveFundingReadinessStatus(true, null)).toBe("FORM_COMPLETE");
+    expect(deriveFundingReadinessStatus(true, false)).toBe("FORM_COMPLETE");
+  });
+
+  it("returns SERVER_READY when server confirms readiness", () => {
+    expect(deriveFundingReadinessStatus(true, true)).toBe("SERVER_READY");
+  });
+
+  it("returns SERVER_READY even if form appears incomplete when server says ready", () => {
+    // Edge case: server has validated from persisted data
+    expect(deriveFundingReadinessStatus(false, true)).toBe("SERVER_READY");
+  });
+});
+
+/* ================================================================
    isVerificationComplete — verification milestone guard
    ================================================================ */
 

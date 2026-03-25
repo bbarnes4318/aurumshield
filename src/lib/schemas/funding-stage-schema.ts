@@ -79,6 +79,11 @@ export const FUNDING_STAGE_DEFAULTS: FundingStageData = {
  * Returns true when funding has been sufficiently configured to
  * allow progression to the first-trade stages.
  *
+ * NOTE: This is the CLIENT-SIDE form completeness check only.
+ * Server-authoritative readiness is evaluated by
+ * `evaluateFundingReadiness()` in `funding-readiness.ts`, which
+ * also checks compliance case status and format validation.
+ *
  * Fail-closed: returns false unless all required fields for the
  * selected method are populated AND isFundingConfigured is true.
  */
@@ -103,4 +108,33 @@ export function isFundingReady(data: FundingStageData): boolean {
   }
 
   return false;
+}
+
+/* ── Funding Readiness Status — shared UI helper ── */
+
+/**
+ * Three-state readiness for UI display:
+ *   NOT_CONFIGURED → form fields incomplete
+ *   FORM_COMPLETE  → fields filled, server readiness not yet confirmed
+ *   SERVER_READY   → server-authoritative readiness confirmed
+ */
+export type FundingReadinessStatus =
+  | "NOT_CONFIGURED"
+  | "FORM_COMPLETE"
+  | "SERVER_READY";
+
+/**
+ * Derives the UI readiness status from client form completeness
+ * and server readiness result.
+ *
+ * @param formFieldsComplete - result of isFundingReady() or areFieldsComplete
+ * @param serverReady - result.serverReady from GET /api/compliance/funding-readiness (null if not yet fetched)
+ */
+export function deriveFundingReadinessStatus(
+  formFieldsComplete: boolean,
+  serverReady: boolean | null,
+): FundingReadinessStatus {
+  if (serverReady === true) return "SERVER_READY";
+  if (formFieldsComplete) return "FORM_COMPLETE";
+  return "NOT_CONFIGURED";
 }

@@ -25,6 +25,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   Wallet,
   Building2,
@@ -33,6 +34,7 @@ import {
   ShieldCheck,
   Loader2,
   Save,
+  AlertTriangle,
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
@@ -45,14 +47,24 @@ import {
   STABLECOIN_NETWORKS,
   STABLECOIN_ASSETS,
   isFundingReady,
+  deriveFundingReadinessStatus,
   type FundingStageData,
   type FundingMethod,
 } from "@/lib/schemas/funding-stage-schema";
+import type { FundingReadinessResult } from "@/lib/compliance/funding-readiness";
 
 import {
   useOnboardingState,
   useSaveOnboardingState,
 } from "@/hooks/use-onboarding-state";
+
+/* ================================================================
+   Types for API response
+   ================================================================ */
+
+interface FundingReadinessResponse {
+  result: FundingReadinessResult;
+}
 
 /* ================================================================
    STYLED FORM FIELD — matches organization page design system
@@ -158,6 +170,23 @@ export default function FundingPage() {
     [],
   );
 
+  /* ── Server readiness query ── */
+  const {
+    data: serverReadinessData,
+    refetch: refetchReadiness,
+  } = useQuery<FundingReadinessResult>({
+    queryKey: ["funding-readiness"],
+    queryFn: async () => {
+      const res = await fetch("/api/compliance/funding-readiness");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: FundingReadinessResponse = await res.json();
+      return data.result;
+    },
+    enabled: !stateLoading,
+    staleTime: 15_000,
+    retry: 2,
+  });
+
   /* ── Derived state ── */
   const method = fundingData.fundingMethod;
 
@@ -178,15 +207,42 @@ export default function FundingPage() {
     isFundingConfigured: areFieldsComplete,
   }), [fundingData, areFieldsComplete]);
 
+  /** Server readiness state */
+  const serverReady = serverReadinessData?.serverReady ?? null;
+  const readinessStatus = deriveFundingReadinessStatus(areFieldsComplete, serverReady);
   const canProceed = areFieldsComplete;
 
-  /* ── Submit: persist → advance → navigate to first trade ── */
+  /* ── Submit: persist → server readiness check → advance ── */
   const handleContinue = useCallback(async () => {
     const data = getReadyData();
     if (!isFundingReady(data)) return;
     setIsSaving(true);
 
     try {
+      // Step 1: Save the funding data
+      await saveMutation.mutateAsync({
+        currentStep: 5,
+        status: "IN_PROGRESS",
+        metadataJson: {
+          __funding: data,
+        },
+      });
+
+      // Step 2: Server-authoritative readiness check
+      const readinessRes = await fetch("/api/compliance/funding-readiness");
+      if (!readinessRes.ok) {
+        throw new Error("Failed to verify funding readiness");
+      }
+      const readinessBody: FundingReadinessResponse = await readinessRes.json();
+
+      if (!readinessBody.result.serverReady) {
+        // Server says not ready — refetch to update UI with blockers
+        await refetchReadiness();
+        setIsSaving(false);
+        return;
+      }
+
+      // Step 3: Server confirmed ready — advance to first trade
       await saveMutation.mutateAsync({
         currentStep: 5,
         status: "IN_PROGRESS",
@@ -199,9 +255,10 @@ export default function FundingPage() {
       router.push("/institutional/first-trade/asset");
     } catch {
       // mutation error handled by TanStack Query — stays on page
+      await refetchReadiness();
       setIsSaving(false);
     }
-  }, [getReadyData, saveMutation, router]);
+  }, [getReadyData, saveMutation, router, refetchReadiness]);
 
   /* ── Save and return later ── */
   const handleSaveAndExit = useCallback(async () => {
@@ -469,13 +526,31 @@ export default function FundingPage() {
           />
         )}
 
-        {/* ── Readiness indicator ── */}
-        <div className="flex items-center justify-center gap-2 text-[11px]">
-          {canProceed ? (
+        {/* ── Readiness indicator — three-state ── */}
+        <div className="flex flex-col items-center gap-1.5 text-[11px]">
+          {readinessStatus === "SERVER_READY" && (
             <span className="text-[#3fae7a] font-semibold">
-              Funding configured — ready to proceed
+              ✓ Funding verified — ready to proceed
             </span>
-          ) : (
+          )}
+          {readinessStatus === "FORM_COMPLETE" && (
+            <>
+              <span className="text-[#C6A86B] font-semibold">
+                Configuration saved — verifying readiness…
+              </span>
+              {serverReadinessData && !serverReadinessData.serverReady && serverReadinessData.blockers.length > 0 && (
+                <div className="flex items-start gap-1.5 rounded-lg border border-[#C6A86B]/20 bg-[#C6A86B]/5 px-3 py-2 mt-1 max-w-md">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#C6A86B]" />
+                  <div className="text-[10px] text-slate-400">
+                    {serverReadinessData.blockers.map((b, i) => (
+                      <p key={i}>{b}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {readinessStatus === "NOT_CONFIGURED" && (
             <span className="text-slate-500">
               Complete the fields above to continue
             </span>
