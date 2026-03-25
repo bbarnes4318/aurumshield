@@ -39,6 +39,8 @@ import {
   ExternalLink,
   AlertTriangle,
   ArrowRight,
+  XCircle,
+  Mail,
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
@@ -332,10 +334,52 @@ export default function VerificationPage() {
         {/* ── Milestone Checklist ── */}
         <AutoCheckList items={checkItems} />
 
+        {/* ── Rejected state — support-driven recovery ── */}
+        {caseStatus === "REJECTED" && (
+          <div className="rounded-xl border border-red-500/30 bg-red-950/10 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-red-400" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-red-400">
+                Verification Not Approved
+              </h3>
+            </div>
+            <p className="text-[12px] text-slate-400 leading-relaxed">
+              Your entity verification was reviewed and could not be approved at this time.
+              This may be due to incomplete documentation, discrepancies in the information
+              provided, or the results of regulatory screening checks.
+            </p>
+            <div className="rounded-lg border border-slate-800/50 bg-slate-900/30 px-4 py-3 space-y-2">
+              <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">
+                What you can do
+              </p>
+              <ul className="text-[11px] text-slate-400 leading-relaxed space-y-1.5 list-disc list-inside">
+                <li>Contact our compliance team to understand the specific reason for the decision</li>
+                <li>Provide any additional documentation that may be required</li>
+                <li>Request a new review once any issues have been addressed</li>
+              </ul>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              Your onboarding progress has been preserved. If a new compliance case is
+              opened by our team, you will be able to continue from where you left off.
+            </p>
+            <a
+              href="mailto:compliance@aurumshield.com?subject=Institutional%20Verification%20Review%20Request"
+              className="inline-flex items-center gap-2 w-full justify-center rounded-lg border border-red-500/30 bg-transparent px-4 py-2.5 text-sm font-medium text-red-400 transition-all hover:bg-red-950/20"
+            >
+              <Mail className="h-4 w-4" />
+              Contact Compliance Support
+            </a>
+          </div>
+        )}
+
         {/* ── Progress summary — authoritative status ── */}
         <div className="flex items-center justify-center gap-2 text-[11px]">
           {allComplete ? (
             <span className="text-[#3fae7a] font-semibold">
+              {statusLabel}
+            </span>
+          ) : caseStatus === "REJECTED" ? (
+            <span className="text-red-400 font-semibold">
               {statusLabel}
             </span>
           ) : (
