@@ -129,6 +129,12 @@ export function middleware(request: NextRequest) {
     if (pathname === "/offtaker/onboarding") {
       return NextResponse.redirect(new URL("/offtaker/onboarding/intake", request.url));
     }
+    if (pathname === "/institutional/get-started") {
+      return NextResponse.redirect(new URL("/institutional/get-started/welcome", request.url));
+    }
+    if (pathname === "/institutional/first-trade") {
+      return NextResponse.redirect(new URL("/institutional/first-trade/asset", request.url));
+    }
     if (!CLERK_ENABLED) {
       return NextResponse.next();
     }
@@ -141,6 +147,12 @@ export function middleware(request: NextRequest) {
   }
   if (pathname === "/offtaker/onboarding") {
     return NextResponse.redirect(new URL("/offtaker/onboarding/intake", request.url));
+  }
+  if (pathname === "/institutional/get-started") {
+    return NextResponse.redirect(new URL("/institutional/get-started/welcome", request.url));
+  }
+  if (pathname === "/institutional/first-trade") {
+    return NextResponse.redirect(new URL("/institutional/first-trade/asset", request.url));
   }
 
   // Shared paths (health, webhooks) — always pass through

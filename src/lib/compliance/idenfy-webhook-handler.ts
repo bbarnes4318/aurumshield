@@ -236,6 +236,27 @@ export async function processIdenfyWebhook(
   let checkUpdated = false;
 
   if (existingCheck) {
+    // CONCURRENCY: Idempotent webhook processing — only update if check
+    // is NOT already COMPLETED. Prevents duplicate webhook deliveries from
+    // overwriting a finalized check or generating duplicate audit events.
+    if (existingCheck.status === "COMPLETED" && existingCheck.normalizedVerdict !== null) {
+      console.log(
+        `[IDENFY_WEBHOOK] ♻️ IDEMPOTENT: Check ${existingCheck.id} already COMPLETED ` +
+          `(verdict=${existingCheck.normalizedVerdict}). Skipping duplicate webhook.`,
+      );
+
+      return {
+        accepted: true,
+        scanRef,
+        clientId,
+        overallStatus,
+        normalizedVerdict: verdict,
+        resultCode,
+        checkUpdated: false,
+        reason: `Check already COMPLETED with verdict=${existingCheck.normalizedVerdict}. Duplicate webhook ignored.`,
+      };
+    }
+
     await db
       .update(coChecks)
       .set({

@@ -152,101 +152,68 @@ export async function dispositionCase(
   const db = await getDb();
   const decidedAt = new Date().toISOString();
 
-  // ── Step 1: Fetch and validate the case ──
+  /* ════════════════════════════════════════════════════════════════
+     CONCURRENCY: The entire disposition flow — fetch, validate,
+     four-eyes check, verdict execution, and audit — wrapped in a
+     single transaction. Prevents double-disposition where two
+     reviewers simultaneously pass the READY_FOR_DISPOSITION check
+     and both render conflicting verdicts.
+     ════════════════════════════════════════════════════════════════ */
 
-  const [complianceCase] = await db
-    .select()
-    .from(coCases)
-    .where(eq(coCases.id, caseId))
-    .limit(1);
+  return await db.transaction(async (tx) => {
+    // ── Step 1: Fetch and validate the case (inside transaction) ──
 
-  if (!complianceCase) {
-    throw new CaseNotFoundError(caseId);
-  }
+    const [complianceCase] = await tx
+      .select()
+      .from(coCases)
+      .where(eq(coCases.id, caseId))
+      .limit(1);
 
-  if (complianceCase.status !== "READY_FOR_DISPOSITION") {
-    throw new CaseNotReadyError(caseId, complianceCase.status);
-  }
-
-  // ── Step 2: Fetch the subject ──
-
-  const [subject] = await db
-    .select()
-    .from(coSubjects)
-    .where(eq(coSubjects.id, complianceCase.subjectId))
-    .limit(1);
-
-  if (!subject) {
-    throw new SubjectNotFoundError(complianceCase.subjectId);
-  }
-
-  // ── Step 3: FOUR-EYES CHECK ──
-
-  const fourEyesRequired = isFourEyesRequired(
-    complianceCase.priority,
-    subject.riskTier,
-  );
-
-  const originalReviewerId = complianceCase.assignedReviewerId;
-
-  if (fourEyesRequired && originalReviewerId) {
-    if (reviewerId === originalReviewerId) {
-      throw new DualSignoffRequiredError(
-        caseId,
-        reviewerId,
-        originalReviewerId,
-      );
+    if (!complianceCase) {
+      throw new CaseNotFoundError(caseId);
     }
-  }
 
-  const fourEyesSatisfied =
-    !fourEyesRequired || (originalReviewerId !== null && reviewerId !== originalReviewerId);
+    if (complianceCase.status !== "READY_FOR_DISPOSITION") {
+      throw new CaseNotReadyError(caseId, complianceCase.status);
+    }
 
-  // ── Step 4: Generate immutable disposition hash ──
+    // ── Step 2: Fetch the subject ──
 
-  const dispositionHash = generateEvidenceHash({
-    caseId,
-    subjectId: subject.id,
-    reviewerId,
-    originalReviewerId,
-    verdict,
-    rationale,
-    caseType: complianceCase.caseType,
-    priority: complianceCase.priority,
-    fourEyesRequired,
-    fourEyesSatisfied,
-    decidedAt,
-  });
+    const [subject] = await tx
+      .select()
+      .from(coSubjects)
+      .where(eq(coSubjects.id, complianceCase.subjectId))
+      .limit(1);
 
-  // ── Step 5: Execute the verdict ──
+    if (!subject) {
+      throw new SubjectNotFoundError(complianceCase.subjectId);
+    }
 
-  let downstreamAction: string;
+    // ── Step 3: FOUR-EYES CHECK ──
 
-  if (verdict === "REJECTED") {
-    downstreamAction = await executeRejection(
-      db,
-      complianceCase,
-      subject,
-      rationale,
-      dispositionHash,
+    const fourEyesRequired = isFourEyesRequired(
+      complianceCase.priority,
+      subject.riskTier,
     );
-  } else {
-    downstreamAction = await executeApproval(
-      db,
-      complianceCase,
-      subject,
-      rationale,
-      dispositionHash,
-    );
-  }
 
-  // ── Step 6: Audit trail ──
+    const originalReviewerId = complianceCase.assignedReviewerId;
 
-  await appendEvent(
-    "COMPLIANCE_CASE",
-    caseId,
-    "MANUAL_DISPOSITION_RENDERED",
-    {
+    if (fourEyesRequired && originalReviewerId) {
+      if (reviewerId === originalReviewerId) {
+        throw new DualSignoffRequiredError(
+          caseId,
+          reviewerId,
+          originalReviewerId,
+        );
+      }
+    }
+
+    const fourEyesSatisfied =
+      !fourEyesRequired || (originalReviewerId !== null && reviewerId !== originalReviewerId);
+
+    // ── Step 4: Generate immutable disposition hash ──
+
+    const dispositionHash = generateEvidenceHash({
       caseId,
       subjectId: subject.id,
       reviewerId,
@@ -257,31 +224,74 @@ export async function dispositionCase(
       priority: complianceCase.priority,
       fourEyesRequired,
       fourEyesSatisfied,
+      decidedAt,
+    });
+
+    // ── Step 5: Execute the verdict (using tx for atomicity) ──
+
+    let downstreamAction: string;
+
+    if (verdict === "REJECTED") {
+      downstreamAction = await executeRejection(
+        tx,
+        complianceCase,
+        subject,
+        rationale,
+        dispositionHash,
+      );
+    } else {
+      downstreamAction = await executeApproval(
+        tx,
+        complianceCase,
+        subject,
+        rationale,
+        dispositionHash,
+      );
+    }
+
+    // ── Step 6: Audit trail ──
+
+    await appendEvent(
+      "COMPLIANCE_CASE",
+      caseId,
+      "MANUAL_DISPOSITION_RENDERED",
+      {
+        caseId,
+        subjectId: subject.id,
+        reviewerId,
+        originalReviewerId,
+        verdict,
+        rationale,
+        caseType: complianceCase.caseType,
+        priority: complianceCase.priority,
+        fourEyesRequired,
+        fourEyesSatisfied,
+        dispositionHash,
+        downstreamAction,
+      },
+      reviewerId,
+    );
+
+    console.log(
+      `[DISPOSITION] ${verdict === "APPROVED" ? "✅" : "❌"} ${verdict}: ` +
+        `case=${caseId}, subject=${subject.legalName}, ` +
+        `reviewer=${reviewerId}, fourEyes=${fourEyesRequired}/${fourEyesSatisfied}, ` +
+        `downstream=${downstreamAction}, hash=${dispositionHash.slice(0, 16)}…`,
+    );
+
+    return {
+      caseId,
+      subjectId: subject.id,
+      verdict,
+      reviewerId,
+      originalReviewerId,
+      fourEyesRequired,
+      fourEyesSatisfied,
       dispositionHash,
       downstreamAction,
-    },
-    reviewerId,
-  );
-
-  console.log(
-    `[DISPOSITION] ${verdict === "APPROVED" ? "✅" : "❌"} ${verdict}: ` +
-      `case=${caseId}, subject=${subject.legalName}, ` +
-      `reviewer=${reviewerId}, fourEyes=${fourEyesRequired}/${fourEyesSatisfied}, ` +
-      `downstream=${downstreamAction}, hash=${dispositionHash.slice(0, 16)}…`,
-  );
-
-  return {
-    caseId,
-    subjectId: subject.id,
-    verdict,
-    reviewerId,
-    originalReviewerId,
-    fourEyesRequired,
-    fourEyesSatisfied,
-    dispositionHash,
-    downstreamAction,
-    decidedAt,
-  };
+      decidedAt,
+    };
+  }); // end transaction
 }
 
 // ─── FOUR-EYES LOGIC ───────────────────────────────────────────────────────────

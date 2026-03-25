@@ -45,7 +45,7 @@ export interface OnboardingState {
 
 export const patchOnboardingStateSchema = z.object({
   orgId: z.string().uuid().nullable().optional(),
-  currentStep: z.number().int().min(1).max(4).optional(),
+  currentStep: z.number().int().min(1).max(8).optional(),
   providerInquiryId: z.string().max(255).nullable().optional(),
   status: z.enum(ONBOARDING_STATUSES).optional(),
   statusReason: z.string().max(2000).nullable().optional(),

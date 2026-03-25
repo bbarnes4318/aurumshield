@@ -16,7 +16,7 @@
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
 
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import {
   coRefineryLots,
   coSubjects,
@@ -189,13 +189,19 @@ export async function evaluateRefineryLot(
 
   if (!economicsResult.valid) {
     // Transition lot to ASSAY_EXCEPTION
+    // CONCURRENCY: Conditional guard — only set exception if assay status is still COMPLETE
     await db
       .update(coRefineryLots)
       .set({
         assayStatus: "ASSAY_EXCEPTION",
         settlementReady: false,
       })
-      .where(eq(coRefineryLots.id, lotId));
+      .where(
+        and(
+          eq(coRefineryLots.id, lotId),
+          eq(coRefineryLots.assayStatus, "COMPLETE"),
+        ),
+      );
 
     // Open an EVENT_DRIVEN_REVIEW case for the supplier
     const reviewCaseId = await openRefineryReviewCase(
@@ -290,13 +296,19 @@ export async function evaluateRefineryLot(
   });
 
   // Transition lot to SETTLEMENT_READY
+  // CONCURRENCY: Conditional guard — only approve if assay status is still COMPLETE
   await db
     .update(coRefineryLots)
     .set({
       assayStatus: "SETTLEMENT_READY",
       settlementReady: true,
     })
-    .where(eq(coRefineryLots.id, lotId));
+    .where(
+      and(
+        eq(coRefineryLots.id, lotId),
+        eq(coRefineryLots.assayStatus, "COMPLETE"),
+      ),
+    );
 
   // Audit trail
   await appendEvent(

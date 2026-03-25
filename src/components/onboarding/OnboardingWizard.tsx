@@ -272,7 +272,7 @@ export function OnboardingWizard() {
   /* ── Resume Later ── */
   const handleResumeLater = useCallback(() => {
     saveProgress(currentStep);
-    router.push("/offtaker");
+    router.push("/institutional");
   }, [currentStep, saveProgress, router]);
 
   /* ── Final submission ── */
@@ -299,7 +299,7 @@ export function OnboardingWizard() {
 
       // Route into the portal after a brief success state
       setTimeout(() => {
-        router.push("/offtaker");
+        router.push("/institutional");
       }, 2000);
     },
     [router, saveProgress],

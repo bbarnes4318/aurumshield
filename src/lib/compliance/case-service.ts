@@ -16,7 +16,7 @@
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
 
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import {
   coCases,
   coCaseTasks,
@@ -332,19 +332,27 @@ export async function assignCase(
     "OPEN",
     "AWAITING_INTERNAL_REVIEW",
     "ESCALATED",
-  ];
+  ] as const;
 
-  if (!reviewableStatuses.includes(complianceCase.status)) {
+  if (!(reviewableStatuses as readonly string[]).includes(complianceCase.status)) {
     throw new CaseNotReviewableError(caseId, complianceCase.status);
   }
 
   const previousReviewerId = complianceCase.assignedReviewerId;
   const assignedAt = new Date().toISOString();
 
+  // CONCURRENCY: Conditional UPDATE — only assign if case is still reviewable.
+  // If another operator transitioned the case between our SELECT and UPDATE,
+  // the rowCount will be 0 and we throw CaseNotReviewableError.
   await db
     .update(coCases)
     .set({ assignedReviewerId: reviewerId })
-    .where(eq(coCases.id, caseId));
+    .where(
+      and(
+        eq(coCases.id, caseId),
+        inArray(coCases.status, [...reviewableStatuses]),
+      ),
+    );
 
   await appendEvent(
     "COMPLIANCE_CASE",
@@ -501,103 +509,134 @@ export async function completeTask(
 ): Promise<CompleteTaskResult> {
   const db = await getDb();
 
-  // ── Step 1: Fetch and validate the task ──
+  /* ════════════════════════════════════════════════════════════════
+     CONCURRENCY: Task completion + all-required gate check + case
+     transition wrapped in single transaction. Prevents:
+       - Two concurrent completions of the last two required tasks
+         both reading incomplete state and both transitioning the case
+       - A task being completed twice by different reviewers
+     ════════════════════════════════════════════════════════════════ */
 
-  const [task] = await db
-    .select()
-    .from(coCaseTasks)
-    .where(eq(coCaseTasks.id, taskId))
-    .limit(1);
+  return await db.transaction(async (tx) => {
+    // ── Step 1: Fetch and validate the task ──
 
-  if (!task) {
-    throw new TaskNotFoundError(taskId);
-  }
+    const [task] = await tx
+      .select()
+      .from(coCaseTasks)
+      .where(eq(coCaseTasks.id, taskId))
+      .limit(1);
 
-  if (task.status !== "PENDING") {
-    throw new TaskAlreadyCompleteError(taskId);
-  }
+    if (!task) {
+      throw new TaskNotFoundError(taskId);
+    }
 
-  const completedAt = new Date();
+    if (task.status !== "PENDING") {
+      throw new TaskAlreadyCompleteError(taskId);
+    }
 
-  // ── Step 2: Mark task as COMPLETED ──
+    const completedAt = new Date();
 
-  await db
-    .update(coCaseTasks)
-    .set({
-      status: "COMPLETED",
-      completedAt,
-      completedBy: userId,
-      completionNotes: notes,
-    })
-    .where(eq(coCaseTasks.id, taskId));
+    // ── Step 2: Conditional UPDATE — only complete if still PENDING ──
+    // Guards against two reviewers racing to complete the same task.
 
-  // ── Step 3: Check the all-required gate ──
+    const updateResult = await tx
+      .update(coCaseTasks)
+      .set({
+        status: "COMPLETED",
+        completedAt,
+        completedBy: userId,
+        completionNotes: notes,
+      })
+      .where(and(eq(coCaseTasks.id, taskId), eq(coCaseTasks.status, "PENDING")));
 
-  const allTasks = await db
-    .select()
-    .from(coCaseTasks)
-    .where(eq(coCaseTasks.caseId, task.caseId));
+    if ((updateResult as unknown as { rowCount: number }).rowCount === 0) {
+      throw new TaskAlreadyCompleteError(taskId);
+    }
 
-  const requiredTasks = allTasks.filter((t) => t.required === true);
-  const allRequiredComplete = requiredTasks.every(
-    (t) =>
-      t.id === taskId || // The one we just completed
-      t.status === "COMPLETED" ||
-      t.status === "WAIVED",
-  );
+    // ── Step 3: Check the all-required gate (inside transaction) ──
 
-  // ── Step 4: Transition case if all required tasks are done ──
+    const allTasks = await tx
+      .select()
+      .from(coCaseTasks)
+      .where(eq(coCaseTasks.caseId, task.caseId));
 
-  let caseTransitioned = false;
-  let newCaseStatus: string | null = null;
+    const requiredTasks = allTasks.filter((t) => t.required === true);
+    const allRequiredComplete = requiredTasks.every(
+      (t) =>
+        t.id === taskId || // The one we just completed
+        t.status === "COMPLETED" ||
+        t.status === "WAIVED",
+    );
 
-  if (allRequiredComplete && requiredTasks.length > 0) {
-    await db
-      .update(coCases)
-      .set({ status: "READY_FOR_DISPOSITION" })
-      .where(eq(coCases.id, task.caseId));
+    // ── Step 4: Conditional case transition (inside transaction) ──
+    // Only transition if case is NOT already READY_FOR_DISPOSITION.
+    // Prevents duplicate transitions from concurrent task completions.
 
-    caseTransitioned = true;
-    newCaseStatus = "READY_FOR_DISPOSITION";
+    let caseTransitioned = false;
+    let newCaseStatus: string | null = null;
+
+    if (allRequiredComplete && requiredTasks.length > 0) {
+      const caseUpdateResult = await tx
+        .update(coCases)
+        .set({ status: "READY_FOR_DISPOSITION" })
+        .where(
+          and(
+            eq(coCases.id, task.caseId),
+            // Guard: only if NOT already in a terminal/ready state
+            inArray(coCases.status, [
+              "OPEN",
+              "AWAITING_INTERNAL_REVIEW",
+              "ESCALATED",
+              "AWAITING_SUBJECT",
+              "AWAITING_PROVIDER",
+            ]),
+          ),
+        );
+
+      if ((caseUpdateResult as unknown as { rowCount: number }).rowCount > 0) {
+        caseTransitioned = true;
+        newCaseStatus = "READY_FOR_DISPOSITION";
+
+        console.log(
+          `[CASE_SERVICE] ✅ All required tasks complete — case ${task.caseId} → READY_FOR_DISPOSITION`,
+        );
+      }
+    }
+
+    // ── Step 5: Audit log ──
+
+    await appendEvent(
+      "COMPLIANCE_CASE",
+      task.caseId,
+      "TASK_COMPLETED",
+      {
+        caseId: task.caseId,
+        taskId,
+        taskType: task.taskType,
+        completedBy: userId,
+        completionNotes: notes,
+        allRequiredComplete,
+        caseTransitioned,
+        newCaseStatus: newCaseStatus ?? undefined,
+      },
+      userId,
+    );
 
     console.log(
-      `[CASE_SERVICE] ✅ All required tasks complete — case ${task.caseId} → READY_FOR_DISPOSITION`,
+      `[CASE_SERVICE] Task completed: task=${taskId} (${task.taskType}), ` +
+        `case=${task.caseId}, allRequired=${allRequiredComplete}`,
     );
-  }
 
-  // ── Step 5: Audit log ──
-
-  await appendEvent(
-    "COMPLIANCE_CASE",
-    task.caseId,
-    "TASK_COMPLETED",
-    {
-      caseId: task.caseId,
+    return {
       taskId,
+      caseId: task.caseId,
       taskType: task.taskType,
-      completedBy: userId,
-      completionNotes: notes,
+      completedAt: completedAt.toISOString(),
       allRequiredComplete,
       caseTransitioned,
-      newCaseStatus: newCaseStatus ?? undefined,
-    },
-    userId,
-  );
-
-  console.log(
-    `[CASE_SERVICE] Task completed: task=${taskId} (${task.taskType}), ` +
-      `case=${task.caseId}, allRequired=${allRequiredComplete}`,
-  );
-
-  return {
-    taskId,
-    caseId: task.caseId,
-    taskType: task.taskType,
-    completedAt: completedAt.toISOString(),
-    allRequiredComplete,
-    caseTransitioned,
-    newCaseStatus,
-  };
+      newCaseStatus,
+    };
+  }); // end transaction
 }
 
 // ─── QUERY HELPERS ─────────────────────────────────────────────────────────────

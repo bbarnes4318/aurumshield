@@ -16,7 +16,7 @@
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
 
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import {
   coPhysicalShipments,
   coSubjects,
@@ -142,10 +142,16 @@ export async function evaluateShipment(
 
   if (!integrityResult.intact) {
     // Quarantine the shipment
+    // CONCURRENCY: Only quarantine if still in previous status
     await db
       .update(coPhysicalShipments)
       .set({ shipmentStatus: "QUARANTINED" })
-      .where(eq(coPhysicalShipments.id, shipmentId));
+      .where(
+        and(
+          eq(coPhysicalShipments.id, shipmentId),
+          eq(coPhysicalShipments.shipmentStatus, previousStatus as typeof coPhysicalShipments.shipmentStatus.enumValues[number]),
+        ),
+      );
 
     // Open an EVENT_DRIVEN_REVIEW case for the supplier
     const reviewCaseId = await openReviewCase(
@@ -217,10 +223,16 @@ export async function evaluateShipment(
   // ════════════════════════════════════════════════════════════════
 
   if (previousStatus === "DELIVERED_TO_REFINERY") {
+    // CONCURRENCY: Conditional guard — only clear if still DELIVERED_TO_REFINERY
     await db
       .update(coPhysicalShipments)
       .set({ shipmentStatus: "CLEARED_FOR_INTAKE" })
-      .where(eq(coPhysicalShipments.id, shipmentId));
+      .where(
+        and(
+          eq(coPhysicalShipments.id, shipmentId),
+          eq(coPhysicalShipments.shipmentStatus, "DELIVERED_TO_REFINERY"),
+        ),
+      );
 
     const decisionHash = generateEvidenceHash({
       shipmentId,

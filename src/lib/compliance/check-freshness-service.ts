@@ -28,7 +28,7 @@
    MUST NOT be imported in client components — server-side only.
    ================================================================ */
 
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, not } from "drizzle-orm";
 import { coChecks, coCases, type CoCheck } from "@/db/schema/compliance";
 import { getDb } from "@/db/drizzle";
 import { appendEvent } from "./audit-log";
@@ -253,13 +253,26 @@ export async function evaluateSubjectCheckFreshness(
       expiredChecks.push(result);
 
       // Mark the check as EXPIRED in the database
-      await db
+      // CONCURRENCY: Only update if not already EXPIRED (prevents cron
+      // from overwriting verdicts concurrently changed by operators/webhooks)
+      const updateResult = await db
         .update(coChecks)
         .set({
           normalizedVerdict: "EXPIRED",
           updatedAt: now,
         })
-        .where(eq(coChecks.id, check.id));
+        .where(
+          and(
+            eq(coChecks.id, check.id),
+            // Guard: skip if already terminal
+            not(eq(coChecks.normalizedVerdict, "EXPIRED")),
+          ),
+        );
+
+      // Only count and audit if the update actually changed a row
+      if ((updateResult as unknown as { rowCount: number }).rowCount === 0) {
+        continue;
+      }
 
       checksMarkedExpired++;
 

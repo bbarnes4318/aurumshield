@@ -1,11 +1,28 @@
 "use client";
 
 /* ================================================================
-   INSTITUTIONAL COMMAND CENTER LAYOUT — PortalShell + StrictComplianceGate
+   INSTITUTIONAL LAYOUT — Smart Entry Router
+   ================================================================
+   Serves two experiences:
+
+   1. GUIDED FLOW (incomplete users):
+      /institutional/get-started/* routes render through their own
+      GuidedShellLayout — no PortalShell, no sidebar.
+      The compliance gate allows these routes through to prevent
+      redirect loops.
+
+   2. ADVANCED WORKSPACE (completed users):
+      /institutional, /marketplace, /orders, /compliance render
+      inside the full PortalShell with sidebar + compliance gate.
+
+   Routing truth:
+     incomplete + NOT on /get-started → redirect to /get-started/welcome
+     incomplete + ON /get-started     → allow through (GuidedShellLayout)
+     completed  + any route           → allow through (PortalShell)
    ================================================================ */
 
 import { type ReactNode, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { PortalShell } from "@/components/layout/portal-shell";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
 import {
@@ -19,10 +36,15 @@ import {
 
 /* ══════════════════════════════════════════════════════════════════
    STRICT COMPLIANCE GATE
+   ══════════════════════════════════════════════════════════════════
+   Controls access to the ADVANCED institutional workspace.
+   Incomplete users on non-guided routes are redirected to the
+   guided entry flow at /institutional/get-started/welcome.
    ══════════════════════════════════════════════════════════════════ */
 
 function StrictComplianceGate({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const {
     data: onboardingState,
     isLoading,
@@ -31,12 +53,26 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
 
   const isCleared = onboardingState?.status === "COMPLETED";
 
+  /* ── Guided path passthrough ──
+     If the user is already on /institutional/get-started/*, the
+     GuidedShellLayout handles rendering. The compliance gate must
+     NOT redirect these routes or a loop will occur. */
+  const isOnGuidedPath =
+    pathname.startsWith("/institutional/get-started") ||
+    pathname.startsWith("/institutional/first-trade");
+
   useEffect(() => {
     if (isLoading || isError) return;
+    if (isOnGuidedPath) return; // Never redirect guided routes
     if (!isCleared) {
-      router.replace("/institutional/compliance");
+      router.replace("/institutional/get-started/welcome");
     }
-  }, [isLoading, isError, isCleared, router]);
+  }, [isLoading, isError, isCleared, isOnGuidedPath, router]);
+
+  /* ── Guided path: skip all gate UI, let GuidedShellLayout render ── */
+  if (isOnGuidedPath) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (
@@ -69,12 +105,12 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
   if (!isCleared) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
-        <ShieldAlert className="h-8 w-8 text-slate-400 mb-4" />
+        <Loader2 className="h-6 w-6 text-slate-500 animate-spin mb-4" />
         <span className="font-mono text-[11px] text-slate-400 tracking-wider uppercase">
-          Institutional Compliance Clearance Required
+          Preparing Your Guided Setup
         </span>
         <span className="font-mono text-[9px] text-slate-600 mt-1">
-          Redirecting to AML/KYB verification...
+          Redirecting...
         </span>
       </div>
     );
@@ -83,7 +119,7 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/* ── Navigation: 4-Pillar Structure ── */
+/* ── Navigation: 4-Pillar Structure (advanced workspace only) ── */
 const NAV_ITEMS = [
   { href: "/institutional",             label: "Portfolio Overview", icon: Briefcase },
   { href: "/institutional/marketplace", label: "Marketplace",       icon: Store },
@@ -92,6 +128,23 @@ const NAV_ITEMS = [
 ] as const;
 
 export default function InstitutionalLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
+  /* ── Guided flow: bypass PortalShell entirely ──
+     The GuidedShellLayout provides its own full-screen calm layout.
+     Wrapping it in PortalShell would inject the sidebar + nav chrome. */
+  if (
+    pathname.startsWith("/institutional/get-started") ||
+    pathname.startsWith("/institutional/first-trade")
+  ) {
+    return (
+      <StrictComplianceGate>
+        {children}
+      </StrictComplianceGate>
+    );
+  }
+
+  /* ── Advanced workspace: full PortalShell + compliance gate ── */
   return (
     <PortalShell
       navItems={[...NAV_ITEMS]}

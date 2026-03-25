@@ -45,11 +45,20 @@ function buildMockDbChain(rows: unknown[]) {
   mockSet.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
   mockUpdate.mockReturnValue({ set: mockSet });
 
-  return {
+  const dbInstance = {
     select: mockSelect,
     insert: mockInsert,
     update: mockUpdate,
+    delete: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
+    transaction: vi.fn(),
   };
+
+  // CONCURRENCY: Transaction mock — transparently invokes callback with same db
+  dbInstance.transaction.mockImplementation(
+    async (cb: (tx: typeof dbInstance) => Promise<unknown>) => cb(dbInstance),
+  );
+
+  return dbInstance;
 }
 
 vi.mock("@/db/drizzle", () => ({
