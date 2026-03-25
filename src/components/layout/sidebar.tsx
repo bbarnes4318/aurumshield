@@ -256,7 +256,7 @@ function NavLink({
   );
 }
 
-/* ── Goldwire Logo Nav Link — renders official goldwire-logo.svg instead of a standard nav item ── */
+/* ── Goldwire Logo Nav Link — renders like a standard nav item with the goldwire-logo.svg as icon ── */
 function GoldwireNavLink({
   collapsed,
   pathname,
@@ -275,11 +275,11 @@ function GoldwireNavLink({
         href={href}
         onClick={onLinkClick}
         className={cn(
-          "flex items-center rounded px-2.5 py-1.5 transition-colors duration-100",
+          "flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] font-normal tracking-wide transition-colors duration-100",
           isActive
-            ? "bg-slate-800"
-            : "hover:bg-slate-800/50",
-          collapsed ? "justify-center px-0" : "gap-2"
+            ? "bg-slate-800 text-white font-medium"
+            : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200",
+          collapsed && "justify-center px-0"
         )}
         aria-current={isActive ? "page" : undefined}
       >
@@ -287,12 +287,10 @@ function GoldwireNavLink({
         <img
           src="/goldwire-logo.svg"
           alt="Goldwire"
-          className={cn(
-            "w-auto shrink-0",
-            collapsed ? "h-12" : "h-12"
-          )}
+          className="h-3.5 w-auto shrink-0"
           style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
         />
+        {!collapsed && <span className="truncate">Goldwire</span>}
       </Link>
     </li>
   );
