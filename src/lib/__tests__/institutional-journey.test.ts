@@ -536,6 +536,60 @@ describe("deriveFundingReadinessStatus", () => {
 });
 
 /* ================================================================
+   isSnapshotFresh — indicative price snapshot staleness guard
+   ================================================================ */
+
+import {
+  isSnapshotFresh,
+  SNAPSHOT_MAX_AGE_MS,
+  type IndicativePriceSnapshot,
+} from "@/lib/schemas/first-trade-draft-schema";
+
+function makeSnapshot(capturedAt: string): IndicativePriceSnapshot {
+  return {
+    tier: "INDICATIVE",
+    spotPriceUsd: 2650.0,
+    totalWeightOz: 400,
+    baseSpotValueUsd: 1060000.0,
+    assetPremiumUsd: 1060.0,
+    assetPremiumBps: 10,
+    platformFeeUsd: 10600.0,
+    platformFeeBps: 100,
+    estimatedTotalUsd: 1071660.0,
+    capturedAt,
+  };
+}
+
+describe("isSnapshotFresh", () => {
+  it("returns true for a snapshot captured just now", () => {
+    const snapshot = makeSnapshot(new Date().toISOString());
+    expect(isSnapshotFresh(snapshot)).toBe(true);
+  });
+
+  it("returns true for a snapshot captured 4 minutes ago", () => {
+    const fourMinAgo = new Date(Date.now() - 4 * 60 * 1000).toISOString();
+    const snapshot = makeSnapshot(fourMinAgo);
+    expect(isSnapshotFresh(snapshot)).toBe(true);
+  });
+
+  it("returns false for a snapshot captured 6 minutes ago", () => {
+    const sixMinAgo = new Date(Date.now() - 6 * 60 * 1000).toISOString();
+    const snapshot = makeSnapshot(sixMinAgo);
+    expect(isSnapshotFresh(snapshot)).toBe(false);
+  });
+
+  it("returns false for a snapshot captured 1 hour ago", () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const snapshot = makeSnapshot(oneHourAgo);
+    expect(isSnapshotFresh(snapshot)).toBe(false);
+  });
+
+  it("uses the correct max age constant (5 minutes)", () => {
+    expect(SNAPSHOT_MAX_AGE_MS).toBe(5 * 60 * 1000);
+  });
+});
+
+/* ================================================================
    isVerificationComplete — verification milestone guard
    ================================================================ */
 

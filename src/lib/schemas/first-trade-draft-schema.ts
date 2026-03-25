@@ -285,3 +285,71 @@ export function isDeliveryStageReady(draft: FirstTradeDraft): boolean {
    ---------------------------------------------------------------- */
 
 export const PLATFORM_FEE_BPS = 100;
+
+/* ================================================================
+   Indicative Price Snapshot
+   ================================================================
+   Captured at the moment of trade intent authorization. Explicitly
+   labeled as INDICATIVE — not a locked quote. Persisted server-side
+   in __firstTradeIntent.indicativeSnapshot for audit trail and
+   honest display on the success page.
+
+   True quote-lock requires a server-side pricing service with
+   exchange integration, which does not yet exist.
+   ================================================================ */
+
+/** Pricing tier: INDICATIVE means no quote-lock guarantee. */
+export type PricingTier = "INDICATIVE";
+
+export interface IndicativePriceSnapshot {
+  /** Always "INDICATIVE" — no quote-lock exists yet. */
+  tier: PricingTier;
+  /** XAU/USD spot price at capture time. */
+  spotPriceUsd: number;
+  /** Total weight in troy ounces. */
+  totalWeightOz: number;
+  /** Base spot value (weight × spot). */
+  baseSpotValueUsd: number;
+  /** Asset premium in USD. */
+  assetPremiumUsd: number;
+  /** Asset premium in basis points (for transparency). */
+  assetPremiumBps: number;
+  /** Platform fee in USD. */
+  platformFeeUsd: number;
+  /** Platform fee in basis points. */
+  platformFeeBps: number;
+  /** Estimated total (spot + premium + fee). */
+  estimatedTotalUsd: number;
+  /** ISO timestamp when this snapshot was captured client-side. */
+  capturedAt: string;
+}
+
+/** Zod schema for server-side validation of the price snapshot. */
+export const indicativePriceSnapshotSchema = z.object({
+  tier: z.literal("INDICATIVE"),
+  spotPriceUsd: z.number().positive(),
+  totalWeightOz: z.number().positive(),
+  baseSpotValueUsd: z.number().positive(),
+  assetPremiumUsd: z.number().min(0),
+  assetPremiumBps: z.number().int().min(0),
+  platformFeeUsd: z.number().min(0),
+  platformFeeBps: z.number().int().min(0),
+  estimatedTotalUsd: z.number().positive(),
+  capturedAt: z.string().datetime(),
+});
+
+/**
+ * Maximum age (in ms) for an indicative price snapshot to be accepted.
+ * Snapshots older than this are rejected to prevent stale pricing.
+ */
+export const SNAPSHOT_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Validates that an indicative price snapshot is not stale.
+ * Returns true if the snapshot was captured within SNAPSHOT_MAX_AGE_MS.
+ */
+export function isSnapshotFresh(snapshot: IndicativePriceSnapshot): boolean {
+  const capturedMs = new Date(snapshot.capturedAt).getTime();
+  const nowMs = Date.now();
+  return nowMs - capturedMs <= SNAPSHOT_MAX_AGE_MS;
+}

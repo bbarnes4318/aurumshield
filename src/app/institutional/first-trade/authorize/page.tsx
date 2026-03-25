@@ -4,35 +4,41 @@
    FIRST TRADE — AUTHORIZE
    /institutional/first-trade/authorize
    ================================================================
-   Deliberate confirmation step for the institutional first trade.
-   The user reviews a compact summary and explicitly authorizes
-   the trade intent via the server-backed submitFirstTrade() action.
+   Deliberate commercial confirmation step for the institutional
+   first trade. The user reviews a compact summary — including an
+   explicit indicative price snapshot — and authorizes the trade
+   intent via the server-backed submitFirstTrade() action.
+
+   HARDENED CONFIRMATION BOUNDARY:
+     1. Scroll-through legal acknowledgment (must scroll to unlock)
+     2. Typed confirmation phrase ("CONFIRM TRADE")
+     3. Hold-to-confirm button (3-second press-and-hold)
+     4. Server-backed 3-layer auth + phrase validation
 
    Design requirements:
-     • Serious and high-trust, not cluttered
-     • One clear action: "Authorize First Trade"
-     • Legal acknowledgment required before proceeding
-     • Server-backed submission (fail-closed)
+     • Serious and high-trust commercial boundary
+     • Typed confirmation phrase — not a single checkbox click
+     • Hold-to-confirm prevents accidental submission
+     • Indicative pricing shown transparently with tier label
+     • Server-backed submission (fail-closed + snapshot validation)
      • Not a dense order ticket
 
    Reuses:
-     • submitFirstTrade() server action (fail-closed, auth-enforced)
+     • submitFirstTrade() server action (3-layer auth, fail-closed)
      • ReviewCard for compact summary
      • StepShell + StickyPrimaryAction for guided UX
-
-   Does NOT reuse:
-     • DualAuthGate (too complex for first-trade guided flow)
-     • WebAuthnModal (reserved for operational settlement)
-     • Full marketplace execution terminal
+     • useGoldPrice() for live spot oracle
    ================================================================ */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
   Loader2,
   AlertTriangle,
   CheckCircle2,
+  Clock,
+  Info,
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
@@ -47,14 +53,25 @@ import {
   FIRST_TRADE_DRAFT_DEFAULTS,
   isDeliveryStageReady,
   type FirstTradeDraft,
+  type IndicativePriceSnapshot,
 } from "@/lib/schemas/first-trade-draft-schema";
 
-import { useGoldPrice } from "@/hooks/use-gold-price";
+import { useGoldPrice, formatSpotPrice } from "@/hooks/use-gold-price";
 import {
   useOnboardingState,
   useSaveOnboardingState,
 } from "@/hooks/use-onboarding-state";
-import { submitFirstTrade } from "@/actions/first-trade-actions";
+import {
+  submitFirstTrade,
+  CONFIRMATION_PHRASE,
+} from "@/actions/first-trade-actions";
+
+/* ================================================================
+   CONSTANTS
+   ================================================================ */
+
+/** Duration (ms) the user must hold the confirm button */
+const HOLD_DURATION_MS = 3000;
 
 /* ================================================================
    FORMATTERS
@@ -76,6 +93,13 @@ function fmtWeight(oz: number): string {
   });
 }
 
+function fmtTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "medium",
+  });
+}
+
 /* ================================================================
    PAGE COMPONENT
    ================================================================ */
@@ -87,16 +111,25 @@ export default function FirstTradeAuthorizePage() {
   const { data: onboardingState, isLoading: stateLoading } =
     useOnboardingState();
   const saveMutation = useSaveOnboardingState();
-  const { data: goldPrice } = useGoldPrice();
+  const { data: goldPrice, isLoading: priceLoading } = useGoldPrice();
 
   /* ── Local state ── */
   const [draft, setDraft] = useState<FirstTradeDraft>(
     FIRST_TRADE_DRAFT_DEFAULTS,
   );
-  const [acknowledged, setAcknowledged] = useState(false);
+  const [confirmationInput, setConfirmationInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
+
+  /* ── Scroll-to-unlock state ── */
+  const [hasScrolledLegal, setHasScrolledLegal] = useState(false);
+  const legalScrollRef = useRef<HTMLDivElement>(null);
+
+  /* ── Hold-to-confirm state ── */
+  const [holdProgress, setHoldProgress] = useState(0);
+  const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const holdStartRef = useRef<number>(0);
 
   /* ── Restore persisted draft from metadata_json + guard readiness ── */
   useEffect(() => {
@@ -128,6 +161,28 @@ export default function FirstTradeAuthorizePage() {
     });
   }, [stateLoading, onboardingState, draftRestored, router]);
 
+  /* ── Scroll detection for legal acknowledgment ── */
+  useEffect(() => {
+    const el = legalScrollRef.current;
+    if (!el) return;
+
+    function handleScroll() {
+      if (!el) return;
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      // Consider "scrolled" when within 20px of the bottom
+      if (scrollTop + clientHeight >= scrollHeight - 20) {
+        setHasScrolledLegal(true);
+      }
+    }
+
+    el.addEventListener("scroll", handleScroll);
+    // Check if content doesn't need scrolling (already fully visible)
+    if (el.scrollHeight <= el.clientHeight + 20) {
+      queueMicrotask(() => setHasScrolledLegal(true));
+    }
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [draftRestored]);
+
   /* ── Derived values ── */
   const spotPrice = goldPrice?.spotPriceUsd ?? 0;
   const selectedAsset = draft.selectedAssetId
@@ -144,8 +199,15 @@ export default function FirstTradeAuthorizePage() {
   const platformFee = baseSpotValue * (PLATFORM_FEE_BPS / 10_000);
   const estimatedNotional = baseSpotValue + assetPremium + platformFee;
 
+  const phraseMatches =
+    confirmationInput.trim().toUpperCase() === CONFIRMATION_PHRASE;
+
   const canProceed =
-    isDeliveryStageReady(draft) && acknowledged && !isSubmitting;
+    isDeliveryStageReady(draft) &&
+    hasScrolledLegal &&
+    phraseMatches &&
+    !isSubmitting &&
+    spotPrice > 0;
 
   /* ── Delivery display text ── */
   const selectedVault = draft.vaultJurisdiction
@@ -167,15 +229,51 @@ export default function FirstTradeAuthorizePage() {
       : "Armored Physical Delivery";
   }
 
-  /* ── Authorize: server-backed submission ── */
+  /* ── Build indicative price snapshot ── */
+  const buildSnapshot = useMemo((): IndicativePriceSnapshot | null => {
+    if (spotPrice <= 0 || !selectedAsset) return null;
+    return {
+      tier: "INDICATIVE",
+      spotPriceUsd: spotPrice,
+      totalWeightOz,
+      baseSpotValueUsd: baseSpotValue,
+      assetPremiumUsd: assetPremium,
+      assetPremiumBps: selectedAsset.premiumBps,
+      platformFeeUsd: platformFee,
+      platformFeeBps: PLATFORM_FEE_BPS,
+      estimatedTotalUsd: estimatedNotional,
+      capturedAt: new Date().toISOString(),
+    };
+  }, [spotPrice, selectedAsset, totalWeightOz, baseSpotValue, assetPremium, platformFee, estimatedNotional]);
+
+  /* ── Authorize: server-backed submission with price snapshot ── */
   const handleAuthorize = useCallback(async () => {
     if (!canProceed) return;
+
+    // Capture a fresh snapshot at the exact moment of authorization
+    if (!selectedAsset || spotPrice <= 0) return;
+
+    const snapshot: IndicativePriceSnapshot = {
+      tier: "INDICATIVE",
+      spotPriceUsd: spotPrice,
+      totalWeightOz,
+      baseSpotValueUsd: baseSpotValue,
+      assetPremiumUsd: assetPremium,
+      assetPremiumBps: selectedAsset.premiumBps,
+      platformFeeUsd: platformFee,
+      platformFeeBps: PLATFORM_FEE_BPS,
+      estimatedTotalUsd: estimatedNotional,
+      capturedAt: new Date().toISOString(),
+    };
 
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      await submitFirstTrade();
+      await submitFirstTrade({
+        indicativePriceSnapshot: snapshot,
+        confirmationPhrase: confirmationInput.trim().toUpperCase(),
+      });
       router.push("/institutional/first-trade/success");
     } catch (err) {
       const message =
@@ -183,7 +281,42 @@ export default function FirstTradeAuthorizePage() {
       setSubmitError(message);
       setIsSubmitting(false);
     }
-  }, [canProceed, router]);
+  }, [canProceed, router, spotPrice, selectedAsset, totalWeightOz, baseSpotValue, assetPremium, platformFee, estimatedNotional, confirmationInput]);
+
+  /* ── Hold-to-confirm handlers ── */
+  const handleHoldStart = useCallback(() => {
+    if (!canProceed) return;
+    holdStartRef.current = Date.now();
+    setHoldProgress(0);
+
+    holdTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - holdStartRef.current;
+      const progress = Math.min(elapsed / HOLD_DURATION_MS, 1);
+      setHoldProgress(progress);
+
+      if (progress >= 1) {
+        if (holdTimerRef.current) clearInterval(holdTimerRef.current);
+        holdTimerRef.current = null;
+        // Trigger the authorization
+        handleAuthorize();
+      }
+    }, 50);
+  }, [canProceed, handleAuthorize]);
+
+  const handleHoldEnd = useCallback(() => {
+    if (holdTimerRef.current) {
+      clearInterval(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    setHoldProgress(0);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current) clearInterval(holdTimerRef.current);
+    };
+  }, []);
 
   /* ── Save and return later ── */
   const handleSaveAndExit = useCallback(async () => {
@@ -221,20 +354,20 @@ export default function FirstTradeAuthorizePage() {
   return (
     <StepShell
       icon={ShieldCheck}
-      headline="Authorize your first trade"
-      description="Review and confirm to initiate your first institutional gold transaction."
+      headline="Confirm your first trade"
+      description="Review the commercial summary below, read the legal acknowledgment, and type the confirmation phrase to authorize."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            Server-Backed · Fail-Closed · Audit Logged
+            3-Layer Auth · Fail-Closed · Hold-to-Confirm · Audit Logged
           </span>
         </div>
       }
     >
       <div className="w-full space-y-5">
         {/* ════════════════════════════════════════════════════════
-           Compact Summary
+           Transaction Summary
            ════════════════════════════════════════════════════════ */}
         <ReviewCard
           title="Transaction Summary"
@@ -256,37 +389,200 @@ export default function FirstTradeAuthorizePage() {
               label: "Handling",
               value: getDeliveryLabel(),
             },
-            ...(spotPrice > 0
-              ? [
-                  {
-                    label: "Estimated Total",
-                    value: `${fmtUsd(estimatedNotional)} (indicative)`,
-                    mono: true,
-                  },
-                ]
-              : []),
           ]}
         />
 
         {/* ════════════════════════════════════════════════════════
-           Legal Acknowledgment
+           Indicative Price Summary — commercial boundary
            ════════════════════════════════════════════════════════ */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-5">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={acknowledged}
-              onChange={(e) => setAcknowledged(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-600 bg-slate-900 accent-[#C6A86B] shrink-0"
-            />
-            <span className="text-xs text-slate-400 leading-relaxed">
-              I acknowledge that this initiates a first trade intent for my
-              institution. Final execution pricing, logistics quotes, and
-              settlement details will be confirmed during the operational
-              settlement phase. This action records my authorization and
-              is subject to institutional compliance controls.
-            </span>
+        {spotPrice > 0 && buildSnapshot && (
+          <div className="rounded-xl border border-[#C6A86B]/20 bg-slate-900/40 p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Indicative Estimate
+              </h3>
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#C6A86B]/30 bg-[#C6A86B]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#C6A86B]">
+                Indicative
+              </span>
+            </div>
+
+            {/* Price breakdown */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">
+                  XAU/USD Spot
+                </span>
+                <span className="font-mono text-slate-300 tabular-nums">
+                  {formatSpotPrice(spotPrice)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">
+                  Spot Value ({fmtWeight(totalWeightOz)} oz)
+                </span>
+                <span className="font-mono text-slate-300 tabular-nums">
+                  {fmtUsd(baseSpotValue)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">
+                  Asset Premium (+{selectedAsset ? (selectedAsset.premiumBps / 100).toFixed(2) : "0.00"}%)
+                </span>
+                <span className="font-mono text-slate-300 tabular-nums">
+                  {fmtUsd(assetPremium)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">
+                  Platform Fee (1.00%)
+                </span>
+                <span className="font-mono text-slate-300 tabular-nums">
+                  {fmtUsd(platformFee)}
+                </span>
+              </div>
+
+              {/* Separator */}
+              <div className="border-t border-slate-700/50 pt-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-300 font-semibold">
+                    Estimated Total
+                  </span>
+                  <span className="font-mono text-white font-bold tabular-nums">
+                    {fmtUsd(estimatedNotional)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Captured timestamp + disclaimer */}
+            <div className="flex items-start gap-2 pt-1">
+              <Clock className="h-3 w-3 mt-0.5 shrink-0 text-slate-600" />
+              {priceLoading ? (
+                <span className="text-[10px] text-slate-600 animate-pulse">
+                  Syncing live spot pricing…
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-600">
+                  Based on live XAU/USD spot at {fmtTime(new Date().toISOString())}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-start gap-2 rounded-lg border border-slate-800/50 bg-slate-900/30 px-3 py-2">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#C6A86B]/60" />
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                This is an <strong className="text-slate-400">indicative estimate</strong>,
+                not a locked quote. Final execution price will be determined
+                during the settlement phase when a binding quote is generated.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════
+           Legal Acknowledgment — scroll-to-unlock
+           ════════════════════════════════════════════════════════ */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Legal Acknowledgment
+            </h3>
+            {hasScrolledLegal ? (
+              <span className="inline-flex items-center gap-1 text-[9px] text-emerald-400 font-semibold uppercase tracking-widest">
+                <CheckCircle2 className="h-3 w-3" />
+                Read
+              </span>
+            ) : (
+              <span className="text-[9px] text-slate-600 uppercase tracking-widest animate-pulse">
+                Scroll to read ↓
+              </span>
+            )}
+          </div>
+
+          <div
+            ref={legalScrollRef}
+            className="max-h-[140px] overflow-y-auto pr-2 text-xs text-slate-400 leading-relaxed space-y-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+          >
+            <p>
+              By authorizing this trade intent, I confirm that I am acting in
+              my capacity as an authorized representative of the institution
+              identified in my onboarding profile. I acknowledge that:
+            </p>
+            <p>
+              <strong className="text-slate-300">1. Indicative Pricing.</strong>{" "}
+              The estimated total of{" "}
+              <strong className="text-slate-300">
+                {spotPrice > 0 ? fmtUsd(estimatedNotional) : "—"}
+              </strong>{" "}
+              is based on a live indicative spot price and is{" "}
+              <em>not a binding quote</em>. Final execution price, logistics
+              fees, and settlement details will be confirmed during the
+              operational settlement phase.
+            </p>
+            <p>
+              <strong className="text-slate-300">2. Institutional Compliance.</strong>{" "}
+              This authorization is subject to institutional compliance controls,
+              KYC/AML verification, and sanctions screening. The platform reserves
+              the right to reject or suspend execution if any compliance gate
+              fails at any point prior to settlement.
+            </p>
+            <p>
+              <strong className="text-slate-300">3. Audit Trail.</strong>{" "}
+              This authorization is cryptographically recorded for regulatory
+              audit purposes. The trade intent reference, indicative pricing
+              snapshot, and authorization timestamp are immutably logged.
+            </p>
+            <p>
+              <strong className="text-slate-300">4. Irrevocability.</strong>{" "}
+              Once confirmed, this trade intent cannot be unilaterally withdrawn.
+              Cancellation is subject to the platform&apos;s operational policies
+              and may incur costs if settlement processes have been initiated.
+            </p>
+          </div>
+        </div>
+
+        {/* ════════════════════════════════════════════════════════
+           Typed Confirmation Phrase
+           ════════════════════════════════════════════════════════ */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-5 space-y-3">
+          <label htmlFor="confirmation-input" className="block text-xs text-slate-400 leading-relaxed">
+            To authorize this trade intent, type{" "}
+            <strong className="text-white font-mono tracking-wider">
+              {CONFIRMATION_PHRASE}
+            </strong>{" "}
+            below:
           </label>
+          <input
+            id="confirmation-input"
+            type="text"
+            value={confirmationInput}
+            onChange={(e) => setConfirmationInput(e.target.value)}
+            disabled={!hasScrolledLegal || isSubmitting}
+            placeholder={CONFIRMATION_PHRASE}
+            autoComplete="off"
+            spellCheck={false}
+            className={`
+              w-full px-4 py-3 rounded-lg border bg-slate-950 font-mono text-sm
+              tracking-wider uppercase text-center transition-all duration-200
+              placeholder:text-slate-700 placeholder:tracking-wider
+              focus:outline-none focus:ring-2 focus:ring-[#C6A86B]/40
+              disabled:opacity-40 disabled:cursor-not-allowed
+              ${phraseMatches
+                ? "border-emerald-500/40 text-emerald-400"
+                : confirmationInput.length > 0
+                  ? "border-amber-500/30 text-amber-400"
+                  : "border-slate-700 text-slate-300"
+              }
+            `}
+          />
+          {!hasScrolledLegal && (
+            <p className="text-[10px] text-slate-600 text-center">
+              Please read the legal acknowledgment above before confirming.
+            </p>
+          )}
         </div>
 
         {/* ── Submission Error ── */}
@@ -301,30 +597,83 @@ export default function FirstTradeAuthorizePage() {
 
         {/* ── Authorization Status ── */}
         <div className="flex items-center justify-center gap-2 text-[11px]">
-          {acknowledged ? (
+          {phraseMatches && hasScrolledLegal ? (
             <span className="flex items-center gap-1.5 text-[#3fae7a] font-semibold">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Ready to authorize
+              Ready — hold the button below for 3 seconds to confirm
+            </span>
+          ) : !hasScrolledLegal ? (
+            <span className="text-slate-500">
+              Read the legal acknowledgment to proceed
+            </span>
+          ) : !phraseMatches && confirmationInput.length > 0 ? (
+            <span className="text-amber-500/80">
+              Phrase does not match — type &quot;{CONFIRMATION_PHRASE}&quot; exactly
             </span>
           ) : (
             <span className="text-slate-500">
-              Please acknowledge the terms above to proceed
+              Type the confirmation phrase above to proceed
             </span>
           )}
         </div>
 
         {/* ════════════════════════════════════════════════════════
-           Primary Action + Escape Hatch
+           Hold-to-Confirm Button + Escape Hatch
            ════════════════════════════════════════════════════════ */}
-        <StickyPrimaryAction
-          label={isSubmitting ? "Authorizing…" : "Authorize First Trade"}
-          onClick={handleAuthorize}
-          loading={isSubmitting}
-          disabled={!canProceed}
-          icon={ShieldCheck}
-          secondaryLabel="Save and return later"
-          secondaryOnClick={handleSaveAndExit}
-        />
+        <div className="space-y-3">
+          {/* Hold-to-confirm button */}
+          <button
+            onMouseDown={handleHoldStart}
+            onMouseUp={handleHoldEnd}
+            onMouseLeave={handleHoldEnd}
+            onTouchStart={handleHoldStart}
+            onTouchEnd={handleHoldEnd}
+            disabled={!canProceed}
+            className={`
+              relative w-full py-4 rounded-xl font-semibold text-sm tracking-wide
+              transition-all duration-200 overflow-hidden select-none
+              ${canProceed
+                ? "bg-[#C6A86B] text-slate-950 cursor-pointer hover:bg-[#d4b87a] active:bg-[#b89a5d]"
+                : "bg-slate-800 text-slate-500 cursor-not-allowed"
+              }
+            `}
+          >
+            {/* Progress fill overlay */}
+            {holdProgress > 0 && (
+              <div
+                className="absolute inset-0 bg-emerald-500/30 transition-none"
+                style={{ width: `${holdProgress * 100}%` }}
+              />
+            )}
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Confirming…
+                </>
+              ) : holdProgress > 0 ? (
+                <>
+                  <ShieldCheck className="h-4 w-4" />
+                  Hold to confirm… {Math.ceil((1 - holdProgress) * 3)}s
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="h-4 w-4" />
+                  Hold to Confirm Trade Intent
+                </>
+              )}
+            </span>
+          </button>
+
+          {/* Save and return */}
+          <button
+            onClick={handleSaveAndExit}
+            disabled={isSubmitting}
+            className="w-full py-2.5 text-xs text-slate-500 hover:text-slate-400 transition-colors disabled:opacity-40"
+          >
+            Save and return later
+          </button>
+        </div>
       </div>
     </StepShell>
   );

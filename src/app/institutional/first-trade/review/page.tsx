@@ -320,7 +320,7 @@ export default function FirstTradeReviewPage() {
            ════════════════════════════════════════════════════════ */}
         {spotPrice > 0 && (
           <ReviewCard
-            title="Transaction Estimate"
+            title="Indicative Transaction Estimate"
             items={[
               {
                 label: "Spot Value",

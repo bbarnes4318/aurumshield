@@ -6,16 +6,17 @@
    ================================================================
    Terminal page of the institutional guided first-trade flow.
    Shows a calm confirmation that the first trade intent was
-   recorded, explains what happens next, and provides a clean
-   handoff into the broader institutional workspace.
+   recorded, displays the captured indicative price snapshot,
+   and provides a clean handoff into the broader workspace.
 
-   This is the point where the user's guided journey is complete.
    The __journey.firstTradeCompleted flag is already true (set by
    submitFirstTrade() on the authorize page).
 
+   The indicative snapshot is read from __firstTradeIntent and
+   displayed honestly with explicit INDICATIVE labeling.
+
    Design: calm, celebratory without being frivolous, institutional.
    No back navigation — completion is final.
-   No secondary escape hatch — this is the terminal step.
    ================================================================ */
 
 import { useEffect, useRef, useState } from "react";
@@ -24,6 +25,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Loader2,
+  Clock,
+  Info,
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
@@ -36,6 +39,19 @@ import { useOnboardingState } from "@/hooks/use-onboarding-state";
    Types
    ================================================================ */
 
+interface IndicativeSnapshotData {
+  tier: string;
+  spotPriceUsd: number;
+  totalWeightOz: number;
+  baseSpotValueUsd: number;
+  assetPremiumUsd: number;
+  assetPremiumBps: number;
+  platformFeeUsd: number;
+  platformFeeBps: number;
+  estimatedTotalUsd: number;
+  capturedAt: string;
+}
+
 interface FirstTradeIntent {
   ref: string;
   assetId: string;
@@ -43,7 +59,28 @@ interface FirstTradeIntent {
   deliveryMethod: string;
   vaultJurisdiction: string | null;
   deliveryRegion: string | null;
+  indicativeSnapshot?: IndicativeSnapshotData;
   submittedAt: string;
+}
+
+/* ================================================================
+   FORMATTERS
+   ================================================================ */
+
+function fmtUsd(value: number, decimals = 2): string {
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+function fmtTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 /* ================================================================
@@ -78,6 +115,8 @@ export default function FirstTradeSuccessPage() {
     });
   }, [stateLoading, onboardingState]);
 
+  const snapshot = intent?.indicativeSnapshot ?? null;
+
   /* ── Loading state ── */
   if (stateLoading) {
     return (
@@ -91,8 +130,8 @@ export default function FirstTradeSuccessPage() {
   return (
     <StepShell
       icon={CheckCircle2}
-      headline="Your first trade has been initiated"
-      description="Your institutional gold transaction intent has been recorded and is now being processed."
+      headline="Trade intent confirmed"
+      description="Your institutional gold transaction intent has been recorded with an indicative price estimate."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
@@ -113,7 +152,7 @@ export default function FirstTradeSuccessPage() {
         {/* ── Trade Reference ── */}
         {intent && (
           <ReviewCard
-            title="Trade Intent Reference"
+            title="Trade Intent Confirmation"
             items={[
               {
                 label: "Reference",
@@ -121,18 +160,91 @@ export default function FirstTradeSuccessPage() {
                 mono: true,
               },
               {
-                label: "Submitted",
-                value: new Date(intent.submittedAt).toLocaleString("en-US", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                }),
+                label: "Confirmed",
+                value: fmtTime(intent.submittedAt),
               },
               {
                 label: "Status",
-                value: "Intent Recorded",
+                value: "Trade Intent Confirmed",
               },
             ]}
           />
+        )}
+
+        {/* ── Indicative Price Snapshot ── */}
+        {snapshot && (
+          <div className="rounded-xl border border-[#C6A86B]/15 bg-slate-900/30 p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Indicative Estimate at Confirmation
+              </h3>
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#C6A86B]/30 bg-[#C6A86B]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#C6A86B]">
+                Indicative
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">XAU/USD Spot</span>
+                <span className="font-mono text-slate-300 tabular-nums">
+                  {fmtUsd(snapshot.spotPriceUsd)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">
+                  Spot Value ({snapshot.totalWeightOz.toLocaleString("en-US", { maximumFractionDigits: 2 })} oz)
+                </span>
+                <span className="font-mono text-slate-300 tabular-nums">
+                  {fmtUsd(snapshot.baseSpotValueUsd)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">
+                  Asset Premium (+{(snapshot.assetPremiumBps / 100).toFixed(2)}%)
+                </span>
+                <span className="font-mono text-slate-300 tabular-nums">
+                  {fmtUsd(snapshot.assetPremiumUsd)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">
+                  Platform Fee ({(snapshot.platformFeeBps / 100).toFixed(2)}%)
+                </span>
+                <span className="font-mono text-slate-300 tabular-nums">
+                  {fmtUsd(snapshot.platformFeeUsd)}
+                </span>
+              </div>
+
+              <div className="border-t border-slate-700/50 pt-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-300 font-semibold">
+                    Estimated Total
+                  </span>
+                  <span className="font-mono text-white font-bold tabular-nums">
+                    {fmtUsd(snapshot.estimatedTotalUsd)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 pt-1">
+              <Clock className="h-3 w-3 shrink-0 text-slate-600" />
+              <span className="text-[10px] text-slate-600">
+                Captured {fmtTime(snapshot.capturedAt)}
+              </span>
+            </div>
+
+            <div className="flex items-start gap-2 rounded-lg border border-slate-800/50 bg-slate-900/30 px-3 py-2">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#C6A86B]/60" />
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                This was the indicative estimate at confirmation time.
+                Final execution price will be determined during the settlement phase.
+              </p>
+            </div>
+          </div>
         )}
 
         {/* ── What Happens Next ── */}
@@ -147,9 +259,9 @@ export default function FirstTradeSuccessPage() {
                 1
               </span>
               <p className="text-xs text-slate-400 leading-relaxed">
-                <strong className="text-slate-300">Quote & Price Lock</strong> — Your
-                designated trader will lock in the execution price based on
-                live market conditions.
+                <strong className="text-slate-300">Binding Quote</strong> — Your
+                designated trader will generate a binding execution quote based on
+                live market conditions. This replaces the indicative estimate.
               </p>
             </div>
 
