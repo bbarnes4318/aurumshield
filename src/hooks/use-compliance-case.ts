@@ -1,21 +1,24 @@
 "use client";
 
 /* ================================================================
-   USE COMPLIANCE CASE — TanStack Query hook
+   USE COMPLIANCE CASE — TanStack Query hooks
    ================================================================
-   Fetches the authenticated user's ComplianceCase from
-   GET /api/compliance/cases/me and derives verification
-   milestone state from the authoritative case status.
+   1. useComplianceCaseVerification()
+      Fetches the authenticated user's ComplianceCase from
+      GET /api/compliance/cases/me and derives verification
+      milestone state from the authoritative case status.
 
-   Used by the guided verification page to render honest
-   milestone status instead of simulated timers.
+   2. useInitiateVerification()
+      Mutation that POSTs to /api/compliance/cases/me/initiate
+      to create a compliance case and route the user to the
+      active provider (iDenfy/Veriff).
 
    Refetch interval: 10s when case is in a transitional state
    (PENDING_USER, PENDING_PROVIDER, UNDER_REVIEW) so the UI
    updates automatically when the provider webhook fires.
    ================================================================ */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   deriveVerificationFromCase,
   isVerificationComplete,
@@ -24,7 +27,7 @@ import {
   type ComplianceCaseStatusLite,
 } from "@/lib/schemas/verification-stage-schema";
 
-/* ── API Response Shape ── */
+/* ── API Response Shapes ── */
 
 interface ComplianceCaseResponse {
   case: {
@@ -35,6 +38,14 @@ interface ComplianceCaseResponse {
     tier: string;
   } | null;
   events: unknown[];
+}
+
+export interface InitiateVerificationResponse {
+  status: "REDIRECT" | "ALREADY_CLEARED" | "IN_PROGRESS" | "ERROR";
+  redirectUrl?: string;
+  provider?: "VERIFF" | "IDENFY";
+  sessionId?: string;
+  error?: string;
 }
 
 /* ── Hook Return Type ── */
@@ -64,7 +75,7 @@ const POLLING_STATUSES = new Set<ComplianceCaseStatusLite>([
   "UNDER_REVIEW",
 ]);
 
-/* ── Hook ── */
+/* ── Hook: Read compliance case verification status ── */
 
 export function useComplianceCaseVerification(): ComplianceCaseVerification {
   const query = useQuery<ComplianceCaseResponse>({
@@ -105,4 +116,29 @@ export function useComplianceCaseVerification(): ComplianceCaseVerification {
     isError: query.isError,
     caseId,
   };
+}
+
+/* ── Hook: Initiate provider verification ── */
+
+export function useInitiateVerification() {
+  const queryClient = useQueryClient();
+
+  return useMutation<InitiateVerificationResponse, Error>({
+    mutationFn: async () => {
+      const res = await fetch("/api/compliance/cases/me/initiate", {
+        method: "POST",
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      /* Invalidate the case query so the page re-fetches authoritative
+         status. This handles ALREADY_CLEARED and IN_PROGRESS transitions. */
+      queryClient.invalidateQueries({
+        queryKey: ["compliance-case-verification"],
+      });
+    },
+  });
 }

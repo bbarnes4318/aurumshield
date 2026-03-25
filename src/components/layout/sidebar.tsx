@@ -290,7 +290,7 @@ function GoldwireNavLink({
           className="h-3.5 w-auto shrink-0"
           style={{ filter: isActive ? "brightness(1.3)" : "brightness(0.85)" }}
         />
-        {!collapsed && <span className="truncate">Goldwire</span>}
+
       </Link>
     </li>
   );
