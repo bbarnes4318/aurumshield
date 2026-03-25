@@ -39,10 +39,10 @@ import {
   CheckCircle2,
   Clock,
   Info,
+  KeyRound,
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
-import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
 import { ReviewCard } from "@/components/institutional-flow/ReviewCard";
 
 import {
@@ -120,6 +120,7 @@ export default function FirstTradeAuthorizePage() {
   const [confirmationInput, setConfirmationInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [needsReverification, setNeedsReverification] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
 
   /* ── Scroll-to-unlock state ── */
@@ -268,6 +269,7 @@ export default function FirstTradeAuthorizePage() {
 
     setIsSubmitting(true);
     setSubmitError(null);
+    setNeedsReverification(false);
 
     try {
       await submitFirstTrade({
@@ -278,7 +280,15 @@ export default function FirstTradeAuthorizePage() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Authorization failed";
-      setSubmitError(message);
+
+      // Detect reverification-required: show guided re-auth prompt
+      // instead of dumping a raw error string
+      if (message.includes("REVERIFICATION_REQUIRED")) {
+        setNeedsReverification(true);
+        setSubmitError(null);
+      } else {
+        setSubmitError(message);
+      }
       setIsSubmitting(false);
     }
   }, [canProceed, router, spotPrice, selectedAsset, totalWeightOz, baseSpotValue, assetPremium, platformFee, estimatedNotional, confirmationInput]);
@@ -584,6 +594,50 @@ export default function FirstTradeAuthorizePage() {
             </p>
           )}
         </div>
+
+        {/* ── Reverification Required — Guided Re-Auth Prompt ── */}
+        {needsReverification && (
+          <div className="rounded-xl border border-[#C6A86B]/30 bg-[#C6A86B]/5 p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-[#C6A86B]" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#C6A86B]">
+                Session Expired — Re-verification Required
+              </h3>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              For security, high-value trade authorizations require a session that is less
+              than <strong className="text-slate-300">5 minutes old</strong>. Your current
+              session has exceeded this window. Please re-authenticate to continue.
+            </p>
+            <p className="text-[10px] text-slate-500">
+              Your trade details, legal acknowledgment, and confirmation phrase are preserved.
+              You will return to this exact step after re-authentication.
+            </p>
+            <button
+              onClick={() => {
+                // Save current state so progress is preserved across re-auth
+                saveMutation.mutate({
+                  currentStep: 7,
+                  status: "IN_PROGRESS",
+                  metadataJson: {
+                    __firstTradeDraft: draft,
+                    __journey: {
+                      stage: "FIRST_TRADE_AUTHORIZE",
+                      firstTradeCompleted: false,
+                    },
+                  },
+                });
+
+                // Redirect to Clerk sign-in with return URL to this page
+                window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.href)}`;
+              }}
+              className="w-full py-3 rounded-lg bg-[#C6A86B] text-slate-950 text-sm font-semibold tracking-wide hover:bg-[#d4b87a] transition-colors flex items-center justify-center gap-2"
+            >
+              <KeyRound className="h-4 w-4" />
+              Re-authenticate to Continue
+            </button>
+          </div>
+        )}
 
         {/* ── Submission Error ── */}
         {submitError && (
