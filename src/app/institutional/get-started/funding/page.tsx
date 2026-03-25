@@ -213,7 +213,7 @@ export default function FundingPage() {
   const readinessStatus = deriveFundingReadinessStatus(areFieldsComplete, serverReady);
   const canProceed = areFieldsComplete;
 
-  /* ── Submit: persist → server readiness check → advance ── */
+  /* ── Submit: persist → register wallet → server readiness check → advance ── */
   const handleContinue = useCallback(async () => {
     const data = getReadyData();
     if (!isFundingReady(data)) return;
@@ -228,6 +228,33 @@ export default function FundingPage() {
           __funding: data,
         },
       });
+
+      // Step 1.5: Register wallet in compliance domain (stablecoin only)
+      // Best-effort — does NOT block the flow on failure.
+      if (
+        data.fundingMethod === "digital_stablecoin" &&
+        data.walletAddress.trim().length > 0
+      ) {
+        try {
+          const regRes = await fetch("/api/compliance/wallets/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              address: data.walletAddress.trim(),
+              network: data.walletNetwork,
+              asset: data.stablecoinAsset,
+            }),
+          });
+          if (!regRes.ok) {
+            console.warn(
+              `[FUNDING] Wallet registration returned HTTP ${regRes.status} — continuing`,
+            );
+          }
+        } catch (regErr) {
+          // Best-effort: log warning but do not block funding flow
+          console.warn("[FUNDING] Wallet registration failed (non-blocking):", regErr);
+        }
+      }
 
       // Step 2: Server-authoritative readiness check
       const readinessRes = await fetch("/api/compliance/funding-readiness");
