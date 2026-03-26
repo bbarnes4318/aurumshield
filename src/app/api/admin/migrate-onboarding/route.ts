@@ -10,9 +10,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  // Simple secret-based auth — not Clerk (Clerk might not be configured with live keys)
+  // Simple secret-based auth — use IDENFY_WEBHOOK_SECRET which is available at build time
   const secret = request.headers.get("x-migration-secret");
-  const expected = process.env.CRON_SECRET_KEY;
+  const expected = process.env.IDENFY_WEBHOOK_SECRET;
 
   if (!secret || !expected || secret !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
