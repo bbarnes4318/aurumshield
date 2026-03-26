@@ -375,7 +375,7 @@ function SidebarNav({
     setManualImpersonation(mode);
     // Navigate to the portal's entry point
     if (mode === "offtaker") {
-      router.push("/offtaker/marketplace");
+      router.push("/institutional");
     } else if (mode === "producer") {
       router.push("/producer/accreditation");
     } else if (mode === "broker") {

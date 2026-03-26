@@ -30,7 +30,6 @@ const SHELL_BYPASS_ROUTES = [
   "/legal",
   "/investor-brief",
   "/simple-home",
-  "/institutional-portal",
   // ── Portal routes with their own Side-by-Side layout ──
   "/broker",
   "/investor",
