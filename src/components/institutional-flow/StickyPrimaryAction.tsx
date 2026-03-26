@@ -74,7 +74,7 @@ export function StickyPrimaryAction({
   );
 
   return (
-    <div className="flex flex-col items-center gap-3 mt-8">
+    <div className="flex flex-col items-center gap-3 mt-5">
       {href && !isDisabled ? (
         <Link href={href} className={PRIMARY_CLASSES}>
           {content}

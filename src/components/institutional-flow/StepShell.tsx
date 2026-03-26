@@ -37,17 +37,17 @@ export function StepShell({
   return (
     <div className="flex flex-col items-center text-center">
       {/* ── Icon Container ── */}
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50 mb-8">
-        <Icon className="h-8 w-8 text-[#C6A86B]" />
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50 mb-5">
+        <Icon className="h-7 w-7 text-[#C6A86B]" />
       </div>
 
       {/* ── Headline ── */}
-      <h1 className="text-2xl font-semibold text-white tracking-tight mb-3">
+      <h1 className="text-2xl font-semibold text-white tracking-tight mb-2">
         {headline}
       </h1>
 
       {/* ── Description ── */}
-      <p className="text-sm text-slate-400 leading-relaxed max-w-md mb-10">
+      <p className="text-sm text-slate-400 leading-relaxed max-w-md mb-6">
         {description}
       </p>
 
@@ -55,7 +55,7 @@ export function StepShell({
       <div className="w-full">{children}</div>
 
       {/* ── Footer ── */}
-      {footer && <div className="mt-6 w-full">{footer}</div>}
+      {footer && <div className="mt-4 w-full">{footer}</div>}
     </div>
   );
 }

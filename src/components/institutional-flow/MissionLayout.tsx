@@ -59,7 +59,7 @@ export function MissionLayout({
       </header>
 
       {/* ── Main Content — vertically centered, scrollable ── */}
-      <main className="flex-1 min-h-0 flex items-center justify-center overflow-y-auto px-6 py-12">
+      <main className="flex-1 min-h-0 flex items-center justify-center overflow-y-auto px-6 py-6 scrollbar-hidden">
         <div className="w-full max-w-xl">
           {children}
         </div>
