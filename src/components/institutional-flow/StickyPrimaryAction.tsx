@@ -36,7 +36,7 @@ interface StickyPrimaryActionProps {
 }
 
 const PRIMARY_CLASSES = `
-  group inline-flex items-center justify-center gap-2.5 rounded-lg px-8 py-3.5
+  group inline-flex items-center justify-center gap-2.5 rounded-lg px-8 py-2.5
   bg-[#C6A86B] text-slate-950 text-sm font-semibold
   hover:bg-[#d4b87a] active:bg-[#b89a5d]
   transition-colors duration-150
@@ -74,7 +74,7 @@ export function StickyPrimaryAction({
   );
 
   return (
-    <div className="flex flex-col items-center gap-3 mt-5">
+    <div className="flex flex-col items-center gap-2 mt-3">
       {href && !isDisabled ? (
         <Link href={href} className={PRIMARY_CLASSES}>
           {content}

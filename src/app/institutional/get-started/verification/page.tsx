@@ -317,7 +317,7 @@ export default function VerificationPage() {
         </div>
       }
     >
-      <div className="w-full space-y-6">
+      <div className="w-full space-y-3">
         {/* ── Organization Summary (if available) ── */}
         {orgSummary && (
           <ReviewCard
@@ -390,7 +390,7 @@ export default function VerificationPage() {
 
         {/* ── Initiation CTA: shown when no case exists or case is OPEN ── */}
         {canInitiate && !providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-4 rounded-lg border border-slate-800/50 bg-slate-900/30 px-5 py-5">
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-slate-800/50 bg-slate-900/30 px-4 py-3">
             <div className="flex items-start gap-2.5">
               <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-[#C6A86B]" />
               <p className="text-[12px] text-slate-400 leading-relaxed">
@@ -421,7 +421,7 @@ export default function VerificationPage() {
 
         {/* ── Provider redirect notice: shown after initiation returns a redirect URL ── */}
         {providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-3 rounded-lg border border-[#C6A86B]/30 bg-[#C6A86B]/5 px-5 py-5">
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-[#C6A86B]/30 bg-[#C6A86B]/5 px-4 py-3">
             <p className="text-[12px] text-slate-300 leading-relaxed text-center">
               A verification session has been opened with our provider.
               Complete the identity and document checks in the new tab.
@@ -441,7 +441,7 @@ export default function VerificationPage() {
 
         {/* ── PENDING_USER nudge: user started but didn't finish provider flow ── */}
         {caseStatus === "PENDING_USER" && !providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-3 rounded-lg border border-amber-600/30 bg-amber-950/20 px-5 py-5">
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-amber-600/30 bg-amber-950/20 px-4 py-3">
             <div className="flex items-start gap-2.5">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-500" />
               <p className="text-[12px] text-slate-400 leading-relaxed">

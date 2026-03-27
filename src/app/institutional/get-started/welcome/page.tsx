@@ -44,10 +44,10 @@ export default function WelcomePage() {
           {GUIDED_STAGES.map((stage, i) => (
             <div
               key={stage.label}
-              className="flex items-center gap-4 px-4 py-3 border-b border-slate-800/50 last:border-0"
+              className="flex items-center gap-4 px-4 py-2.5 border-b border-slate-800/50 last:border-0"
             >
               {/* Step Number */}
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-900/60">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-900/60">
                 <span className="font-mono text-xs text-slate-400 font-bold">
                   {i + 1}
                 </span>

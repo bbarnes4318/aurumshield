@@ -68,12 +68,12 @@ function getStatusStyles(status: CheckItemStatus): string {
 
 export function AutoCheckList({ items }: AutoCheckListProps) {
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-1.5">
       {items.map((item) => (
         <div
           key={item.key}
           className={`
-            flex items-center justify-between rounded-lg border px-4 py-3
+            flex items-center justify-between rounded-lg border px-3 py-2
             transition-all duration-300
             ${getStatusStyles(item.status)}
           `}

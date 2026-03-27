@@ -30,7 +30,7 @@ export function ReviewCard({ title, items }: ReviewCardProps) {
   return (
     <div className="w-full rounded-xl border border-slate-800 bg-slate-900/30 overflow-hidden">
       {/* Title bar */}
-      <div className="px-5 py-3 border-b border-slate-800/50 bg-slate-900/50">
+      <div className="px-4 py-2 border-b border-slate-800/50 bg-slate-900/50">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
           {title}
         </h3>
@@ -41,7 +41,7 @@ export function ReviewCard({ title, items }: ReviewCardProps) {
         {items.map((item, i) => (
           <div
             key={`${item.label}-${i}`}
-            className="flex items-center justify-between px-5 py-3"
+            className="flex items-center justify-between px-4 py-2"
           >
             <span className="text-xs text-slate-500">{item.label}</span>
             <span
