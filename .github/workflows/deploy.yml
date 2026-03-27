@@ -102,7 +102,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # ── Build & Push Docker Image ──
+      # ── Clear stale Docker Hub credentials ──
+      # The buildx action pulls moby/buildkit from Docker Hub.
+      # Stale Docker Hub creds (from runner cache) cause "unauthorized" errors.
+      # Logging out forces an anonymous pull, which works for public images.
+      - name: Logout from Docker Hub
+        run: docker logout || true
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
