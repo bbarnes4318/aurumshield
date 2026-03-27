@@ -30,8 +30,10 @@ async function main() {
   // Add missing columns if they don't exist
   const migrations = [
     { col: "org_id", sql: `ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS org_id UUID` },
+    { col: "current_step", sql: `ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS current_step INT NOT NULL DEFAULT 1` },
     { col: "provider_inquiry_id", sql: `ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS provider_inquiry_id VARCHAR(255)` },
     { col: "status_reason", sql: `ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS status_reason TEXT` },
+    { col: "metadata_json", sql: `ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS metadata_json JSONB DEFAULT '{}'::jsonb` },
   ];
 
   for (const m of migrations) {

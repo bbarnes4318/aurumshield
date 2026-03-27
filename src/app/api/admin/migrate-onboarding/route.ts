@@ -25,21 +25,31 @@ export async function POST(request: NextRequest) {
     const results: string[] = [];
 
     try {
-      // 1. Add missing columns
+      // 1. Add missing columns (including current_step which may be absent)
       await client.query(
         "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS org_id UUID"
       );
-      results.push("org_id: added");
+      results.push("org_id: added or already exists");
+
+      await client.query(
+        "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS current_step INT NOT NULL DEFAULT 1"
+      );
+      results.push("current_step: added or already exists");
 
       await client.query(
         "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS provider_inquiry_id VARCHAR(255)"
       );
-      results.push("provider_inquiry_id: added");
+      results.push("provider_inquiry_id: added or already exists");
 
       await client.query(
         "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS status_reason TEXT"
       );
-      results.push("status_reason: added");
+      results.push("status_reason: added or already exists");
+
+      await client.query(
+        "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS metadata_json JSONB DEFAULT '{}'::jsonb"
+      );
+      results.push("metadata_json: added or already exists");
 
       // 2. Ensure enum values exist
       try {
