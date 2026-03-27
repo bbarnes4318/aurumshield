@@ -108,8 +108,11 @@ const REQUIRED_COLUMNS: { name: string; ddl: string }[] = [
   { name: "org_id",              ddl: "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS org_id UUID" },
   { name: "current_step",       ddl: "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS current_step INT NOT NULL DEFAULT 1" },
   { name: "provider_inquiry_id", ddl: "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS provider_inquiry_id VARCHAR(255)" },
+  { name: "status",             ddl: "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT 'IN_PROGRESS'" },
   { name: "status_reason",      ddl: "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS status_reason TEXT" },
   { name: "metadata_json",      ddl: "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS metadata_json JSONB DEFAULT '{}'::jsonb" },
+  { name: "started_at",         ddl: "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" },
+  { name: "last_seen_at",       ddl: "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" },
 ];
 
 let _schemaVerified = false;
