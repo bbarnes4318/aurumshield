@@ -8,16 +8,19 @@
    6-gate refinery-centered pipeline.
 
    This file should be deprecated when V3 subject onboarding is
-   complete. Until then, it powers the frontend Veriff/iDenfy
-   KYC/KYB routing flow and trade-level proof-of-funds checks.
+   complete. Until then, it powers the compliance routing flow
+   and trade-level proof-of-funds checks.
 
    Centralized entry point for all compliance checks. Wraps existing
-   enterprise adapters (Veriff, iDenfy, GLEIF, Column) into a single
-   dynamic orchestration layer.
+   enterprise adapters (KYCaid, Veriff, iDenfy, GLEIF, Column) into
+   a single dynamic orchestration layer.
 
    MULTI-VENDOR ARCHITECTURE:
-     - Routes to VERIFF or IDENFY based on ACTIVE_COMPLIANCE_PROVIDER
-     - If a user is already cleared by EITHER provider, returns APPROVED
+     - Routes to KYCAID (active), VERIFF, or IDENFY based on
+       COMPLIANCE_ACTIVE_PROVIDER env var (via provider-registry)
+     - KYCaid is the default active provider for all new flows
+     - Legacy providers (Veriff, iDenfy) preserved for fallback
+     - If a user is already cleared by ANY provider, returns APPROVED
      - Throws CompliancePendingError with the vendor redirect URL
        when verification is required
 
@@ -50,6 +53,13 @@ import {
 import {
   generateSession as generateIdenfySession,
 } from "@/lib/compliance/idenfy-adapter";
+import {
+  initiateKycaidSession,
+} from "@/lib/compliance/kycaid-adapter";
+import {
+  getActiveComplianceProvider,
+  type ComplianceProvider,
+} from "@/lib/compliance/provider-registry";
 import {
   validateLEI,
   type LEIValidationResult,
@@ -125,11 +135,11 @@ export interface JurisdictionalRiskResult {
  * the user to the correct verification flow.
  */
 export class CompliancePendingError extends Error {
-  public readonly provider: "VERIFF" | "IDENFY";
+  public readonly provider: "VERIFF" | "IDENFY" | "KYCAID";
   public readonly redirectUrl: string;
   public readonly sessionId: string;
 
-  constructor(provider: "VERIFF" | "IDENFY", sessionId: string, redirectUrl: string) {
+  constructor(provider: "VERIFF" | "IDENFY" | "KYCAID", sessionId: string, redirectUrl: string) {
     super(
       `Compliance verification pending — user must complete ${provider} flow. ` +
         `Session: ${sessionId}`,
@@ -143,18 +153,20 @@ export class CompliancePendingError extends Error {
 
 /* ================================================================
    Provider Routing
+   ================================================================
+   Delegates to the centralized provider-registry.ts for env-based
+   vendor selection. Supports: kycaid (default), veriff, idenfy.
    ================================================================ */
 
-type ActiveComplianceProvider = "VERIFF" | "IDENFY";
+type ActiveComplianceProvider = "KYCAID" | "VERIFF" | "IDENFY";
 
 /**
- * Resolve the active compliance provider from environment.
- * Defaults to VERIFF if not set or invalid.
+ * Resolve the active compliance provider.
+ * Delegates to provider-registry.ts for canonical resolution.
  */
 function getActiveProvider(): ActiveComplianceProvider {
-  const raw = process.env.ACTIVE_COMPLIANCE_PROVIDER?.toUpperCase();
-  if (raw === "IDENFY") return "IDENFY";
-  return "VERIFF";
+  const provider: ComplianceProvider = getActiveComplianceProvider();
+  return provider.toUpperCase() as ActiveComplianceProvider;
 }
 
 /* ================================================================
@@ -305,10 +317,27 @@ export async function evaluateCounterpartyReadiness(
       userId,
     );
 
-    if (activeProvider === "IDENFY") {
+    if (activeProvider === "KYCAID") {
+      // KYCaid — active provider for all new verification flows
+      const session = await initiateKycaidSession(
+        {
+          companyName: userId,
+          registrationCountry: "US",
+          externalApplicantId: userId,
+        },
+        true, // Institutional flow = company/KYB
+      );
+      throw new CompliancePendingError(
+        "KYCAID",
+        session.verificationId,
+        session.sessionUrl,
+      );
+    } else if (activeProvider === "IDENFY") {
+      // iDenfy — preserved for fallback
       const session = await generateIdenfySession(userId, userId);
       throw new CompliancePendingError("IDENFY", session.sessionId, session.url);
     } else {
+      // Veriff — preserved for fallback
       const session = await createKYBSession({
         organizationId: userId,
         entityName: userId,
