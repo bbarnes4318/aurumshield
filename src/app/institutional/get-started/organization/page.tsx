@@ -3,11 +3,11 @@
 /* ================================================================
    ORGANIZATION — /institutional/get-started/organization
    ================================================================
-   Minimal pre-screen: collects only what KYCaid needs to create
+   Minimal pre-screen: collects only what the compliance provider needs to create
    a COMPANY applicant (company name + country).
 
    Everything else (LEI, UBOs, documents, liveness, rep details)
-   is handled by KYCaid's hosted verification form in the next step.
+   is handled by the provider's hosted verification form in the next step.
 
    One screen. Two fields. One action.
    ================================================================ */
@@ -16,9 +16,10 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Building2, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
+import { AppLogo } from "@/components/app-logo";
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
 
 import {
@@ -133,7 +134,7 @@ export default function OrganizationPage() {
           },
         });
 
-        // 2. Navigate to verification (which will launch KYCaid)
+        // 2. Navigate to verification (which will launch the compliance provider)
         router.push("/institutional/get-started/verification");
       } catch {
         // mutation error is handled by TanStack Query — stays on page
@@ -155,14 +156,14 @@ export default function OrganizationPage() {
 
   return (
     <StepShell
-      icon={Building2}
+      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
       headline="Your Organization"
-      description="We just need your entity name and country of registration. KYCaid will handle the rest — identity, documents, and compliance verification — in the next step."
+      description="Enter your entity name and country of registration. Our compliance engine handles the rest — identity verification, document review, and regulatory screening — in the next step."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            256-Bit Encrypted · Verified by KYCaid · Data Never Resold
+            256-Bit Encrypted · Compliance Verified · Data Never Resold
           </span>
         </div>
       }

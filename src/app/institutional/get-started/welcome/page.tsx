@@ -10,8 +10,9 @@
    Macro progress framing without dashboard clutter.
    ================================================================ */
 
-import { Building2, Shield } from "lucide-react";
+import { Shield } from "lucide-react";
 import { StepShell } from "@/components/institutional-flow/StepShell";
+import { AppLogo } from "@/components/app-logo";
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
 
 /* ── Guided stages (macro framing — preview of what's ahead) ── */
@@ -25,7 +26,7 @@ const GUIDED_STAGES = [
 export default function WelcomePage() {
   return (
     <StepShell
-      icon={Building2}
+      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
       headline="Welcome to AurumShield"
       description="We'll guide you through setting up your institutional account in a few simple steps. Each step takes only a few minutes, and your progress is saved automatically."
       footer={

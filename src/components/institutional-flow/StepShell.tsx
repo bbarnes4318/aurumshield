@@ -15,8 +15,8 @@ import { type ReactNode } from "react";
 import { type LucideIcon } from "lucide-react";
 
 interface StepShellProps {
-  /** Lucide icon component displayed in the header container */
-  icon: LucideIcon;
+  /** Lucide icon component OR a ReactNode (e.g. logo image) */
+  icon: LucideIcon | ReactNode;
   /** Primary headline — one line, direct */
   headline: string;
   /** Supporting description — one or two lines max */
@@ -28,17 +28,24 @@ interface StepShellProps {
 }
 
 export function StepShell({
-  icon: Icon,
+  icon,
   headline,
   description,
   children,
   footer,
 }: StepShellProps) {
+  /* Determine if icon is a Lucide component (function) or a ReactNode (JSX element) */
+  const isLucide = typeof icon === "function";
+
   return (
     <div className="flex flex-col items-center text-center">
       {/* ── Icon Container ── */}
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50 mb-5">
-        <Icon className="h-7 w-7 text-[#C6A86B]" />
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50 mb-5 overflow-hidden">
+        {isLucide ? (
+          (() => { const Icon = icon as LucideIcon; return <Icon className="h-7 w-7 text-[#C6A86B]" />; })()
+        ) : (
+          icon
+        )}
       </div>
 
       {/* ── Headline ── */}
@@ -59,3 +66,4 @@ export function StepShell({
     </div>
   );
 }
+

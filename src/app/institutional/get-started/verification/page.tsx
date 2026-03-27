@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
+import { AppLogo } from "@/components/app-logo";
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
 import {
   AutoCheckList,
@@ -304,7 +305,7 @@ export default function VerificationPage() {
 
   return (
     <StepShell
-      icon={ShieldCheck}
+      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
       headline="Verification"
       description="Your entity verification status is shown below. Each milestone reflects the current state of your compliance checks with our verification provider."
       footer={

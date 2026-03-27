@@ -47,7 +47,8 @@ export function MissionLayout({
       {/* ── Header ── */}
       <header className="shrink-0 border-b border-slate-800/30 bg-slate-950 px-6 py-5">
         <div className="mx-auto max-w-3xl flex items-center justify-between">
-          <AppLogo className="h-6 w-auto" variant="dark" />
+          {/* Left spacer — balances layout */}
+          <div className="w-20" />
 
           {showProgress && currentStage !== undefined && (
             <SimpleProgress currentStage={currentStage} />

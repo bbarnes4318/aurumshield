@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
+import { AppLogo } from "@/components/app-logo";
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
 import { BigChoiceCard } from "@/components/institutional-flow/BigChoiceCard";
 import { ReviewCard } from "@/components/institutional-flow/ReviewCard";
@@ -320,7 +321,7 @@ export default function FundingPage() {
 
   return (
     <StepShell
-      icon={Wallet}
+      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
       headline="Fund Your Account"
       description="Select how your institution will fund transactions on AurumShield. You can always update this later."
       footer={
