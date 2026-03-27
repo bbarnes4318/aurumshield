@@ -835,11 +835,20 @@ export default function InstitutionalMarketplacePage() {
                     {/* Full Cost Breakdown */}
                     {(destination || (deliveryMode === "PHYSICAL" && freightQuote)) && (
                       <div className="bg-black border border-slate-800/60 p-3">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <FileText className="h-3 w-3 text-slate-500" />
-                          <h3 className="font-mono text-slate-500 text-[9px] tracking-[0.15em] uppercase font-bold">
-                            Complete Cost Derivation
-                          </h3>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-1.5">
+                            <FileText className="h-3 w-3 text-slate-500" />
+                            <h3 className="font-mono text-slate-500 text-[9px] tracking-[0.15em] uppercase font-bold">
+                              Complete Cost Derivation
+                            </h3>
+                          </div>
+                          <span className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 font-mono text-[7px] font-bold uppercase tracking-widest ${
+                            phase === "QUOTE_LOCKED"
+                              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                              : "border-[#C6A86B]/30 bg-[#C6A86B]/10 text-[#C6A86B]"
+                          }`}>
+                            {phase === "QUOTE_LOCKED" ? "Locked" : "Indicative"}
+                          </span>
                         </div>
 
                         <div className="space-y-0">
@@ -981,11 +990,14 @@ export default function InstitutionalMarketplacePage() {
                     {/* Wire / Stablecoin Instructions */}
                     {phase === "QUOTE_LOCKED" && (
                       <div className="bg-black border border-slate-800/60 p-3">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <Lock className="h-3 w-3 text-slate-500" />
-                          <span className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase">
-                            {settlementRail === "TURNKEY_USDT" ? "Stablecoin Deposit (USDT)" : "Funds Routing (Fedwire)"}
-                          </span>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-1.5">
+                            <Lock className="h-3 w-3 text-slate-500" />
+                            <span className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase">
+                              {settlementRail === "TURNKEY_USDT" ? "Stablecoin Deposit (USDT)" : "Funds Routing (Fedwire)"}
+                            </span>
+                          </div>
+                          <span className="font-mono text-[7px] text-slate-600 tracking-wider">v1.0.0</span>
                         </div>
                         {settlementRail === "TURNKEY_USDT" ? (
                           <div className="space-y-2">
@@ -1018,6 +1030,14 @@ export default function InstitutionalMarketplacePage() {
                             </div>
                           </div>
                         )}
+                        <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-800/30">
+                          <span className="font-mono text-[7px] text-slate-700 tracking-wider uppercase">
+                            Generated {new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+                          </span>
+                          <span className="font-mono text-[7px] text-slate-700 tracking-wider">
+                            AurumShield Settlement v1.0.0
+                          </span>
+                        </div>
                       </div>
                     )}
 
@@ -1146,7 +1166,7 @@ export default function InstitutionalMarketplacePage() {
                 )}
 
                 <p className="font-mono text-[8px] text-slate-600 uppercase tracking-wide text-center mt-2">
-                  Cryptographically binding · IP logged · BSA/AML
+                  Execution audited · IP & session logged · BSA/AML re-screened at settlement
                 </p>
               </>
             ) : (

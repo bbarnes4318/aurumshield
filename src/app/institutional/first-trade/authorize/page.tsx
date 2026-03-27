@@ -370,7 +370,7 @@ export default function FirstTradeAuthorizePage() {
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            3-Layer Auth · Fail-Closed · Hold-to-Confirm · Audit Logged
+            Session-fresh auth required · Audit-logged · Fail-closed server validation
           </span>
         </div>
       }
@@ -491,6 +491,42 @@ export default function FirstTradeAuthorizePage() {
             </div>
           </div>
         )}
+
+        {/* ════════════════════════════════════════════════════════
+           Institutional Support Rail
+           ════════════════════════════════════════════════════════ */}
+        <div className="rounded-xl border border-slate-800/50 bg-slate-900/20 p-4 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-start gap-2">
+              <Clock className="h-3 w-3 mt-0.5 shrink-0 text-slate-600" />
+              <div>
+                <p className="text-[10px] text-slate-500 font-semibold">Session Freshness</p>
+                <p className="text-[9px] text-slate-600">Auth session must be &lt;5 minutes old</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <ShieldCheck className="h-3 w-3 mt-0.5 shrink-0 text-slate-600" />
+              <div>
+                <p className="text-[10px] text-slate-500 font-semibold">Compliance Gate</p>
+                <p className="text-[9px] text-slate-600">KYB + AML clearance verified server-side</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <KeyRound className="h-3 w-3 mt-0.5 shrink-0 text-slate-600" />
+              <div>
+                <p className="text-[10px] text-slate-500 font-semibold">Audit Record</p>
+                <p className="text-[9px] text-slate-600">Intent, snapshot, and timestamp immutably logged</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Info className="h-3 w-3 mt-0.5 shrink-0 text-slate-600" />
+              <div>
+                <p className="text-[10px] text-slate-500 font-semibold">Escalation</p>
+                <p className="text-[9px] text-slate-600">operations@aurumshield.com</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* ════════════════════════════════════════════════════════
            Legal Acknowledgment — scroll-to-unlock

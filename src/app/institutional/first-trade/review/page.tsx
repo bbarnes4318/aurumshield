@@ -33,6 +33,9 @@ import {
   ShieldCheck,
   Loader2,
   Info,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
@@ -346,6 +349,63 @@ export default function FirstTradeReviewPage() {
           />
         )}
 
+        {/* ════════════════════════════════════════════════════════
+           Execution Readiness Panel
+           ════════════════════════════════════════════════════════ */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-5 space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Execution Readiness
+          </h3>
+          <div className="space-y-2">
+            {/* Pricing state */}
+            <div className="flex items-center justify-between py-1.5 border-b border-slate-800/50">
+              <span className="text-[11px] text-slate-500">Pricing State</span>
+              <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[#C6A86B]">
+                <Clock className="h-3 w-3" />
+                Indicative — Not Locked
+              </span>
+            </div>
+            {/* Settlement rail */}
+            <div className="flex items-center justify-between py-1.5 border-b border-slate-800/50">
+              <span className="text-[11px] text-slate-500">Settlement Rail</span>
+              <span className="text-[11px] text-slate-400">
+                Configured at execution
+              </span>
+            </div>
+            {/* Delivery/custody config */}
+            <div className="flex items-center justify-between py-1.5 border-b border-slate-800/50">
+              <span className="text-[11px] text-slate-500">Delivery / Custody</span>
+              {isDeliveryStageReady(draft) ? (
+                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-semibold">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Complete
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] text-amber-400">
+                  <AlertTriangle className="h-3 w-3" />
+                  Incomplete
+                </span>
+              )}
+            </div>
+            {/* What becomes binding */}
+            <div className="flex items-center justify-between py-1.5">
+              <span className="text-[11px] text-slate-500">What Becomes Binding</span>
+              <span className="text-[11px] text-slate-400">
+                Trade intent — not final price
+              </span>
+            </div>
+          </div>
+          <div className="flex items-start gap-2 rounded-lg border border-slate-800/50 bg-slate-900/20 px-3 py-2">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-slate-600" />
+            <p className="text-[10px] text-slate-500 leading-relaxed">
+              Authorization records your trade intent at an indicative price.
+              Price becomes <strong className="text-slate-400">locked</strong> only
+              when your operations team generates a binding quote during the
+              settlement phase.
+            </p>
+          </div>
+        </div>
+
         {/* ── Honest Disclaimers ── */}
         <div className="space-y-2">
           <div className="flex items-start gap-2.5 rounded-lg border border-slate-800/50 bg-slate-900/20 px-4 py-3">
@@ -367,6 +427,61 @@ export default function FirstTradeReviewPage() {
               </p>
             </div>
           )}
+        </div>
+
+        {/* ════════════════════════════════════════════════════════
+           Post-Authorization Process
+           ════════════════════════════════════════════════════════ */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-5 space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            What Happens After Authorization
+          </h3>
+          <div className="space-y-2">
+            {[
+              {
+                step: "1",
+                title: "Settlement case opened",
+                detail: "Immediate — your trade intent is recorded and a case reference is generated.",
+              },
+              {
+                step: "2",
+                title: "Binding quote issued",
+                detail: "Within 1 business day — operations locks the execution price and sends settlement instructions.",
+              },
+              {
+                step: "3",
+                title: "Funds received and verified",
+                detail: "Depends on rail — Fedwire same-day, stablecoin within minutes. AML re-screening occurs.",
+              },
+              {
+                step: "4",
+                title: "Custody allocation or dispatch",
+                detail: "1–3 business days — asset is allocated at vault or dispatched via Brink's.",
+              },
+            ].map((item) => (
+              <div
+                key={item.step}
+                className="flex items-start gap-3 py-2 border-b border-slate-800/30 last:border-0"
+              >
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-900">
+                  <span className="font-mono text-[9px] text-slate-400 font-bold">
+                    {item.step}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-300 font-semibold">
+                    {item.title}
+                  </p>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    {item.detail}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-600">
+            Questions at any stage? Contact <strong className="text-slate-500">operations@aurumshield.com</strong>
+          </p>
         </div>
 
         {/* ════════════════════════════════════════════════════════
