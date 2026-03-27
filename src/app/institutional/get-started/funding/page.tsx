@@ -321,7 +321,7 @@ export default function FundingPage() {
 
   return (
     <StepShell
-      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
+      icon={<AppLogo className="h-12 w-auto" variant="dark" />}
       headline="Funding Configuration"
       description="Choose your settlement rail and provide the account details. This step does not move any funds — it registers where settlement payments will originate. After submission, we run OFAC screening and compliance checks before unlocking your first trade."
       footer={

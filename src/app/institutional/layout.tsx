@@ -153,7 +153,7 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
       portalSubLabel="AurumShield Goldwire Network"
       complianceGate={StrictComplianceGate}
       showGoldwire
-      goldwireHref="/transactions/new"
+      goldwireHref="/institutional/marketplace"
     >
       {children}
     </PortalShell>

@@ -26,7 +26,7 @@ const GUIDED_STAGES = [
 export default function WelcomePage() {
   return (
     <StepShell
-      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
+      icon={<AppLogo className="h-12 w-auto" variant="dark" />}
       headline="Welcome to AurumShield"
       description="This process takes about 10 minutes across 4 steps. Your progress is auto-saved at every step, and you can return at any time to continue where you left off."
       footer={

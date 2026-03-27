@@ -40,13 +40,13 @@ export function StepShell({
   return (
     <div className="flex flex-col items-center text-center">
       {/* ── Icon Container ── */}
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50 mb-5 overflow-hidden">
-        {isLucide ? (
-          (() => { const Icon = icon as LucideIcon; return <Icon className="h-7 w-7 text-[#C6A86B]" />; })()
-        ) : (
-          icon
-        )}
-      </div>
+      {isLucide ? (
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50 mb-5 overflow-hidden">
+          {(() => { const Icon = icon as LucideIcon; return <Icon className="h-7 w-7 text-[#C6A86B]" />; })()}
+        </div>
+      ) : (
+        <div className="mb-5">{icon}</div>
+      )}
 
       {/* ── Headline ── */}
       <h1 className="text-2xl font-semibold text-white tracking-tight mb-2">

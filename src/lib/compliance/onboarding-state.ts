@@ -121,46 +121,66 @@ export async function upsertOnboardingState(
   const client = await getDbClient();
 
   try {
-    // Build the metadata_json value — merge with existing if only partial
-    const metadataValue = patch.metadataJson
-      ? JSON.stringify(patch.metadataJson)
-      : "{}";
-
-    const { rows } = await client.query<OnboardingStateRow>(
-      `INSERT INTO onboarding_state (
-        user_id,
-        org_id,
-        current_step,
-        provider_inquiry_id,
-        status,
-        status_reason,
-        metadata_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
-      ON CONFLICT (user_id) DO UPDATE SET
-        org_id              = COALESCE($2, onboarding_state.org_id),
-        current_step        = COALESCE($3, onboarding_state.current_step),
-        provider_inquiry_id = COALESCE($4, onboarding_state.provider_inquiry_id),
-        status              = COALESCE($5, onboarding_state.status),
-        status_reason       = COALESCE($6, onboarding_state.status_reason),
-        metadata_json       = CASE
-          WHEN $7::jsonb IS NOT NULL AND $7::jsonb != '{}'::jsonb
-          THEN onboarding_state.metadata_json || $7::jsonb
-          ELSE onboarding_state.metadata_json
-        END
-      RETURNING *`,
-      [
-        userId,
-        patch.orgId ?? null,
-        patch.currentStep ?? 1,
-        patch.providerInquiryId ?? null,
-        patch.status ?? "IN_PROGRESS",
-        patch.statusReason ?? null,
-        metadataValue,
-      ],
-    );
-
-    return rowToDomain(rows[0]);
+    return await _doUpsert(client, userId, patch);
+  } catch (err: unknown) {
+    // Auto-migrate: if current_step column is missing (code 42703 = undefined_column),
+    // add it and retry exactly once.
+    const pgErr = err as { code?: string; message?: string };
+    if (pgErr.code === "42703" && pgErr.message?.includes("current_step")) {
+      console.warn("[OnboardingState] current_step column missing — auto-migrating");
+      await client.query(
+        "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS current_step INT NOT NULL DEFAULT 1"
+      );
+      return await _doUpsert(client, userId, patch);
+    }
+    throw err;
   } finally {
     try { await client.end(); } catch { /* ignore cleanup */ }
   }
+}
+
+/** Internal: execute the actual upsert query */
+async function _doUpsert(
+  client: Awaited<ReturnType<typeof import("@/lib/db").getDbClient>>,
+  userId: string,
+  patch: PatchOnboardingState,
+): Promise<OnboardingState> {
+  const metadataValue = patch.metadataJson
+    ? JSON.stringify(patch.metadataJson)
+    : "{}";
+
+  const { rows } = await client.query<OnboardingStateRow>(
+    `INSERT INTO onboarding_state (
+      user_id,
+      org_id,
+      current_step,
+      provider_inquiry_id,
+      status,
+      status_reason,
+      metadata_json
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+    ON CONFLICT (user_id) DO UPDATE SET
+      org_id              = COALESCE($2, onboarding_state.org_id),
+      current_step        = COALESCE($3, onboarding_state.current_step),
+      provider_inquiry_id = COALESCE($4, onboarding_state.provider_inquiry_id),
+      status              = COALESCE($5, onboarding_state.status),
+      status_reason       = COALESCE($6, onboarding_state.status_reason),
+      metadata_json       = CASE
+        WHEN $7::jsonb IS NOT NULL AND $7::jsonb != '{}'::jsonb
+        THEN onboarding_state.metadata_json || $7::jsonb
+        ELSE onboarding_state.metadata_json
+      END
+    RETURNING *`,
+    [
+      userId,
+      patch.orgId ?? null,
+      patch.currentStep ?? 1,
+      patch.providerInquiryId ?? null,
+      patch.status ?? "IN_PROGRESS",
+      patch.statusReason ?? null,
+      metadataValue,
+    ],
+  );
+
+  return rowToDomain(rows[0]);
 }

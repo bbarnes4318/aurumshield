@@ -305,7 +305,7 @@ export default function VerificationPage() {
 
   return (
     <StepShell
-      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
+      icon={<AppLogo className="h-12 w-auto" variant="dark" />}
       headline="Verification"
       description="Each milestone below reflects the live state of your compliance checks. When all four pass, the ‘Continue to Funding’ button activates. If your provider session is still open, this page will update automatically."
       footer={

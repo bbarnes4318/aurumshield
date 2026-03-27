@@ -156,7 +156,7 @@ export default function OrganizationPage() {
 
   return (
     <StepShell
-      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
+      icon={<AppLogo className="h-12 w-auto" variant="dark" />}
       headline="Your Organization"
       description="Enter your entity name and country of registration. This is all we collect at this step. In the next step, our compliance provider will handle identity verification, document review, and regulatory screening."
       footer={

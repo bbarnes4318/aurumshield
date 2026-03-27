@@ -278,7 +278,7 @@ function TradeDrawer({
               {/* Track Asset — orders with movement logistics */}
               {TRACKABLE_LOGISTICS.includes(trade.logisticsState) && (
                 <Link
-                  href={`/institutional/orders/${trade.id}/logistics`}
+                  href={`/institutional/settlement/SC-${trade.id.replace("ORD-", "")}`}
                   className="w-full flex items-center justify-center gap-2 rounded border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-blue-400 hover:bg-blue-500/20 transition-colors"
                 >
                   <Truck className="h-3.5 w-3.5" />
@@ -405,7 +405,7 @@ export default function InstitutionalOrdersPage() {
   /* ── Hard Ejection ── */
   useEffect(() => {
     if (!complianceLoading && !isError && !isCleared) {
-      router.replace("/institutional/org/select");
+      router.replace("/institutional/get-started/welcome");
     }
   }, [complianceLoading, isCleared, isError, router]);
 
@@ -634,7 +634,7 @@ export default function InstitutionalOrdersPage() {
                     )}
                     {TRACKABLE_LOGISTICS.includes(trade.logisticsState) && (
                       <Link
-                        href={`/institutional/orders/${trade.id}/logistics`}
+                        href={`/institutional/settlement/SC-${trade.id.replace("ORD-", "")}`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1 rounded border border-blue-500/30 bg-blue-500/10 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-blue-400 hover:bg-blue-500/20 transition-colors"
                       >
