@@ -247,52 +247,28 @@ export default function FirstTradeSuccessPage() {
           </div>
         )}
 
-        {/* ── What Happens Next ── */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-5 space-y-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            What happens next
-          </h3>
-
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#C6A86B]/10 border border-[#C6A86B]/20 text-[10px] font-bold text-[#C6A86B]">
-                1
-              </span>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                <strong className="text-slate-300">Binding Quote</strong> — Your
-                designated trader will generate a binding execution quote based on
-                live market conditions. This replaces the indicative estimate.
-              </p>
+        {/* ── Settlement Case — Live Operational Center ── */}
+        {intent && (
+          <a
+            href={`/institutional/settlement/SC-${intent.ref.replace("FT-", "")}`}
+            className="flex items-center justify-between w-full p-5 rounded-xl border border-[#C6A86B]/30 bg-[#C6A86B]/5 hover:bg-[#C6A86B]/10 hover:border-[#C6A86B]/50 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#C6A86B]/30 bg-[#C6A86B]/10">
+                <ShieldCheck className="h-5 w-5 text-[#C6A86B]" />
+              </div>
+              <div>
+                <p className="text-sm text-white font-semibold">
+                  View Settlement Case
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Live 8-stage timeline · Settlement documents · Operations contact
+                </p>
+              </div>
             </div>
-
-            <div className="flex items-start gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#C6A86B]/10 border border-[#C6A86B]/20 text-[10px] font-bold text-[#C6A86B]">
-                2
-              </span>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                <strong className="text-slate-300">Settlement</strong> — Funding
-                instructions will be provided. Wire transfer or stablecoin
-                settlement rails are available.
-              </p>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#C6A86B]/10 border border-[#C6A86B]/20 text-[10px] font-bold text-[#C6A86B]">
-                3
-              </span>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                <strong className="text-slate-300">
-                  {intent?.deliveryMethod === "vault_custody"
-                    ? "Custody Allocation"
-                    : "Delivery & Logistics"}
-                </strong>{" "}
-                — {intent?.deliveryMethod === "vault_custody"
-                  ? "Your gold will be allocated, serialized, and placed under bailment at the designated vault facility."
-                  : "Brink's Global Services will coordinate armored insured delivery to your designated address."}
-              </p>
-            </div>
-          </div>
-        </div>
+            <ArrowRight className="h-5 w-5 text-[#C6A86B] group-hover:translate-x-0.5 transition-transform" />
+          </a>
+        )}
 
         {/* ── Workspace Access ── */}
         <div className="flex items-start gap-2.5 rounded-lg border border-[#3fae7a]/20 bg-[#3fae7a]/5 px-4 py-3">

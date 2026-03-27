@@ -680,6 +680,16 @@ export default function InstitutionalOrdersPage() {
 
                   {/* Actions */}
                   <span className="col-span-2 flex items-center justify-end gap-2">
+                    {(trade.status === "pending_execution" || trade.status === "active") && (
+                      <Link
+                        href={`/institutional/settlement/SC-${trade.id.replace("ORD-", "")}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 rounded border border-[#C6A86B]/30 bg-[#C6A86B]/10 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-[#C6A86B] hover:bg-[#C6A86B]/20 transition-colors"
+                      >
+                        <Shield className="h-2.5 w-2.5" />
+                        Case
+                      </Link>
+                    )}
                     {TRACKABLE_LOGISTICS.includes(trade.logisticsState) && (
                       <Link
                         href={`/institutional/orders/${trade.id}/logistics`}

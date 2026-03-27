@@ -343,8 +343,9 @@ export default function InstitutionalMarketplacePage() {
     sessionStorage.setItem("aurumshield:execution", JSON.stringify(executionRecord));
 
     const demoParam = isDemoActive ? "?demo=active" : "";
+    const caseRef = `SC-${orderId.replace("ORD-", "")}`;
     setTimeout(() => {
-      router.push(`/institutional/orders/${orderId}${demoParam}`);
+      router.push(`/institutional/settlement/${caseRef}${demoParam}`);
     }, 800);
   }, [phase, isExecuting, isDemoActive, router, selectedAsset, deliveryMode, destination, settlementRail, limitWarning, limitBlocked]);
 

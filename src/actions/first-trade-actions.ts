@@ -200,9 +200,10 @@ export async function submitFirstTrade(
     );
   }
 
-  /* -- Generate trade intent reference -- */
+  /* -- Generate trade intent reference + settlement case ref -- */
   const { randomUUID } = await import("crypto");
   const tradeIntentRef = "FT-" + randomUUID().slice(0, 8).toUpperCase();
+  const settlementCaseRef = "SC-" + tradeIntentRef.replace("FT-", "");
   const submittedAt = new Date().toISOString();
 
   /* -- Persist: finalize the guided journey -- */
@@ -219,6 +220,12 @@ export async function submitFirstTrade(
         deliveryRegion: draft.deliveryRegion || null,
         indicativeSnapshot: validatedSnapshot,
         submittedAt,
+      },
+      __settlementCase: {
+        caseRef: settlementCaseRef,
+        orderRef: tradeIntentRef,
+        createdAt: submittedAt,
+        completedMilestones: 1, // TRADE_INTENT_RECORDED
       },
       __journey: {
         stage: "FIRST_TRADE_SUCCESS",
