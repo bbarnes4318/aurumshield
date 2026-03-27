@@ -71,7 +71,7 @@ export function MissionLayout({
         <div className="flex items-center justify-between">
           <AppLogo className="h-5 w-auto opacity-30" variant="dark" />
           <p className="font-mono text-[9px] text-slate-700 tracking-wider uppercase">
-            AurumShield · Sovereign Custody · Institutional Grade
+            Progress auto-saved · TLS-encrypted session · Support: operations@aurumshield.com
           </p>
         </div>
       </footer>

@@ -17,10 +17,10 @@ import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrima
 
 /* ── Guided stages (macro framing — preview of what's ahead) ── */
 const GUIDED_STAGES = [
-  { label: "Organization Setup", description: "Register your entity" },
-  { label: "Verification", description: "KYB and compliance checks" },
-  { label: "Funding Readiness", description: "Source of funds and agreements" },
-  { label: "First Allocation", description: "Place your first gold position" },
+  { label: "Organization Setup", description: "We record your entity name and jurisdiction — nothing else" },
+  { label: "Verification", description: "KYB, UBO review, and sanctions screening via our compliance provider" },
+  { label: "Funding Readiness", description: "Connect a stablecoin wallet or banking details for settlement" },
+  { label: "First Allocation", description: "Select an asset, choose custody, and confirm your trade intent" },
 ] as const;
 
 export default function WelcomePage() {
@@ -28,12 +28,12 @@ export default function WelcomePage() {
     <StepShell
       icon={<AppLogo className="h-8 w-auto" variant="dark" />}
       headline="Welcome to AurumShield"
-      description="We'll guide you through setting up your institutional account in a few simple steps. Each step takes only a few minutes, and your progress is saved automatically."
+      description="This process takes about 10 minutes across 4 steps. Your progress is auto-saved at every step, and you can return at any time to continue where you left off."
       footer={
         <div className="flex items-center justify-center gap-2">
           <Shield className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            Bank-Grade Security · End-to-End Encryption
+            Each step auto-saves · You can exit and return any time · No data is shared with third parties until verification
           </span>
         </div>
       }

@@ -307,12 +307,12 @@ export default function VerificationPage() {
     <StepShell
       icon={<AppLogo className="h-8 w-auto" variant="dark" />}
       headline="Verification"
-      description="Your entity verification status is shown below. Each milestone reflects the current state of your compliance checks with our verification provider."
+      description="Each milestone below reflects the live state of your compliance checks. When all four pass, the ‘Continue to Funding’ button activates. If your provider session is still open, this page will update automatically."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            KYB · AML · OFAC · EU · UN · HMT · DFAT
+            Checks: KYB · AML · OFAC · EU · UN · HMT · DFAT · Questions? compliance@aurumshield.com
           </span>
         </div>
       }

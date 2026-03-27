@@ -322,13 +322,13 @@ export default function FundingPage() {
   return (
     <StepShell
       icon={<AppLogo className="h-8 w-auto" variant="dark" />}
-      headline="Fund Your Account"
-      description="Select how your institution will fund transactions on AurumShield. You can always update this later."
+      headline="Funding Configuration"
+      description="Choose your settlement rail and provide the account details. This step does not move any funds — it registers where settlement payments will originate. After submission, we run OFAC screening and compliance checks before unlocking your first trade."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            256-Bit Encrypted · {walletScreeningLabel(serverReadinessData?.walletScreeningStatus ?? null, method)} · Fail-Closed Compliance
+            No funds moved at this step · {walletScreeningLabel(serverReadinessData?.walletScreeningStatus ?? null, method)} · Support: operations@aurumshield.com
           </span>
         </div>
       }

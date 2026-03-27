@@ -214,12 +214,12 @@ export default function FirstTradeReviewPage() {
     <StepShell
       icon={ClipboardList}
       headline="Review your first trade"
-      description="Please review the details below before proceeding to authorization."
+      description="Review your selections below. The next step is authorization — after that, a settlement case is opened and your operations team generates a binding quote."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            Fail-Closed Gating · Server-Backed · Sovereign Custody
+            Pricing is indicative until quote-lock · No funds move until settlement · Support: operations@aurumshield.com
           </span>
         </div>
       }

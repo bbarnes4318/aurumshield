@@ -158,12 +158,12 @@ export default function OrganizationPage() {
     <StepShell
       icon={<AppLogo className="h-8 w-auto" variant="dark" />}
       headline="Your Organization"
-      description="Enter your entity name and country of registration. Our compliance engine handles the rest — identity verification, document review, and regulatory screening — in the next step."
+      description="Enter your entity name and country of registration. This is all we collect at this step. In the next step, our compliance provider will handle identity verification, document review, and regulatory screening."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            256-Bit Encrypted · Compliance Verified · Data Never Resold
+            Only entity name and country stored at this step · Verification happens next · Data encrypted at rest
           </span>
         </div>
       }

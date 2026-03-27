@@ -131,12 +131,12 @@ export default function FirstTradeSuccessPage() {
     <StepShell
       icon={CheckCircle2}
       headline="Trade intent confirmed"
-      description="Your institutional gold transaction intent has been recorded with an indicative price estimate."
+      description="Your trade intent has been recorded. A settlement case is now open — your operations team will issue a binding quote, followed by settlement instructions and custody allocation."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            AurumShield · Sovereign Custody · Institutional Grade
+            Settlement case open · Binding quote pending · Support: operations@aurumshield.com
           </span>
         </div>
       }
