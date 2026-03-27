@@ -753,52 +753,30 @@ import {
 describe("organizationStageSchema", () => {
   it("rejects empty-string required fields in defaults", () => {
     const result = organizationStageSchema.safeParse(ORGANIZATION_STAGE_DEFAULTS);
-    // Defaults have empty strings for required fields like companyName,
-    // jurisdiction, representativeName — these should fail min-length validation
+    // Defaults have empty strings for companyName and jurisdiction
     expect(result.success).toBe(false);
   });
 
-  it("accepts valid complete data", () => {
+  it("accepts valid complete data (minimal pre-screen)", () => {
     const result = organizationStageSchema.safeParse({
       companyName: "Meridian Capital Holdings Ltd.",
       jurisdiction: "US",
-      legalEntityIdentifier: "5493001KJTIIGC8Y1R12",
-      leiVerified: true,
-      registrationNumber: "12345678",
-      representativeName: "James Fletcher",
-      representativeTitle: "CFO",
-      contactEmail: "treasury@meridian.com",
-      contactPhone: "+14155551234",
     });
     expect(result.success).toBe(true);
   });
 
-  it("accepts empty LEI (optional)", () => {
+  it("rejects missing jurisdiction", () => {
     const result = organizationStageSchema.safeParse({
       companyName: "Meridian Capital Holdings Ltd.",
-      jurisdiction: "US",
-      legalEntityIdentifier: "",
-      leiVerified: false,
-      registrationNumber: "",
-      representativeName: "James Fletcher",
-      representativeTitle: "CFO",
-      contactEmail: "treasury@meridian.com",
-      contactPhone: "+14155551234",
+      jurisdiction: "",
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
-  it("rejects invalid LEI format (not 20 chars)", () => {
+  it("rejects company name under 2 characters", () => {
     const result = organizationStageSchema.safeParse({
-      companyName: "Test Corp",
+      companyName: "X",
       jurisdiction: "US",
-      legalEntityIdentifier: "SHORT",
-      leiVerified: false,
-      registrationNumber: "",
-      representativeName: "Jane Doe",
-      representativeTitle: "CEO",
-      contactEmail: "jane@test.com",
-      contactPhone: "+14155551234",
     });
     expect(result.success).toBe(false);
   });

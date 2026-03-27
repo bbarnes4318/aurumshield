@@ -40,12 +40,12 @@ export function MissionLayout({
   showProgress = true,
 }: MissionLayoutProps) {
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-950 text-slate-300">
+    <div className="fixed inset-0 z-10 flex flex-col overflow-hidden bg-slate-950 text-slate-300">
       {/* ── Gold Accent Bar ── */}
       <div className="h-0.5 w-full bg-linear-to-r from-[#C6A86B]/0 via-[#C6A86B]/60 to-[#C6A86B]/0 shrink-0" />
 
       {/* ── Header ── */}
-      <header className="shrink-0 border-b border-slate-800/30 bg-slate-950 px-6 py-4">
+      <header className="shrink-0 border-b border-slate-800/30 bg-slate-950 px-6 py-5">
         <div className="mx-auto max-w-3xl flex items-center justify-between">
           <AppLogo className="h-6 w-auto" variant="dark" />
 
@@ -58,9 +58,9 @@ export function MissionLayout({
         </div>
       </header>
 
-      {/* ── Main Content — vertically centered, scrollable ── */}
-      <main className="flex-1 min-h-0 flex items-center justify-center overflow-y-auto px-6 py-6 scrollbar-hidden">
-        <div className="w-full max-w-xl">
+      {/* ── Main Content — scrollable, centered only when shorter than viewport ── */}
+      <main className="flex-1 min-h-0 overflow-y-auto px-6 py-8 scrollbar-hidden">
+        <div className="mx-auto w-full max-w-xl my-auto">
           {children}
         </div>
       </main>

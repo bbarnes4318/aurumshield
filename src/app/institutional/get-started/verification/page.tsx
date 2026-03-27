@@ -192,7 +192,6 @@ export default function VerificationPage() {
   const [orgSummary, setOrgSummary] = useState<{
     entityName: string;
     jurisdiction: string;
-    representative: string;
   } | null>(null);
 
   /* ── Restore organization summary from persisted state ── */
@@ -212,7 +211,6 @@ export default function VerificationPage() {
           setOrgSummary({
             entityName: (org.companyName as string) || "—",
             jurisdiction: (org.jurisdiction as string) || "—",
-            representative: (org.representativeName as string) || "—",
           });
         }
       }
@@ -326,7 +324,6 @@ export default function VerificationPage() {
             items={[
               { label: "Entity", value: orgSummary.entityName },
               { label: "Jurisdiction", value: orgSummary.jurisdiction },
-              { label: "Representative", value: orgSummary.representative },
             ]}
           />
         )}
