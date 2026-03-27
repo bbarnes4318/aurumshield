@@ -167,8 +167,16 @@ async function ensureSchema(): Promise<void> {
         // Constraint management — non-fatal if it fails
       }
 
+      // 5. Ensure UNIQUE constraint on user_id (required for ON CONFLICT)
+      try {
+        await client.query("CREATE UNIQUE INDEX IF NOT EXISTS onboarding_state_user_id_key ON onboarding_state (user_id)");
+        console.info("[OnboardingState] user_id unique index: confirmed");
+      } catch (idxErr) {
+        console.warn("[OnboardingState] user_id unique index failed:", idxErr);
+      }
+
       _schemaVerified = true;
-      console.info("[OnboardingState] ✅ Schema verification complete — all columns confirmed");
+      console.info("[OnboardingState] ✅ Schema verification complete — all columns and constraints confirmed");
     } catch (err) {
       console.error("[OnboardingState] Schema verification failed:", err);
       // Don't cache failure — retry on next call

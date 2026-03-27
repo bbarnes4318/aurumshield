@@ -41,11 +41,11 @@ export function StepShell({
     <div className="flex flex-col items-center text-center">
       {/* ── Icon Container ── */}
       {isLucide ? (
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50 mb-5 overflow-hidden">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50 mb-3 overflow-hidden">
           {(() => { const Icon = icon as LucideIcon; return <Icon className="h-7 w-7 text-[#C6A86B]" />; })()}
         </div>
       ) : (
-        <div className="mb-5">{icon}</div>
+        <div className="mb-3">{icon}</div>
       )}
 
       {/* ── Headline ── */}
@@ -54,7 +54,7 @@ export function StepShell({
       </h1>
 
       {/* ── Description ── */}
-      <p className="text-sm text-slate-400 leading-relaxed max-w-md mb-6">
+      <p className="text-sm text-slate-400 leading-relaxed max-w-md mb-4">
         {description}
       </p>
 
@@ -62,7 +62,7 @@ export function StepShell({
       <div className="w-full">{children}</div>
 
       {/* ── Footer ── */}
-      {footer && <div className="mt-4 w-full">{footer}</div>}
+      {footer && <div className="mt-3 w-full">{footer}</div>}
     </div>
   );
 }
