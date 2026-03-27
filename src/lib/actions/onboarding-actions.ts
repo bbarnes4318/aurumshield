@@ -109,7 +109,7 @@ export async function serverSubmitIntakeDossier(
    ACTION: Launch Identity Scan
    ================================================================
    Calls the real compliance engine to initiate an identity
-   verification session via the active provider (iDenfy or Veriff).
+   verification session via the active provider (KYCaid/iDenfy/Veriff).
 
    Returns one of:
      - { status: 'REDIRECT', redirectUrl, provider, sessionId } — user must verify
@@ -121,7 +121,7 @@ export async function serverSubmitIntakeDossier(
 export interface IdentityScanResult {
   status: "REDIRECT" | "ALREADY_CLEARED" | "IN_PROGRESS" | "ERROR";
   redirectUrl?: string;
-  provider?: "VERIFF" | "IDENFY";
+  provider?: "VERIFF" | "IDENFY" | "KYCAID";
   sessionId?: string;
   error?: string;
 }
@@ -166,7 +166,7 @@ export async function serverLaunchIdentityScan(
     // For new users, this THROWS a CompliancePendingError with the iDenfy redirect URL.
     // For cleared users, this returns a readiness result.
     console.log(`[KYB-SERVER] Step 3: Calling evaluateCounterpartyReadiness("${clerkUserId}")...`);
-    console.log(`[KYB-SERVER]   ACTIVE_COMPLIANCE_PROVIDER=${process.env.ACTIVE_COMPLIANCE_PROVIDER ?? "NOT SET (defaults to VERIFF)"}`);
+    console.log(`[KYB-SERVER]   COMPLIANCE_ACTIVE_PROVIDER=${process.env.COMPLIANCE_ACTIVE_PROVIDER ?? process.env.ACTIVE_COMPLIANCE_PROVIDER ?? "NOT SET (defaults to KYCAID)"}`);
     console.log(`[KYB-SERVER]   IDENFY_API_KEY=${process.env.IDENFY_API_KEY ? "SET ✔" : "⚠ NOT SET"}`);
     console.log(`[KYB-SERVER]   IDENFY_API_SECRET=${process.env.IDENFY_API_SECRET ? "SET ✔" : "⚠ NOT SET"}`);
 
@@ -192,7 +192,7 @@ export async function serverLaunchIdentityScan(
       return {
         status: "REDIRECT",
         redirectUrl: err.redirectUrl,
-        provider: err.provider,
+        provider: err.provider as "VERIFF" | "IDENFY" | "KYCAID",
         sessionId: err.sessionId,
       };
     }

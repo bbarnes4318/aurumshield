@@ -11,7 +11,7 @@
    2. useInitiateVerification()
       Mutation that POSTs to /api/compliance/cases/me/initiate
       to create a compliance case and route the user to the
-      active provider (iDenfy/Veriff).
+      active provider (KYCaid/iDenfy/Veriff).
 
    Refetch interval: 10s when case is in a transitional state
    (PENDING_USER, PENDING_PROVIDER, UNDER_REVIEW) so the UI
@@ -43,7 +43,7 @@ interface ComplianceCaseResponse {
 export interface InitiateVerificationResponse {
   status: "REDIRECT" | "ALREADY_CLEARED" | "IN_PROGRESS" | "ERROR";
   redirectUrl?: string;
-  provider?: "VERIFF" | "IDENFY";
+  provider?: "VERIFF" | "IDENFY" | "KYCAID";
   sessionId?: string;
   error?: string;
 }
@@ -91,7 +91,7 @@ export function useComplianceCaseVerification(): ComplianceCaseVerification {
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
     /* Auto-refetch every 10s when in a transitional state so the
-       UI updates when the Veriff/iDenfy webhook fires. */
+       UI updates when the KYCaid/Veriff/iDenfy webhook fires. */
     refetchInterval: (query) => {
       const caseStatus = query.state.data?.case?.status ?? null;
       if (caseStatus && POLLING_STATUSES.has(caseStatus)) {

@@ -5,7 +5,7 @@
    ================================================================
    Purpose-built server action for the institutional guided
    verification flow. Creates (or reuses) a compliance case and
-   routes the user to the active compliance provider (iDenfy/Veriff).
+   routes the user to the active compliance provider (KYCaid/iDenfy/Veriff).
 
    Reuses:
      • createComplianceCase()          — idempotent upsert
@@ -29,7 +29,7 @@ import {
 export interface InitiateVerificationResult {
   status: "REDIRECT" | "ALREADY_CLEARED" | "IN_PROGRESS" | "ERROR";
   redirectUrl?: string;
-  provider?: "VERIFF" | "IDENFY";
+  provider?: "VERIFF" | "IDENFY" | "KYCAID";
   sessionId?: string;
   error?: string;
 }
