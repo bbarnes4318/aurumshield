@@ -27,6 +27,8 @@ import {
   Loader2,
   MapPin,
   Truck,
+  Info,
+  ArrowRight,
 } from "lucide-react";
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
@@ -66,88 +68,7 @@ interface Trade {
   rail: string;
 }
 
-/* ── Mock Trade Data ── */
-
-const MOCK_TRADES: Trade[] = [
-  {
-    id: "ORD-8842-XAU",
-    asset: "400oz LBMA",
-    qty: 100,
-    notional: 106_106_000,
-    dvpState: "PENDING_WIRE",
-    logisticsState: "AWAITING_DISPATCH",
-    status: "pending_execution",
-    date: "2026-03-18",
-    counterparty: "Sovereign Wealth Fund — Abu Dhabi",
-    vault: "Zurich — Malca-Amit Hub 1",
-    rail: "Fedwire RTGS",
-  },
-  {
-    id: "ORD-8837-XAU",
-    asset: "1kg Bar",
-    qty: 250,
-    notional: 16_812_500,
-    dvpState: "ESCROW_LOCKED",
-    logisticsState: "BRINKS_TRANSIT",
-    status: "active",
-    date: "2026-03-17",
-    counterparty: "Family Office — Zurich",
-    vault: "London — Brink's Sovereign",
-    rail: "USDT (ERC-20)",
-  },
-  {
-    id: "ORD-8801-XAU",
-    asset: "400oz LBMA",
-    qty: 50,
-    notional: 53_053_000,
-    dvpState: "DVP_SETTLED",
-    logisticsState: "VAULTED",
-    status: "settled",
-    date: "2026-03-15",
-    counterparty: "Central Bank Reserve — Singapore",
-    vault: "Singapore — Malca-Amit Asia",
-    rail: "Fedwire RTGS",
-  },
-  {
-    id: "ORD-8790-XAU",
-    asset: "10oz Cast",
-    qty: 500,
-    notional: 13_263_250,
-    dvpState: "DVP_SETTLED",
-    logisticsState: "DELIVERED",
-    status: "settled",
-    date: "2026-03-12",
-    counterparty: "HNWI — London",
-    vault: "Physical Delivery — UK Mainland",
-    rail: "Fedwire RTGS",
-  },
-  {
-    id: "ORD-8775-XAU",
-    asset: "1oz Minted",
-    qty: 1000,
-    notional: 2_783_100,
-    dvpState: "DVP_SETTLED",
-    logisticsState: "VAULTED",
-    status: "settled",
-    date: "2026-03-10",
-    counterparty: "Pension Fund — New York",
-    vault: "New York — Brink's CONUS",
-    rail: "USDT (ERC-20)",
-  },
-  {
-    id: "ORD-8760-XAU",
-    asset: "400oz LBMA",
-    qty: 25,
-    notional: 26_526_500,
-    dvpState: "WIRE_CONFIRMED",
-    logisticsState: "AWAITING_DISPATCH",
-    status: "active",
-    date: "2026-03-16",
-    counterparty: "Corporate Treasury — Dubai",
-    vault: "Dubai — Brink's DMCC Freeport",
-    rail: "Fedwire RTGS",
-  },
-];
+/* ── No mock trades — trades come only from real execution records ── */
 
 /* ── Formatting ── */
 
@@ -428,9 +349,9 @@ export default function InstitutionalOrdersPage() {
 
   /* ── All hooks MUST be above early returns ── */
 
-  /* ── Merge any dynamically created order from marketplace ── */
+  /* ── Only real execution records from marketplace (no pre-seeded mocks) ── */
   const allTrades = useMemo(() => {
-    const trades = [...MOCK_TRADES];
+    const trades: Trade[] = [];
     if (typeof window !== "undefined") {
       const executionRaw = sessionStorage.getItem("aurumshield:execution");
       if (executionRaw) {
@@ -439,24 +360,25 @@ export default function InstitutionalOrdersPage() {
             orderId: string;
             asset?: { title?: string; shortName?: string };
             executedAt?: string;
+            deliveryMode?: string;
+            destination?: string;
+            rail?: string;
           };
-          if (!trades.some((t) => t.id === exec.orderId)) {
-            trades.unshift({
-              id: exec.orderId,
-              asset: exec.asset?.shortName || exec.asset?.title || "400oz LBMA",
-              qty: 1,
-              notional: 2_652_650,
-              dvpState: "PENDING_WIRE",
-              logisticsState: "AWAITING_DISPATCH",
-              status: "pending_execution",
-              date: exec.executedAt
-                ? new Date(exec.executedAt).toISOString().slice(0, 10)
-                : new Date().toISOString().slice(0, 10),
-              counterparty: "Self-Directed",
-              vault: "Zurich — Malca-Amit Hub 1",
-              rail: "Fedwire RTGS",
-            });
-          }
+          trades.push({
+            id: exec.orderId,
+            asset: exec.asset?.shortName || exec.asset?.title || "Gold Bar",
+            qty: 1,
+            notional: 0,
+            dvpState: "PENDING_WIRE",
+            logisticsState: "AWAITING_DISPATCH",
+            status: "pending_execution",
+            date: exec.executedAt
+              ? new Date(exec.executedAt).toISOString().slice(0, 10)
+              : new Date().toISOString().slice(0, 10),
+            counterparty: "Self-Directed",
+            vault: exec.destination ?? "Pending Assignment",
+            rail: exec.rail === "FEDWIRE" ? "Fedwire RTGS" : exec.rail === "TURNKEY_USDT" ? "USDT (ERC-20)" : (exec.rail ?? "Fedwire RTGS"),
+          });
         } catch {
           // Invalid JSON — skip
         }
@@ -634,8 +556,28 @@ export default function InstitutionalOrdersPage() {
         {/* Scrollable Rows */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           {filteredTrades.length === 0 ? (
-            <div className="flex items-center justify-center py-16 text-slate-600">
-              <span className="font-mono text-xs">No trades match current filters</span>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-800 bg-slate-900 mb-3">
+                <ArrowRightLeft className="h-5 w-5 text-slate-600" />
+              </div>
+              <p className="font-mono text-sm text-slate-400 font-semibold mb-1">
+                No settlement cases initiated yet
+              </p>
+              <p className="font-mono text-[11px] text-slate-600 max-w-sm leading-relaxed mb-4">
+                Trades will appear here as you execute orders through the
+                marketplace. Each trade tracks DvP escrow state and logistics.
+              </p>
+              <Link
+                href="/institutional/marketplace"
+                className="inline-flex items-center gap-2 border border-[#C6A86B]/30 bg-[#C6A86B]/10 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#C6A86B] hover:bg-[#C6A86B]/20 transition-colors"
+              >
+                Open Marketplace
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+              <span className="mt-4 inline-flex items-center gap-1 font-mono text-[8px] text-slate-600 tracking-wider uppercase">
+                <Info className="h-2.5 w-2.5" />
+                Derived from settlement cases
+              </span>
             </div>
           ) : (
             filteredTrades.map((trade) => {
