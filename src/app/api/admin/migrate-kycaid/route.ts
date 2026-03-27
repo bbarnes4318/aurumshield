@@ -53,7 +53,32 @@ export async function POST(request: NextRequest) {
       `);
       results.push("idx_kycaid_wh_user: index created");
 
-      // 3. Verify
+      // 3. Fix onboarding_state — add missing columns
+      await client.query(
+        "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS org_id UUID"
+      );
+      results.push("onboarding_state.org_id: added");
+
+      await client.query(
+        "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS provider_inquiry_id VARCHAR(255)"
+      );
+      results.push("onboarding_state.provider_inquiry_id: added");
+
+      await client.query(
+        "ALTER TABLE onboarding_state ADD COLUMN IF NOT EXISTS status_reason TEXT"
+      );
+      results.push("onboarding_state.status_reason: added");
+
+      // Widen current_step constraint to allow up to 8
+      await client.query(
+        "ALTER TABLE onboarding_state DROP CONSTRAINT IF EXISTS onboarding_state_current_step_check"
+      );
+      await client.query(
+        "ALTER TABLE onboarding_state ADD CONSTRAINT onboarding_state_current_step_check CHECK (current_step BETWEEN 1 AND 8)"
+      );
+      results.push("onboarding_state.current_step: constraint widened to 1-8");
+
+      // 4. Verify
       const { rows } = await client.query(
         "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'kycaid_webhook_log' ORDER BY ordinal_position"
       );
