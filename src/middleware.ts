@@ -49,6 +49,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks/(.*)",
   "/api/fix-schema(.*)",
   "/api/admin/migrate-onboarding(.*)",
+  "/api/admin/migrate-kycaid(.*)",
   "/demo/(.*)",
   "/dev/(.*)",
   "/",
