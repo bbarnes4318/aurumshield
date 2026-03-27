@@ -59,8 +59,8 @@ export function MissionLayout({
         </div>
       </header>
 
-      {/* ── Main Content — scrollable, centered only when shorter than viewport ── */}
-      <main className="flex-1 min-h-0 overflow-y-auto px-6 py-4 scrollbar-hidden">
+      {/* ── Main Content — NO SCROLL. Content MUST fit viewport. ── */}
+      <main className="flex-1 min-h-0 overflow-hidden px-6 py-4">
         <div className="mx-auto w-full max-w-xl flex flex-col items-center justify-center min-h-full">
           {children}
         </div>
