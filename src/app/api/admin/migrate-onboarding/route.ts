@@ -10,9 +10,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  // Simple secret-based auth — use IDENFY_WEBHOOK_SECRET which is available at build time
-  const secret = request.headers.get("x-migration-secret");
-  const expected = process.env.IDENFY_WEBHOOK_SECRET;
+  // Auth via CRON_SECRET_KEY — consistent with all /api/cron/* and /api/admin/* routes
+  const authHeader = request.headers.get("authorization");
+  const secret = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : request.headers.get("x-migration-secret");
+  const expected = process.env.CRON_SECRET_KEY;
 
   if (!secret || !expected || secret !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
