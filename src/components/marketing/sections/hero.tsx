@@ -64,7 +64,7 @@ export function HeroSection() {
             className="flex flex-wrap gap-3 sm:gap-4 justify-start pt-2"
           >
             <a
-              href="/perimeter/verify"
+              href="/institutional/get-started/welcome"
               className="inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-gold/50 bg-transparent px-5 py-2.5 text-sm font-semibold text-gold tracking-wide transition-all duration-200 hover:bg-gold/10 hover:border-gold"
             >
               Apply for Institutional Access
@@ -72,7 +72,7 @@ export function HeroSection() {
             </a>
 
             <a
-              href="/perimeter/verify?demo=active"
+              href="/institutional/get-started/welcome?demo=true"
               className="inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-slate-600 bg-transparent px-5 py-2.5 text-sm font-semibold text-slate-300 tracking-wide transition-all duration-200 hover:border-slate-400 hover:text-white"
             >
               See Our Verification Process

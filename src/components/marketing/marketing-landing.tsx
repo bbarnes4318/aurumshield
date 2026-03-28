@@ -154,7 +154,7 @@ export function Navigation() {
               Request Access
             </a>
             <a
-              href="/perimeter/verify?demo=active"
+              href="/institutional/get-started/welcome?demo=true"
               className="hidden lg:inline-flex items-center gap-2 rounded-md border border-gold/30 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-gold transition-all hover:border-gold/60 hover:bg-gold/10"
             >
               Initiate Institutional Demo
@@ -1023,7 +1023,7 @@ const JOURNEY_PHASES = [
     title: "Identity Registration",
     description:
       "Clerk-secured institutional email verification and 2FA TOTP authorization. Cryptographically sealed session binding.",
-    href: "/perimeter/register",
+    href: "/institutional/get-started/welcome",
     status: "COMPLIANCE GATE",
   },
   {
@@ -1031,7 +1031,7 @@ const JOURNEY_PHASES = [
     title: "KYC / KYB / AML Screening",
     description:
       "Document upload, corporate identity verification, and automated OFAC SDN, EU Consolidated, and UN Security Council sanctions screening.",
-    href: "/perimeter/verify",
+    href: "/institutional/get-started/verification",
     status: "COMPLIANCE GATE",
   },
   {
