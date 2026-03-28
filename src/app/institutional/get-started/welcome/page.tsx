@@ -10,7 +10,6 @@
    Macro progress framing without dashboard clutter.
    ================================================================ */
 
-import { Shield } from "lucide-react";
 import { StepShell } from "@/components/institutional-flow/StepShell";
 import { AppLogo } from "@/components/app-logo";
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
@@ -26,17 +25,9 @@ const GUIDED_STAGES = [
 export default function WelcomePage() {
   return (
     <StepShell
-      icon={<AppLogo className="h-12 w-auto" variant="dark" />}
+      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
       headline="Welcome to AurumShield"
-      description="This process takes about 10 minutes across 4 steps. Your progress is auto-saved at every step, and you can return at any time to continue where you left off."
-      footer={
-        <div className="flex items-center justify-center gap-2">
-          <Shield className="h-3.5 w-3.5 text-slate-600" />
-          <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            Each step auto-saves · You can exit and return any time · No data is shared with third parties until verification
-          </span>
-        </div>
-      }
+      description="4 steps · ~10 minutes · Progress auto-saved."
     >
       {/* ── Macro Progress Framing ── */}
       <div className="w-full max-w-sm mx-auto mb-2">
@@ -44,21 +35,21 @@ export default function WelcomePage() {
           {GUIDED_STAGES.map((stage, i) => (
             <div
               key={stage.label}
-              className="flex items-center gap-4 px-4 py-2.5 border-b border-slate-800/50 last:border-0"
+              className="flex items-center gap-3 px-3 py-1.5 border-b border-slate-800/50 last:border-0"
             >
               {/* Step Number */}
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-900/60">
-                <span className="font-mono text-xs text-slate-400 font-bold">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-900/60">
+                <span className="font-mono text-[10px] text-slate-400 font-bold">
                   {i + 1}
                 </span>
               </div>
 
               {/* Step Info */}
               <div className="text-left">
-                <p className="text-sm font-medium text-slate-300">
+                <p className="text-xs font-medium text-slate-300">
                   {stage.label}
                 </p>
-                <p className="text-xs text-slate-600 mt-0.5">
+                <p className="text-[10px] text-slate-600 mt-0.5 leading-snug">
                   {stage.description}
                 </p>
               </div>

@@ -33,7 +33,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ShieldCheck,
   Loader2,
   Save,
   ExternalLink,
@@ -313,19 +312,11 @@ export default function VerificationPage() {
 
   return (
     <StepShell
-      icon={<AppLogo className="h-12 w-auto" variant="dark" />}
+      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
       headline="Verification"
-      description="Each milestone below reflects the live state of your compliance checks. When all four pass, the ‘Continue to Funding’ button activates. If your provider session is still open, this page will update automatically."
-      footer={
-        <div className="flex items-center justify-center gap-2">
-          <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
-          <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            Checks: KYB · AML · OFAC · EU · UN · HMT · DFAT · Questions? compliance@aurumshield.com
-          </span>
-        </div>
-      }
+      description="Live compliance check status. All four milestones must pass to proceed."
     >
-      <div className="w-full space-y-3">
+      <div className="w-full space-y-2">
         {/* ── Organization Summary (if available) ── */}
         {orgSummary && (
           <ReviewCard
@@ -400,19 +391,14 @@ export default function VerificationPage() {
 
         {/* ── Initiation CTA: shown when no case exists or case is OPEN ── */}
         {canInitiate && !providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-3 rounded-lg border border-slate-800/50 bg-slate-900/30 px-4 py-3">
-            <div className="flex items-start gap-2.5">
-              <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-[#C6A86B]" />
-              <p className="text-[12px] text-slate-400 leading-relaxed">
-                Your entity verification has not been submitted yet. Click below
-                to begin the identity and compliance verification process with our
-                trusted provider.
-              </p>
-            </div>
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-slate-800/50 bg-slate-900/30 px-3 py-2">
+            <p className="text-[11px] text-slate-400 leading-snug text-center">
+              Verification not yet submitted. Click below to begin.
+            </p>
             <button
               onClick={handleInitiateVerification}
               disabled={isInitiating}
-              className="inline-flex items-center gap-2 rounded-md bg-[#C6A86B] px-5 py-2.5 text-sm font-semibold text-black transition-all hover:bg-[#d4b97a] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-md bg-[#C6A86B] px-5 py-2 text-xs font-semibold text-black transition-all hover:bg-[#d4b97a] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isInitiating ? (
                 <>
@@ -431,11 +417,9 @@ export default function VerificationPage() {
 
         {/* ── Provider redirect notice: shown after initiation returns a redirect URL ── */}
         {providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-2 rounded-lg border border-[#C6A86B]/30 bg-[#C6A86B]/5 px-4 py-3">
-            <p className="text-[12px] text-slate-300 leading-relaxed text-center">
-              A verification session has been opened with our provider.
-              Complete the identity and document checks in the new tab.
-              This page will update automatically when your verification is processed.
+          <div className="flex flex-col items-center gap-1.5 rounded-lg border border-[#C6A86B]/30 bg-[#C6A86B]/5 px-3 py-2">
+            <p className="text-[11px] text-slate-300 leading-snug text-center">
+              Verification session opened. Complete checks in the new tab.
             </p>
             <a
               href={providerRedirectUrl}
@@ -451,18 +435,14 @@ export default function VerificationPage() {
 
         {/* ── PENDING_USER nudge: user started but didn't finish provider flow ── */}
         {caseStatus === "PENDING_USER" && !providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-2 rounded-lg border border-amber-600/30 bg-amber-950/20 px-4 py-3">
-            <div className="flex items-start gap-2.5">
-              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-500" />
-              <p className="text-[12px] text-slate-400 leading-relaxed">
-                Your verification session is waiting for you to complete the identity
-                checks with our provider. Click below to re-open the verification flow.
-              </p>
-            </div>
+          <div className="flex flex-col items-center gap-1.5 rounded-lg border border-amber-600/30 bg-amber-950/20 px-3 py-2">
+            <p className="text-[11px] text-slate-400 leading-snug text-center">
+              Verification session waiting. Click below to re-open.
+            </p>
             <button
               onClick={handleInitiateVerification}
               disabled={isInitiating}
-              className="inline-flex items-center gap-2 rounded-md border border-amber-600/40 bg-transparent px-4 py-2 text-sm font-medium text-amber-400 transition-all hover:bg-amber-950/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-md border border-amber-600/40 bg-transparent px-4 py-1.5 text-xs font-medium text-amber-400 transition-all hover:bg-amber-950/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isInitiating ? (
                 <>

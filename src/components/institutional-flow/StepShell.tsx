@@ -38,23 +38,23 @@ export function StepShell({
   const isLucide = typeof icon === "function";
 
   return (
-    <div className="flex flex-col items-center text-center">
+    <div className="flex flex-col items-center text-center w-full">
       {/* ── Icon Container ── */}
       {isLucide ? (
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50 mb-3 overflow-hidden">
-          {(() => { const Icon = icon as LucideIcon; return <Icon className="h-7 w-7 text-[#C6A86B]" />; })()}
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/50 mb-2 overflow-hidden">
+          {(() => { const Icon = icon as LucideIcon; return <Icon className="h-5 w-5 text-[#C6A86B]" />; })()}
         </div>
       ) : (
-        <div className="mb-3">{icon}</div>
+        <div className="mb-2">{icon}</div>
       )}
 
       {/* ── Headline ── */}
-      <h1 className="text-2xl font-semibold text-white tracking-tight mb-2">
+      <h1 className="text-xl font-semibold text-white tracking-tight mb-1">
         {headline}
       </h1>
 
       {/* ── Description ── */}
-      <p className="text-sm text-slate-400 leading-relaxed max-w-md mb-4">
+      <p className="text-xs text-slate-400 leading-relaxed max-w-md mb-3">
         {description}
       </p>
 
@@ -62,7 +62,7 @@ export function StepShell({
       <div className="w-full">{children}</div>
 
       {/* ── Footer ── */}
-      {footer && <div className="mt-3 w-full">{footer}</div>}
+      {footer && <div className="mt-2 w-full">{footer}</div>}
     </div>
   );
 }

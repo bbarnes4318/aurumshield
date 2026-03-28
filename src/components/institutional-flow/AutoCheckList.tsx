@@ -68,12 +68,12 @@ function getStatusStyles(status: CheckItemStatus): string {
 
 export function AutoCheckList({ items }: AutoCheckListProps) {
   return (
-    <div className="w-full space-y-1.5">
+    <div className="w-full space-y-1">
       {items.map((item) => (
         <div
           key={item.key}
           className={`
-            flex items-center justify-between rounded-lg border px-3 py-2
+            flex items-center justify-between rounded-lg border px-2.5 py-1.5
             transition-all duration-300
             ${getStatusStyles(item.status)}
           `}
@@ -81,7 +81,7 @@ export function AutoCheckList({ items }: AutoCheckListProps) {
           <div className="flex-1 min-w-0">
             <p
               className={`
-                text-sm font-medium transition-colors duration-300
+                text-xs font-medium transition-colors duration-300
                 ${
                   item.status === "done"
                     ? "text-[#3fae7a]"
@@ -96,7 +96,7 @@ export function AutoCheckList({ items }: AutoCheckListProps) {
               {item.label}
             </p>
             {item.description && (
-              <p className="text-[11px] text-slate-600 mt-0.5">
+              <p className="text-[10px] text-slate-600 leading-snug">
                 {item.description}
               </p>
             )}

@@ -44,22 +44,14 @@ import {
   type ComplianceCaseStatus,
 } from "@/lib/compliance/models";
 import {
-  createKYBSession,
   getKYBSessionStatus,
   processKYBDecision,
   type VeriffKYBDecision,
   type VeriffCheckResult,
 } from "@/lib/compliance/veriff-kyb-adapter";
 import {
-  generateSession as generateIdenfySession,
-} from "@/lib/compliance/idenfy-adapter";
-import {
   initiateKycaidSession,
 } from "@/lib/compliance/kycaid-adapter";
-import {
-  getActiveComplianceProvider,
-  type ComplianceProvider,
-} from "@/lib/compliance/provider-registry";
 import {
   validateLEI,
   type LEIValidationResult,
@@ -158,16 +150,7 @@ export class CompliancePendingError extends Error {
    vendor selection. Supports: kycaid (default), veriff, idenfy.
    ================================================================ */
 
-type ActiveComplianceProvider = "KYCAID" | "VERIFF" | "IDENFY";
 
-/**
- * Resolve the active compliance provider.
- * Delegates to provider-registry.ts for canonical resolution.
- */
-function getActiveProvider(): ActiveComplianceProvider {
-  const provider: ComplianceProvider = getActiveComplianceProvider();
-  return provider.toUpperCase() as ActiveComplianceProvider;
-}
 
 /* ================================================================
    Constants
@@ -253,7 +236,7 @@ export async function evaluateCounterpartyReadiness(
   auditLog(
     "compliance.counterparty_readiness.started",
     "INFO",
-    { userId, activeProvider: getActiveProvider() },
+    { userId, activeProvider: "KYCAID" },
     userId,
   );
 
@@ -319,45 +302,30 @@ export async function evaluateCounterpartyReadiness(
     complianceCase.status === "PENDING_PROVIDER" ||
     complianceCase.status === "UNDER_REVIEW"
   ) {
-    const activeProvider = getActiveProvider();
+    /* KYCaid is the ONLY active provider. No multi-vendor routing.
+       This avoids any env var ambiguity that could route to an
+       inactive iDenfy or Veriff account. */
 
     auditLog(
       "compliance.counterparty_readiness.routing_to_provider",
       "INFO",
-      { userId, activeProvider },
+      { userId, activeProvider: "KYCAID" },
       userId,
     );
 
-    if (activeProvider === "KYCAID") {
-      // KYCaid — active provider for all new verification flows
-      const session = await initiateKycaidSession(
-        {
-          companyName: userId,
-          registrationCountry: "US",
-          externalApplicantId: userId,
-        },
-        true, // Institutional flow = company/KYB
-      );
-      throw new CompliancePendingError(
-        "KYCAID",
-        session.verificationId,
-        session.sessionUrl,
-      );
-    } else if (activeProvider === "IDENFY") {
-      // iDenfy — preserved for fallback
-      const session = await generateIdenfySession(userId, userId);
-      throw new CompliancePendingError("IDENFY", session.sessionId, session.url);
-    } else {
-      // Veriff — preserved for fallback
-      const session = await createKYBSession({
-        organizationId: userId,
-        entityName: userId,
-        leiCode: "",
-        jurisdiction: "US",
-        checkTypes: ["BUSINESS_REGISTRATION", "UBO_VERIFICATION", "AML_SCREENING"],
-      });
-      throw new CompliancePendingError("VERIFF", session.sessionId, session.sessionUrl);
-    }
+    const session = await initiateKycaidSession(
+      {
+        companyName: userId,
+        registrationCountry: "US",
+        externalApplicantId: userId,
+      },
+      true, // Institutional flow = company/KYB
+    );
+    throw new CompliancePendingError(
+      "KYCAID",
+      session.verificationId,
+      session.sessionUrl,
+    );
   }
 
   /* ── Step 3: Case exists but not yet APPROVED — run sub-checks ── */
