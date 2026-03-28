@@ -55,14 +55,14 @@ export function MissionLayout({
       {/* ── Header ── */}
       <header className="shrink-0 border-b border-slate-800/30 bg-slate-950 px-6 py-3">
         <div className="mx-auto max-w-3xl flex items-center justify-between">
-          {/* Left spacer — balances layout */}
-          <div className="w-20" />
+          {/* Left — brand mark */}
+          <AppLogo className="h-5 w-auto" variant="dark" />
 
           {showProgress && currentStage !== undefined && (
             <SimpleProgress currentStage={currentStage} />
           )}
 
-          {/* Right spacer — balances layout when progress is centered */}
+          {/* Right — balanced spacer */}
           <div className="w-20" />
         </div>
       </header>

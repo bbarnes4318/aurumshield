@@ -35,10 +35,10 @@ import {
   Loader2,
   Save,
   AlertTriangle,
+  Landmark,
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
-import { AppLogo } from "@/components/app-logo";
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
 import { BigChoiceCard } from "@/components/institutional-flow/BigChoiceCard";
 import { ReviewCard } from "@/components/institutional-flow/ReviewCard";
@@ -321,9 +321,9 @@ export default function FundingPage() {
 
   return (
     <StepShell
-      icon={<AppLogo className="h-12 w-auto" variant="dark" />}
+      icon={Landmark}
       headline="Funding Configuration"
-      description="Choose your settlement rail and provide the account details. This step does not move any funds — it registers where settlement payments will originate. After submission, we run OFAC screening and compliance checks before unlocking your first trade."
+      description="Choose your settlement rail and provide account details. No funds are moved at this step — we register your source of funds for OFAC screening."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />

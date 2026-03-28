@@ -16,10 +16,9 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowRight, Loader2, ShieldCheck, Building2 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
-import { AppLogo } from "@/components/app-logo";
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
 
 import {
@@ -156,14 +155,14 @@ export default function OrganizationPage() {
 
   return (
     <StepShell
-      icon={<AppLogo className="h-12 w-auto" variant="dark" />}
+      icon={Building2}
       headline="Your Organization"
-      description="Enter your entity name and country of registration. This is all we collect at this step. In the next step, our compliance provider will handle identity verification, document review, and regulatory screening."
+      description="Enter your entity name and country of registration. Our compliance provider handles verification, document review, and regulatory screening in the next step."
       footer={
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
           <span className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            Only entity name and country stored at this step · Verification happens next · Data encrypted at rest
+            Only entity name and country stored · Data encrypted at rest
           </span>
         </div>
       }

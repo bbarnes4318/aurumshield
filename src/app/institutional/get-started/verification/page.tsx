@@ -38,10 +38,10 @@ import {
   ExternalLink,
   AlertTriangle,
   ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
-import { AppLogo } from "@/components/app-logo";
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
 import {
   AutoCheckList,
@@ -204,25 +204,19 @@ export default function VerificationPage() {
       const result: InitiateVerificationResponse =
         await initiateVerification.mutateAsync();
 
-      /* DEBUG: alert the raw response so we can see what the server returns */
       if (result.status === "REDIRECT" && result.redirectUrl) {
         setProviderRedirectUrl(result.redirectUrl);
         window.open(result.redirectUrl, "_blank", "noopener,noreferrer");
+      } else if (result.status === "ALREADY_CLEARED") {
+        /* User is already verified — reload to show updated milestones */
+        window.location.reload();
+      } else if (result.error) {
+        setInitiationError(result.error);
       } else {
-        /* Any non-REDIRECT response is surfaced immediately via alert */
-        window.alert(
-          `Verification initiation returned: ${result.status}\n\n` +
-          `Error: ${result.error ?? "none"}\n` +
-          `Provider: ${(result as unknown as Record<string, unknown>).provider ?? "none"}\n\n` +
-          `This means the server did NOT produce a KYCaid redirect URL.`
-        );
-        if (result.error) {
-          setInitiationError(result.error);
-        }
+        setInitiationError(`Unexpected status: ${result.status}. Please try again or contact support.`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to initiate verification";
-      window.alert(`Verification initiation THREW an error:\n\n${msg}`);
       setInitiationError(msg);
     }
   }, [initiateVerification]);
@@ -262,9 +256,9 @@ export default function VerificationPage() {
 
   return (
     <StepShell
-      icon={<AppLogo className="h-7 w-auto" variant="dark" />}
+      icon={ShieldCheck}
       headline="Compliance Verification"
-      description="All four checks must pass to proceed."
+      description="All four checks must pass before you can proceed."
     >
       <div className="w-full space-y-1.5">
         {/* ── Milestone Checklist ── */}
