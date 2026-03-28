@@ -1,15 +1,17 @@
 /* ================================================================
-   CONCIERGE SUBTITLES — Real-time voice transcript display
+   CONCIERGE SUBTITLES — Real-time voice transcript display (v2)
    
    Hovers at the bottom of the screen during an active concierge
    session. Renders the AI's spoken words with a cinematic subtitle
    aesthetic:
 
    - Dark glassmorphism bar with gold accent
-   - Sans-serif typography (system font stack)
-   - Muted text for spoken words, bright white for the latest phrase
+   - Multi-line display (max 2 lines, word-wrapped)
+   - Muted text for past words, bright white for active phrase
+   - Gold accent pulse when AI is speaking
    - Smooth fade-in/out transitions
-   - Auto-fades 2s after speech ends (handled by hook)
+   - Increased font size for legibility
+   - Bottom offset to avoid overlapping UI controls
    
    Mounted in MissionLayout — persists across page navigations.
    ================================================================ */
@@ -24,13 +26,13 @@ import { useTour } from "../tour-engine/TourProvider";
 const SUBTITLE_Z = 100001;
 
 /** How many recent characters to show as "bright" (the active phrase) */
-const BRIGHT_TAIL_LENGTH = 80;
+const BRIGHT_TAIL_LENGTH = 120;
 
 export function ConciergeSubtitles() {
   const { concierge } = useTour();
   const { activeTranscript, isSpeaking, status } = concierge;
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const mounted = typeof window !== "undefined";
 
   // Derive visible / text directly from props — no cascading setState
@@ -49,10 +51,10 @@ export function ConciergeSubtitles() {
     };
   }, [activeTranscript]);
 
-  // Auto-scroll to the end of the text
+  // Auto-scroll to bottom of text area when content changes
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [activeTranscript]);
 
@@ -64,11 +66,11 @@ export function ConciergeSubtitles() {
     <div
       style={{
         position: "fixed",
-        bottom: 32,
+        bottom: 40,
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: SUBTITLE_Z,
-        maxWidth: "min(720px, 85vw)",
+        maxWidth: "min(760px, 88vw)",
         width: "100%",
         pointerEvents: "none",
         opacity: visible ? 1 : 0,
@@ -79,26 +81,29 @@ export function ConciergeSubtitles() {
     >
       <div
         style={{
-          background: "rgba(3, 7, 18, 0.85)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderRadius: 14,
-          border: "1px solid rgba(198, 168, 107, 0.12)",
-          padding: "14px 22px",
+          background: "rgba(3, 7, 18, 0.88)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderRadius: 16,
+          border: `1px solid rgba(198, 168, 107, ${isSpeaking ? 0.25 : 0.1})`,
+          padding: "16px 24px",
           position: "relative",
           overflow: "hidden",
+          transition: "border-color 0.4s ease",
         }}
       >
-        {/* Gold accent line at top */}
+        {/* Gold accent line at top — pulses when speaking */}
         <div
           style={{
             position: "absolute",
             top: 0,
             left: 20,
             right: 20,
-            height: 1,
-            background:
-              "linear-gradient(90deg, transparent, rgba(198, 168, 107, 0.4), transparent)",
+            height: isSpeaking ? 2 : 1,
+            background: isSpeaking
+              ? "linear-gradient(90deg, transparent, rgba(198, 168, 107, 0.7), transparent)"
+              : "linear-gradient(90deg, transparent, rgba(198, 168, 107, 0.3), transparent)",
+            transition: "all 0.3s ease",
           }}
         />
 
@@ -106,53 +111,57 @@ export function ConciergeSubtitles() {
         <div
           style={{
             display: "flex",
-            alignItems: "center",
-            gap: 10,
+            alignItems: "flex-start",
+            gap: 12,
           }}
         >
           <div
             style={{
-              width: 6,
-              height: 6,
+              width: 7,
+              height: 7,
               borderRadius: "50%",
               background: isSpeaking
                 ? "#c6a86b"
                 : "rgba(198, 168, 107, 0.3)",
               boxShadow: isSpeaking
-                ? "0 0 8px rgba(198, 168, 107, 0.6)"
+                ? "0 0 10px rgba(198, 168, 107, 0.7)"
                 : "none",
               transition: "all 0.3s ease",
               flexShrink: 0,
+              marginTop: 7,
             }}
           />
 
-          {/* Transcript text */}
+          {/* Transcript text — multi-line with word-wrap */}
           <div
-            ref={scrollRef}
+            ref={containerRef}
             style={{
               flex: 1,
               overflow: "hidden",
-              whiteSpace: "nowrap",
+              maxHeight: "3.4em", /* ~2 lines */
+              lineHeight: 1.7,
               maskImage:
-                "linear-gradient(90deg, transparent, black 5%, black 95%, transparent)",
+                "linear-gradient(180deg, black 60%, rgba(0,0,0,0.6) 85%, transparent 100%)",
               WebkitMaskImage:
-                "linear-gradient(90deg, transparent, black 5%, black 95%, transparent)",
+                "linear-gradient(180deg, black 60%, rgba(0,0,0,0.6) 85%, transparent 100%)",
             }}
           >
             <p
               style={{
                 fontFamily:
                   "'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: 400,
-                lineHeight: 1.5,
+                lineHeight: 1.7,
                 margin: 0,
-                display: "inline",
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "pre-wrap",
               }}
             >
               {/* Past words — muted */}
               {mutedText && (
-                <span style={{ color: "rgba(148, 163, 184, 0.6)" }}>
+                <span style={{ color: "rgba(148, 163, 184, 0.5)" }}>
                   {mutedText}
                 </span>
               )}
@@ -173,9 +182,9 @@ export function ConciergeSubtitles() {
                   style={{
                     display: "inline-block",
                     width: 2,
-                    height: 16,
+                    height: 17,
                     background: "#c6a86b",
-                    marginLeft: 3,
+                    marginLeft: 4,
                     verticalAlign: "text-bottom",
                     animation: "conciergeCursorBlink 1s step-end infinite",
                   }}

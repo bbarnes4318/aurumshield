@@ -36,6 +36,7 @@ import { INITIAL_TOUR_STATE } from "./tourTypes";
 import { getTourForRole } from "../tours";
 import { useConciergeVoice } from "../concierge/useConciergeVoice";
 import type { ConciergeToolCall, ConciergeStatus } from "../concierge/conciergeTypes";
+import { demoOrchestrator } from "../orchestration/demoOrchestrator";
 
 /* ---------- Context Shape ---------- */
 
@@ -56,6 +57,8 @@ interface ConciergeControls {
   fallbackMode: boolean;
   /** Re-attempt voice connection after failure */
   retrySession: () => Promise<void>;
+  /** Send a text message into the live session (non-audio nudge path) */
+  sendTextMessage: (text: string) => void;
 }
 
 interface TourContextValue {
@@ -162,7 +165,8 @@ function tourReducer(state: TourState, action: TourAction): TourState {
           return { ...state, stepIndex: state.stepIndex + 1 };
 
         case "highlight_element":
-          return { ...state, highlightSelector: call.args.selector };
+        case "pin_focus_region":
+          return { ...state, highlightSelector: (call.args as { selector: string }).selector };
 
         case "set_tour_state":
           return {
@@ -174,8 +178,81 @@ function tourReducer(state: TourState, action: TourAction): TourState {
           };
 
         case "navigate_route":
-          // Route navigation is handled as a side effect, not in the reducer.
-          // The TOOL_CALL handler in the provider component handles router.push.
+        case "queue_route_transition":
+          // Handled as side effects in handleToolCall
+          return state;
+
+        case "open_demo_panel":
+          return {
+            ...state,
+            conciergeSimulated: {
+              ...state.conciergeSimulated,
+              __openPanel: (call.args as { panelId: string }).panelId,
+            },
+          };
+
+        case "close_demo_panel":
+          return {
+            ...state,
+            conciergeSimulated: {
+              ...state.conciergeSimulated,
+              __openPanel: "",
+            },
+          };
+
+        case "set_checklist_item_state": {
+          const args = call.args as { itemKey: string; status: string };
+          return {
+            ...state,
+            conciergeSimulated: {
+              ...state.conciergeSimulated,
+              [`checklist:${args.itemKey}`]: args.status,
+            },
+          };
+        }
+
+        case "set_voice_mode":
+          return {
+            ...state,
+            conciergeSimulated: {
+              ...state.conciergeSimulated,
+              __voiceMode: (call.args as { mode: string }).mode,
+            },
+          };
+
+        case "trigger_review_state":
+          return {
+            ...state,
+            conciergeSimulated: {
+              ...state.conciergeSimulated,
+              __reviewState: (call.args as { state: string }).state,
+            },
+          };
+
+        case "trigger_settlement_stage":
+          return {
+            ...state,
+            conciergeSimulated: {
+              ...state.conciergeSimulated,
+              __settlementStage: (call.args as { stage: string }).stage,
+            },
+          };
+
+        case "sync_subtitle_block":
+          return {
+            ...state,
+            conciergeSimulated: {
+              ...state.conciergeSimulated,
+              __subtitleBlock: (call.args as { text: string }).text,
+            },
+          };
+
+        // These are side-effect only tools — state unchanged
+        case "fill_form_fields":
+        case "select_card_option":
+        case "reveal_evidence_item":
+        case "animate_metric":
+        case "start_countup":
           return state;
 
         default:
@@ -258,26 +335,55 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     (call: ConciergeToolCall) => {
       console.info(`[Tour] Concierge tool call: ${call.name}`, call.args);
 
-      // Dispatch to reducer for instant state update
-      dispatch({ type: "TOOL_CALL", call });
+      // Route through orchestrator for timing-sensitive calls
+      demoOrchestrator.processToolCall(call, (processedCall) => {
+        // Dispatch to reducer for instant state update
+        dispatch({ type: "TOOL_CALL", call: processedCall });
 
-      // Handle navigate_route as a side effect (can't be done in reducer)
-      if (call.name === "navigate_route") {
-        const route = call.args.route;
-        const separator = route.includes("?") ? "&" : "?";
-        const url = route.includes("demo=true")
-          ? route
-          : `${route}${separator}demo=true`;
-        router.push(url);
-      }
+        // Handle navigate_route as a side effect
+        if (processedCall.name === "navigate_route") {
+          const route = processedCall.args.route;
+          const separator = route.includes("?") ? "&" : "?";
+          const url = route.includes("demo=true")
+            ? route
+            : `${route}${separator}demo=true`;
+          router.push(url);
+        }
 
-      // Auto-clear highlight after duration
-      if (call.name === "highlight_element") {
-        const durationMs = call.args.durationMs ?? 4000;
-        setTimeout(() => {
-          dispatch({ type: "SET_HIGHLIGHT", selector: null });
-        }, durationMs);
-      }
+        // Auto-clear highlight after duration
+        if (processedCall.name === "highlight_element") {
+          const durationMs = processedCall.args.durationMs ?? 4000;
+          setTimeout(() => {
+            dispatch({ type: "SET_HIGHLIGHT", selector: null });
+          }, durationMs);
+        }
+
+        // Fill form fields as DOM side effect
+        if (processedCall.name === "fill_form_fields") {
+          const fields = (processedCall.args as { fields: Record<string, string> }).fields;
+          Object.entries(fields).forEach(([fieldId, value]) => {
+            const el = document.querySelector(`#${fieldId}`) as HTMLInputElement | null;
+            if (el) {
+              // Use native input value setter for React controlled inputs
+              const nativeSetter = Object.getOwnPropertyDescriptor(
+                window.HTMLInputElement.prototype, 'value'
+              )?.set;
+              nativeSetter?.call(el, value);
+              el.dispatchEvent(new Event('input', { bubbles: true }));
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          });
+        }
+
+        // Select a card option via click
+        if (processedCall.name === "select_card_option") {
+          const cardId = (processedCall.args as { cardId: string }).cardId;
+          const el = document.querySelector(`[data-card-id="${cardId}"], [data-tour="cinematic-${cardId}"]`) as HTMLElement | null;
+          if (el) {
+            el.click();
+          }
+        }
+      });
     },
     [router],
   );
@@ -291,6 +397,11 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       active: conciergeVoice.status === "active",
     });
   }, [conciergeVoice.status]);
+
+  // Feed pathname changes to orchestrator for route readiness
+  useEffect(() => {
+    demoOrchestrator.setCurrentPathname(pathname);
+  }, [pathname]);
 
   // Detect tour completion
   useEffect(() => {
@@ -334,12 +445,21 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       }
       console.info(`[Tour] Started: ${roleId}`);
       dispatch({ type: "START", tourId: roleId });
+
+      // Start the scene state machine if this is a concierge tour
+      if (tourDef.conciergeEnabled) {
+        demoOrchestrator.startSceneMachine();
+      }
+
       // Navigate to start route
-      const separator = tourDef.startRoute.includes("?") ? "&" : "?";
-      const url = tourDef.startRoute.includes("demo=true")
-        ? tourDef.startRoute
-        : `${tourDef.startRoute}${separator}demo=true`;
-      router.push(url);
+      const startRoute = tourDef.startRoute ?? tourDef.steps[0]?.route;
+      if (startRoute) {
+        const separator = startRoute.includes("?") ? "&" : "?";
+        const url = startRoute.includes("demo=true")
+          ? startRoute
+          : `${startRoute}${separator}demo=true`;
+        router.push(url);
+      }
     },
     [router],
   );
@@ -406,6 +526,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       activeTranscript: conciergeVoice.activeTranscript,
       fallbackMode: conciergeVoice.fallbackMode,
       retrySession: conciergeVoice.retrySession,
+      sendTextMessage: conciergeVoice.sendTextMessage,
     }),
     [conciergeVoice],
   );

@@ -48,7 +48,7 @@ export default function DemoConsolePage() {
   const router = useRouter();
   const { isDemo, resetDemo } = useDemo();
   const { startTour, state: tourState, exitTour } = useTour();
-  const tours = getAllTours().filter((t) => DEMO_ROLES.includes(t.role));
+  const tours = getAllTours().filter((t) => t.role && DEMO_ROLES.includes(t.role));
 
   const handleStartTour = (roleId: string) => {
     if (tourState.status !== "idle") {
@@ -90,9 +90,9 @@ export default function DemoConsolePage() {
       {/* Role Cards Grid — 3 cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-8">
         {tours.map((tour) => {
-          const Icon = ROLE_ICONS[tour.role] ?? Settings;
-          const displayName = ROLE_DISPLAY[tour.role as UserRole] ?? tour.role;
-          const description = ROLE_DESCRIPTIONS[tour.role] ?? tour.description;
+          const Icon = ROLE_ICONS[tour.role ?? ""] ?? Settings;
+          const displayName = ROLE_DISPLAY[(tour.role ?? "") as UserRole] ?? tour.role ?? tour.id;
+          const description = ROLE_DESCRIPTIONS[tour.role ?? ""] ?? tour.description;
 
           return (
             <div
@@ -124,7 +124,7 @@ export default function DemoConsolePage() {
                     Tour Path
                   </span>
                   <div className="flex flex-wrap gap-1">
-                    {tour.previewPath.slice(0, 6).map((label, idx) => (
+                    {(tour.previewPath ?? []).slice(0, 6).map((label, idx) => (
                       <span
                         key={idx}
                         className="inline-flex items-center gap-0.5 text-[10px] text-text-faint"
@@ -133,9 +133,9 @@ export default function DemoConsolePage() {
                         {label}
                       </span>
                     ))}
-                    {tour.previewPath.length > 6 && (
+                    {(tour.previewPath ?? []).length > 6 && (
                       <span className="text-[10px] text-text-faint">
-                        +{tour.previewPath.length - 6} more
+                        +{(tour.previewPath ?? []).length - 6} more
                       </span>
                     )}
                   </div>
@@ -144,7 +144,7 @@ export default function DemoConsolePage() {
 
               {/* CTA */}
               <button
-                onClick={() => handleStartTour(tour.role)}
+                onClick={() => handleStartTour(tour.role ?? tour.id)}
                 className="flex w-full items-center justify-center gap-2 rounded-sm bg-gold px-4 py-2.5 text-xs font-semibold text-bg uppercase tracking-wider transition-colors hover:bg-gold-hover active:bg-gold-pressed"
               >
                 <Play className="h-3 w-3" />

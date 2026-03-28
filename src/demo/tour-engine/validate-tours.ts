@@ -30,7 +30,7 @@ function validateTour(tour: TourDefinition): ValidationResult {
 
   for (const step of tour.steps) {
     // Check click-gated
-    if (step.next.type === "click") {
+    if (step.next?.type === "click") {
       clickGated++;
 
       // Validate click target matches step target
@@ -118,7 +118,7 @@ for (const tour of tours) {
     if (step.target) {
       const name = extractSelectorName(step.target);
       const location = KNOWN_SELECTORS[name] ?? "UNKNOWN LOCATION";
-      const isClick = step.next.type === "click" ? " [CLICK-GATED]" : " [manual]";
+      const isClick = step.next?.type === "click" ? " [CLICK-GATED]" : " [manual]";
       console.log(`    ${step.id}: ${name} → ${location}${isClick}`);
     } else {
       console.log(`    ${step.id}: (no target — center/narration)`);

@@ -31,7 +31,7 @@
    ================================================================ */
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Loader2,
   Save,
@@ -63,6 +63,15 @@ import {
   useInitiateVerification,
   type InitiateVerificationResponse,
 } from "@/hooks/use-compliance-case";
+
+import dynamic from "next/dynamic";
+
+const DemoEvidenceWorkspace = dynamic(
+  () => import("@/components/demo/verification/VerificationEvidenceWorkspace").then(
+    (mod) => mod.VerificationEvidenceWorkspace
+  ),
+  { ssr: false },
+);
 
 /* ================================================================
    MILESTONE DEFINITIONS
@@ -161,6 +170,8 @@ function completedCount(data: VerificationStageData): number {
 
 export default function VerificationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemoMode = searchParams.get("demo") === "true";
 
   /* ── Authoritative state from compliance case ── */
   const {
@@ -265,6 +276,11 @@ export default function VerificationPage() {
         <div data-tour="compliance-checklist">
           <AutoCheckList items={checkItems} />
         </div>
+
+        {/* ── Demo Evidence Workspace (only in demo mode) ── */}
+        {isDemoMode && (
+          <DemoEvidenceWorkspace />
+        )}
 
         {/* ── Progress summary ── */}
         <div className="flex items-center justify-center gap-2 text-[10px] py-0.5">

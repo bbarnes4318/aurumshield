@@ -96,7 +96,7 @@ export function TourOverlay() {
 
   // Resolve target for click gating
   const targetSelector =
-    currentStep?.next.type === "click" ? currentStep.next.target : undefined;
+    currentStep?.next?.type === "click" ? currentStep.next.target : undefined;
   const { element: targetElement } = useTourTarget(
     state.status === "active" ? targetSelector : undefined,
     currentStep?.id ?? "none",
@@ -105,7 +105,7 @@ export function TourOverlay() {
   // Click gating: listen for click on target element
   useEffect(() => {
     if (state.status !== "active") return;
-    if (!currentStep || currentStep.next.type !== "click") return;
+    if (!currentStep || currentStep.next?.type !== "click") return;
     if (!targetElement) return;
 
     const handleClick = () => {
@@ -125,7 +125,7 @@ export function TourOverlay() {
   // Element completion: wait for element to appear
   useEffect(() => {
     if (state.status !== "active") return;
-    if (!currentStep || currentStep.next.type !== "element") return;
+    if (!currentStep || currentStep.next?.type !== "element") return;
 
     const target = currentStep.next.target;
     const startTime = performance.now();
@@ -159,9 +159,9 @@ export function TourOverlay() {
 
   // Determine if Next button should be disabled
   const isClickGated =
-    currentStep?.next.type === "click" && !stepCompleted;
+    currentStep?.next?.type === "click" && !stepCompleted;
   const isElementGated =
-    currentStep?.next.type === "element" && !stepCompleted;
+    currentStep?.next?.type === "element" && !stepCompleted;
   const nextDisabled = isClickGated || isElementGated;
 
   if (!mounted) return null;
@@ -541,7 +541,7 @@ export function TourOverlay() {
                 marginBottom: 10,
               }}
             >
-              {currentStep.body}
+              {currentStep.body ?? currentStep.content ?? ""}
             </p>
 
             {/* Click-to-continue indicator */}
@@ -731,7 +731,7 @@ export function TourOverlay() {
             {state.stepIndex + 1} / {totalSteps}
           </span>
           <span className="text-[10px] text-text-faint uppercase tracking-widest font-semibold truncate mx-3">
-            {ROLE_DISPLAY[tour.role as UserRole] ?? tour.role}
+            {ROLE_DISPLAY[(tour.role ?? "") as UserRole] ?? tour.role ?? tour.id}
           </span>
           <div className="flex items-center gap-1">
             <button
@@ -761,7 +761,7 @@ export function TourOverlay() {
         {/* Step content */}
         <div className="px-4 py-3.5 space-y-3 overflow-y-auto" style={{ maxHeight: "60vh" }}>
           <h3 className="text-sm font-semibold text-text">{currentStep.title}</h3>
-          <p className="text-xs text-text-muted leading-relaxed">{currentStep.body}</p>
+          <p className="text-xs text-text-muted leading-relaxed">{currentStep.body ?? currentStep.content ?? ""}</p>
 
           {hasStructure && (
             <div className="space-y-2 pt-1">

@@ -34,6 +34,13 @@ import {
 import TelemetryFooter from "@/components/offtaker/TelemetryFooter";
 import { useGoldPrice } from "@/hooks/use-gold-price";
 import { checkTransactionLimits } from "@/lib/transaction-limits";
+import {
+  useMarketplaceDemoOrchestration,
+  type MarketplaceDemoSetters,
+} from "@/demo/hooks/useMarketplaceDemoOrchestration";
+import {
+  persistDemoDraft,
+} from "@/demo/data/demoConstants";
 
 /* ────────────────────────────────────────────────────────────────
    TYPES & CONSTANTS
@@ -166,11 +173,14 @@ export default function InstitutionalMarketplacePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemoActive = searchParams.get("demo") === "active";
+  const isDemoTrue = searchParams.get("demo") === "true";
+  /** True for EITHER demo mode — legacy (?demo=active) or cinematic (?demo=true) */
+  const isDemoMode = isDemoActive || isDemoTrue;
   const { data: goldPrice, isLoading: priceLoading, isError: priceError, isLive: priceLive } = useGoldPrice();
 
   /* ── Core state ── */
   const [selectedAsset, setSelectedAsset] = useState<AssetTier | null>(
-    isDemoActive ? ASSET_CATALOG[0] : null,
+    isDemoMode ? ASSET_CATALOG[0] : null,
   );
   const [quantity, setQuantity] = useState(1);
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("VAULT");
@@ -197,6 +207,35 @@ export default function InstitutionalMarketplacePage() {
 
   /* ── Horizontal stepper state ── */
   const [panelStep, setPanelStep] = useState<PanelStep>(1);
+
+  /* ── Demo orchestration: bridges concierge tool calls to marketplace state ── */
+  const selectAssetById = useCallback((assetId: string) => {
+    const asset = ASSET_CATALOG.find((a) => a.id === assetId);
+    if (asset) {
+      setSelectedAsset(asset);
+      setPhase("CONFIGURING");
+      setPanelStep(1);
+    }
+  }, []);
+
+  const demoSetters: MarketplaceDemoSetters = {
+    selectAssetById,
+    setQuantity,
+    setDeliveryMode: (mode) => {
+      setDeliveryMode(mode);
+      setDestination("");
+      setFreightQuote(null);
+      setFreightError(null);
+    },
+    setDestination,
+    setSettlementRail,
+    setPanelStep,
+  };
+
+  const demoOrch = useMarketplaceDemoOrchestration(isDemoMode, demoSetters);
+
+  // Apply demo orchestration side effects when phase changes
+  demoOrch.applyPhaseEffects();
 
   /* ── Live spot price ── */
   const spotPrice = goldPrice?.spotPriceUsd ?? 0;
@@ -342,12 +381,20 @@ export default function InstitutionalMarketplacePage() {
     };
     sessionStorage.setItem("aurumshield:execution", JSON.stringify(executionRecord));
 
-    const demoParam = isDemoActive ? "?demo=active" : "";
     const caseRef = `SC-${orderId.replace("ORD-", "")}`;
+    const demoParam = isDemoMode ? "?demo=true" : "";
     setTimeout(() => {
       router.push(`/institutional/settlement/${caseRef}${demoParam}`);
     }, 800);
-  }, [phase, isExecuting, isDemoActive, router, selectedAsset, deliveryMode, destination, settlementRail, limitWarning, limitBlocked]);
+  }, [phase, isExecuting, isDemoMode, router, selectedAsset, deliveryMode, destination, settlementRail, limitWarning, limitBlocked]);
+
+  /* ── Demo: Proceed to Review (skips quote-lock for guided flow) ── */
+  const handleDemoProceedToReview = useCallback(() => {
+    if (!isDemoMode || !selectedAsset) return;
+    // Persist the demo draft so review page can read it
+    persistDemoDraft(spotPrice);
+    router.push("/institutional/first-trade/review?demo=true");
+  }, [isDemoMode, selectedAsset, spotPrice, router]);
 
   return (
     <div className="flex flex-col overflow-hidden bg-slate-950 -mx-6 -my-6 lg:-mx-8 h-[calc(100%+3rem)]">
@@ -495,7 +542,7 @@ export default function InstitutionalMarketplacePage() {
         </div>
 
         {/* ─── RIGHT: Execution Configuration Panel (Horizontal Stepper) ─── */}
-        <div className="w-[450px] shrink-0 flex flex-col h-full relative border-l border-slate-800 bg-slate-900/30">
+        <div className="w-[450px] shrink-0 flex flex-col h-full relative border-l border-slate-800 bg-slate-900/30" data-tour="marketplace-execution-panel">
           {/* ── Panel Header + Step Indicator ── */}
           <div className="shrink-0 border-b border-slate-800 px-3 py-2">
             <div className="flex items-center gap-2 mb-2">
@@ -834,7 +881,7 @@ export default function InstitutionalMarketplacePage() {
 
                     {/* Full Cost Breakdown */}
                     {(destination || (deliveryMode === "PHYSICAL" && freightQuote)) && (
-                      <div className="bg-black border border-slate-800/60 p-3">
+                      <div className="bg-black border border-slate-800/60 p-3" data-tour="marketplace-cost-derivation">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-1.5">
                             <FileText className="h-3 w-3 text-slate-500" />
@@ -1165,8 +1212,24 @@ export default function InstitutionalMarketplacePage() {
                   </div>
                 )}
 
+                {/* ── Demo: Proceed to Review CTA ── */}
+                {isDemoMode && selectedAsset && (
+                  <button
+                    onClick={handleDemoProceedToReview}
+                    data-tour="demo-proceed-review"
+                    className="w-full font-bold text-xs tracking-[0.15em] uppercase py-3 flex items-center justify-center gap-2 font-mono transition-all bg-[#C6A86B] text-slate-950 hover:bg-[#d4b87a] cursor-pointer mt-2 shadow-[0_0_20px_rgba(198,168,107,0.15)]"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                    Proceed to Commercial Review
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                )}
+
                 <p className="font-mono text-[8px] text-slate-600 uppercase tracking-wide text-center mt-2">
-                  Execution audited · IP & session logged · BSA/AML re-screened at settlement
+                  {isDemoMode
+                    ? "Principal dealing · Allocated physical gold · Deterministic handling · Full cost transparency"
+                    : "Execution audited · IP & session logged · BSA/AML re-screened at settlement"
+                  }
                 </p>
               </>
             ) : (

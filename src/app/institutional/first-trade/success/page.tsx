@@ -141,7 +141,7 @@ export default function FirstTradeSuccessPage() {
         </div>
       }
     >
-      <div className="w-full space-y-6">
+      <div className="w-full space-y-6" data-tour="settlement-confirmation">
         {/* ── Success Confirmation ── */}
         <div className="flex flex-col items-center gap-3 py-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#3fae7a]/10 border border-[#3fae7a]/20">

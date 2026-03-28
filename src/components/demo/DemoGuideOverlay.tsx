@@ -54,6 +54,9 @@ export function DemoGuideOverlay() {
   const isDemoActive = searchParams.get("demo") === "active";
   const autoStarted = useRef(false);
 
+  /* ── Detect if Google Live concierge is running ── */
+  const isDemoTrue = searchParams.get("demo") === "true";
+
   const [isMinimized, setIsMinimized] = useState(false);
   const [selectedLang] = useState("English");
   const transcriptEndRef = useRef<HTMLDivElement>(null);
@@ -63,17 +66,17 @@ export function DemoGuideOverlay() {
 
   /* ── Auto-Redirect: If ?demo=active but NOT on a demo step, redirect ── */
   useEffect(() => {
-    if (!isDemoActive) return;
+    if (!isDemoActive || isDemoTrue) return;
     if (redirected.current) return;
     if (currentStepIdx >= 0) return; // Already on a demo step
 
     redirected.current = true;
     router.replace(`${DEMO_TOUR_STEPS[0].path}?demo=active`);
-  }, [isDemoActive, currentStepIdx, router]);
+  }, [isDemoActive, isDemoTrue, currentStepIdx, router]);
 
   /* ── Auto-Start: Begin Vapi call when ?demo=active lands ── */
   useEffect(() => {
-    if (!isDemoActive) return;
+    if (!isDemoActive || isDemoTrue) return;
     if (autoStarted.current) return;
     if (callStatus !== "inactive") return;
 
@@ -82,11 +85,11 @@ export function DemoGuideOverlay() {
       startCall(selectedLang);
     }, 800);
     return () => clearTimeout(t);
-  }, [isDemoActive, callStatus, startCall, selectedLang]);
+  }, [isDemoActive, isDemoTrue, callStatus, startCall, selectedLang]);
 
   /* ── Routing Engine — Dynamic Context Injection ── */
   useEffect(() => {
-    if (callStatus !== "active") return;
+    if (callStatus !== "active" || isDemoTrue) return;
 
     const langSuffix =
       " DELIVER THIS EXPLANATION EXCLUSIVELY IN " + activeLanguage + ".]";
@@ -122,15 +125,15 @@ export function DemoGuideOverlay() {
           langSuffix
       );
     }
-  }, [pathname, callStatus, activeLanguage, injectContext, currentStepIdx]);
+  }, [pathname, callStatus, isDemoTrue, activeLanguage, injectContext, currentStepIdx]);
 
   /* Auto-scroll transcript feed */
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript]);
 
-  /* ── Don't render if demo is not active ── */
-  if (!isDemoActive) return null;
+  /* ── Don't render if demo is not active, or if Google Live concierge is running ── */
+  if (!isDemoActive || isDemoTrue) return null;
 
   /* ---- Render: Railroad + Voice Panel (NO next-step CTA) ---- */
   return (

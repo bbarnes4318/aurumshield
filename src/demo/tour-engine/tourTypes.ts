@@ -72,8 +72,10 @@ export interface TourStep {
   id: string;
   /** Step title displayed in overlay */
   title: string;
-  /** 1–2 sentence body text */
-  body: string;
+  /** 1–2 sentence body text (optional for concierge-driven tours) */
+  body?: string;
+  /** Alias for body — used by concierge tours */
+  content?: string;
   /** Optional structured Risk/Control/Why block (for major steps) */
   structure?: StepStructureItem[];
   /** Optional route to navigate to BEFORE showing this step */
@@ -82,8 +84,8 @@ export interface TourStep {
   target?: string;
   /** Overlay placement relative to target */
   placement: "top" | "right" | "bottom" | "left" | "center";
-  /** How this step is completed / advanced */
-  next: StepCompletion;
+  /** How this step is completed / advanced (optional for concierge tours) */
+  next?: StepCompletion;
   /** Optional guard conditions */
   guards?: {
     /** Only show if this element exists in DOM */
@@ -94,9 +96,16 @@ export interface TourStep {
     roles?: UserRole[];
   };
 
+  /* ─── Concierge / Orchestration Extensions ─── */
+
+  /** Scene ID matching the demoSceneRegistry entry */
+  sceneId?: string;
+  /** DOM selectors that must exist before narration begins */
+  requiredSelectors?: string[];
+
   /* ─── Cinematic Extensions ─── */
 
-  /** Exact TTS script for Vapi to speak verbatim. No hallucination. */
+  /** Legacy: TTS script for Vapi narrator. Not used by the Google Live concierge flow. */
   vapiScript?: string;
   /** Act heading (e.g. "ACT I — THE SOVEREIGN OFFTAKER") */
   actLabel?: string;
@@ -104,6 +113,13 @@ export interface TourStep {
   delayMs?: number;
   /** On-screen subtitle text that mirrors the voice narration */
   tooltipText?: string;
+
+  /** Cinematic visual config */
+  cinematic?: {
+    spotlightRadius?: number;
+    backdropBlur?: boolean;
+    transition?: "fade" | "slide-right" | "slide-left" | "slide-up";
+  };
 }
 
 /* ---------- Tour Definition ---------- */
@@ -115,16 +131,18 @@ export interface TourDefinition {
   name: string;
   /** Description shown on demo console */
   description: string;
-  /** The UserRole this tour is for */
-  role: UserRole;
-  /** Starting route for this tour */
-  startRoute: string;
+  /** The UserRole this tour is for (optional for concierge tours) */
+  role?: UserRole;
+  /** Starting route for this tour (optional — concierge tours use step[0].route) */
+  startRoute?: string;
   /** Ordered list of tour steps */
   steps: TourStep[];
   /** Preview path labels shown on demo console */
-  previewPath: string[];
+  previewPath?: string[];
   /** Whether this is a cinematic (Glass Shield) tour */
   cinematic?: boolean;
+  /** Whether the Gemini Live concierge is enabled for this tour */
+  conciergeEnabled?: boolean;
 }
 
 /* ---------- Tour Runtime State ---------- */

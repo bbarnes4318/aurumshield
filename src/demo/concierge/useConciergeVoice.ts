@@ -1,17 +1,18 @@
 /* ================================================================
    USE-CONCIERGE-VOICE — Gemini Live API voice agent hook
-   
+
    Manages a direct browser-to-Gemini WebSocket connection for
    real-time bidirectional audio with tool-call-driven UI control.
-   
+
    Architecture:
    1. Fetches ephemeral token from POST /api/concierge/token
    2. Connects browser directly to Gemini via @google/genai SDK
    3. Captures microphone → 16kHz PCM → Gemini
    4. Receives 24kHz PCM audio → playback queue
    5. Tool calls dispatch INSTANTLY to onToolCall callback
-   6. Barge-in flushes playback buffer immediately
-   
+   6. Barge-in flushes playback buffer + notifies scene machine
+   7. Non-audio text nudge path via sendClientContent
+
    No audio proxying. No server-side WebSocket relay.
    ================================================================ */
 
@@ -30,6 +31,8 @@ import {
   type MicrophoneStream,
   type AudioPlayer,
 } from "./audioUtils";
+import { sceneStateMachine } from "../orchestration/sceneStateMachine";
+
 
 /* ---------- Constants ---------- */
 
@@ -57,6 +60,13 @@ export interface UseConciergeVoiceReturn {
   fallbackMode: boolean;
   /** Attempt to reconnect after a failure (one manual retry) */
   retrySession: () => Promise<void>;
+  /**
+   * Send a non-audio text message into the live session.
+   * This is the explicit text-nudge path — used for silence recovery
+   * or client-side scene control. The Gemini Live API accepts
+   * client_content messages alongside audio input.
+   */
+  sendTextMessage: (text: string) => void;
 }
 
 /* ---------- Hook ---------- */
@@ -227,9 +237,14 @@ export function useConciergeVoice(
                 setIsSpeaking(false);
                 setActiveTranscript("");
                 setStatus("interrupted");
+                // Notify scene state machine
+                sceneStateMachine.bargeIn();
                 // Status resets to active on next user or model turn
                 setTimeout(() => {
-                  if (activeRef.current) setStatus("active");
+                  if (activeRef.current) {
+                    setStatus("active");
+                    sceneStateMachine.resumeAfterBargeIn();
+                  }
                 }, 300);
                 return;
               }
@@ -240,6 +255,8 @@ export function useConciergeVoice(
                   if (part.inlineData?.data) {
                     player.enqueue(part.inlineData.data);
                     setIsSpeaking(true);
+                    // Notify scene machine that speech started
+                    sceneStateMachine.onSpeechStart();
                   }
                   // Capture text transcript when Gemini sends it alongside audio
                   const textPart = part as { text?: string };
@@ -251,6 +268,8 @@ export function useConciergeVoice(
 
               // Turn complete — model finished speaking
               if (serverContent.turnComplete) {
+                // Notify scene machine
+                sceneStateMachine.onTurnComplete();
                 // Clear transcript after a delay so the subtitle can linger
                 setTimeout(() => {
                   setActiveTranscript("");
@@ -369,6 +388,29 @@ export function useConciergeVoice(
     await startSession();
   }, [teardown, startSession]);
 
+  /* ── Send Text Message (non-audio nudge path) ── */
+  const sendTextMessage = useCallback((text: string) => {
+    if (!sessionRef.current || !activeRef.current) {
+      console.warn("[Concierge] Cannot send text — no active session");
+      return;
+    }
+    try {
+      // Gemini Live API accepts client_content with text parts
+      sessionRef.current.sendClientContent({
+        turns: [
+          {
+            role: "user",
+            parts: [{ text }],
+          },
+        ],
+        turnComplete: true,
+      });
+      console.info(`[Concierge] Text nudge sent: "${text.slice(0, 60)}..."`);
+    } catch (err) {
+      console.warn("[Concierge] Failed to send text message:", err);
+    }
+  }, []);
+
   /* ── Cleanup on unmount ── */
   useEffect(() => {
     return () => {
@@ -385,5 +427,6 @@ export function useConciergeVoice(
     activeTranscript,
     fallbackMode,
     retrySession,
+    sendTextMessage,
   };
 }

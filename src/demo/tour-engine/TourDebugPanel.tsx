@@ -8,26 +8,26 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useTour } from "./TourProvider";
 
+/** SSR-safe mounted check without setState in effect */
+function subscribeMounted() { return () => {}; }
+function getMounted() { return true; }
+function getServerMounted() { return false; }
+
 export function TourDebugPanel() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeMounted, getMounted, getServerMounted);
   const [lastClickTarget, setLastClickTarget] = useState<string>("—");
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { state, tour, currentStep, totalSteps } = useTour();
+  const { state, currentStep, totalSteps } = useTour();
 
   const isDebug =
     searchParams.get("demo") === "true" &&
     searchParams.get("debugTours") === "1";
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
 
   // Track clicks globally to capture last-clicked data-tour target
   useEffect(() => {
@@ -50,7 +50,7 @@ export function TourDebugPanel() {
   const targetFound = currentStep?.target
     ? !!document.querySelector(currentStep.target)
     : false;
-  const isClickGated = currentStep?.next.type === "click";
+  const isClickGated = currentStep?.next?.type === "click";
 
   return createPortal(
     <div

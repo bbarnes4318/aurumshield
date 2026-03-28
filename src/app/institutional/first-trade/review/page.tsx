@@ -227,7 +227,7 @@ export default function FirstTradeReviewPage() {
         </div>
       }
     >
-      <div className="w-full space-y-5">
+      <div className="w-full space-y-5" data-tour="review-summary">
         {/* ── Live Spot Price Context ── */}
         <div className="flex items-center justify-center gap-3 rounded-lg border border-slate-800 bg-slate-900/30 px-4 py-2.5">
           {priceLoading ? (
