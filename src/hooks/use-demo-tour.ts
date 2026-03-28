@@ -6,45 +6,46 @@
    Lightweight hook that reads ?demo=active from the URL and
    determines whether spotlights + dimming overlay should be shown.
    
-   Exports the 5-step tour sequence for the offtaker portal.
+   Exports the 5-step tour sequence for the institutional portal.
    
    The DemoSpotlight CSS class and DemoDimmingOverlay are exported
    for use in target pages.
    ================================================================ */
 
 import { useSearchParams, usePathname } from "next/navigation";
+import { INSTITUTIONAL_ROUTES } from "@/lib/routing/institutional-routes";
 
-/* ---------- 5-Step Demo Tour Sequence ---------- */
+/* ---------- 5-Step Demo Tour Sequence (Institutional Portal) ---------- */
 export const DEMO_TOUR_STEPS = [
   {
-    id: "org-select",
-    label: "Org Select",
-    path: "/offtaker/org/select",
-    tooltip: "Select your Corporate Entity to enter the secure perimeter ↓",
+    id: "get-started",
+    label: "Get Started",
+    path: INSTITUTIONAL_ROUTES.GET_STARTED_WELCOME,
+    tooltip: "Begin your institutional onboarding — welcome to AurumShield ↓",
   },
   {
-    id: "intake",
-    label: "Entity Intake",
-    path: "/offtaker/onboarding/intake",
-    tooltip: "Complete entity registration and declare UBOs ↓",
-  },
-  {
-    id: "kyb",
-    label: "KYB / AML",
-    path: "/offtaker/onboarding/kyb",
-    tooltip: "Verify identity via biometric liveness detection ↓",
+    id: "verification",
+    label: "Verification",
+    path: INSTITUTIONAL_ROUTES.GET_STARTED_VERIFICATION,
+    tooltip: "Complete identity and entity verification ↓",
   },
   {
     id: "marketplace",
     label: "Marketplace",
-    path: "/offtaker/marketplace",
+    path: INSTITUTIONAL_ROUTES.MARKETPLACE,
     tooltip: "Initiate execution quote on the 400-oz Good Delivery Bar ↓",
   },
   {
     id: "orders",
     label: "Execution",
-    path: "/offtaker/orders",
+    path: INSTITUTIONAL_ROUTES.ORDERS,
     tooltip: "Execute DvP swap and download clearing certificate ↓",
+  },
+  {
+    id: "compliance",
+    label: "Compliance",
+    path: INSTITUTIONAL_ROUTES.COMPLIANCE,
+    tooltip: "Review compliance status and audit trail ↓",
   },
 ] as const;
 

@@ -7,11 +7,12 @@
      Step 1 → ID Document Upload (Veriff mock)
      Step 2 → Corporate Identity (KYB form)
      Step 3 → AML/OFAC Screening (simulated)
-   On completion → navigates to /marketplace
+   On completion → navigates to /institutional/marketplace
    ================================================================ */
 
 import { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { INSTITUTIONAL_ROUTES } from "@/lib/routing/institutional-routes";
 import {
   Upload,
   Building2,
@@ -89,7 +90,7 @@ export default function VerifyPage() {
 
   const handleComplete = useCallback(() => {
     const demoParam = isDemoActive ? "?demo=active" : "";
-    router.push(`/offtaker/marketplace${demoParam}`);
+    router.push(`${INSTITUTIONAL_ROUTES.MARKETPLACE}${demoParam}`);
   }, [router, isDemoActive]);
 
   /* ── Step Progress ── */

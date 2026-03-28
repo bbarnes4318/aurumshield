@@ -10,6 +10,16 @@
 
    Clerk auth is enforced on all non-public routes after domain gating.
 
+   LEGACY BUYER ROUTE QUARANTINE:
+   The /offtaker/* route family is DEPRECATED. All legacy buyer paths
+   (/offtaker/*, /marketplace, /checkout, /perimeter/*) are intercepted
+   HERE — before any page rendering — and 307-redirected to their
+   canonical /institutional/* equivalents.
+
+   The redirect map is defined ONCE in:
+     src/lib/routing/institutional-routes.ts → LEGACY_BUYER_REDIRECTS
+   and imported here. No other file handles legacy buyer routing.
+
    CORS FIX: RSC prefetch requests and Next.js router prefetches are
    NEVER cross-domain redirected. They receive a 204 No Content instead
    to prevent the browser from issuing CORS-blocked cross-origin fetches.
@@ -18,6 +28,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { LEGACY_BUYER_REDIRECTS } from "@/lib/routing/institutional-routes";
 
 /* ── Domain configuration ── */
 const ROOT_DOMAIN = "aurumshield.vip";
@@ -40,6 +51,34 @@ const MARKETING_PATHS = ["/platform-overview", "/technical-overview", "/demo", "
 /* ── Routes that are available on BOTH domains (never redirected) ── */
 const SHARED_PATHS = ["/health", "/api/webhooks", "/api/fix-schema", "/favicon.ico"];
 
+/* ── Legacy buyer route redirect resolution ──
+   Uses the centralized LEGACY_BUYER_REDIRECTS array imported from
+   src/lib/routing/institutional-routes.ts — the single source of truth.
+   No legacy paths are hardcoded in this file.
+
+   QUARANTINE: /offtaker/* is deprecated. These redirects exist solely
+   for backward compatibility with bookmarks, external links, and cached
+   browser history. All new navigation MUST use /institutional/* paths. */
+
+/**
+ * Check if the pathname matches a legacy buyer route and return
+ * the canonical /institutional/* redirect target, or null.
+ *
+ * Iterates the ordered LEGACY_BUYER_REDIRECTS array (most-specific
+ * paths first). For startsWith matches, the remaining path suffix
+ * is preserved (e.g. /offtaker/settings/profile → /institutional/profile).
+ * Query string is preserved by the caller.
+ */
+function getLegacyRedirect(pathname: string): string | null {
+  for (const [legacyPath, canonicalPath] of LEGACY_BUYER_REDIRECTS) {
+    if (pathname === legacyPath || pathname.startsWith(legacyPath + "/")) {
+      const suffix = pathname.slice(legacyPath.length);
+      return canonicalPath + suffix;
+    }
+  }
+  return null;
+}
+
 /* ── Public routes — accessible without authentication ── */
 const isPublicRoute = createRouteMatcher([
   "/login(.*)",
@@ -57,7 +96,7 @@ const isPublicRoute = createRouteMatcher([
   "/technical-overview(.*)",
   "/legal(.*)",
   "/investor-brief(.*)",
-  "/perimeter/(.*)",
+  "/institutional/(.*)",
 ]);
 
 /* ── Helpers ── */
@@ -122,15 +161,20 @@ export function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const { pathname } = request.nextUrl;
 
+  /* ── LEGACY BUYER ROUTE REDIRECTS ──
+     Intercept ALL old buyer-facing routes FIRST, before any other
+     logic. This ensures /offtaker/*, /marketplace, /checkout, and
+     /perimeter/* always resolve to their /institutional/* canonical
+     paths, regardless of host or auth state. */
+  const legacyTarget = getLegacyRedirect(pathname);
+  if (legacyTarget) {
+    const target = new URL(legacyTarget + request.nextUrl.search, request.url);
+    return NextResponse.redirect(target, 307);
+  }
+
   // Skip domain gating in local development
   if (isLocalhost(host)) {
     // Redirect bare parent paths to their canonical children (prevents 404)
-    if (pathname === "/offtaker/org") {
-      return NextResponse.redirect(new URL("/offtaker/org/select", request.url));
-    }
-    if (pathname === "/offtaker/onboarding") {
-      return NextResponse.redirect(new URL("/offtaker/onboarding/intake", request.url));
-    }
     if (pathname === "/institutional/get-started") {
       return NextResponse.redirect(new URL("/institutional/get-started/welcome", request.url));
     }
@@ -144,12 +188,6 @@ export function middleware(request: NextRequest) {
   }
 
   // ── Redirect bare parent paths (no page.tsx) to canonical children ──
-  if (pathname === "/offtaker/org") {
-    return NextResponse.redirect(new URL("/offtaker/org/select", request.url));
-  }
-  if (pathname === "/offtaker/onboarding") {
-    return NextResponse.redirect(new URL("/offtaker/onboarding/intake", request.url));
-  }
   if (pathname === "/institutional/get-started") {
     return NextResponse.redirect(new URL("/institutional/get-started/welcome", request.url));
   }

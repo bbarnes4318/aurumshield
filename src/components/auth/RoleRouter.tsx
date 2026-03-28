@@ -11,8 +11,8 @@
      - OPERATOR_ROLES       → allowed through to /dashboard
      - INSTITUTIONAL_ROLES  → /institutional
        (dedicated institutional buyer terminal)
-     - OFFTAKER_ROLES       → /offtaker/org/select
-       (standard self-serve retail offtakers)
+     - OFFTAKER_ROLES       → /institutional
+       (canonical buyer route — one buyer, one route family)
      - PRODUCER_ROLES       → /producer
      - BROKER_ROLES         → /broker
        (invite-only — compliance trapdoor enforced at layout level)
@@ -22,6 +22,7 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import type { UserRole } from "@/lib/mock-data";
+import { INSTITUTIONAL_ROUTES } from "@/lib/routing/institutional-routes";
 
 /* ── Role arrays (must match sidebar.tsx definitions) ── */
 
@@ -39,7 +40,7 @@ const INSTITUTIONAL_ROLES: UserRole[] = [
   "INSTITUTION_TREASURY",
 ];
 
-/** Standard self-serve offtakers — routed to /offtaker portal */
+/** Standard self-serve offtakers — routed to /institutional portal */
 const OFFTAKER_ROLES: UserRole[] = [
   "offtaker",
   "buyer" as UserRole,
@@ -91,9 +92,9 @@ export function RoleRouter() {
       return;
     }
 
-    // ── Standard offtakers → offtaker portal entry point ──
+    // ── Standard offtakers → institutional portal (canonical buyer route) ──
     if (OFFTAKER_ROLES.includes(role)) {
-      router.replace("/offtaker/org/select");
+      router.replace(INSTITUTIONAL_ROUTES.ROOT);
       return;
     }
 
@@ -115,8 +116,8 @@ export function RoleRouter() {
       return;
     }
 
-    // ── Fallback for unrecognized roles → offtaker portal ──
-    router.replace("/offtaker/org/select");
+    // ── Fallback for unrecognized roles → institutional portal ──
+    router.replace(INSTITUTIONAL_ROUTES.ROOT);
   }, [pathname, role, router]);
 
   // Invisible — renders nothing

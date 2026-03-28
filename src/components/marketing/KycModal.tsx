@@ -125,7 +125,7 @@ function KycModalOverlay({
 
               {/* CTA */}
               <a
-                href="/perimeter/register"
+                href="/institutional/get-started/welcome"
                 className="mk-btn-primary flex w-full items-center justify-center gap-2 py-3.5 text-base"
               >
                 Initiate KYC Onboarding

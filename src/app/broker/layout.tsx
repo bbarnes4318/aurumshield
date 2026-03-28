@@ -10,6 +10,7 @@ import { PortalShell } from "@/components/layout/portal-shell";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
 import { useAuth } from "@/providers/auth-provider";
 import type { UserRole } from "@/lib/mock-data";
+import { INSTITUTIONAL_ROUTES } from "@/lib/routing/institutional-routes";
 import {
   Loader2,
   ShieldAlert,
@@ -51,7 +52,7 @@ function BrokerComplianceGate({ children }: { children: ReactNode }) {
     if (isOperator) return;
     if (isLoading || isError) return;
     if (!isCleared) {
-      router.replace("/offtaker/onboarding/kyb");
+      router.replace(INSTITUTIONAL_ROUTES.GET_STARTED_VERIFICATION);
     }
   }, [isOperator, isLoading, isError, isCleared, router]);
 

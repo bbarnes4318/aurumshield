@@ -19,7 +19,7 @@ export function InstitutionalCloseSection() {
   return (
     <section
       id="institutional-close"
-      className="mk-section border-t border-[var(--mk-border)]"
+      className="mk-section border-t border-(--mk-border)"
     >
       <div className="mk-container">
         <motion.div
@@ -38,7 +38,7 @@ export function InstitutionalCloseSection() {
             Institutional participants are migrating to deterministic bullion
             clearing. Access is restricted to qualified entities.
           </p>
-          <a href={`${APP_URL}/signup`} className="mk-btn-primary">
+          <a href={`${APP_URL}/institutional/get-started/welcome`} className="mk-btn-primary">
             Apply for Institutional Access
           </a>
         </motion.div>
@@ -58,14 +58,14 @@ export function SiteFooter() {
       }}
     >
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
-        <div className="flex items-center gap-3 text-sm text-[var(--mk-faint)]">
+        <div className="flex items-center gap-3 text-sm text-(--mk-faint)">
           <span className="font-serif text-sm font-bold text-white">
             AurumShield
           </span>
-          <span className="h-3 w-px bg-[var(--mk-border)]" />
+          <span className="h-3 w-px bg-(--mk-border)" />
           <span>&copy; {new Date().getFullYear()}</span>
         </div>
-        <div className="flex gap-6 text-sm text-[var(--mk-faint)]">
+        <div className="flex gap-6 text-sm text-(--mk-faint)">
           <Link
             href="/platform-overview"
             className="transition-colors hover:text-slate-300"

@@ -28,7 +28,7 @@ export default function RegisterPage() {
       <div data-tour="perimeter-email">
       <SignUp
         routing="hash"
-        fallbackRedirectUrl="/perimeter/verify"
+        fallbackRedirectUrl="/institutional/get-started/verification"
         appearance={{
           elements: {
             rootBox: "w-full",

@@ -278,7 +278,7 @@ export function BuyerJourneySection() {
           >
             <div className="inline-flex flex-col sm:flex-row items-center gap-4">
               <a
-                href="/perimeter/register"
+                href="/institutional/get-started/welcome"
                 className="inline-flex items-center gap-2 rounded-lg bg-[#C6A86B] hover:bg-[#d9b96e] text-[#0A1128] font-bold px-8 py-4 text-sm transition-all duration-200"
               >
                 Request Institutional Access

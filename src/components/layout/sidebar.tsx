@@ -1,10 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { INSTITUTIONAL_ROUTES } from "@/lib/routing/institutional-routes";
 import { useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard,
-  Building,
   Building2,
   Shield,
   FileCheck,
@@ -12,7 +12,6 @@ import {
   ChevronRight,
   X,
   ShieldCheck,
-  ClipboardList,
   ToggleLeft,
   ToggleRight,
   Globe,
@@ -40,13 +39,17 @@ import {
   BarChart3,
   PieChart,
   Boxes,
+  Wallet,
+  Truck,
+  CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import type { UserRole } from "@/lib/mock-data";
-import { useOnboardingState } from "@/hooks/use-onboarding-state";
+import { useJourneyStage } from "@/hooks/use-onboarding-state";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -77,7 +80,7 @@ const OPERATOR_ROLES: UserRole[] = [
   "INSTITUTION_TREASURY",
 ];
 
-/* ── Offtaker roles — standard self-serve retail buyers only ── */
+/* ── Offtaker/Buyer roles — routed to /institutional portal ── */
 const OFFTAKER_ROLES: UserRole[] = [
   "offtaker",
 ];
@@ -137,21 +140,39 @@ const OPERATOR_ADMIN: NavItem[] = [
   { label: "Labs",                href: "/labs",                   icon: FlaskConical,    allowedRoles: OPERATOR_ROLES },
 ];
 
-/* ── Offtaker nav items — split by compliance state ── */
+/* ══════════════════════════════════════════════════════════════════
+   INSTITUTIONAL BUYER NAV — Three Journey Phases
+   ══════════════════════════════════════════════════════════════════
+   Phase 1: GETTING_STARTED  → Welcome, Organization, Verification, Funding
+   Phase 2: FIRST_TRADE      → Asset, Delivery, Review, Authorize
+   Phase 3: ADVANCED         → Portfolio, Marketplace, Orders, Compliance
 
-/** State A: Shown when KYB is NOT complete */
-const OFFTAKER_ONBOARDING_NAV: NavItem[] = [
-  { label: "Select Org",          href: "/offtaker/org/select",             icon: Building2,      allowedRoles: OFFTAKER_ROLES },
-  { label: "Onboarding",          href: "/offtaker/onboarding/intake",      icon: ClipboardList,  allowedRoles: OFFTAKER_ROLES },
-  { label: "KYB Console",         href: "/offtaker/onboarding/kyb",         icon: ShieldCheck,    allowedRoles: OFFTAKER_ROLES },
+   Which array renders depends on useJourneyStage() — not a binary
+   KYB check. Admin impersonation always shows ADVANCED.
+   ══════════════════════════════════════════════════════════════════ */
+
+/** Phase 1: Guided Getting Started */
+const INSTITUTIONAL_GETTING_STARTED_NAV: NavItem[] = [
+  { label: "Welcome",              href: INSTITUTIONAL_ROUTES.GET_STARTED_WELCOME,        icon: Sparkles,       allowedRoles: OFFTAKER_ROLES },
+  { label: "Organization",         href: INSTITUTIONAL_ROUTES.GET_STARTED_ORGANIZATION,   icon: Building2,      allowedRoles: OFFTAKER_ROLES },
+  { label: "Verification",         href: INSTITUTIONAL_ROUTES.GET_STARTED_VERIFICATION,   icon: ShieldCheck,    allowedRoles: OFFTAKER_ROLES },
+  { label: "Funding",              href: INSTITUTIONAL_ROUTES.GET_STARTED_FUNDING,        icon: Wallet,         allowedRoles: OFFTAKER_ROLES },
 ];
 
-/** State B: Shown when KYB is COMPLETED */
-const OFFTAKER_CLEARED_NAV: NavItem[] = [
-  { label: "Marketplace",         href: "/offtaker/marketplace",            icon: Coins,           allowedRoles: OFFTAKER_ROLES },
-  { label: "Trade Blotter",       href: "/offtaker/orders",                 icon: ArrowRightLeft,  allowedRoles: OFFTAKER_ROLES },
-  { label: "Audit Vault",         href: "/offtaker/ledger",                 icon: ShieldCheck,     allowedRoles: OFFTAKER_ROLES },
-  { label: "Entity Management",   href: "/offtaker/settings",               icon: Building,        allowedRoles: OFFTAKER_ROLES },
+/** Phase 2: Guided First Trade */
+const INSTITUTIONAL_FIRST_TRADE_NAV: NavItem[] = [
+  { label: "Select Asset",         href: INSTITUTIONAL_ROUTES.FIRST_TRADE_ASSET,          icon: Coins,          allowedRoles: OFFTAKER_ROLES },
+  { label: "Delivery",             href: INSTITUTIONAL_ROUTES.FIRST_TRADE_DELIVERY,       icon: Truck,          allowedRoles: OFFTAKER_ROLES },
+  { label: "Review",               href: INSTITUTIONAL_ROUTES.FIRST_TRADE_REVIEW,         icon: FileCheck,      allowedRoles: OFFTAKER_ROLES },
+  { label: "Authorize",            href: INSTITUTIONAL_ROUTES.FIRST_TRADE_AUTHORIZE,      icon: CheckCircle2,   allowedRoles: OFFTAKER_ROLES },
+];
+
+/** Phase 3: Advanced Workspace (post-onboarding, or admin impersonation) */
+const INSTITUTIONAL_ADVANCED_NAV: NavItem[] = [
+  { label: "Portfolio",            href: INSTITUTIONAL_ROUTES.ROOT,                       icon: Building2,      allowedRoles: OFFTAKER_ROLES },
+  { label: "Marketplace",          href: INSTITUTIONAL_ROUTES.MARKETPLACE,                icon: Coins,          allowedRoles: OFFTAKER_ROLES },
+  { label: "Trade Blotter",        href: INSTITUTIONAL_ROUTES.ORDERS,                     icon: ArrowRightLeft, allowedRoles: OFFTAKER_ROLES },
+  { label: "Compliance",           href: INSTITUTIONAL_ROUTES.COMPLIANCE,                 icon: ShieldCheck,    allowedRoles: OFFTAKER_ROLES },
 ];
 
 /* ── Producer-visible nav items (refineries / mines) ── */
@@ -201,7 +222,7 @@ function NavLink({
 }) {
   const Icon = item.icon;
   const isActive =
-    href === "/dashboard" || href === "/offtaker"
+    href === "/dashboard" || href === INSTITUTIONAL_ROUTES.ROOT
       ? pathname === href
       : pathname === href || pathname.startsWith(href + "/");
 
@@ -325,10 +346,19 @@ function SidebarNav({
   const isProducer = PRODUCER_ROLES.includes(role);
   const isBroker = BROKER_ROLES.includes(role);
 
-  /* ── Compliance state for offtaker sidebar gating ── */
-  const { data: onboardingState, isLoading: complianceLoading } = useOnboardingState(isOfftaker);
-  const isCleared = !complianceLoading && onboardingState?.status === "COMPLETED";
-  const offtakerNav = isCleared ? OFFTAKER_CLEARED_NAV : OFFTAKER_ONBOARDING_NAV;
+  /* ── Journey-aware sidebar gating ──
+     Uses the authoritative journey stage model to determine which
+     nav array to render. Replaces the old binary KYB check. */
+  const journey = useJourneyStage();
+  const isCleared = journey.isComplete;
+
+  /** Pick the correct nav array based on journey phase */
+  const institutionalNav = (() => {
+    if (journey.isLoading || journey.isError) return INSTITUTIONAL_GETTING_STARTED_NAV;
+    if (journey.isComplete || journey.stage === null) return INSTITUTIONAL_ADVANCED_NAV;
+    if (journey.phase === "FIRST_TRADE") return INSTITUTIONAL_FIRST_TRADE_NAV;
+    return INSTITUTIONAL_GETTING_STARTED_NAV;
+  })();
 
   /* ── Pro Toggle State (offtaker roles only) ── */
   const [proMode, setProMode] = useState(() => {
@@ -360,10 +390,10 @@ function SidebarNav({
      auto-detect the impersonation mode from the pathname. This prevents the sidebar
      from resetting to admin nav on page refresh. Pathname ALWAYS wins over state. */
   const pathnameImpersonation: ImpersonationMode =
-    isOperator && pathname.startsWith("/offtaker")  ? "offtaker"  :
-    isOperator && pathname.startsWith("/producer")  ? "producer"  :
-    isOperator && pathname.startsWith("/broker")    ? "broker"    :
-    isOperator && pathname.startsWith("/investor")  ? "investor"  :
+    isOperator && pathname.startsWith("/institutional")  ? "offtaker"  :
+    isOperator && pathname.startsWith("/producer")       ? "producer"  :
+    isOperator && pathname.startsWith("/broker")         ? "broker"    :
+    isOperator && pathname.startsWith("/investor")       ? "investor"  :
     "none";
 
   const [manualImpersonation, setManualImpersonation] = useState<ImpersonationMode>("none");
@@ -443,10 +473,12 @@ function SidebarNav({
   return (
     <nav className="flex-1 overflow-y-auto py-4 px-2 flex flex-col" aria-label="Main navigation">
       {isOperator && impersonationMode === "offtaker" ? (
-        /* ══════ ADMIN → OFFTAKER IMPERSONATION ══════ */
+        /* ══════ ADMIN → INSTITUTIONAL IMPERSONATION ══════
+           Always shows the ADVANCED workspace nav so admins can
+           inspect the full post-onboarding buyer experience. */
         <>
           {renderReturnBanner()}
-          {renderPortalNav(OFFTAKER_CLEARED_NAV, "Institutional Portal")}
+          {renderPortalNav(INSTITUTIONAL_ADVANCED_NAV, "Institutional Portal")}
         </>
       ) : isOperator && impersonationMode === "producer" ? (
         /* ══════ ADMIN → PRODUCER IMPERSONATION ══════ */
@@ -605,25 +637,36 @@ function SidebarNav({
           </ul>
         </>
       ) : (
-        /* ══════ OFFTAKER CLIENT MODE (default) ══════ */
+        /* ══════ INSTITUTIONAL BUYER MODE (default) ══════
+           Nav items are journey-phase-aware: Getting Started, First Trade,
+           or Advanced Workspace. The "locked" items show where the user
+           hasn't reached yet and route to their current resume point. */
         <>
+          {!collapsed && journey.phase && !journey.isComplete && (
+            <div className="mb-2 flex items-center gap-2 px-2.5">
+              <Sparkles className="h-3 w-3 text-gold" />
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-gold/60">
+                {journey.phase === "GETTING_STARTED" ? "Getting Started" : "First Trade"}
+              </p>
+            </div>
+          )}
           <ul className="space-y-0.5 flex-1">
-            {offtakerNav.map((item) => (
+            {institutionalNav.map((item) => (
               <NavLink key={item.label} item={item} href={item.href} collapsed={collapsed} pathname={pathname} onLinkClick={onLinkClick} />
             ))}
 
-            {/* ── Locked Marketplace indicator (State A only) ── */}
+            {/* ── Locked Marketplace indicator (guided phases only) ── */}
             {!isCleared && (
               <li>
                 <button
                   type="button"
-                  onClick={() => router.push("/offtaker/onboarding/kyb")}
+                  onClick={() => router.push(journey.route)}
                   className={cn(
                     "flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] font-normal tracking-wide w-full text-left",
                     "text-slate-600 cursor-not-allowed opacity-50",
                     collapsed && "justify-center px-0"
                   )}
-                  title="Complete KYB verification to unlock the Marketplace"
+                  title="Complete onboarding to unlock the Marketplace"
                 >
                   <Lock className="h-4 w-4 shrink-0 text-slate-600" />
                   {!collapsed && <span className="truncate">Marketplace</span>}

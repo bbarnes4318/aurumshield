@@ -10,10 +10,10 @@
    4. Voice guide auto-injects context on every route change
    5. NO "Next Step" buttons — tour advances via native page buttons
 
-   Demo Sequence (Offtaker Portal — 5 Steps):
-   /offtaker/org/select → /offtaker/onboarding/intake →
-   /offtaker/onboarding/kyb → /offtaker/marketplace →
-   /offtaker/orders
+   Demo Sequence (Institutional Portal — 5 Steps):
+   /institutional/get-started/welcome → /institutional/get-started/verification →
+   /institutional/marketplace → /institutional/orders →
+   /institutional/compliance
 
    Design: AurumShield institutional gold/slate palette.
    ================================================================ */
@@ -91,34 +91,34 @@ export function DemoGuideOverlay() {
     const langSuffix =
       " DELIVER THIS EXPLANATION EXCLUSIVELY IN " + activeLanguage + ".]";
 
-    if (pathname.includes("/offtaker/org/select")) {
+    if (pathname.includes("/institutional/get-started/welcome")) {
       injectContext(
-        "[SYSTEM EVENT: User is on the Organization Selection Screen. Welcome them to the AurumShield institutional demo. Explain that they must select or form a legal corporate entity to establish their institutional perimeter. The organization binding is cryptographic and all subsequent trades will be executed under this entity's compliance umbrella. Tell them to click 'Initialize Organization' to begin the onboarding process." +
+        "[SYSTEM EVENT: User is on the Institutional Welcome Screen. Welcome them to the AurumShield institutional demo. Explain that they must complete identity verification and entity registration to establish their institutional perimeter. Guide them through the onboarding steps." +
           langSuffix
       );
-    } else if (pathname.includes("/offtaker/onboarding/intake")) {
+    } else if (pathname.includes("/institutional/get-started/verification")) {
       injectContext(
-        "[SYSTEM EVENT: User is on the Intake Screen. Explain that this is the compliance dossier where they register their legal entity, declare UBOs, and provide source-of-funds documentation. Tell them to complete the form and click 'Save & Proceed to Identity Verification'." +
+        "[SYSTEM EVENT: User is on the Verification Screen. Explain that Veriff ensures OFAC compliance and performs biometric liveness detection for all Ultimate Beneficial Owners. The corporate entity is validated against GLEIF registries. Once verification clears, they can proceed to the institutional marketplace." +
           langSuffix
       );
-    } else if (pathname.includes("/offtaker/onboarding/kyb")) {
-      injectContext(
-        "[SYSTEM EVENT: User is on the KYB Screen. Explain that Veriff ensures OFAC compliance and performs biometric liveness detection for all Ultimate Beneficial Owners. The corporate entity is validated against GLEIF registries. Once verification clears, they can proceed to the institutional marketplace." +
-          langSuffix
-      );
-    } else if (pathname.includes("/offtaker/marketplace")) {
+    } else if (pathname.includes("/institutional/marketplace")) {
       injectContext(
         "[SYSTEM EVENT: User is on the Marketplace. Explain the Bloomberg B-PIPE real-time pricing, the 400-oz Good Delivery bars sourced from LBMA-accredited refiners, and that all inventory is held at Malca-Amit sovereign vaults. Tell them to select the 400-oz bar and click 'INITIATE EXECUTION QUOTE' to generate a cryptographic 30-second price lock." +
           langSuffix
       );
-    } else if (pathname.includes("/offtaker/orders")) {
+    } else if (pathname.includes("/institutional/orders")) {
       injectContext(
-        "[SYSTEM EVENT: User is on the Orders & Execution page. Explain that they are viewing their Offtaker Allocation Ledger showing all settlement positions. Walk them through the dual-authorization gate where both the Maker and Checker must approve, followed by the WebAuthn biometric signing ceremony. After execution, they will see the Fedwire clearing hash and ERC-3643 title transfer. Congratulate them on completing the full AurumShield institutional demo. Remind them to book a consultation at aurumshield.com to discuss their sovereign gold acquisition strategy." +
+        "[SYSTEM EVENT: User is on the Orders & Execution page. Explain that they are viewing their Institutional Allocation Ledger showing all settlement positions. Walk them through the dual-authorization gate where both the Maker and Checker must approve, followed by the WebAuthn biometric signing ceremony. After execution, they will see the Fedwire clearing hash and ERC-3643 title transfer. Congratulate them on completing the full AurumShield institutional demo. Remind them to book a consultation at aurumshield.com to discuss their sovereign gold acquisition strategy." +
+          langSuffix
+      );
+    } else if (pathname.includes("/institutional/compliance")) {
+      injectContext(
+        "[SYSTEM EVENT: User is on the Compliance page. Explain the institutional compliance dashboard showing AML/KYB status, audit trails, and regulatory framework adherence." +
           langSuffix
       );
     } else if (currentStepIdx < 0) {
       injectContext(
-        "[SYSTEM EVENT: User just arrived. Briefly welcome them and let them know you are redirecting them to the institutional demo starting with organization selection." +
+        "[SYSTEM EVENT: User just arrived. Briefly welcome them and let them know you are redirecting them to the institutional demo starting with the welcome screen." +
           langSuffix
       );
     }

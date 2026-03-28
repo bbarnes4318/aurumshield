@@ -35,6 +35,7 @@ import { MarketWeaknessSection } from "./sections/market-weakness";
 import { RiskModelSection } from "./sections/risk-model";
 import { ComplianceGate } from "./sections/compliance-gate";
 import { TelemetryTerminal } from "./telemetry-terminal";
+import { INSTITUTIONAL_ROUTES } from "@/lib/routing/institutional-routes";
 
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://app.aurumshield.vip";
@@ -142,13 +143,13 @@ export function Navigation() {
           {/* RIGHT: CTA + Mobile hamburger */}
           <div className="flex items-center gap-6 sm:gap-8 shrink-0">
             <a
-              href={APP_URL}
+              href={`${APP_URL}/institutional`}
               className="hidden lg:inline-flex text-[13px] font-medium text-slate-400 transition-colors duration-200 hover:text-white tracking-wide"
             >
               Client Portal
             </a>
             <a
-              href={`${APP_URL}/signup`}
+              href={`${APP_URL}/institutional/get-started/welcome`}
               className="hidden sm:inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-bold text-[#0A1128] transition-colors bg-gold hover:bg-gold-hover"
             >
               Request Access
@@ -220,7 +221,7 @@ export function Navigation() {
           ))}
 
           <a
-            href={APP_URL}
+            href={`${APP_URL}/institutional`}
             onClick={closeMobile}
             className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
           >
@@ -230,7 +231,7 @@ export function Navigation() {
           <div className="h-px bg-slate-800 my-3" />
 
           <a
-            href={`${APP_URL}/signup`}
+            href={`${APP_URL}/institutional/get-started/welcome`}
             onClick={closeMobile}
             className="mt-4 flex items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-bold text-[#0A1128] transition-colors active:scale-[0.98] bg-gold hover:bg-gold-hover"
           >
@@ -987,14 +988,14 @@ function SovereignAssetsSection() {
             {/* High-friction CTA */}
             <div className="flex flex-col sm:flex-row gap-4">
               <a
-                href={`${APP_URL}/signup`}
+                href={`${APP_URL}/institutional/get-started/welcome`}
                 className="inline-flex items-center justify-center gap-3 rounded-md border border-gold/60 px-10 py-4 text-sm font-bold text-gold uppercase tracking-wider transition-all duration-300 hover:bg-gold/10 hover:border-gold hover:shadow-[0_0_20px_rgba(198,168,107,0.1)]"
               >
                 Inquire for Private Deal Flow
                 <ArrowRight className="h-4 w-4" />
               </a>
               <a
-                href={`${APP_URL}/signup`}
+                href={`${APP_URL}/institutional/get-started/welcome`}
                 className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-700 px-8 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider transition-all duration-300 hover:border-gray-500 hover:text-gray-200"
               >
                 Request Institutional Access
@@ -1015,58 +1016,77 @@ function SovereignAssetsSection() {
 }
 
 /* ================================================================
-   INSTITUTIONAL BUYER JOURNEY — 6-Phase Overview
+   INSTITUTIONAL BUYER JOURNEY — 8-Phase Guided Architecture
+   ================================================================
+   Maps 1:1 to the real institutional-journey-schema stages.
+   Uses INSTITUTIONAL_ROUTES for all hrefs — no hardcoded paths.
    ================================================================ */
 const JOURNEY_PHASES = [
   {
     phase: "01",
-    title: "Identity Registration",
+    title: "Welcome & Registration",
     description:
-      "Clerk-secured institutional email verification and 2FA TOTP authorization. Cryptographically sealed session binding.",
-    href: "/institutional/get-started/welcome",
-    status: "COMPLIANCE GATE",
+      "Clerk-secured institutional email verification and 2FA TOTP authorization. Cryptographically sealed session binding with hardware key readiness.",
+    href: INSTITUTIONAL_ROUTES.GET_STARTED_WELCOME,
+    status: "ONBOARDING",
   },
   {
     phase: "02",
-    title: "KYC / KYB / AML Screening",
+    title: "Organization & Entity",
     description:
-      "Document upload, corporate identity verification, and automated OFAC SDN, EU Consolidated, and UN Security Council sanctions screening.",
-    href: "/institutional/get-started/verification",
-    status: "COMPLIANCE GATE",
+      "Corporate entity declaration, LEI registration, and jurisdictional mapping. Establishes the legal identity framework for all subsequent compliance gates.",
+    href: INSTITUTIONAL_ROUTES.GET_STARTED_ORGANIZATION,
+    status: "ONBOARDING",
   },
   {
     phase: "03",
-    title: "Sovereign Asset Catalog",
+    title: "KYC / KYB / AML Screening",
     description:
-      "Post-verification access to the 3-tier asset catalog: LBMA Good Delivery bullion, semi-purified doré bars, and raw geological yield.",
-    href: "/marketplace",
-    status: "ASSET SELECTION",
+      "Document upload, corporate identity verification, UBO declaration, and automated OFAC SDN, EU Consolidated, and UN Security Council sanctions screening.",
+    href: INSTITUTIONAL_ROUTES.GET_STARTED_VERIFICATION,
+    status: "COMPLIANCE GATE",
   },
   {
     phase: "04",
-    title: "Execution Terminal",
+    title: "Treasury & Funding",
     description:
-      "Full settlement math with transparent line-item breakdown — spot execution, Brink's transit, insurance, and platform fees. 60-second cryptographic price lock.",
-    href: "/checkout",
-    status: "PRICE LOCK",
+      "Plaid treasury authentication, institutional funding rail configuration, and liquidity verification. Establishes the settlement pathway before any asset selection.",
+    href: INSTITUTIONAL_ROUTES.GET_STARTED_FUNDING,
+    status: "COMPLIANCE GATE",
   },
   {
     phase: "05",
-    title: "Capital Settlement",
+    title: "First Trade — Asset Selection",
     description:
-      "5-step clearing pipeline: Plaid treasury authentication, liquidity verification, Column N.A. Fedwire drawdown, SHA-256 title generation, and Brink's logistics.",
-    href: "/settlement",
-    status: "CLEARING",
+      "Access the 3-tier sovereign asset catalog: LBMA Good Delivery bullion, semi-purified doré bars, and raw geological yield. Select allocation with full provenance chain.",
+    href: INSTITUTIONAL_ROUTES.FIRST_TRADE_ASSET,
+    status: "EXECUTION",
   },
   {
     phase: "06",
-    title: "Post-Settlement Treasury",
+    title: "First Trade — Delivery & Review",
     description:
-      "Post-settlement treasury dashboard. View vaulted collateral, execute fractional liquidations via the Goldwire card network against live spot.",
-    href: "/goldwire",
-    status: "TREASURY",
+      "Configure delivery method — sovereign vault custody or Brink's armored transit. Review the full settlement math with transparent line-item breakdown: spot price, transit, insurance, and platform fees.",
+    href: INSTITUTIONAL_ROUTES.FIRST_TRADE_DELIVERY,
+    status: "EXECUTION",
   },
-] as const;
+  {
+    phase: "07",
+    title: "First Trade — Authorization",
+    description:
+      "60-second cryptographic price lock, SHA-256 title generation, and binding execution authorization. Column N.A. Fedwire drawdown initiated upon final confirmation.",
+    href: INSTITUTIONAL_ROUTES.FIRST_TRADE_AUTHORIZE,
+    status: "CLEARING",
+  },
+  {
+    phase: "08",
+    title: "Institutional Workspace",
+    description:
+      "Post-settlement command center. Portfolio overview, trade blotter, sovereign asset marketplace, compliance dashboard, and Goldwire liquidity network access.",
+    href: INSTITUTIONAL_ROUTES.ROOT,
+    status: "ACTIVE",
+  },
+];
 
 function BuyerJourneySection() {
   return (
@@ -1083,13 +1103,13 @@ function BuyerJourneySection() {
           The Institutional Buyer Journey
         </h2>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-400">
-          A strictly gated, 6-phase pipeline from identity verification through
-          capital settlement and collateral management. Every phase enforces
-          compliance, transparency, and cryptographic finality.
+          An 8-phase guided pipeline from identity registration through your
+          first sovereign asset trade and into the full institutional workspace.
+          Every phase enforces compliance, transparency, and cryptographic finality.
         </p>
 
         {/* Phase Grid */}
-        <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {JOURNEY_PHASES.map((phase) => (
             <Link
               key={phase.phase}
@@ -1149,7 +1169,7 @@ function FinalCTA() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <a
-                href={`${APP_URL}/signup`}
+                href={`${APP_URL}/institutional/get-started/welcome`}
                 className="inline-flex items-center justify-center gap-2 bg-gold hover:bg-gold/90 text-slate-950 font-bold px-10 py-4 rounded-md transition-all duration-200"
               >
                 Request Institutional Access
@@ -1222,7 +1242,7 @@ function SiteFooter() {
               </li>
               <li>
                 <a
-                  href={`${APP_URL}/login`}
+                  href={`${APP_URL}/institutional`}
                   className="hover:text-white transition-colors"
                 >
                   Client Portal

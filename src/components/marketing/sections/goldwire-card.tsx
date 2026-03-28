@@ -50,7 +50,7 @@ export function GoldwireCardSection() {
               </ul>
 
               <a
-                href="/signup"
+                href="/institutional/get-started/welcome"
                 className="inline-flex items-center gap-2 rounded-lg bg-[#C6A86B]/10 border border-[#C6A86B]/30 px-6 py-3 text-sm font-semibold text-[#C6A86B] transition-all hover:bg-[#C6A86B]/20"
               >
                 Request Card Issuance

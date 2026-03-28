@@ -28,7 +28,7 @@ export const cinematicTour: TourDefinition = {
   description:
     "A tightly controlled, narrative-driven experience across the Offtaker Portal, Producer Portal, and Global Dashboard. Eleven steps. Three acts. Zero dead ends.",
   role: "offtaker",
-  startRoute: "/offtaker/org/select?demo=true",
+  startRoute: "/institutional/get-started/welcome?demo=true",
   cinematic: true,
   previewPath: [
     "The Gate",
@@ -54,7 +54,7 @@ export const cinematicTour: TourDefinition = {
       title: "The Gate",
       body: "You are the Chief Investment Officer for a sovereign wealth fund. We are executing a fifty-million-dollar physical gold allocation.",
       actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
-      route: "/offtaker/org/select?demo=true",
+      route: "/institutional/get-started/welcome?demo=true",
       target: '[data-tour="cinematic-org-register"]',
       placement: "right",
       next: {
@@ -73,7 +73,7 @@ export const cinematicTour: TourDefinition = {
       title: "Identity Verification",
       body: "Before entering the marketplace, your corporate identity must be cryptographically verified. Launch the secure identity scan to begin the KYB flow.",
       actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
-      route: "/offtaker/onboarding/kyb?demo=true",
+      route: "/institutional/get-started/verification?demo=true",
       target: '[data-tour="cinematic-kyb-launch-scan"]',
       placement: "right",
       delayMs: 2000,
@@ -93,7 +93,7 @@ export const cinematicTour: TourDefinition = {
       title: "Automated Verification",
       body: "Watch the terminal execute automated compliance checks. UBO verification, sanctions screening, and source-of-funds analysis running in real-time.",
       actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
-      route: "/offtaker/onboarding/kyb?demo=true",
+      route: "/institutional/get-started/verification?demo=true",
       target: '[data-tour="cinematic-kyb-terminal"]',
       placement: "right",
       delayMs: 1500,
@@ -113,7 +113,7 @@ export const cinematicTour: TourDefinition = {
       title: "Verification Complete",
       body: "All checks have passed. Your entity is cleared. Enter the institutional marketplace.",
       actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
-      route: "/offtaker/onboarding/kyb?demo=true",
+      route: "/institutional/get-started/verification?demo=true",
       target: '[data-tour="cinematic-kyb-enter"]',
       placement: "right",
       next: {
@@ -132,7 +132,7 @@ export const cinematicTour: TourDefinition = {
       title: "The Marketplace",
       body: "This is the institutional liquidity nexus. No retail premiums. No paper derivatives. LBMA-approved four-hundred-ounce bars.",
       actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
-      route: "/offtaker/marketplace?demo=true",
+      route: "/institutional/marketplace?demo=true",
       target: '[data-tour="cinematic-lbma-400oz"]',
       placement: "left",
       next: {
@@ -151,7 +151,7 @@ export const cinematicTour: TourDefinition = {
       title: "Delivery Versus Payment",
       body: "Your capital is locked in a secure atomic swap. It will not clear to the supplier until the physical asset's serial numbers are mathematically verified in the vault.",
       actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
-      route: "/checkout?demo=true",
+      route: "/institutional/first-trade/asset?demo=true",
       target: '[data-tour="cinematic-dvp-confirm"]',
       placement: "left",
       next: {
@@ -170,7 +170,7 @@ export const cinematicTour: TourDefinition = {
       title: "Transit Radar",
       body: "Capital deployed. The asset is in armored transit via Brink's global logistics. Wrapped in a Lloyd's of London Specie Insurance policy.",
       actLabel: "ACT I — THE SOVEREIGN OFFTAKER",
-      route: "/offtaker/orders/demo-order-001/logistics?demo=true",
+      route: "/institutional/orders/demo-order-001/logistics?demo=true",
       target: '[data-tour="cinematic-transit-map"]',
       placement: "left",
       next: { type: "manual" },

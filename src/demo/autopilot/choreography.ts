@@ -171,13 +171,13 @@ const origination_webhook: AutopilotStep = {
 
 /* ================================================================
    PHASE 3: THE MARKETPLACE
-   Route: /offtaker/marketplace
+   Route: /institutional/marketplace
    ================================================================ */
 
 const marketplace_browse: AutopilotStep = {
   id: "marketplace-browse",
   phase: AutopilotPhase.MARKETPLACE,
-  route: "/offtaker/marketplace",
+  route: "/institutional/marketplace",
   label: "Institutional Execution Terminal",
   navigationDelayMs: 1200,
   domActions: [
@@ -210,13 +210,13 @@ const marketplace_browse: AutopilotStep = {
 
 /* ================================================================
    PHASE 4: THE ATOMIC SWAP
-   Route: /offtaker/marketplace (inline execution)
+   Route: /institutional/marketplace (inline execution)
    ================================================================ */
 
 const atomic_rail_select: AutopilotStep = {
   id: "atomic-rail-select",
   phase: AutopilotPhase.ATOMIC_SWAP,
-  route: "/offtaker/marketplace",
+  route: "/institutional/marketplace",
   label: "MPC Wallet Provisioning",
   navigationDelayMs: 1200,
   domActions: [
@@ -261,7 +261,7 @@ const atomic_rail_select: AutopilotStep = {
 const atomic_confirm: AutopilotStep = {
   id: "atomic-confirm",
   phase: AutopilotPhase.ATOMIC_SWAP,
-  route: "/offtaker/marketplace",
+  route: "/institutional/marketplace",
   label: "Settlement Finality",
   navigationDelayMs: 500,
   domActions: [
@@ -293,13 +293,13 @@ const atomic_confirm: AutopilotStep = {
 
 /* ================================================================
    PHASE 5: ARMORED TELEMETRY
-   Route: /offtaker/orders/[orderId]/logistics
+   Route: /institutional/orders/[orderId]/logistics
    ================================================================ */
 
 const logistics_radar: AutopilotStep = {
   id: "logistics-radar",
   phase: AutopilotPhase.LOGISTICS,
-  route: "/offtaker/orders/demo-order-001/logistics",
+  route: "/institutional/orders/demo-order-001/logistics",
   label: "Sovereign Carrier Routing",
   navigationDelayMs: 1500,
   domActions: [
@@ -347,13 +347,13 @@ const logistics_radar: AutopilotStep = {
 
 /* ================================================================
    PHASE 6: TREASURY FINALITY
-   Route: /settlement
+   Route: /institutional/settlement
    ================================================================ */
 
 const treasury_sweep: AutopilotStep = {
   id: "treasury-sweep",
   phase: AutopilotPhase.TREASURY,
-  route: "/settlement",
+  route: "/institutional/settlement",
   label: "Ledger Sweep & Fee Extraction",
   navigationDelayMs: 1000,
   domActions: [
@@ -381,7 +381,7 @@ const treasury_sweep: AutopilotStep = {
 const treasury_audit: AutopilotStep = {
   id: "treasury-audit",
   phase: AutopilotPhase.TREASURY,
-  route: "/settlement",
+  route: "/institutional/settlement",
   label: "Immutable Audit Trail",
   navigationDelayMs: 500,
   domActions: [
