@@ -307,7 +307,18 @@ export async function evaluateCounterpartyReadiness(
   }
 
   /* ── Step 2: Not cleared — route to active provider ── */
-  if (!complianceCase || complianceCase.status === "OPEN" || complianceCase.status === "REJECTED") {
+  /* Route for ANY non-APPROVED status: OPEN, REJECTED, PENDING_USER,
+     PENDING_PROVIDER. This ensures re-clicking "Begin Verification"
+     always opens the provider's form URL, even if a prior session
+     was abandoned mid-flow. */
+  if (
+    !complianceCase ||
+    complianceCase.status === "OPEN" ||
+    complianceCase.status === "REJECTED" ||
+    complianceCase.status === "PENDING_USER" ||
+    complianceCase.status === "PENDING_PROVIDER" ||
+    complianceCase.status === "UNDER_REVIEW"
+  ) {
     const activeProvider = getActiveProvider();
 
     auditLog(

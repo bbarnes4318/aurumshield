@@ -224,7 +224,9 @@ export default function VerificationPage() {
   const isAnyActive = checkItems.some((item) => item.status === "active");
 
   /* ── Whether the user can initiate verification ── */
-  const canInitiate = !caseStatus || caseStatus === "OPEN";
+  /* Show the button for ANY non-APPROVED status so the user can
+     always get to the KYCaid form, even after abandoning mid-flow */
+  const canInitiate = !allComplete;
   const isInitiating = initiateVerification.isPending;
 
   /* ── Handle provider initiation ── */
@@ -241,8 +243,14 @@ export default function VerificationPage() {
         window.open(result.redirectUrl, "_blank", "noopener,noreferrer");
       } else if (result.status === "ERROR" && result.error) {
         setInitiationError(result.error);
+      } else if (result.status === "IN_PROGRESS") {
+        // Edge case: server couldn't generate a redirect but case exists.
+        // Re-show the initiation panel with a helpful message.
+        setInitiationError(
+          "Your verification is being processed. If you haven't completed the provider checks, please try again in a moment.",
+        );
       }
-      /* ALREADY_CLEARED and IN_PROGRESS are handled by query invalidation
+      /* ALREADY_CLEARED is handled by query invalidation
          in the mutation's onSuccess callback — the page auto-updates. */
     } catch (err) {
       setInitiationError(
