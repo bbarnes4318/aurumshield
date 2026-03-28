@@ -16,6 +16,11 @@
      ├──── TRUST FOOTER ────────────────────────────────┤
      └───────────────────────────────────────────────────┘
 
+   Persistent overlays (render across page navigations):
+     - TourHighlighter: Cinematic backdrop-blur spotlight
+     - TourOverlay: HUD panel with step controls
+     - ConciergeSubtitles: Real-time voice transcript
+
    Used by:
      /get-started/layout.tsx
      /first-trade/layout.tsx (future)
@@ -25,6 +30,9 @@ import { type ReactNode } from "react";
 import { AppLogo } from "@/components/app-logo";
 import { SimpleProgress } from "@/components/institutional-flow/SimpleProgress";
 import { type InstitutionalJourneyStage } from "@/lib/schemas/institutional-journey-schema";
+import { TourHighlighter } from "@/demo/tour-engine/TourHighlighter";
+import { TourOverlay } from "@/demo/tour-engine/TourOverlay";
+import { ConciergeSubtitles } from "@/demo/concierge/ConciergeSubtitles";
 
 interface MissionLayoutProps {
   children: ReactNode;
@@ -75,6 +83,12 @@ export function MissionLayout({
           </p>
         </div>
       </footer>
+
+      {/* ── Persistent Cinematic Overlays ── */}
+      <TourHighlighter />
+      <TourOverlay />
+      <ConciergeSubtitles />
     </div>
   );
 }
+

@@ -1,15 +1,22 @@
 /* ================================================================
-   TOUR HIGHLIGHTER — Glass Shield Engine (v2)
+   TOUR HIGHLIGHTER — Cinematic Spotlight Engine (v3)
    
-   Fix 1: Transparent Click-Blocking Overlay
-   
-   Architecture:
-   1. Full-screen TRANSPARENT overlay at z-index 99998 with 
-      pointer-events: auto → Physically blocks all clicks on page
-   2. Target element gets z-index: 99999 → ONLY clickable element
-   3. Sidebar + Topbar get blur/dim via CSS class injection
-   4. Main content area remains at FULL BRIGHTNESS
-   5. Pulsing gold glow ring + animated arrow on target
+   Ultra-premium highlighting for institutional gold demo:
+
+   1. Full-screen backdrop-blur dim overlay (bg-black/40 + blur-md)
+      with an SVG mask cutout around the target element. The dim
+      fades smoothly in/out with CSS transitions.
+
+   2. Double-ring gold pulse animation around the active element:
+      - Outer ring: slow ambient glow (3s cycle)
+      - Inner ring: crisp 1px border for precision
+
+   3. Concierge-driven highlights: When the Gemini voice agent calls
+      highlight_element, state.highlightSelector is set. We use that
+      as a secondary target source (alongside the tour step target).
+
+   4. Target element is elevated above the overlay via z-index
+      injection so it remains interactive.
    ================================================================ */
 
 "use client";
@@ -20,14 +27,11 @@ import { useTour } from "./TourProvider";
 import { useTourTarget, getScrollParent, ensureElementVisible } from "./useTourTarget";
 
 /** Padding around the highlighted element (px) */
-const HIGHLIGHT_PAD = 8;
-/** Z-index for the transparent blocking overlay */
-const SHIELD_Z = 99998;
+const HIGHLIGHT_PAD = 12;
+/** Z-index for the dim overlay */
+const OVERLAY_Z = 99998;
 /** Z-index applied to the target element itself */
 const TARGET_Z = 99999;
-
-/** CSS class applied to sidebar/topbar during cinematic tour */
-const CINEMATIC_DIM_CLASS = "tour-chrome-dimmed";
 
 interface HighlightRect {
   top: number;
@@ -36,37 +40,42 @@ interface HighlightRect {
   height: number;
 }
 
-/* ── Keyframe + dim class injection (runs once) ── */
-const STYLE_ID = "glass-shield-keyframes";
-function ensureKeyframes() {
+/* ── Inject global keyframes once ── */
+const STYLE_ID = "cinematic-highlighter-v3";
+function ensureStyles() {
   if (typeof document === "undefined") return;
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement("style");
   style.id = STYLE_ID;
   style.textContent = `
-    @keyframes glassShieldPulse {
-      0%, 100% { box-shadow: 0 0 15px rgba(198,168,107,0.3), 0 0 30px rgba(198,168,107,0.1); }
-      50% { box-shadow: 0 0 25px rgba(198,168,107,0.6), 0 0 50px rgba(198,168,107,0.2); }
+    @keyframes conciergeRingPulse {
+      0%, 100% {
+        box-shadow:
+          0 0 0 1px rgba(198, 168, 107, 0.5),
+          0 0 20px rgba(198, 168, 107, 0.15),
+          0 0 40px rgba(198, 168, 107, 0.05);
+      }
+      50% {
+        box-shadow:
+          0 0 0 1px rgba(198, 168, 107, 0.8),
+          0 0 30px rgba(198, 168, 107, 0.3),
+          0 0 60px rgba(198, 168, 107, 0.1);
+      }
     }
-    @keyframes glassShieldArrow {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-8px); }
+    @keyframes conciergeRingBreathe {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.015); }
     }
-    @keyframes glassShieldFadeIn {
+    @keyframes conciergeFadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
-    }
-    .${CINEMATIC_DIM_CLASS} {
-      filter: blur(2px) brightness(0.4) !important;
-      pointer-events: none !important;
-      transition: filter 0.3s ease !important;
     }
   `;
   document.head.appendChild(style);
 }
 
 export function TourHighlighter() {
-  const { state, currentStep, tour } = useTour();
+  const { state, currentStep } = useTour();
   const [rect, setRect] = useState<HighlightRect | null>(null);
   const scrollCleanupRef = useRef<(() => void) | null>(null);
   const targetStyleBackupRef = useRef<{
@@ -78,14 +87,18 @@ export function TourHighlighter() {
   const lastTargetRef = useRef<HTMLElement | null>(null);
   const elementRef = useRef<HTMLElement | null>(null);
 
-  const isCinematic = tour?.cinematic === true;
-  const selector = currentStep?.target;
+  // Determine the active selector: concierge highlight takes priority,
+  // then fall back to the current tour step's target
+  const conciergeSelector = state.highlightSelector;
+  const stepSelector = currentStep?.target;
+  const activeSelector = conciergeSelector || stepSelector;
+
   const { element, found } = useTourTarget(
-    state.status === "active" ? selector : undefined,
-    currentStep?.id ?? "none",
+    state.status === "active" ? activeSelector : undefined,
+    `${currentStep?.id ?? "none"}-${conciergeSelector ?? ""}`,
   );
 
-  // Sync hook return into mutable ref via effect
+  // Sync hook return into mutable ref
   useEffect(() => {
     elementRef.current = element;
   }, [element]);
@@ -94,30 +107,8 @@ export function TourHighlighter() {
 
   // Inject keyframes on mount
   useEffect(() => {
-    ensureKeyframes();
+    ensureStyles();
   }, []);
-
-  /* ── Fix 1: Sidebar/Topbar dim during cinematic tour ── */
-  useEffect(() => {
-    if (!isCinematic || state.status !== "active") {
-      // Remove dim classes when tour is not active
-      document
-        .querySelectorAll(`[data-tour-sidebar], [data-tour-topbar]`)
-        .forEach((el) => el.classList.remove(CINEMATIC_DIM_CLASS));
-      return;
-    }
-
-    // Apply dim to sidebar and topbar
-    document
-      .querySelectorAll(`[data-tour-sidebar], [data-tour-topbar]`)
-      .forEach((el) => el.classList.add(CINEMATIC_DIM_CLASS));
-
-    return () => {
-      document
-        .querySelectorAll(`[data-tour-sidebar], [data-tour-topbar]`)
-        .forEach((el) => el.classList.remove(CINEMATIC_DIM_CLASS));
-    };
-  }, [isCinematic, state.status]);
 
   // Calculate and track element position
   const updateRect = useCallback(() => {
@@ -149,7 +140,7 @@ export function TourHighlighter() {
     }
 
     const el = elementRef.current;
-    if (!el || state.status !== "active" || !isCinematic) return;
+    if (!el || state.status !== "active") return;
 
     // Back up original styles
     targetStyleBackupRef.current = {
@@ -160,7 +151,7 @@ export function TourHighlighter() {
     };
     lastTargetRef.current = el;
 
-    // Inject z-index elevation — target pokes above the transparent shield
+    // Inject z-index elevation — target pokes above the dim overlay
     el.style.position = "relative";
     el.style.zIndex = String(TARGET_Z);
     el.style.pointerEvents = "auto";
@@ -178,7 +169,7 @@ export function TourHighlighter() {
         targetStyleBackupRef.current = null;
       }
     };
-  }, [element, state.status, isCinematic]);
+  }, [element, state.status]);
 
   // Attach scroll + resize listeners
   useEffect(() => {
@@ -219,174 +210,124 @@ export function TourHighlighter() {
     };
   }, [element, state.status, updateRect]);
 
-  // Don't render anything if not active
+  // Don't render anything if not active or no target
   if (!mounted || state.status !== "active") return null;
-
-  /* ── Non-cinematic: simple outline (backward compat) ── */
-  if (!isCinematic) {
-    if (!selector || !found || !rect) return null;
-    return createPortal(
-      <>
-        <div
-          style={{
-            position: "fixed",
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-            zIndex: 9991,
-            border: "2px solid var(--gold, #c6a86b)",
-            borderRadius: "var(--radius-sm, 10px)",
-            pointerEvents: "none",
-          }}
-          aria-hidden="true"
-        />
-        <div
-          style={{
-            position: "fixed",
-            top: rect.top + 3,
-            left: rect.left + 3,
-            width: rect.width - 6,
-            height: rect.height - 6,
-            zIndex: 9991,
-            border: "1px dashed var(--gold, #c6a86b)",
-            borderRadius: "calc(var(--radius-sm, 10px) - 3px)",
-            opacity: 0.4,
-            pointerEvents: "none",
-          }}
-          aria-hidden="true"
-        />
-      </>,
-      document.body,
-    );
-  }
+  if (!activeSelector || !found || !rect) return null;
 
   /* ═══════════════════════════════════════════════════════════
-     CINEMATIC GLASS SHIELD MODE
+     CINEMATIC SPOTLIGHT — Premium dim + gold ring
      
-     Fix 1: Overlay is TRANSPARENT (no dark bg) but retains
-     pointer-events:auto to block all clicks. Target element
-     at z-index 99999 is the ONLY clickable element.
+     Uses a full-screen dark overlay with backdrop-blur and an
+     SVG mask to create a crisp rectangular cutout around the
+     target element. The gold ring pulses outside the cutout.
      ═══════════════════════════════════════════════════════════ */
 
-  const arrowTop = rect ? rect.top - 40 : -100;
-  const arrowLeft = rect ? rect.left + rect.width / 2 - 12 : -100;
+  // SVG mask dimensions
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1920;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 1080;
+
+  // Corner radius for the cutout
+  const cutoutRadius = 10;
 
   return createPortal(
     <>
-      {/* ── Full-screen TRANSPARENT overlay — blocks ALL clicks ── */}
+      {/* ── Full-screen dim overlay with cutout ── */}
       <div
         style={{
           position: "fixed",
           inset: 0,
-          zIndex: SHIELD_Z,
-          backgroundColor: "transparent",
+          zIndex: OVERLAY_Z,
           pointerEvents: "auto",
+          animation: "conciergeFadeIn 0.4s ease forwards",
+        }}
+        aria-hidden="true"
+      >
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${vw} ${vh}`}
+          preserveAspectRatio="none"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <defs>
+            <mask id="concierge-spotlight-mask">
+              {/* White = visible (dim), Black = hidden (cutout) */}
+              <rect width={vw} height={vh} fill="white" />
+              <rect
+                x={rect.left}
+                y={rect.top}
+                width={rect.width}
+                height={rect.height}
+                rx={cutoutRadius}
+                ry={cutoutRadius}
+                fill="black"
+              />
+            </mask>
+          </defs>
+          {/* The dim layer — masked to exclude the target area */}
+          <rect
+            width={vw}
+            height={vh}
+            fill="rgba(0, 0, 0, 0.45)"
+            mask="url(#concierge-spotlight-mask)"
+          />
+        </svg>
+
+        {/* Backdrop blur layer — same mask via clip-path */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            clipPath: `polygon(
+              0% 0%, 100% 0%, 100% 100%, 0% 100%,
+              0% ${rect.top}px,
+              ${rect.left}px ${rect.top}px,
+              ${rect.left}px ${rect.top + rect.height}px,
+              0% ${rect.top + rect.height}px
+            )`,
+          }}
+        />
+      </div>
+
+      {/* ── Outer gold glow ring — ambient pulse ── */}
+      <div
+        style={{
+          position: "fixed",
+          top: rect.top - 4,
+          left: rect.left - 4,
+          width: rect.width + 8,
+          height: rect.height + 8,
+          zIndex: TARGET_Z + 1,
+          borderRadius: cutoutRadius + 4,
+          pointerEvents: "none",
+          animation: "conciergeRingPulse 3s ease-in-out infinite",
         }}
         aria-hidden="true"
       />
 
-      {/* ── Spotlight glow ring ── */}
-      {rect && (
-        <div
-          style={{
-            position: "fixed",
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-            zIndex: TARGET_Z + 1,
-            border: "2px solid #c6a86b",
-            borderRadius: 8,
-            pointerEvents: "none",
-            animation: "glassShieldPulse 2s ease-in-out infinite",
-          }}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* ── Animated directional arrow ── */}
-      {rect && (
-        <div
-          style={{
-            position: "fixed",
-            top: arrowTop,
-            left: arrowLeft,
-            zIndex: TARGET_Z + 1,
-            pointerEvents: "none",
-            animation: "glassShieldArrow 1.2s ease-in-out infinite",
-          }}
-          aria-hidden="true"
-        >
-          <svg
-            width="24"
-            height="32"
-            viewBox="0 0 24 32"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M12 0L12 24M12 24L4 16M12 24L20 16"
-              stroke="#c6a86b"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-      )}
-
-      {/* ── On-screen script tooltip ── */}
-      {currentStep?.tooltipText && rect && (
-        <div
-          style={{
-            position: "fixed",
-            top: rect.top + rect.height + 16,
-            left: Math.max(16, Math.min(rect.left, window.innerWidth - 420)),
-            zIndex: TARGET_Z + 2,
-            maxWidth: 400,
-            pointerEvents: "none",
-            animation: "glassShieldFadeIn 0.5s ease forwards",
-          }}
-        >
-          <div
-            style={{
-              background: "rgba(10, 17, 40, 0.95)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(198, 168, 107, 0.3)",
-              borderRadius: 8,
-              padding: "12px 16px",
-            }}
-          >
-            {currentStep.actLabel && (
-              <div
-                style={{
-                  fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: "#c6a86b",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.15em",
-                  marginBottom: 6,
-                }}
-              >
-                {currentStep.actLabel}
-              </div>
-            )}
-            <p
-              style={{
-                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-                fontSize: 11,
-                color: "#c9d1d9",
-                lineHeight: "1.6",
-                margin: 0,
-              }}
-            >
-              {currentStep.tooltipText}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* ── Inner precision ring — crisp gold border ── */}
+      <div
+        style={{
+          position: "fixed",
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+          zIndex: TARGET_Z + 1,
+          border: "1.5px solid rgba(198, 168, 107, 0.7)",
+          borderRadius: cutoutRadius,
+          pointerEvents: "none",
+          animation: "conciergeRingBreathe 3s ease-in-out infinite",
+        }}
+        aria-hidden="true"
+      />
     </>,
     document.body,
   );

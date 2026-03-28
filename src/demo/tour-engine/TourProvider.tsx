@@ -3,13 +3,15 @@
    
    Manages: current step, navigation (next/back/jump), route 
    transitions, target resolution with retry. State persisted to 
-   localStorage and synced with URL params.
+   sessionStorage and synced with URL params.
    
-   Cinematic Mode: When tour.cinematic is true, dispatches Vapi
-   voice scripts on step change via useVapiSync.
+   Concierge Mode: Integrates the Gemini Live voice agent via
+   useConciergeVoice. Tool calls from the AI agent (advance_tour_step,
+   highlight_element, navigate_route, set_tour_state) dispatch directly
+   into the reducer for instant UI updates.
    
    Exposes: startTour, nextStep, prevStep, jumpToStep, 
-   pauseTour, resumeTour, exitTour, restartTour.
+   pauseTour, resumeTour, exitTour, restartTour, concierge.
    ================================================================ */
 
 "use client";
@@ -32,9 +34,25 @@ import type {
 } from "./tourTypes";
 import { INITIAL_TOUR_STATE } from "./tourTypes";
 import { getTourForRole } from "../tours";
-import { useVapiSync } from "../autopilot/useVapiSync";
+import { useConciergeVoice } from "../concierge/useConciergeVoice";
+import type { ConciergeToolCall, ConciergeStatus } from "../concierge/conciergeTypes";
 
 /* ---------- Context Shape ---------- */
+
+interface ConciergeControls {
+  /** Current concierge session status */
+  status: ConciergeStatus;
+  /** Start the voice concierge session (requests mic permission) */
+  startSession: () => Promise<void>;
+  /** End the voice concierge session */
+  endSession: () => void;
+  /** Whether the AI agent is currently speaking */
+  isSpeaking: boolean;
+  /** Volume level for waveform display (0-1) */
+  volumeLevel: number;
+  /** Real-time transcript of what the AI is saying */
+  activeTranscript: string;
+}
 
 interface TourContextValue {
   /** Current tour state */
@@ -63,10 +81,8 @@ interface TourContextValue {
   restartTour: () => void;
   /** Mark current step as completed (used by click/element observers) */
   completeCurrentStep: () => void;
-  /** Whether Vapi is currently speaking */
-  isSpeaking: boolean;
-  /** Vapi volume level for waveform displays */
-  volumeLevel: number;
+  /** Gemini Live voice concierge controls */
+  concierge: ConciergeControls;
 }
 
 const TourContext = createContext<TourContextValue | null>(null);
@@ -89,12 +105,17 @@ type TourAction =
   | { type: "PAUSE" }
   | { type: "RESUME" }
   | { type: "EXIT" }
-  | { type: "COMPLETE" };
+  | { type: "COMPLETE" }
+  | { type: "SET_HIGHLIGHT"; selector: string | null }
+  | { type: "SET_CONCIERGE_ACTIVE"; active: boolean }
+  | { type: "SET_SIMULATED"; key: string; value: string | number | boolean }
+  | { type: "TOOL_CALL"; call: ConciergeToolCall };
 
 function tourReducer(state: TourState, action: TourAction): TourState {
   switch (action.type) {
     case "START":
       return {
+        ...INITIAL_TOUR_STATE,
         tourId: action.tourId,
         stepIndex: action.stepIndex ?? 0,
         status: "active",
@@ -113,6 +134,51 @@ function tourReducer(state: TourState, action: TourAction): TourState {
       return INITIAL_TOUR_STATE;
     case "COMPLETE":
       return { ...state, status: "completed" };
+    case "SET_HIGHLIGHT":
+      return { ...state, highlightSelector: action.selector };
+    case "SET_CONCIERGE_ACTIVE":
+      return { ...state, conciergeActive: action.active };
+    case "SET_SIMULATED":
+      return {
+        ...state,
+        conciergeSimulated: {
+          ...state.conciergeSimulated,
+          [action.key]: action.value,
+        },
+      };
+
+    /* ── Tool Call Dispatch — the critical path for instant UI updates ── */
+    case "TOOL_CALL": {
+      const { call } = action;
+      switch (call.name) {
+        case "advance_tour_step":
+          if (typeof call.args.stepIndex === "number") {
+            return { ...state, stepIndex: call.args.stepIndex };
+          }
+          return { ...state, stepIndex: state.stepIndex + 1 };
+
+        case "highlight_element":
+          return { ...state, highlightSelector: call.args.selector };
+
+        case "set_tour_state":
+          return {
+            ...state,
+            conciergeSimulated: {
+              ...state.conciergeSimulated,
+              [call.args.key]: call.args.value,
+            },
+          };
+
+        case "navigate_route":
+          // Route navigation is handled as a side effect, not in the reducer.
+          // The TOOL_CALL handler in the provider component handles router.push.
+          return state;
+
+        default:
+          return state;
+      }
+    }
+
     default:
       return state;
   }
@@ -153,16 +219,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Vapi sync for cinematic voice dispatch
-  const {
-    isSpeaking,
-    speak,
-    ensureCallActive,
-    volumeLevel,
-    stopCall,
-  } = useVapiSync();
-
-  // Initialize from localStorage or URL
+  // Initialize from sessionStorage or URL
   const initialState = useMemo(() => {
     const persisted = loadPersistedState();
     // URL params take priority if present
@@ -170,6 +227,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     const urlStep = searchParams.get("step");
     if (urlTour) {
       return {
+        ...INITIAL_TOUR_STATE,
         tourId: urlTour,
         stepIndex: urlStep ? parseInt(urlStep, 10) : persisted.stepIndex,
         status: "active" as TourStatus,
@@ -181,8 +239,6 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
   const [state, dispatch] = useReducer(tourReducer, initialState);
   const navigatingRef = useRef(false);
-  const vapiStartedRef = useRef(false);
-  const lastSpokenStepRef = useRef<string | null>(null);
 
   // Resolve current tour & step
   const tour = state.tourId ? (getTourForRole(state.tourId) ?? null) : null;
@@ -192,25 +248,60 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       ? tour.steps[state.stepIndex]
       : null;
 
-  const isCinematic = tour?.cinematic === true;
+  /* ── Gemini Live Concierge Integration ── */
+
+  const handleToolCall = useCallback(
+    (call: ConciergeToolCall) => {
+      console.info(`[Tour] Concierge tool call: ${call.name}`, call.args);
+
+      // Dispatch to reducer for instant state update
+      dispatch({ type: "TOOL_CALL", call });
+
+      // Handle navigate_route as a side effect (can't be done in reducer)
+      if (call.name === "navigate_route") {
+        const route = call.args.route;
+        const separator = route.includes("?") ? "&" : "?";
+        const url = route.includes("demo=true")
+          ? route
+          : `${route}${separator}demo=true`;
+        router.push(url);
+      }
+
+      // Auto-clear highlight after duration
+      if (call.name === "highlight_element") {
+        const durationMs = call.args.durationMs ?? 4000;
+        setTimeout(() => {
+          dispatch({ type: "SET_HIGHLIGHT", selector: null });
+        }, durationMs);
+      }
+    },
+    [router],
+  );
+
+  const conciergeVoice = useConciergeVoice(handleToolCall);
+
+  // Track concierge active state
+  useEffect(() => {
+    dispatch({
+      type: "SET_CONCIERGE_ACTIVE",
+      active: conciergeVoice.status === "active",
+    });
+  }, [conciergeVoice.status]);
 
   // Detect tour completion
   useEffect(() => {
     if (tour && state.stepIndex >= totalSteps && state.status === "active") {
       dispatch({ type: "COMPLETE" });
       console.info(`[Tour] Completed: ${tour.id}`);
-      if (isCinematic) {
-        stopCall();
-      }
     }
-  }, [tour, state.stepIndex, totalSteps, state.status, isCinematic, stopCall]);
+  }, [tour, state.stepIndex, totalSteps, state.status]);
 
   // Persist state changes
   useEffect(() => {
     persistState(state);
   }, [state]);
 
-  // Handle route navigation for current step (Fix 4: no magic timeouts)
+  // Handle route navigation for current step
   useEffect(() => {
     if (!currentStep?.route || state.status !== "active") return;
     const targetPath = currentStep.route.split("?")[0];
@@ -221,62 +312,12 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
         ? currentStep.route
         : `${currentStep.route}${separator}demo=true`;
       router.push(url);
-      // navigatingRef resets deterministically when pathname matches
     }
     // Reset navigation flag when we arrive at the correct route
     if (pathname === targetPath && navigatingRef.current) {
       navigatingRef.current = false;
     }
   }, [currentStep, pathname, router, state.status]);
-
-  /* ── Cinematic Vapi Dispatch: fire voice script on step change ── */
-  useEffect(() => {
-    if (!isCinematic || state.status !== "active" || !currentStep) return;
-    if (!currentStep.vapiScript) return;
-
-    // Prevent re-speaking the same step
-    const stepKey = `${state.tourId}-${state.stepIndex}`;
-    if (lastSpokenStepRef.current === stepKey) return;
-    lastSpokenStepRef.current = stepKey;
-
-    // Ensure Vapi is started, then speak
-    const controller = new AbortController();
-    const signal = controller.signal;
-
-    const run = async () => {
-      if (!vapiStartedRef.current) {
-        vapiStartedRef.current = true;
-        try {
-          await ensureCallActive(signal);
-        } catch {
-          // Vapi unavailable — fallback will handle it
-        }
-      }
-
-      // Apply delay if specified (e.g. KYB step waits 3 seconds)
-      if (currentStep.delayMs) {
-        await new Promise<void>((resolve) => {
-          const timer = setTimeout(resolve, currentStep.delayMs);
-          signal.addEventListener("abort", () => clearTimeout(timer), { once: true });
-        });
-      }
-
-      if (signal.aborted) return;
-
-      try {
-        await speak(currentStep.vapiScript!, signal);
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        console.warn("[Tour] Vapi speech failed:", err);
-      }
-    };
-
-    run();
-
-    return () => {
-      controller.abort();
-    };
-  }, [isCinematic, state.status, state.stepIndex, state.tourId, currentStep, speak, ensureCallActive]);
 
   /* ---------- Actions ---------- */
 
@@ -288,8 +329,6 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       console.info(`[Tour] Started: ${roleId}`);
-      lastSpokenStepRef.current = null;
-      vapiStartedRef.current = false;
       dispatch({ type: "START", tourId: roleId });
       // Navigate to start route
       const separator = tourDef.startRoute.includes("?") ? "&" : "?";
@@ -330,16 +369,15 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const exitTour = useCallback(() => {
     console.info("[Tour] Exited");
     dispatch({ type: "EXIT" });
-    if (isCinematic) {
-      stopCall();
-      vapiStartedRef.current = false;
+    // End concierge session if active
+    if (conciergeVoice.status === "active") {
+      conciergeVoice.endSession();
     }
-  }, [isCinematic, stopCall]);
+  }, [conciergeVoice]);
 
   const restartTour = useCallback(() => {
     if (!state.tourId) return;
     console.info(`[Tour] Restarted: ${state.tourId}`);
-    lastSpokenStepRef.current = null;
     dispatch({ type: "START", tourId: state.tourId, stepIndex: 0 });
   }, [state.tourId]);
 
@@ -353,6 +391,18 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       console.info(`[Tour] Step: ${currentStep.id}`);
     }
   }, [currentStep, state.status]);
+
+  const concierge: ConciergeControls = useMemo(
+    () => ({
+      status: conciergeVoice.status,
+      startSession: conciergeVoice.startSession,
+      endSession: conciergeVoice.endSession,
+      isSpeaking: conciergeVoice.isSpeaking,
+      volumeLevel: conciergeVoice.volumeLevel,
+      activeTranscript: conciergeVoice.activeTranscript,
+    }),
+    [conciergeVoice],
+  );
 
   const value = useMemo<TourContextValue>(
     () => ({
@@ -369,8 +419,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       exitTour,
       restartTour,
       completeCurrentStep,
-      isSpeaking,
-      volumeLevel,
+      concierge,
     }),
     [
       state,
@@ -386,8 +435,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       exitTour,
       restartTour,
       completeCurrentStep,
-      isSpeaking,
-      volumeLevel,
+      concierge,
     ],
   );
 

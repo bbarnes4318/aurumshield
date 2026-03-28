@@ -135,10 +135,19 @@ export interface TourState {
   tourId: string | null;
   stepIndex: number;
   status: TourStatus;
+  /** CSS selector for Gemini-driven element highlighting (concierge mode) */
+  highlightSelector: string | null;
+  /** Whether the Gemini concierge voice agent is active */
+  conciergeActive: boolean;
+  /** Key-value pairs set by the concierge via set_tour_state tool calls */
+  conciergeSimulated: Record<string, string | number | boolean>;
 }
 
 export const INITIAL_TOUR_STATE: TourState = {
   tourId: null,
   stepIndex: 0,
   status: "idle",
+  highlightSelector: null,
+  conciergeActive: false,
+  conciergeSimulated: {},
 };

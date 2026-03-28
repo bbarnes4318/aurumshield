@@ -27,7 +27,6 @@ import {
   ChevronDown,
   MousePointerClick,
   CheckCircle2,
-  Radio,
 } from "lucide-react";
 import { useTour } from "./TourProvider";
 import { useTourTarget } from "./useTourTarget";
@@ -36,6 +35,22 @@ import type { UserRole } from "@/lib/mock-data";
 
 /** Z-index for the overlay panel — above the Glass Shield */
 const OVERLAY_Z = 100000;
+
+/* Inject speaking pulse keyframe once */
+const OV_STYLE_ID = "tour-overlay-keyframes";
+function ensureOverlayStyles() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById(OV_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = OV_STYLE_ID;
+  style.textContent = `
+    @keyframes conciergeSpeakingPulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 export function TourOverlay() {
   const {
@@ -51,8 +66,7 @@ export function TourOverlay() {
     exitTour,
     restartTour,
     completeCurrentStep,
-    isSpeaking,
-    volumeLevel,
+    concierge: { isSpeaking },
   } = useTour();
 
   const [showJump, setShowJump] = useState(false);
@@ -62,6 +76,9 @@ export function TourOverlay() {
   const mounted = typeof window !== "undefined";
 
   const isCinematic = tour?.cinematic === true;
+
+  // Inject overlay keyframes
+  useEffect(() => { ensureOverlayStyles(); }, []);
 
   // Reset step completion and dropdown on step change
   const stepKey = `${state.tourId}-${state.stepIndex}`;
@@ -327,29 +344,12 @@ export function TourOverlay() {
     );
   }
 
-  /* ── Volume bars for speaking indicator ── */
-  const bars = Array.from({ length: 5 }, (_, i) => {
-    const threshold = (i + 1) * 0.15;
-    const active = isSpeaking && volumeLevel > threshold;
-    return (
-      <div
-        key={i}
-        style={{
-          width: 3,
-          height: active ? 12 + i * 2 : 4,
-          borderRadius: 2,
-          background: active ? "#c6a86b" : "#243653",
-          transition: "height 0.15s ease, background 0.15s ease",
-        }}
-      />
-    );
-  });
-
   /* ═══════════════════════════════════════════════════════════
-     CINEMATIC OVERLAY — Dark glassmorphism institutional HUD
+     CINEMATIC OVERLAY — Premium institutional HUD
+     Refined glassmorphism panel with gold accent line
      ═══════════════════════════════════════════════════════════ */
   if (isCinematic) {
-    /* ── Fix 3: Minimized pill view ── */
+    /* ── Minimized pill view ── */
     if (minimized) {
       return createPortal(
         <div
@@ -364,25 +364,37 @@ export function TourOverlay() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
-              background: "rgba(10, 17, 40, 0.95)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(198, 168, 107, 0.25)",
-              borderRadius: 20,
-              padding: "6px 14px",
+              gap: 10,
+              background: "rgba(3, 7, 18, 0.88)",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(198, 168, 107, 0.15)",
+              borderRadius: 24,
+              padding: "8px 18px",
             }}
           >
-            <Radio style={{ width: 12, height: 12, color: "#c6a86b" }} />
+            {/* Live dot */}
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: isSpeaking ? "#c6a86b" : "rgba(198, 168, 107, 0.4)",
+                boxShadow: isSpeaking ? "0 0 8px rgba(198, 168, 107, 0.5)" : "none",
+                transition: "all 0.3s ease",
+              }}
+            />
             <span
               style={{
-                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-                fontSize: 10,
-                fontWeight: 700,
-                color: "#c6a86b",
+                fontFamily: "'Inter', -apple-system, sans-serif",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#94a3b8",
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {state.stepIndex + 1}/{totalSteps}
+              {state.stepIndex + 1}
+              <span style={{ color: "#475569", margin: "0 2px" }}>/</span>
+              {totalSteps}
             </span>
             <button
               onClick={() => setMinimized(false)}
@@ -391,16 +403,16 @@ export function TourOverlay() {
                 alignItems: "center",
                 gap: 4,
                 padding: "3px 10px",
-                background: "rgba(36, 54, 83, 0.5)",
-                border: "1px solid rgba(36, 54, 83, 0.8)",
+                background: "rgba(198, 168, 107, 0.1)",
+                border: "1px solid rgba(198, 168, 107, 0.2)",
                 borderRadius: 12,
-                color: "#aab6c8",
-                fontSize: 9,
+                color: "#c6a86b",
+                fontFamily: "'Inter', -apple-system, sans-serif",
+                fontSize: 10,
                 fontWeight: 600,
                 cursor: "pointer",
               }}
             >
-              <Play style={{ width: 9, height: 9 }} />
               Expand
             </button>
           </div>
@@ -409,101 +421,123 @@ export function TourOverlay() {
       );
     }
 
-    /* ── Fix 3: Cinematic HUD — positioned top-left (below topbar) ── */
+    /* ── Full cinematic HUD — top-right, compact ── */
     return createPortal(
       <div
         style={{
           position: "fixed",
           top: 72,
-          left: 24,
+          right: 24,
           zIndex: OVERLAY_Z,
-          width: 380,
+          width: 340,
         }}
       >
         <div
           style={{
-            background: "rgba(10, 17, 40, 0.95)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(198, 168, 107, 0.25)",
-            borderRadius: 12,
+            background: "rgba(3, 7, 18, 0.9)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid rgba(198, 168, 107, 0.1)",
+            borderRadius: 14,
             overflow: "hidden",
           }}
         >
-          {/* Top bar — act label + step counter + minimize */}
+          {/* Gold accent line */}
+          <div
+            style={{
+              height: 1,
+              background: "linear-gradient(90deg, transparent, rgba(198, 168, 107, 0.5), transparent)",
+            }}
+          />
+
+          {/* Header — step counter + controls */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               padding: "10px 16px",
-              borderBottom: "1px solid rgba(36, 54, 83, 0.6)",
+              borderBottom: "1px solid rgba(30, 41, 59, 0.5)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Radio style={{ width: 14, height: 14, color: "#c6a86b" }} />
+              {/* Live indicator */}
+              <div
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: isSpeaking ? "#c6a86b" : "rgba(198, 168, 107, 0.3)",
+                  boxShadow: isSpeaking ? "0 0 8px rgba(198, 168, 107, 0.5)" : "none",
+                  transition: "all 0.3s ease",
+                }}
+              />
               <span
                 style={{
-                  fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-                  fontSize: 9,
+                  fontFamily: "'Inter', -apple-system, sans-serif",
+                  fontSize: 10,
                   fontWeight: 700,
                   color: "#c6a86b",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                 }}
               >
-                {currentStep.actLabel ?? "Cinematic Demo"}
+                {currentStep.actLabel ?? "Concierge"}
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span
                 style={{
-                  fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: "#7f8ca3",
+                  fontFamily: "'Inter', -apple-system, sans-serif",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: "#475569",
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
                 {state.stepIndex + 1} / {totalSteps}
               </span>
-              {/* Fix 3: X → minimize, NOT exit */}
               <button
                 onClick={() => setMinimized(true)}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  padding: 2,
+                  padding: 3,
                   background: "transparent",
                   border: "none",
-                  color: "#7f8ca3",
+                  color: "#475569",
                   cursor: "pointer",
+                  transition: "color 0.2s ease",
                 }}
                 title="Minimize"
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#94a3b8")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
               >
-                <X style={{ width: 12, height: 12 }} />
+                <X style={{ width: 13, height: 13 }} />
               </button>
             </div>
           </div>
 
           {/* Step content */}
-          <div style={{ padding: "12px 16px" }}>
+          <div style={{ padding: "14px 16px 12px" }}>
             <h3
               style={{
-                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#e7ecf4",
+                fontFamily: "'Inter', -apple-system, sans-serif",
+                fontSize: 14,
+                fontWeight: 600,
+                color: "#e2e8f0",
                 marginBottom: 6,
+                lineHeight: 1.3,
               }}
             >
               {currentStep.title}
             </h3>
             <p
               style={{
-                fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-                fontSize: 11,
-                color: "#7f8ca3",
-                lineHeight: "1.6",
+                fontFamily: "'Inter', -apple-system, sans-serif",
+                fontSize: 12,
+                color: "#64748b",
+                lineHeight: 1.6,
                 marginBottom: 10,
               }}
             >
@@ -517,19 +551,19 @@ export function TourOverlay() {
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  background: "rgba(198, 168, 107, 0.08)",
-                  border: "1px solid rgba(198, 168, 107, 0.2)",
-                  borderRadius: 6,
+                  background: "rgba(198, 168, 107, 0.06)",
+                  border: "1px solid rgba(198, 168, 107, 0.15)",
+                  borderRadius: 8,
                   padding: "8px 12px",
                 }}
               >
-                <MousePointerClick style={{ width: 14, height: 14, color: "#c6a86b" }} />
+                <MousePointerClick style={{ width: 13, height: 13, color: "rgba(198, 168, 107, 0.6)" }} />
                 <span
                   style={{
-                    fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-                    fontSize: 10,
-                    color: "rgba(198, 168, 107, 0.8)",
-                    fontWeight: 600,
+                    fontFamily: "'Inter', -apple-system, sans-serif",
+                    fontSize: 11,
+                    color: "rgba(198, 168, 107, 0.7)",
+                    fontWeight: 500,
                   }}
                 >
                   Click the highlighted element to continue
@@ -553,31 +587,22 @@ export function TourOverlay() {
                     height: 6,
                     borderRadius: "50%",
                     background: "#c6a86b",
-                    boxShadow: "0 0 6px rgba(198, 168, 107, 0.5)",
+                    boxShadow: "0 0 8px rgba(198, 168, 107, 0.5)",
+                    animation: "conciergeSpeakingPulse 1.5s ease-in-out infinite",
                   }}
                 />
                 <span
                   style={{
-                    fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
+                    fontFamily: "'Inter', -apple-system, sans-serif",
                     fontSize: 9,
-                    color: "#7f8ca3",
+                    color: "#475569",
                     textTransform: "uppercase",
-                    letterSpacing: "0.08em",
+                    letterSpacing: "0.1em",
+                    fontWeight: 600,
                   }}
                 >
                   Speaking
                 </span>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-end",
-                    gap: 2,
-                    marginLeft: "auto",
-                    height: 20,
-                  }}
-                >
-                  {bars}
-                </div>
               </div>
             )}
           </div>
@@ -588,67 +613,68 @@ export function TourOverlay() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 8,
+              gap: 6,
               padding: "8px 16px 12px",
-              borderTop: "1px solid rgba(36, 54, 83, 0.4)",
+              borderTop: "1px solid rgba(30, 41, 59, 0.4)",
             }}
           >
-            <div style={{ display: "flex", gap: 6 }}>
-              <button
-                onClick={prevStep}
-                disabled={state.stepIndex <= 0}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "5px 12px",
-                  background: "rgba(36, 54, 83, 0.5)",
-                  border: "1px solid rgba(36, 54, 83, 0.8)",
-                  borderRadius: 6,
-                  color: state.stepIndex <= 0 ? "#3a4a5f" : "#aab6c8",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  cursor: state.stepIndex <= 0 ? "not-allowed" : "pointer",
-                  opacity: state.stepIndex <= 0 ? 0.4 : 1,
-                }}
-              >
-                <ChevronLeft style={{ width: 10, height: 10 }} />
-                Back
-              </button>
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={prevStep}
+              disabled={state.stepIndex <= 0}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                padding: "5px 12px",
+                background: "rgba(30, 41, 59, 0.4)",
+                border: "1px solid rgba(30, 41, 59, 0.6)",
+                borderRadius: 7,
+                color: state.stepIndex <= 0 ? "#1e293b" : "#94a3b8",
+                fontFamily: "'Inter', -apple-system, sans-serif",
+                fontSize: 11,
+                fontWeight: 500,
+                cursor: state.stepIndex <= 0 ? "not-allowed" : "pointer",
+                opacity: state.stepIndex <= 0 ? 0.4 : 1,
+                transition: "all 0.2s ease",
+              }}
+            >
+              <ChevronLeft style={{ width: 11, height: 11 }} />
+              Back
+            </button>
+            <div style={{ display: "flex", gap: 5 }}>
               <button
                 onClick={pauseTour}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   padding: "5px 8px",
-                  background: "rgba(36, 54, 83, 0.5)",
-                  border: "1px solid rgba(36, 54, 83, 0.8)",
-                  borderRadius: 6,
-                  color: "#7f8ca3",
+                  background: "rgba(30, 41, 59, 0.4)",
+                  border: "1px solid rgba(30, 41, 59, 0.6)",
+                  borderRadius: 7,
+                  color: "#64748b",
                   cursor: "pointer",
+                  transition: "all 0.2s ease",
                 }}
                 title="Pause"
               >
-                <Pause style={{ width: 10, height: 10 }} />
+                <Pause style={{ width: 11, height: 11 }} />
               </button>
-              {/* Exit button — the ACTUAL kill switch */}
               <button
                 onClick={exitTour}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   padding: "5px 8px",
-                  background: "rgba(209, 106, 93, 0.1)",
-                  border: "1px solid rgba(209, 106, 93, 0.3)",
-                  borderRadius: 6,
-                  color: "#d16a5d",
+                  background: "rgba(127, 29, 29, 0.08)",
+                  border: "1px solid rgba(127, 29, 29, 0.2)",
+                  borderRadius: 7,
+                  color: "#dc2626",
                   cursor: "pointer",
+                  transition: "all 0.2s ease",
                 }}
-                title="Exit Tour"
+                title="Exit Demo"
               >
-                <X style={{ width: 10, height: 10 }} />
+                <X style={{ width: 11, height: 11 }} />
               </button>
               <button
                 onClick={nextStep}
@@ -656,20 +682,22 @@ export function TourOverlay() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 4,
+                  gap: 3,
                   padding: "5px 14px",
-                  background: nextDisabled ? "rgba(36, 54, 83, 0.5)" : "#c6a86b",
-                  border: nextDisabled ? "1px solid rgba(36, 54, 83, 0.8)" : "none",
-                  borderRadius: 6,
-                  color: nextDisabled ? "#3a4a5f" : "#0a1128",
-                  fontSize: 10,
-                  fontWeight: 700,
+                  background: nextDisabled ? "rgba(30, 41, 59, 0.4)" : "rgba(198, 168, 107, 0.9)",
+                  border: nextDisabled ? "1px solid rgba(30, 41, 59, 0.6)" : "1px solid rgba(198, 168, 107, 0.5)",
+                  borderRadius: 7,
+                  color: nextDisabled ? "#1e293b" : "#020617",
+                  fontFamily: "'Inter', -apple-system, sans-serif",
+                  fontSize: 11,
+                  fontWeight: 600,
                   cursor: nextDisabled ? "not-allowed" : "pointer",
                   opacity: nextDisabled ? 0.4 : 1,
+                  transition: "all 0.2s ease",
                 }}
               >
                 Next
-                <ChevronRight style={{ width: 10, height: 10 }} />
+                <ChevronRight style={{ width: 11, height: 11 }} />
               </button>
             </div>
           </div>
