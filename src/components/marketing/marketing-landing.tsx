@@ -155,7 +155,7 @@ export function Navigation() {
               Request Access
             </a>
             <a
-              href="/demo/walkthrough"
+              href="/institutional/get-started/welcome?demo=true"
               className="hidden lg:inline-flex items-center gap-2 rounded-md border border-gold/30 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-gold transition-all hover:border-gold/60 hover:bg-gold/10"
             >
               Initiate Institutional Demo
