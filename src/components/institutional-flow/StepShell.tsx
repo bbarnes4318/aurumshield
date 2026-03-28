@@ -34,8 +34,9 @@ export function StepShell({
   children,
   footer,
 }: StepShellProps) {
-  /* Determine if icon is a Lucide component (function) or a ReactNode (JSX element) */
-  const isLucide = typeof icon === "function";
+  /* Lucide icons are forwardRef objects ({$$typeof, render}), not plain functions.
+     Detect both plain function components and forwardRef components. */
+  const isLucide = typeof icon === "function" || (typeof icon === "object" && icon !== null && "render" in (icon as unknown as Record<string, unknown>));
 
   return (
     <div className="flex flex-col items-center text-center w-full">
