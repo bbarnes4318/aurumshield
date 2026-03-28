@@ -52,6 +52,10 @@ interface ConciergeControls {
   volumeLevel: number;
   /** Real-time transcript of what the AI is saying */
   activeTranscript: string;
+  /** True if voice failed and UI should show manual 'Click to continue' */
+  fallbackMode: boolean;
+  /** Re-attempt voice connection after failure */
+  retrySession: () => Promise<void>;
 }
 
 interface TourContextValue {
@@ -400,6 +404,8 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       isSpeaking: conciergeVoice.isSpeaking,
       volumeLevel: conciergeVoice.volumeLevel,
       activeTranscript: conciergeVoice.activeTranscript,
+      fallbackMode: conciergeVoice.fallbackMode,
+      retrySession: conciergeVoice.retrySession,
     }),
     [conciergeVoice],
   );

@@ -53,6 +53,10 @@ export interface UseConciergeVoiceReturn {
   volumeLevel: number;
   /** Current transcript text being spoken by the AI */
   activeTranscript: string;
+  /** True if the WebSocket failed and the UI should show manual controls */
+  fallbackMode: boolean;
+  /** Attempt to reconnect after a failure (one manual retry) */
+  retrySession: () => Promise<void>;
 }
 
 /* ---------- Hook ---------- */
@@ -64,6 +68,10 @@ export function useConciergeVoice(
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(0);
   const [activeTranscript, setActiveTranscript] = useState("");
+  const [fallbackMode, setFallbackMode] = useState(false);
+  const retryCountRef = useRef(0);
+  /** Max automatic retries before entering fallback mode */
+  const MAX_AUTO_RETRIES = 1;
 
   // Mutable refs for resources that survive re-renders
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -163,7 +171,7 @@ export function useConciergeVoice(
         model: MODEL,
         config: {
           responseModalities: [Modality.AUDIO],
-          temperature: 0.4,
+          temperature: 0.2,
           systemInstruction: CONCIERGE_SYSTEM_INSTRUCTION,
           tools: CONCIERGE_TOOL_DECLARATIONS,
         },
@@ -253,14 +261,48 @@ export function useConciergeVoice(
 
           onerror(e: { message: string }) {
             console.error("[Concierge] WebSocket error:", e.message);
-            setStatus("error");
+            // Don't immediately show raw error — attempt silent retry
+            if (retryCountRef.current < MAX_AUTO_RETRIES && activeRef.current) {
+              console.info(`[Concierge] Auto-retry attempt ${retryCountRef.current + 1}/${MAX_AUTO_RETRIES}`);
+              retryCountRef.current += 1;
+              teardown();
+              // Brief delay before retry to avoid hammering the server
+              setTimeout(() => {
+                startSession().catch(() => {
+                  console.error("[Concierge] Auto-retry failed — entering fallback mode");
+                  setFallbackMode(true);
+                  setStatus("error");
+                });
+              }, 1500);
+            } else {
+              // Exhausted retries — graceful fallback
+              console.warn("[Concierge] Entering manual fallback mode");
+              setFallbackMode(true);
+              setStatus("error");
+              teardown();
+            }
           },
 
           onclose(e: { reason: string }) {
             console.info("[Concierge] Session closed:", e.reason);
             if (activeRef.current) {
-              setStatus("idle");
-              teardown();
+              // Unexpected close during active session → try recovery
+              if (retryCountRef.current < MAX_AUTO_RETRIES) {
+                console.info("[Concierge] Unexpected close — attempting reconnect");
+                retryCountRef.current += 1;
+                teardown();
+                setTimeout(() => {
+                  startSession().catch(() => {
+                    setFallbackMode(true);
+                    setStatus("error");
+                  });
+                }, 1500);
+              } else {
+                console.warn("[Concierge] Unexpected close — entering fallback mode");
+                setFallbackMode(true);
+                setStatus("idle");
+                teardown();
+              }
             }
           },
         },
@@ -297,9 +339,13 @@ export function useConciergeVoice(
       }, VOLUME_POLL_MS);
 
       setStatus("active");
+      setFallbackMode(false); // Clear fallback on successful connect
+      retryCountRef.current = 0; // Reset retry counter
       console.info("[Concierge] Session fully active — mic and playback ready");
     } catch (err) {
       console.error("[Concierge] Failed to start session:", err);
+      // Don't surface raw errors — enter fallback gracefully
+      setFallbackMode(true);
       setStatus("error");
       teardown();
     }
@@ -310,7 +356,18 @@ export function useConciergeVoice(
     console.info("[Concierge] Ending session");
     teardown();
     setStatus("idle");
+    setFallbackMode(false);
+    retryCountRef.current = 0;
   }, [teardown]);
+
+  /* ── Manual Retry (user-initiated) ── */
+  const retrySession = useCallback(async () => {
+    console.info("[Concierge] Manual retry requested");
+    setFallbackMode(false);
+    retryCountRef.current = 0;
+    teardown();
+    await startSession();
+  }, [teardown, startSession]);
 
   /* ── Cleanup on unmount ── */
   useEffect(() => {
@@ -326,5 +383,7 @@ export function useConciergeVoice(
     isSpeaking,
     volumeLevel,
     activeTranscript,
+    fallbackMode,
+    retrySession,
   };
 }

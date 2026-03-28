@@ -43,7 +43,7 @@ export async function POST() {
           model: MODEL,
           config: {
             responseModalities: [Modality.AUDIO],
-            temperature: 0.4,
+            temperature: 0.2,
             systemInstruction: CONCIERGE_SYSTEM_INSTRUCTION,
             tools: CONCIERGE_TOOL_DECLARATIONS,
           },
