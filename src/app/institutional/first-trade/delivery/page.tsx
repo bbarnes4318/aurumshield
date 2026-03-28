@@ -228,7 +228,7 @@ export default function FirstTradeDeliveryPage() {
         {/* ════════════════════════════════════════════════════════
            Section 1: Delivery Method
            ════════════════════════════════════════════════════════ */}
-        <section className="space-y-3">
+        <section className="space-y-3" data-tour="delivery-options">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
             Handling Method
           </h2>

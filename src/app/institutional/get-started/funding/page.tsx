@@ -345,7 +345,7 @@ export default function FundingPage() {
         {/* ════════════════════════════════════════════════════════
            Section 1: Funding Method Selection
            ════════════════════════════════════════════════════════ */}
-        <section className="space-y-3">
+        <section className="space-y-3" data-tour="funding-methods">
           <div className="flex items-center gap-2 mb-1">
             <Wallet className="h-4 w-4 text-[#C6A86B]" />
             <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400">

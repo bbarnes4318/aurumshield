@@ -15,6 +15,7 @@ import { riskTour } from "./risk";
 import { treasuryTour } from "./treasury";
 import { adminTour } from "./admin";
 import { cinematicTour } from "./cinematic";
+import { institutionalConciergeTour } from "./institutional-concierge";
 
 /** Registry of all available tours, keyed by UserRole or tour ID */
 export const TOUR_REGISTRY: Record<string, TourDefinition> = {
@@ -27,6 +28,7 @@ export const TOUR_REGISTRY: Record<string, TourDefinition> = {
   treasury: treasuryTour,
   admin: adminTour,
   cinematic: cinematicTour,
+  "institutional-concierge": institutionalConciergeTour,
 };
 
 /** Get a tour definition for a given role ID */

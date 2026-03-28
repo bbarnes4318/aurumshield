@@ -168,7 +168,7 @@ export default function OrganizationPage() {
         </div>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4" data-tour="entity-form">
         {/* ── Company Name ── */}
         <GuidedField
           label="Legal Entity Name"

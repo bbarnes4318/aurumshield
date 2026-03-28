@@ -375,7 +375,7 @@ export default function FirstTradeAuthorizePage() {
         </div>
       }
     >
-      <div className="w-full space-y-5">
+      <div className="w-full space-y-5" data-tour="review-ticket">
         {/* ════════════════════════════════════════════════════════
            Transaction Summary
            ════════════════════════════════════════════════════════ */}

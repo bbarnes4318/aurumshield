@@ -330,7 +330,9 @@ export default function VerificationPage() {
         )}
 
         {/* ── Milestone Checklist ── */}
-        <AutoCheckList items={checkItems} />
+        <div data-tour="compliance-checklist">
+          <AutoCheckList items={checkItems} />
+        </div>
 
         {/* ── Rejected state — support-driven recovery ── */}
         {caseStatus === "REJECTED" && (
