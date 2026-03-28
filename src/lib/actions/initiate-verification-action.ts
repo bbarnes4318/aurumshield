@@ -86,7 +86,9 @@ export async function serverInitiateVerification(): Promise<InitiateVerification
       `[INITIATE_VERIFICATION] Step 3: Calling evaluateCounterpartyReadiness("${userId}")`,
     );
 
-    const result = await evaluateCounterpartyReadiness(userId);
+    const result = await evaluateCounterpartyReadiness(userId, {
+      email: session.email ?? `${userId}@aurumshield.io`,
+    });
 
     /* If we get here without throwing, the user is already cleared or in-progress */
     if (result.ready) {

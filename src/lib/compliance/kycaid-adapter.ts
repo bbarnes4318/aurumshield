@@ -113,8 +113,10 @@ export interface CreateCompanyApplicantInput {
   companyName: string;
   registrationCountry: string; // ISO 3166-2
   registrationNumber?: string;
-  phone?: string;
-  email?: string;
+  /** KYCaid business_activity_id — REQUIRED by API. Use getDefaultBusinessActivityId(). */
+  businessActivityId: string;
+  phone: string;
+  email: string;
   externalApplicantId?: string; // AurumShield userId/orgId
 }
 
@@ -260,11 +262,12 @@ export async function createCompanyApplicant(
     type: "COMPANY",
     company_name: input.companyName,
     registration_country: input.registrationCountry,
+    business_activity_id: input.businessActivityId,
+    phone: input.phone,
+    email: input.email,
   };
 
   if (input.registrationNumber) body.registration_number = input.registrationNumber;
-  if (input.phone) body.phone = input.phone;
-  if (input.email) body.email = input.email;
   if (input.externalApplicantId) body.external_applicant_id = input.externalApplicantId;
 
   const data = await kycaidFetch<{ applicant_id: string }>("POST", "/applicants", body);
@@ -527,4 +530,68 @@ export function getKybFormId(): string {
     throw new Error("[KYCAID] KYCAID_FORM_ID_KYB is not configured.");
   }
   return formId;
+}
+
+/* ================================================================
+   Business Activity Helpers
+   ================================================================ */
+
+/** Cached business activities list to avoid repeated API calls. */
+let cachedBusinessActivities: Array<{ id: string; name: string }> | null = null;
+
+/**
+ * Fetch the list of valid business activities from KYCaid.
+ * GET /business-activities
+ * Caches the result in memory for the process lifetime.
+ */
+export async function getBusinessActivities(): Promise<Array<{ id: string; name: string }>> {
+  if (cachedBusinessActivities) return cachedBusinessActivities;
+
+  const data = await kycaidFetch<Array<{ id: string; name: string }>>(
+    "GET",
+    "/business-activities",
+  );
+
+  cachedBusinessActivities = data;
+  console.log(`[KYCAID] Fetched ${data.length} business activities from API`);
+  return data;
+}
+
+/**
+ * Resolve the default business_activity_id for COMPANY applicants.
+ *
+ * Priority:
+ *   1. KYCAID_BUSINESS_ACTIVITY_ID env var (explicit override)
+ *   2. Dynamic lookup from GET /business-activities, matching
+ *      "Financial" or first available entry
+ *
+ * Fail-closed: throws if no business activity can be resolved.
+ */
+export async function getDefaultBusinessActivityId(): Promise<string> {
+  // Priority 1: Explicit env var
+  const envId = process.env.KYCAID_BUSINESS_ACTIVITY_ID;
+  if (envId) {
+    console.log(`[KYCAID] Using KYCAID_BUSINESS_ACTIVITY_ID from env: ${envId}`);
+    return envId;
+  }
+
+  // Priority 2: Dynamic lookup
+  const activities = await getBusinessActivities();
+  if (activities.length === 0) {
+    throw new Error(
+      "[KYCAID] CRITICAL: No business activities returned from KYCaid API. " +
+        "Set KYCAID_BUSINESS_ACTIVITY_ID env var as a fallback.",
+    );
+  }
+
+  // Try to find a financial services activity
+  const financial = activities.find((a) =>
+    /financial|banking|investment|trading/i.test(a.name),
+  );
+
+  const selected = financial ?? activities[0];
+  console.log(
+    `[KYCAID] Auto-selected business_activity_id: ${selected.id} (${selected.name})`,
+  );
+  return selected.id;
 }

@@ -51,6 +51,7 @@ import {
 } from "@/lib/compliance/veriff-kyb-adapter";
 import {
   initiateKycaidSession,
+  getDefaultBusinessActivityId,
 } from "@/lib/compliance/kycaid-adapter";
 import {
   validateLEI,
@@ -223,11 +224,18 @@ function auditLog(
       - 'VERIFF' → call VeriffKybAdapter.createKYBSession()
       Throw CompliancePendingError with the vendor's redirect URL.
    3. For in-flight Veriff cases, continue the existing sub-check
-      pipeline (KYB session, AML, UBO, GLEIF).
+       pipeline (KYB session, AML, UBO, GLEIF).
    ================================================================ */
+
+/** Context from the authenticated session needed for provider APIs. */
+export interface UserContext {
+  email: string;
+  phone?: string;
+}
 
 export async function evaluateCounterpartyReadiness(
   userId: string,
+  userContext?: UserContext,
 ): Promise<CounterpartyReadinessResult> {
   const evaluatedAt = new Date().toISOString();
   const checks: ComplianceCheckItem[] = [];
@@ -313,11 +321,21 @@ export async function evaluateCounterpartyReadiness(
       userId,
     );
 
+    /* Resolve the business_activity_id (required by KYCaid for COMPANY applicants) */
+    const businessActivityId = await getDefaultBusinessActivityId();
+
+    /* Build the applicant payload with all KYCaid-required fields */
+    const email = userContext?.email ?? `${userId}@aurumshield.io`;
+    const phone = userContext?.phone ?? "+10000000000";
+
     const session = await initiateKycaidSession(
       {
         companyName: userId,
         registrationCountry: "US",
         externalApplicantId: userId,
+        businessActivityId,
+        email,
+        phone,
       },
       true, // Institutional flow = company/KYB
     );
