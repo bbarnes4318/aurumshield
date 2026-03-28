@@ -204,24 +204,26 @@ export default function VerificationPage() {
       const result: InitiateVerificationResponse =
         await initiateVerification.mutateAsync();
 
+      /* DEBUG: alert the raw response so we can see what the server returns */
       if (result.status === "REDIRECT" && result.redirectUrl) {
         setProviderRedirectUrl(result.redirectUrl);
         window.open(result.redirectUrl, "_blank", "noopener,noreferrer");
-      } else if (result.status === "ERROR" && result.error) {
-        setInitiationError(result.error);
-      } else if (result.status === "IN_PROGRESS") {
-        // Edge case: server couldn't generate a redirect but case exists.
-        // Re-show the initiation panel with a helpful message.
-        setInitiationError(
-          "Your verification is being processed. If you haven't completed the provider checks, please try again in a moment.",
+      } else {
+        /* Any non-REDIRECT response is surfaced immediately via alert */
+        window.alert(
+          `Verification initiation returned: ${result.status}\n\n` +
+          `Error: ${result.error ?? "none"}\n` +
+          `Provider: ${(result as unknown as Record<string, unknown>).provider ?? "none"}\n\n` +
+          `This means the server did NOT produce a KYCaid redirect URL.`
         );
+        if (result.error) {
+          setInitiationError(result.error);
+        }
       }
-      /* ALREADY_CLEARED is handled by query invalidation
-         in the mutation's onSuccess callback — the page auto-updates. */
     } catch (err) {
-      setInitiationError(
-        err instanceof Error ? err.message : "Failed to initiate verification",
-      );
+      const msg = err instanceof Error ? err.message : "Failed to initiate verification";
+      window.alert(`Verification initiation THREW an error:\n\n${msg}`);
+      setInitiationError(msg);
     }
   }, [initiateVerification]);
 
