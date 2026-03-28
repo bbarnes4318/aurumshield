@@ -536,25 +536,60 @@ export function getKybFormId(): string {
    Business Activity Helpers
    ================================================================ */
 
+/** Flattened business activity entry (from the nested category→activity structure). */
+export interface KycaidBusinessActivity {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+}
+
+/** Raw KYCaid /business-activities response shape. */
+interface KycaidBusinessActivityCategory {
+  business_category_id: string;
+  labels: Array<{ label: string; language_code: string }>;
+  activities: Array<{
+    business_activity_id: string;
+    labels: Array<{ label: string; language_code: string }>;
+  }>;
+}
+
 /** Cached business activities list to avoid repeated API calls. */
-let cachedBusinessActivities: Array<{ id: string; name: string }> | null = null;
+let cachedBusinessActivities: KycaidBusinessActivity[] | null = null;
 
 /**
  * Fetch the list of valid business activities from KYCaid.
  * GET /business-activities
+ *
+ * The API returns a nested array of categories, each containing activities.
+ * This function flattens them into a simple {id, name} array.
  * Caches the result in memory for the process lifetime.
  */
-export async function getBusinessActivities(): Promise<Array<{ id: string; name: string }>> {
+export async function getBusinessActivities(): Promise<KycaidBusinessActivity[]> {
   if (cachedBusinessActivities) return cachedBusinessActivities;
 
-  const data = await kycaidFetch<Array<{ id: string; name: string }>>(
+  const raw = await kycaidFetch<KycaidBusinessActivityCategory[]>(
     "GET",
     "/business-activities",
   );
 
-  cachedBusinessActivities = data;
-  console.log(`[KYCAID] Fetched ${data.length} business activities from API`);
-  return data;
+  const flattened: KycaidBusinessActivity[] = [];
+  for (const cat of raw) {
+    const catLabel = cat.labels?.find((l) => l.language_code === "EN")?.label ?? cat.labels?.[0]?.label ?? "Unknown";
+    for (const act of cat.activities ?? []) {
+      const actLabel = act.labels?.find((l) => l.language_code === "EN")?.label ?? act.labels?.[0]?.label ?? "Unknown";
+      flattened.push({
+        id: act.business_activity_id,
+        name: actLabel,
+        categoryId: cat.business_category_id,
+        categoryName: catLabel,
+      });
+    }
+  }
+
+  cachedBusinessActivities = flattened;
+  console.log(`[KYCAID] Fetched ${flattened.length} business activities (from ${raw.length} categories)`);
+  return flattened;
 }
 
 /**
@@ -584,10 +619,12 @@ export async function getDefaultBusinessActivityId(): Promise<string> {
     );
   }
 
-  // Try to find a financial services activity
-  const financial = activities.find((a) =>
-    /financial|banking|investment|trading/i.test(a.name),
-  );
+  // Try to find the best match for a gold/commodity dealing financial activity
+  const financial =
+    activities.find((a) => /commodity/i.test(a.name)) ??
+    activities.find((a) => /security dealing/i.test(a.name)) ??
+    activities.find((a) => /financial intermediation/i.test(a.name)) ??
+    activities.find((a) => /financial|banking|investment|trading/i.test(a.name));
 
   const selected = financial ?? activities[0];
   console.log(
