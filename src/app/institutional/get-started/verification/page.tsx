@@ -30,7 +30,7 @@
      are true — which requires compliance_cases.status === APPROVED.
    ================================================================ */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
@@ -38,8 +38,6 @@ import {
   ExternalLink,
   AlertTriangle,
   ArrowRight,
-  XCircle,
-  Mail,
 } from "lucide-react";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
@@ -50,7 +48,6 @@ import {
   type CheckItem,
   type CheckItemStatus,
 } from "@/components/institutional-flow/AutoCheckList";
-import { ReviewCard } from "@/components/institutional-flow/ReviewCard";
 
 import {
   type VerificationStageData,
@@ -178,44 +175,14 @@ export default function VerificationPage() {
   const initiateVerification = useInitiateVerification();
 
   /* ── Onboarding state hooks ── */
-  const { data: onboardingState, isLoading: stateLoading } =
-    useOnboardingState();
+  const { isLoading: stateLoading } = useOnboardingState();
   const saveMutation = useSaveOnboardingState();
 
   /* ── Local state ── */
   const [isSaving, setIsSaving] = useState(false);
   const [providerRedirectUrl, setProviderRedirectUrl] = useState<string | null>(null);
   const [initiationError, setInitiationError] = useState<string | null>(null);
-  const hasRestoredRef = useRef(false);
 
-  /* ── Organization data for review card ── */
-  const [orgSummary, setOrgSummary] = useState<{
-    entityName: string;
-    jurisdiction: string;
-  } | null>(null);
-
-  /* ── Restore organization summary from persisted state ── */
-  useEffect(() => {
-    if (hasRestoredRef.current) return;
-    if (stateLoading) return;
-
-    hasRestoredRef.current = true;
-
-    queueMicrotask(() => {
-      if (onboardingState?.metadataJson) {
-        const meta = onboardingState.metadataJson as Record<string, unknown>;
-
-        // Extract org summary for review card
-        const org = meta.__organization as Record<string, unknown> | undefined;
-        if (org && typeof org === "object") {
-          setOrgSummary({
-            entityName: (org.companyName as string) || "—",
-            jurisdiction: (org.jurisdiction as string) || "—",
-          });
-        }
-      }
-    });
-  }, [stateLoading, onboardingState]);
 
   /* ── Derived state ── */
   const completed = completedCount(authoritativeMilestones);
@@ -280,25 +247,6 @@ export default function VerificationPage() {
     }
   }, [allComplete, authoritativeMilestones, saveMutation, router]);
 
-  /* ── Save and return later ── */
-  const handleSaveAndExit = useCallback(async () => {
-    setIsSaving(true);
-
-    try {
-      await saveMutation.mutateAsync({
-        currentStep: 2,
-        status: "IN_PROGRESS",
-        metadataJson: {
-          __verification: authoritativeMilestones,
-          __journey: { stage: "VERIFICATION", firstTradeCompleted: false },
-        },
-      });
-    } catch {
-      // Best-effort save — still navigate away
-    }
-
-    router.push("/institutional/get-started/welcome");
-  }, [authoritativeMilestones, saveMutation, router]);
 
   /* ── Loading state ── */
   if (stateLoading || caseLoading) {
@@ -312,75 +260,22 @@ export default function VerificationPage() {
 
   return (
     <StepShell
-      icon={<AppLogo className="h-8 w-auto" variant="dark" />}
-      headline="Verification"
-      description="Live compliance check status. All four milestones must pass to proceed."
+      icon={<AppLogo className="h-7 w-auto" variant="dark" />}
+      headline="Compliance Verification"
+      description="All four checks must pass to proceed."
     >
-      <div className="w-full space-y-2">
-        {/* ── Organization Summary (if available) ── */}
-        {orgSummary && (
-          <ReviewCard
-            title="Entity Under Review"
-            items={[
-              { label: "Entity", value: orgSummary.entityName },
-              { label: "Jurisdiction", value: orgSummary.jurisdiction },
-            ]}
-          />
-        )}
-
+      <div className="w-full space-y-1.5">
         {/* ── Milestone Checklist ── */}
         <div data-tour="compliance-checklist">
           <AutoCheckList items={checkItems} />
         </div>
 
-        {/* ── Rejected state — support-driven recovery ── */}
-        {caseStatus === "REJECTED" && (
-          <div className="rounded-xl border border-red-500/30 bg-red-950/10 p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-red-400" />
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-red-400">
-                Verification Not Approved
-              </h3>
-            </div>
-            <p className="text-[12px] text-slate-400 leading-relaxed">
-              Your entity verification was reviewed and could not be approved at this time.
-              This may be due to incomplete documentation, discrepancies in the information
-              provided, or the results of regulatory screening checks.
-            </p>
-            <div className="rounded-lg border border-slate-800/50 bg-slate-900/30 px-4 py-3 space-y-2">
-              <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">
-                What you can do
-              </p>
-              <ul className="text-[11px] text-slate-400 leading-relaxed space-y-1.5 list-disc list-inside">
-                <li>Contact our compliance team to understand the specific reason for the decision</li>
-                <li>Provide any additional documentation that may be required</li>
-                <li>Request a new review once any issues have been addressed</li>
-              </ul>
-            </div>
-            <p className="text-[10px] text-slate-500">
-              Your onboarding progress has been preserved. If a new compliance case is
-              opened by our team, you will be able to continue from where you left off.
-            </p>
-            <a
-              href="mailto:compliance@aurumshield.com?subject=Institutional%20Verification%20Review%20Request"
-              className="inline-flex items-center gap-2 w-full justify-center rounded-lg border border-red-500/30 bg-transparent px-4 py-2.5 text-sm font-medium text-red-400 transition-all hover:bg-red-950/20"
-            >
-              <Mail className="h-4 w-4" />
-              Contact Compliance Support
-            </a>
-          </div>
-        )}
-
-        {/* ── Progress summary — authoritative status ── */}
-        <div className="flex items-center justify-center gap-2 text-[11px]">
+        {/* ── Progress summary ── */}
+        <div className="flex items-center justify-center gap-2 text-[10px] py-0.5">
           {allComplete ? (
-            <span className="text-[#3fae7a] font-semibold">
-              {statusLabel}
-            </span>
+            <span className="text-[#3fae7a] font-semibold">{statusLabel}</span>
           ) : caseStatus === "REJECTED" ? (
-            <span className="text-red-400 font-semibold">
-              {statusLabel}
-            </span>
+            <span className="text-red-400 font-semibold">{statusLabel}</span>
           ) : (
             <span className="text-slate-500">
               {completed} of {MILESTONES.length} checks complete
@@ -389,25 +284,22 @@ export default function VerificationPage() {
           )}
         </div>
 
-        {/* ── Initiation CTA: shown when no case exists or case is OPEN ── */}
+        {/* ── Initiation CTA ── */}
         {canInitiate && !providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-2 rounded-lg border border-slate-800/50 bg-slate-900/30 px-3 py-2">
-            <p className="text-[11px] text-slate-400 leading-snug text-center">
-              Verification not yet submitted. Click below to begin.
-            </p>
+          <div className="flex items-center justify-center py-1">
             <button
               onClick={handleInitiateVerification}
               disabled={isInitiating}
-              className="inline-flex items-center gap-2 rounded-md bg-[#C6A86B] px-5 py-2 text-xs font-semibold text-black transition-all hover:bg-[#d4b97a] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-md bg-[#C6A86B] px-6 py-2 text-xs font-semibold text-black transition-all hover:bg-[#d4b97a] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isInitiating ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   Initiating…
                 </>
               ) : (
                 <>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-3.5 w-3.5" />
                   Begin Verification
                 </>
               )}
@@ -415,65 +307,32 @@ export default function VerificationPage() {
           </div>
         )}
 
-        {/* ── Provider redirect notice: shown after initiation returns a redirect URL ── */}
+        {/* ── Provider redirect notice ── */}
         {providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-1.5 rounded-lg border border-[#C6A86B]/30 bg-[#C6A86B]/5 px-3 py-2">
-            <p className="text-[11px] text-slate-300 leading-snug text-center">
-              Verification session opened. Complete checks in the new tab.
-            </p>
+          <div className="flex items-center justify-center gap-2 py-1">
             <a
               href={providerRedirectUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-[#C6A86B] text-sm font-medium hover:underline"
+              className="inline-flex items-center gap-1.5 text-[#C6A86B] text-xs font-medium hover:underline"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Open verification tab again
+              <ExternalLink className="h-3 w-3" />
+              Re-open verification tab
             </a>
-          </div>
-        )}
-
-        {/* ── PENDING_USER nudge: user started but didn't finish provider flow ── */}
-        {caseStatus === "PENDING_USER" && !providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-1.5 rounded-lg border border-amber-600/30 bg-amber-950/20 px-3 py-2">
-            <p className="text-[11px] text-slate-400 leading-snug text-center">
-              Verification session waiting. Click below to re-open.
-            </p>
-            <button
-              onClick={handleInitiateVerification}
-              disabled={isInitiating}
-              className="inline-flex items-center gap-2 rounded-md border border-amber-600/40 bg-transparent px-4 py-1.5 text-xs font-medium text-amber-400 transition-all hover:bg-amber-950/30 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isInitiating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Re-opening…
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="h-4 w-4" />
-                  Complete Verification
-                </>
-              )}
-            </button>
           </div>
         )}
 
         {/* ── Initiation error ── */}
         {initiationError && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-red-800/50 bg-red-950/20 px-4 py-3">
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-red-500" />
-            <div className="space-y-1">
-              <p className="text-[11px] text-red-400 leading-relaxed">
-                {initiationError}
-              </p>
-              <button
-                onClick={() => setInitiationError(null)}
-                className="text-[10px] text-red-500 underline"
-              >
-                Dismiss
-              </button>
-            </div>
+          <div className="flex items-center justify-center gap-2 py-1">
+            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />
+            <p className="text-[10px] text-red-400">{initiationError}</p>
+            <button
+              onClick={() => setInitiationError(null)}
+              className="text-[10px] text-red-500 underline ml-1"
+            >
+              Dismiss
+            </button>
           </div>
         )}
 
@@ -484,8 +343,6 @@ export default function VerificationPage() {
           loading={isSaving}
           disabled={!allComplete || isSaving}
           icon={Save}
-          secondaryLabel="Save and return later"
-          secondaryOnClick={handleSaveAndExit}
         />
       </div>
     </StepShell>
