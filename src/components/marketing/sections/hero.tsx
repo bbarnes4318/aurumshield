@@ -72,7 +72,7 @@ export function HeroSection() {
             </a>
 
             <a
-              href="/institutional/get-started/welcome?demo=true"
+              href="/demo/walkthrough"
               className="inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-slate-600 bg-transparent px-5 py-2.5 text-sm font-semibold text-slate-300 tracking-wide transition-all duration-200 hover:border-slate-400 hover:text-white"
             >
               See Our Verification Process
