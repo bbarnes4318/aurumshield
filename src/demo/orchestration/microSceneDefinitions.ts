@@ -252,15 +252,29 @@ const act4: MicroScene[] = [
     silenceRecoveryMs: 15000,  // 15s overview of funding options
   },
   {
-    id: "act-4-config",
+    id: "act-4-select-card",
     actId: "act-4-funding",
     route: "/institutional/get-started/funding",
     requiredSelectors: ['[data-tour="funding-methods"]'],
     preActions: [
       { name: "select_card_option", args: { cardId: "digital_stablecoin" } },
-      { name: "fill_form_fields", args: { fields: { "funding-asset": "USDC", "funding-network": "ethereum", "funding-wallet": "0x8C3d2E9b4F1A7c6D5e0B2f8A9c4D7E1F3b6A8c2D" } } },
     ],
     narrationBlockId: "act-4-body",
+    allowedInterruptions: "qa-only",
+    // Auto-advance after a brief pause so React renders the stablecoin form
+    transitionCondition: "auto",
+    exitActions: [],
+    silenceRecoveryMs: 2000,  // 2s pause — enough for React render + narration start
+  },
+  {
+    id: "act-4-fill-fields",
+    actId: "act-4-funding",
+    route: "/institutional/get-started/funding",
+    requiredSelectors: ['#funding-asset'],  // Gate on the stablecoin fields existing
+    preActions: [
+      { name: "fill_form_fields", args: { fields: { "funding-asset": "USDC", "funding-network": "ethereum", "funding-wallet": "0x8C3d2E9b4F1A7c6D5e0B2f8A9c4D7E1F3b6A8c2D" } } },
+    ],
+    narrationBlockId: "act-4-body-continued",
     allowedInterruptions: "qa-only",
     transitionCondition: "tool-call",
     exitActions: [{ name: "advance_tour_step", args: {} }],

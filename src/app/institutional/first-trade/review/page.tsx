@@ -27,6 +27,7 @@
    ================================================================ */
 
 import { useState, useCallback, useEffect } from "react";
+import { buildDemoFirstTradeDraft } from "@/demo/data/demoConstants";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ClipboardList,
@@ -104,7 +105,25 @@ export default function FirstTradeReviewPage() {
   useEffect(() => {
     if (draftRestored) return;
     if (stateLoading) return;
-    if (isDemoMode) { queueMicrotask(() => setDraftRestored(true)); return; } // Demo: skip draft guard
+    if (isDemoMode) {
+      // Read the demo draft from sessionStorage (persisted by marketplace page)
+      queueMicrotask(() => {
+        try {
+          const stored = sessionStorage.getItem("aurumshield:demo-draft");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setDraft({ ...FIRST_TRADE_DRAFT_DEFAULTS, ...parsed });
+          } else {
+            // Fallback: build directly from demo constants
+            setDraft({ ...FIRST_TRADE_DRAFT_DEFAULTS, ...buildDemoFirstTradeDraft() });
+          }
+        } catch {
+          /* sessionStorage unavailable — proceed with defaults */
+        }
+        setDraftRestored(true);
+      });
+      return;
+    }
 
     queueMicrotask(() => {
       if (onboardingState?.metadataJson) {

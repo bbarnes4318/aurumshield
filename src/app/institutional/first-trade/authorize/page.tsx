@@ -45,6 +45,7 @@ import {
 import { StepShell } from "@/components/institutional-flow/StepShell";
 import { ReviewCard } from "@/components/institutional-flow/ReviewCard";
 import { sceneStateMachine } from "@/demo/orchestration/sceneStateMachine";
+import { buildDemoFirstTradeDraft } from "@/demo/data/demoConstants";
 
 import {
   ASSET_MAP,
@@ -139,7 +140,23 @@ export default function FirstTradeAuthorizePage() {
   useEffect(() => {
     if (draftRestored) return;
     if (stateLoading) return;
-    if (isDemoMode) { queueMicrotask(() => setDraftRestored(true)); return; }
+    if (isDemoMode) {
+      queueMicrotask(() => {
+        try {
+          const stored = sessionStorage.getItem("aurumshield:demo-draft");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setDraft({ ...FIRST_TRADE_DRAFT_DEFAULTS, ...parsed });
+          } else {
+            setDraft({ ...FIRST_TRADE_DRAFT_DEFAULTS, ...buildDemoFirstTradeDraft() });
+          }
+        } catch {
+          /* sessionStorage unavailable */
+        }
+        setDraftRestored(true);
+      });
+      return;
+    }
 
     queueMicrotask(() => {
       if (onboardingState?.metadataJson) {

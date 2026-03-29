@@ -88,7 +88,7 @@ export const DEMO_ASSET = {
 /** Demo vault / delivery config */
 export const DEMO_DELIVERY = {
   deliveryMethod: "vault_custody" as const,
-  vaultJurisdiction: "zurich",
+  vaultJurisdiction: "ZRH",
   vaultLabel: "Zurich — Malca-Amit Hub 1",
   deliveryRegion: null,
   transactionIntent: "ALLOCATION" as const,
