@@ -31,7 +31,10 @@ export async function POST() {
   }
 
   try {
-    const client = new GoogleGenAI({ apiKey });
+    const client = new GoogleGenAI({
+      apiKey,
+      httpOptions: { apiVersion: "v1alpha" },
+    });
 
     const expireTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
@@ -47,9 +50,6 @@ export async function POST() {
             systemInstruction: CONCIERGE_SYSTEM_INSTRUCTION,
             tools: CONCIERGE_TOOL_DECLARATIONS,
           },
-        },
-        httpOptions: {
-          apiVersion: "v1alpha",
         },
       },
     });

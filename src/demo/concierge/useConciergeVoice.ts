@@ -175,7 +175,10 @@ export function useConciergeVoice(
       playerRef.current = player;
 
       // 3. Connect to Gemini Live API directly from the browser
-      const ai = new GoogleGenAI({ apiKey: token });
+      const ai = new GoogleGenAI({
+        apiKey: token,
+        httpOptions: { apiVersion: "v1alpha" },
+      });
 
       const session = await ai.live.connect({
         model: MODEL,

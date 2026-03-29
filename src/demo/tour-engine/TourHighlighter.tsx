@@ -237,7 +237,7 @@ export function TourHighlighter() {
           position: "fixed",
           inset: 0,
           zIndex: OVERLAY_Z,
-          pointerEvents: "auto",
+          pointerEvents: "none",
           animation: "conciergeFadeIn 0.4s ease forwards",
         }}
         aria-hidden="true"
