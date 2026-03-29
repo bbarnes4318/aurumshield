@@ -510,6 +510,7 @@ const act8: MicroScene[] = [
     transitionCondition: "tool-call",
     exitActions: [
       { name: "set_voice_mode", args: { mode: "listening" } },
+      { name: "advance_tour_step", args: {} },
     ],
     silenceRecoveryMs: 60000,  // 60s — settlement animation runs 45s, voice wraps up
   },

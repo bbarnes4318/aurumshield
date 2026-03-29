@@ -44,6 +44,7 @@ import {
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
 import { ReviewCard } from "@/components/institutional-flow/ReviewCard";
+import { sceneStateMachine } from "@/demo/orchestration/sceneStateMachine";
 
 import {
   ASSET_MAP,
@@ -253,6 +254,9 @@ export default function FirstTradeAuthorizePage() {
   /* ── Authorize: server-backed submission with price snapshot ── */
   const handleAuthorize = useCallback(async () => {
     if (isDemoMode) {
+      // Force-advance the scene machine so act-8 starts immediately
+      // instead of waiting for the silence recovery timer.
+      sceneStateMachine.advanceToNextScene();
       router.push("/institutional/first-trade/success?demo=true");
       return;
     }

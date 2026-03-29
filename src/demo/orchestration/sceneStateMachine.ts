@@ -198,6 +198,18 @@ export class SceneStateMachine {
 
     // Record and dispatch
     this.executedKeys.add(key);
+
+    // advance_tour_step is handled internally by the scene machine.
+    // Do NOT dispatch it to the reducer from here — it would double-fire
+    // (once from the AI tool call, once from exitActions).
+    if (call.name === "advance_tour_step") {
+      this.log("info", "advance_tour_step received from AI — advancing scene");
+      this.clearSilenceTimer();
+      this.advanceToNextScene();
+      return true;
+    }
+
+    // All other tool calls: dispatch normally
     this.dispatchFn?.(call);
 
     this.emit({
@@ -209,10 +221,8 @@ export class SceneStateMachine {
       elapsedMs: Date.now() - this.sceneStartTime,
     });
 
-    // If this is advance_tour_step, advance to next micro-scene's parent act
-    if (call.name === "advance_tour_step") {
-      this.advanceToNextScene();
-    }
+    // Reset silence timer since the AI is actively sending tool calls
+    this.resetSilenceTimer();
 
     return true;
   }
@@ -268,18 +278,23 @@ export class SceneStateMachine {
 
     this.setPhase("TRANSITIONING");
 
-    // Fire exit actions
+    // Fire exit actions (skip advance_tour_step — dispatched separately below)
     for (const action of this.currentScene.exitActions) {
-      // Don't re-fire advance_tour_step (we're already advancing)
-      if (action.name === "advance_tour_step") {
-        this.dispatchFn?.(action);
-        continue;
-      }
+      if (action.name === "advance_tour_step") continue;
       const key = computeIdempotencyKey(this.currentScene.id, action);
       if (!this.executedKeys.has(key)) {
         this.executedKeys.add(key);
         this.dispatchFn?.(action);
       }
+    }
+
+    // Only advance the macro tour step if this scene's exitActions include it
+    // (i.e., this is the last micro-scene in an act)
+    const hasAdvance = this.currentScene.exitActions.some(
+      (a) => a.name === "advance_tour_step",
+    );
+    if (hasAdvance) {
+      this.dispatchFn?.({ name: "advance_tour_step", args: {} });
     }
 
     this.setPhase("COMPLETE");
@@ -472,9 +487,18 @@ export class SceneStateMachine {
         `Silence recovery triggered (${this.currentScene.silenceRecoveryMs}ms)`,
       );
 
-      // For the authorization boundary scene ONLY, do NOT auto-advance — just listen
+      // For the authorization boundary scene ONLY, pause in LISTENING first.
+      // But set a secondary failsafe to force-advance after 15 more seconds
+      // so the demo never hangs permanently.
       if (this.currentScene.id === "act-7-boundary") {
         this.setPhase("LISTENING");
+        // Secondary failsafe — if still in LISTENING after 15s, force-advance
+        this.silenceTimer = setTimeout(() => {
+          if (this.currentScene?.id === "act-7-boundary" && this.phase === "LISTENING") {
+            this.log("info", "Act-7-boundary secondary failsafe: force-advancing after 15s in LISTENING");
+            this.advanceToNextScene();
+          }
+        }, 15000);
         return;
       }
 

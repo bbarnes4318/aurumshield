@@ -363,16 +363,26 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       if (processedCall.name === "fill_form_fields") {
         const fields = (processedCall.args as { fields: Record<string, string> }).fields;
         Object.entries(fields).forEach(([fieldId, value]) => {
-          const el = document.querySelector(`#${fieldId}`) as HTMLInputElement | null;
-          if (el) {
-            // Use native input value setter for React controlled inputs
+          const el = document.querySelector(`#${fieldId}`) as HTMLElement | null;
+          if (!el) return;
+
+          if (el instanceof HTMLSelectElement) {
+            // For <select> elements, use the HTMLSelectElement value setter
+            const nativeSetter = Object.getOwnPropertyDescriptor(
+              window.HTMLSelectElement.prototype, 'value'
+            )?.set;
+            nativeSetter?.call(el, value);
+          } else if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+            // For <input> and <textarea>, use HTMLInputElement value setter
             const nativeSetter = Object.getOwnPropertyDescriptor(
               window.HTMLInputElement.prototype, 'value'
             )?.set;
             nativeSetter?.call(el, value);
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
           }
+
+          // Fire both events to trigger React's synthetic event system
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
         });
       }
 
