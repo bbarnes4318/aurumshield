@@ -70,7 +70,7 @@ const DEMO_INTENT: FirstTradeIntentData = {
   vaultJurisdiction: "Zurich — Malca-Amit Hub 1 (EMEA)",
   deliveryRegion: null,
   indicativeSnapshot: {
-    tier: "lbma-400oz",
+    tier: "INDICATIVE",
     spotPriceUsd: 5171.92,
     totalWeightOz: 400,
     baseSpotValueUsd: 2068768.0,
