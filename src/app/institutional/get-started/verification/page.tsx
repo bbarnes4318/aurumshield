@@ -106,6 +106,11 @@ export default function VerificationPage() {
  
   /* ── Initiate verification trigger ── */
   const handleInitiateVerification = useCallback(async () => {
+    // In demo mode, skip the real API call — just navigate to funding
+    if (isDemoMode) {
+      router.push("/institutional/get-started/funding?demo=true");
+      return;
+    }
     try {
       const res = await serverInitiateVerification();
       if (res.redirectUrl) {
@@ -114,7 +119,7 @@ export default function VerificationPage() {
     } catch (err) {
       console.error("[Verification] Failed to initiate:", err);
     }
-  }, [serverInitiateVerification]);
+  }, [isDemoMode, router, serverInitiateVerification]);
  
   /* ── Submit: validate → persist → advance → navigate ── */
   const handleContinue = useCallback(async () => {

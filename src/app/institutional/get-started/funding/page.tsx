@@ -24,7 +24,7 @@
    ================================================================ */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   Wallet,
@@ -106,6 +106,8 @@ const INPUT_CLASSES =
 
 export default function FundingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemoMode = searchParams.get("demo") === "true";
 
   /* ── State hooks ── */
   const { data: onboardingState, isLoading: stateLoading } =
@@ -216,6 +218,11 @@ export default function FundingPage() {
 
   /* ── Submit: persist → register wallet → server readiness check → advance ── */
   const handleContinue = useCallback(async () => {
+    // In demo mode, skip all API calls and go straight to marketplace
+    if (isDemoMode) {
+      router.push("/institutional/marketplace?demo=true");
+      return;
+    }
     const data = getReadyData();
     if (!isFundingReady(data)) return;
     setIsSaving(true);
@@ -287,7 +294,7 @@ export default function FundingPage() {
       await refetchReadiness();
       setIsSaving(false);
     }
-  }, [getReadyData, saveMutation, router, refetchReadiness]);
+  }, [isDemoMode, getReadyData, saveMutation, router, refetchReadiness]);
 
   /* ── Save and return later ── */
   const handleSaveAndExit = useCallback(async () => {
@@ -594,7 +601,7 @@ export default function FundingPage() {
           label="Continue to First Trade"
           onClick={handleContinue}
           loading={isSaving}
-          disabled={!canProceed || isSaving}
+          disabled={(!isDemoMode && !canProceed) || isSaving}
           icon={Save}
           secondaryLabel="Save and return later"
           secondaryOnClick={handleSaveAndExit}

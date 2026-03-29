@@ -273,7 +273,7 @@ export default function WelcomePage() {
          ══════════════════════════════════════════════════════════ */}
       <StickyPrimaryAction
         label="Initialize Onboarding"
-        href="/institutional/get-started/organization"
+        href={isDemo ? "/institutional/get-started/organization?demo=true" : "/institutional/get-started/organization"}
         icon={ArrowRight}
       />
     </div>

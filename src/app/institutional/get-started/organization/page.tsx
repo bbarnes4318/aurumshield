@@ -14,7 +14,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Loader2, ShieldCheck, Building2, Globe2, UserCheck, type LucideIcon } from "lucide-react";
  
 import { StepShell } from "@/components/institutional-flow/StepShell";
@@ -79,6 +79,8 @@ const INPUT_NORMAL_BORDER = "border-slate-800/60";
  
 export default function OrganizationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemoMode = searchParams.get("demo") === "true";
  
   /* ── State hooks ── */
   const { data: onboardingState, isLoading: stateLoading } = useOnboardingState();
@@ -114,6 +116,11 @@ export default function OrganizationPage() {
  
   const onSubmit = useCallback(
     async (data: OrganizationStageFormData) => {
+      // In demo mode, skip the real save API
+      if (isDemoMode) {
+        router.push("/institutional/get-started/verification?demo=true");
+        return;
+      }
       setIsSaving(true);
       try {
         await saveMutation.mutateAsync({
@@ -129,7 +136,7 @@ export default function OrganizationPage() {
         setIsSaving(false);
       }
     },
-    [saveMutation, router],
+    [isDemoMode, saveMutation, router],
   );
  
   if (stateLoading) {
@@ -228,9 +235,9 @@ export default function OrganizationPage() {
         <div className="pt-4 border-t border-slate-800/40">
           <StickyPrimaryAction
             label="Initialize Verification"
-            onClick={handleSubmit(onSubmit)}
+            onClick={isDemoMode ? () => router.push("/institutional/get-started/verification?demo=true") : handleSubmit(onSubmit)}
             loading={isSaving}
-            disabled={isSaving || !isValid}
+            disabled={isSaving || (!isDemoMode && !isValid)}
             icon={ArrowRight}
           />
         </div>
