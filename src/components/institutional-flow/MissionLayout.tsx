@@ -100,7 +100,7 @@ export function MissionLayout({
  
         {/* ── Main Content — Wide-Screen Bento Layout ── */}
         {/* NO SCROLL. Content MUST fit viewport. */}
-        <main className="flex-1 min-h-0 overflow-hidden px-8 py-8">
+        <main className="flex-1 min-h-0 overflow-y-auto px-8 py-8">
           <div className="mx-auto h-full grid grid-cols-12 gap-8 max-w-[1600px]">
             
             {/* ── Left Sidebar (3/12) — Journey Roadmap ── */}
@@ -122,7 +122,7 @@ export function MissionLayout({
             </aside>
  
             {/* ── Center Stage (6/12) — Core Action Area ── */}
-            <section className="col-span-12 xl:col-span-6 h-full flex flex-col items-center justify-center">
+            <section className="col-span-12 xl:col-span-6 h-full flex flex-col items-center justify-start py-4">
               <div className="w-full max-w-2xl">
                 {children}
               </div>
