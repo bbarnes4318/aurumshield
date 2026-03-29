@@ -211,32 +211,12 @@ function tourReducer(state: TourState, action: TourAction): TourState {
           };
         }
 
+        // These tools have been removed from Gemini declarations
+        // but kept as no-ops for safety if any lingering calls arrive
         case "set_voice_mode":
-          return {
-            ...state,
-            conciergeSimulated: {
-              ...state.conciergeSimulated,
-              __voiceMode: (call.args as { mode: string }).mode,
-            },
-          };
-
         case "trigger_review_state":
-          return {
-            ...state,
-            conciergeSimulated: {
-              ...state.conciergeSimulated,
-              __reviewState: (call.args as { state: string }).state,
-            },
-          };
-
         case "trigger_settlement_stage":
-          return {
-            ...state,
-            conciergeSimulated: {
-              ...state.conciergeSimulated,
-              __settlementStage: (call.args as { stage: string }).stage,
-            },
-          };
+          return state;
 
         case "sync_subtitle_block":
           return {
@@ -247,7 +227,7 @@ function tourReducer(state: TourState, action: TourAction): TourState {
             },
           };
 
-        // These are side-effect only tools — state unchanged
+        // Side-effect only tools — state unchanged
         case "fill_form_fields":
         case "select_card_option":
         case "reveal_evidence_item":

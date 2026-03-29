@@ -28,7 +28,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Shield,
-  ShieldCheck,
   Loader2,
   Clock,
   Info,
@@ -39,7 +38,6 @@ import {
   Landmark,
   Lock,
   Mail,
-  Fingerprint,
 } from "lucide-react";
 
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
@@ -457,7 +455,7 @@ export default function FirstTradeSuccessPage() {
               {isDemo && completedMilestones < 8 && (
                 <div className="mt-3 h-1 bg-slate-800 overflow-hidden">
                   <div
-                    className="h-full bg-[#C6A86B] transition-all duration-[5000ms] ease-linear"
+                    className="h-full bg-[#C6A86B] transition-all duration-5000 ease-linear"
                     style={{
                       width: `${(completedMilestones / 8) * 100}%`,
                     }}
