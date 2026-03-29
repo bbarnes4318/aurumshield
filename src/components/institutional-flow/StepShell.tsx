@@ -39,31 +39,38 @@ export function StepShell({
   const isLucide = typeof icon === "function" || (typeof icon === "object" && icon !== null && "render" in (icon as unknown as Record<string, unknown>));
 
   return (
-    <div className="flex flex-col items-center text-center w-full">
-      {/* ── Icon Container ── */}
+    <div className="flex flex-col items-center text-center w-full max-w-2xl mx-auto">
+      {/* ── Icon Container — Sovereign Shield ── */}
       {isLucide ? (
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900/60 mb-3 shadow-[0_0_24px_rgba(198,168,107,0.08)]">
-          {(() => { const Icon = icon as LucideIcon; return <Icon className="h-6 w-6 text-[#C6A86B]" strokeWidth={1.5} />; })()}
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#C6A86B]/30 bg-slate-900/40 mb-6 shadow-[0_0_40px_rgba(198,168,107,0.12)] relative group">
+          <div className="absolute inset-0 rounded-2xl bg-linear-to-b from-[#C6A86B]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          {(() => { const Icon = icon as LucideIcon; return <Icon className="h-8 w-8 text-[#C6A86B]" strokeWidth={1} />; })()}
         </div>
       ) : (
-        <div className="mb-3">{icon}</div>
+        <div className="mb-6">{icon}</div>
       )}
-
-      {/* ── Headline ── */}
-      <h1 className="text-2xl font-semibold text-white tracking-tight mb-1.5">
+ 
+      {/* ── Headline — High-Trust Financial ── */}
+      <h1 className="text-3xl font-heading font-semibold text-white tracking-tight mb-3">
         {headline}
       </h1>
-
+ 
       {/* ── Description ── */}
-      <p className="text-sm text-slate-400 leading-relaxed max-w-md mb-4">
+      <p className="text-base text-slate-400 leading-relaxed max-w-lg mb-8">
         {description}
       </p>
-
+ 
       {/* ── Body ── */}
-      <div className="w-full">{children}</div>
-
+      <div className="w-full bg-slate-900/40 rounded-2xl border border-slate-800/40 p-8 backdrop-blur-sm shadow-xl">
+        {children}
+      </div>
+ 
       {/* ── Footer ── */}
-      {footer && <div className="mt-2 w-full">{footer}</div>}
+      {footer && (
+        <div className="mt-6 w-full opacity-60 hover:opacity-100 transition-opacity">
+          {footer}
+        </div>
+      )}
     </div>
   );
 }

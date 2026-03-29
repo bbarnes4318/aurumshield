@@ -323,19 +323,31 @@ export async function evaluateCounterpartyReadiness(
 
     /* Resolve the business_activity_id (required by KYCaid for COMPANY applicants) */
     const businessActivityId = await getDefaultBusinessActivityId();
-
+ 
+    /* ── Pull Onboarding Metadata ── */
+    // KYCaid needs the real company name and representative name to
+    // satisfy corporate verification requirements.
+    const { getOnboardingState } = await import("@/lib/compliance/onboarding-state");
+    const onboardingState = await getOnboardingState(userId);
+    const orgMeta = (onboardingState?.metadataJson?.__organization ?? {}) as Record<string, string>;
+ 
+    const companyName = orgMeta.companyName || userId;
+    const registrationCountry = orgMeta.jurisdiction || "US";
+    const repName = orgMeta.repName; // Added in organization logic
+ 
     /* Build the applicant payload with all KYCaid-required fields */
     const email = userContext?.email ?? `${userId}@aurumshield.io`;
     const phone = userContext?.phone ?? "+10000000000";
-
+ 
     const session = await initiateKycaidSession(
       {
-        companyName: userId,
-        registrationCountry: "US",
+        companyName,
+        registrationCountry,
         externalApplicantId: userId,
         businessActivityId,
         email,
         phone,
+        repName,
       },
       true, // Institutional flow = company/KYB
     );

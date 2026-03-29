@@ -19,7 +19,15 @@ import { useSearchParams } from "next/navigation";
 
 import { StepShell } from "@/components/institutional-flow/StepShell";
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
-import { Building2, ShieldCheck, Landmark, BarChart3, Shield, Loader2 } from "lucide-react";
+import {
+  Building2,
+  ShieldCheck,
+  Landmark,
+  BarChart3,
+  Shield,
+  Loader2,
+  ArrowRight,
+} from "lucide-react";
 import { useTour } from "@/demo/tour-engine/TourProvider";
 
 /* ── Guided stages (macro framing — preview of what's ahead) ── */
@@ -113,54 +121,87 @@ export default function WelcomePage() {
   }
 
   return (
-    <StepShell
-      icon={Shield}
-      headline="Institutional Onboarding"
-      description="Complete your compliance review to begin trading physical gold. 4&nbsp;steps&nbsp;·&nbsp;~10&nbsp;minutes."
-    >
-      {/* ── Macro Progress Framing ── */}
-      <div className="w-full max-w-md mx-auto mb-3">
-        <div className="rounded-lg border border-slate-800/60 bg-slate-900/30 divide-y divide-slate-800/40 overflow-hidden">
-          {GUIDED_STAGES.map((stage, i) => {
-            const Icon = stage.icon;
-            return (
-              <div
-                key={stage.label}
-                className="flex items-center gap-3.5 px-4 py-3 transition-colors hover:bg-slate-800/20"
-              >
+    <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* ── Intro Header ── */}
+      <div className="text-center">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#C6A86B]/30 bg-slate-900/40 mb-6 shadow-[0_0_40px_rgba(198,168,107,0.12)]">
+          <Shield className="h-6 w-6 text-[#C6A86B]" />
+        </div>
+        <h1 className="text-4xl font-heading font-semibold text-white tracking-tight mb-4">
+          Institutional Access
+        </h1>
+        <p className="text-lg text-slate-400 max-w-lg mx-auto leading-relaxed">
+          Welcome to the AurumShield Settlement Network. Complete your perimeter integrity checks to begin principal-protected trading.
+        </p>
+      </div>
+
+      {/* ── Bento Grid Roadmap ── */}
+      <div className="grid grid-cols-2 gap-4" data-tour="roadmap-bento">
+        {GUIDED_STAGES.map((stage, i) => {
+          const Icon = stage.icon;
+          return (
+            <div
+              key={stage.label}
+              className="group relative flex flex-col p-6 rounded-2xl border border-slate-800/40 bg-slate-900/40 backdrop-blur-sm transition-all hover:border-[#C6A86B]/30 hover:bg-slate-900/60 overflow-hidden"
+            >
+              {/* Cinematic Background Gradient */}
+              <div className="absolute inset-0 bg-linear-to-br from-[#C6A86B]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <div className="relative z-10">
                 {/* Step Number + Icon */}
-                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-700/60 bg-slate-900/80">
-                  <Icon className="h-4 w-4 text-[#C6A86B]" strokeWidth={1.5} />
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-[9px] font-mono font-bold text-slate-400">
-                    {i + 1}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 border border-slate-800 group-hover:border-[#C6A86B]/40 transition-colors">
+                    <Icon className="h-5 w-5 text-[#C6A86B]" strokeWidth={1} />
+                  </div>
+                  <span className="font-mono text-[10px] text-slate-600 font-bold group-hover:text-[#C6A86B]/60 transition-colors">
+                    PHASE {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
 
                 {/* Step Info */}
-                <div className="text-left min-w-0">
-                  <p className="text-sm font-medium text-slate-200 leading-tight">
-                    {stage.label}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5 leading-snug">
-                    {stage.description}
-                  </p>
-                </div>
+                <h3 className="text-sm font-semibold text-white mb-1.5 group-hover:text-[#C6A86B] transition-colors">
+                  {stage.label}
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed font-mono uppercase tracking-wider">
+                  {stage.description}
+                </p>
               </div>
-            );
-          })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Trust Summary & Perimeter Status ── */}
+      <div className="pt-4 border-t border-slate-800/40">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-6">
+            {[
+              { label: "Status", value: "ONLINE", color: "bg-emerald-500" },
+              { label: "Security", value: "TLS 1.3", color: "bg-blue-500" },
+              { label: "Pipeline", value: "SETTLEMENT V1.2", color: "bg-[#C6A86B]" }
+            ].map(stat => (
+              <div key={stat.label} className="flex items-center gap-2">
+                <div className={`h-1 w-1 rounded-full ${stat.color} animate-pulse`} />
+                <span className="font-mono text-[9px] text-slate-600 uppercase tracking-widest">{stat.label}:</span>
+                <span className="font-mono text-[9px] text-slate-400 uppercase tracking-widest">{stat.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-[10px] text-slate-600 font-mono tracking-widest uppercase text-center max-w-md opacity-40">
+            Authentication established via sovereign-grade encryption protocol. All data is confined to hardened infrastructure.
+          </p>
         </div>
       </div>
 
-      {/* ── Trust Signal ── */}
-      <p className="text-[10px] text-slate-600 font-mono tracking-wider uppercase mb-2">
-        SOC 2 Compliant · Bank-Grade Encryption · OFAC Screened
-      </p>
-
       {/* ── Primary CTA ── */}
-      <StickyPrimaryAction
-        label="Get Started"
-        href="/institutional/get-started/organization"
-      />
-    </StepShell>
+      <div className="pt-2">
+        <StickyPrimaryAction
+          label="Initialize Onboarding"
+          href="/institutional/get-started/organization"
+          icon={ArrowRight}
+        />
+      </div>
+    </div>
   );
 }

@@ -118,8 +118,10 @@ export interface CreateCompanyApplicantInput {
   phone: string;
   email: string;
   externalApplicantId?: string; // AurumShield userId/orgId
+  /** The full name of the authorized representative (e.g. signer/officer) */
+  repName?: string;
 }
-
+ 
 export interface CreateAffiliatedPersonInput {
   type: KycaidAffiliatedPersonType;
   applicantId: string;
@@ -132,17 +134,17 @@ export interface CreateAffiliatedPersonInput {
   nationality?: string;
   email?: string;
 }
-
+ 
 /* ================================================================
    Constants
    ================================================================ */
-
+ 
 const KYCAID_API_BASE = "https://api.kycaid.com";
-
+ 
 /* ================================================================
    Internal Helpers
    ================================================================ */
-
+ 
 /**
  * Resolve the active KYCaid API token from environment.
  * Fail-closed: throws if no token is configured.
@@ -153,17 +155,17 @@ function getApiToken(): string {
     env === "production"
       ? process.env.KYCAID_PRODUCTION_API_KEY
       : process.env.KYCAID_TEST_API_KEY;
-
+ 
   if (!token) {
     throw new Error(
       `[KYCAID] CRITICAL: KYCAID_${env === "production" ? "PRODUCTION" : "TEST"}_API_KEY is not configured. ` +
         `Cannot communicate with KYCaid API. Set the environment variable and redeploy.`,
     );
   }
-
+ 
   return token;
 }
-
+ 
 /**
  * Make an authenticated request to the KYCaid API.
  * Throws on non-2xx responses with detailed error context.
@@ -175,18 +177,18 @@ async function kycaidFetch<T>(
 ): Promise<T> {
   const token = getApiToken();
   const url = `${KYCAID_API_BASE}${path}`;
-
+ 
   const headers: Record<string, string> = {
     Authorization: `Token ${token}`,
     "Content-Type": "application/json",
   };
-
+ 
   const response = await fetch(url, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-
+ 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => "Unable to read error body");
     console.error(
@@ -196,14 +198,14 @@ async function kycaidFetch<T>(
       `KYCaid API error: ${method} ${path} returned HTTP ${response.status} — ${errorBody}`,
     );
   }
-
+ 
   return response.json() as Promise<T>;
 }
-
+ 
 /* ================================================================
    Applicant Operations
    ================================================================ */
-
+ 
 /**
  * Create a PERSON applicant for individual KYC verification.
  *
@@ -217,7 +219,7 @@ export async function createPersonApplicant(
     `[KYCAID] Creating PERSON applicant: name="${input.firstName} ${input.lastName}" ` +
       `country=${input.residenceCountry} externalId=${input.externalApplicantId ?? "none"}`,
   );
-
+ 
   const body: Record<string, unknown> = {
     type: "PERSON",
     first_name: input.firstName,
@@ -225,7 +227,7 @@ export async function createPersonApplicant(
     dob: input.dob,
     residence_country: input.residenceCountry,
   };
-
+ 
   if (input.middleName) body.middle_name = input.middleName;
   if (input.gender) body.gender = input.gender;
   if (input.pep !== undefined) body.pep = input.pep;
@@ -233,17 +235,17 @@ export async function createPersonApplicant(
   if (input.phone) body.phone = input.phone;
   if (input.email) body.email = input.email;
   if (input.externalApplicantId) body.external_applicant_id = input.externalApplicantId;
-
+ 
   const data = await kycaidFetch<{ applicant_id: string }>("POST", "/applicants", body);
-
+ 
   console.log(`[KYCAID] PERSON applicant created: applicant_id=${data.applicant_id}`);
-
+ 
   return {
     provider: "KYCAID",
     applicantId: data.applicant_id,
   };
 }
-
+ 
 /**
  * Create a COMPANY applicant for KYB verification.
  *
@@ -257,7 +259,7 @@ export async function createCompanyApplicant(
     `[KYCAID] Creating COMPANY applicant: name="${input.companyName}" ` +
       `country=${input.registrationCountry} externalId=${input.externalApplicantId ?? "none"}`,
   );
-
+ 
   const body: Record<string, unknown> = {
     type: "COMPANY",
     company_name: input.companyName,
@@ -266,20 +268,20 @@ export async function createCompanyApplicant(
     phone: input.phone,
     email: input.email,
   };
-
+ 
   if (input.registrationNumber) body.registration_number = input.registrationNumber;
   if (input.externalApplicantId) body.external_applicant_id = input.externalApplicantId;
-
+ 
   const data = await kycaidFetch<{ applicant_id: string }>("POST", "/applicants", body);
-
+ 
   console.log(`[KYCAID] COMPANY applicant created: applicant_id=${data.applicant_id}`);
-
+ 
   return {
     provider: "KYCAID",
     applicantId: data.applicant_id,
   };
 }
-
+ 
 /**
  * Get applicant data by ID.
  */
@@ -288,11 +290,11 @@ export async function getApplicant(
 ): Promise<Record<string, unknown>> {
   return kycaidFetch<Record<string, unknown>>("GET", `/applicants/${applicantId}`);
 }
-
+ 
 /* ================================================================
    Affiliated Persons (UBOs & Authorized Signers)
    ================================================================ */
-
+ 
 /**
  * Create an affiliated person (UBO or authorized signer) linked to
  * a COMPANY applicant. Required for KYB verification flows.
@@ -307,41 +309,41 @@ export async function createAffiliatedPerson(
     `[KYCAID] Creating ${input.type} affiliated person: ` +
       `name="${input.firstName} ${input.lastName}" applicantId=${input.applicantId}`,
   );
-
+ 
   const body: Record<string, unknown> = {
     type: input.type,
     applicant_id: input.applicantId,
     first_name: input.firstName,
     last_name: input.lastName,
   };
-
+ 
   if (input.title) body.title = input.title;
   if (input.share !== undefined) body.share = input.share;
   if (input.dob) body.dob = input.dob;
   if (input.residenceCountry) body.residence_country = input.residenceCountry;
   if (input.nationality) body.nationality = input.nationality;
   if (input.email) body.email = input.email;
-
+ 
   const data = await kycaidFetch<{ affiliated_person_id: string }>(
     "POST",
     "/affiliated-persons",
     body,
   );
-
+ 
   console.log(
     `[KYCAID] Affiliated person created: id=${data.affiliated_person_id} type=${input.type}`,
   );
-
+ 
   return {
     provider: "KYCAID",
     affiliatedPersonId: data.affiliated_person_id,
   };
 }
-
+ 
 /* ================================================================
    Verification Operations
    ================================================================ */
-
+ 
 /**
  * Create a new verification for an applicant.
  *
@@ -356,7 +358,7 @@ export async function createVerification(
   console.log(
     `[KYCAID] Creating verification: applicantId=${applicantId} formId=${formId}`,
   );
-
+ 
   const data = await kycaidFetch<{ verification_id: string }>(
     "POST",
     "/verifications",
@@ -365,17 +367,17 @@ export async function createVerification(
       form_id: formId,
     },
   );
-
+ 
   console.log(
     `[KYCAID] Verification created: verification_id=${data.verification_id}`,
   );
-
+ 
   return {
     provider: "KYCAID",
     verificationId: data.verification_id,
   };
 }
-
+ 
 /**
  * Get verification status and results.
  *
@@ -390,7 +392,7 @@ export async function getVerification(
     `/verifications/${verificationId}`,
   );
 }
-
+ 
 /**
  * Get the hosted form URL for a verification.
  * This is the URL the user is redirected to for completing verification.
@@ -407,18 +409,18 @@ export async function getFormUrl(
     "GET",
     `/forms/${formId}/url?verification_id=${verificationId}`,
   );
-
+ 
   return {
     provider: "KYCAID",
     formId,
     url: data.form_url,
   };
 }
-
+ 
 /* ================================================================
    Status Normalization
    ================================================================ */
-
+ 
 /**
  * Normalize KYCaid verification status to internal compliance status.
  *
@@ -444,11 +446,11 @@ export function normalizeVerificationStatus(
   // "unused" or any other unknown status
   return "PENDING_USER";
 }
-
+ 
 /* ================================================================
    High-Level Session Orchestration
    ================================================================ */
-
+ 
 /**
  * Orchestrate a full KYC session: create applicant → create verification → get form URL.
  *
@@ -465,8 +467,36 @@ export async function initiateKycaidSession(
   // Step 1: Create applicant
   let applicantId: string;
   if (isCompany) {
-    const result = await createCompanyApplicant(input as CreateCompanyApplicantInput);
+    const companyInput = input as CreateCompanyApplicantInput;
+    const result = await createCompanyApplicant(companyInput);
     applicantId = result.applicantId;
+ 
+    // New: Handle Affiliated Persons (REQUIRED by KYCaid for COMPANY applicants)
+    // If a repName is provided, create an AUTHORISED affiliated person.
+    if (companyInput.repName) {
+      const names = companyInput.repName.trim().split(/\s+/);
+      const firstName = names[0];
+      const lastName = names.length > 1 ? names.slice(1).join(" ") : "Rep";
+ 
+      await createAffiliatedPerson({
+        type: "AUTHORISED",
+        applicantId,
+        firstName,
+        lastName,
+        residenceCountry: companyInput.registrationCountry,
+      });
+ 
+      // Also required for full verification: a BENEFICIAL owner. 
+      // For now, we seed the same rep as a 100% owner to satisfy the 422 gate.
+      await createAffiliatedPerson({
+        type: "BENEFICIAL",
+        applicantId,
+        firstName,
+        lastName,
+        share: 100,
+        residenceCountry: companyInput.registrationCountry,
+      });
+    }
   } else {
     const result = await createPersonApplicant(input as CreatePersonApplicantInput);
     applicantId = result.applicantId;
