@@ -97,14 +97,12 @@ export function MissionLayout({
             </div>
           </div>
         </header>
- 
-        {/* ── Main Content — Wide-Screen Bento Layout ── */}
-        {/* NO SCROLL. Content MUST fit viewport. */}
+        {/* ── Main Content — Scrollable Center with Sticky Sidebars ── */}
         <main className="flex-1 min-h-0 overflow-y-auto px-8 py-8">
-          <div className="mx-auto h-full grid grid-cols-12 gap-8 max-w-[1600px]">
+          <div className="mx-auto min-h-full grid grid-cols-12 gap-8 max-w-[1600px]">
             
             {/* ── Left Sidebar (3/12) — Journey Roadmap ── */}
-            <aside className="col-span-3 h-full hidden xl:flex flex-col gap-6">
+            <aside className="col-span-3 hidden xl:flex flex-col gap-6 self-start sticky top-8">
               <div className="rounded-xl border border-slate-800/60 bg-slate-900/20 p-6 backdrop-blur-sm">
                 <h3 className="font-mono text-[10px] text-slate-500 uppercase tracking-[0.2em] mb-6">
                   — Onboarding Roadmap
@@ -114,7 +112,7 @@ export function MissionLayout({
                 )}
               </div>
  
-              <div className="rounded-xl border border-slate-800/30 bg-slate-900/5 p-6 mt-auto">
+              <div className="rounded-xl border border-slate-800/30 bg-slate-900/5 p-6">
                 <p className="font-mono text-[9px] text-slate-600 leading-relaxed uppercase tracking-widest">
                   &quot;Our deterministic settlement engine eliminates principal risk via atomic delivery-versus-payment escrow.&quot;
                 </p>
@@ -122,14 +120,14 @@ export function MissionLayout({
             </aside>
  
             {/* ── Center Stage (6/12) — Core Action Area ── */}
-            <section className="col-span-12 xl:col-span-6 h-full flex flex-col items-center justify-start py-4">
+            <section className="col-span-12 xl:col-span-6 flex flex-col items-center py-4">
               <div className="w-full max-w-2xl">
                 {children}
               </div>
             </section>
  
             {/* ── Right Sidebar (3/12) — Institutional Trust or Injected Content ── */}
-            <aside className="col-span-3 h-full hidden xl:flex flex-col gap-6">
+            <aside className="col-span-3 hidden xl:flex flex-col gap-6 self-start sticky top-8">
               {rightSidebarContent ? (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500 h-full overflow-hidden">
                   {rightSidebarContent}
