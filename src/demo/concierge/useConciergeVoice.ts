@@ -181,6 +181,15 @@ export function useConciergeVoice(
 
       const session = await ai.live.connect({
         model: MODEL,
+        config: {
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: "Orus",
+              },
+            },
+          },
+        },
         callbacks: {
           onopen() {
             console.info("[Concierge] Session connected");
