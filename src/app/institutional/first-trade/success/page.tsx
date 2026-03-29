@@ -240,8 +240,18 @@ export default function FirstTradeSuccessPage() {
         }
       }
 
-      // Demo mode: use mock
+      // Demo mode: try sessionStorage (persisted by marketplace), then hardcoded fallback
       if (isDemo) {
+        try {
+          const demoRaw = sessionStorage.getItem("aurumshield:demo-intent");
+          if (demoRaw) {
+            const parsed = JSON.parse(demoRaw);
+            if (parsed && parsed.ref) {
+              setIntent(parsed as FirstTradeIntentData);
+              return;
+            }
+          }
+        } catch { /* fall through to hardcoded */ }
         setIntent(DEMO_INTENT);
       }
     });

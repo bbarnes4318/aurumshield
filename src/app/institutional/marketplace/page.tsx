@@ -242,6 +242,14 @@ export default function InstitutionalMarketplacePage() {
   /* ── Live spot price ── */
   const spotPrice = goldPrice?.spotPriceUsd ?? 0;
 
+  // Auto-persist demo draft so downstream pages (review, authorize, success) have data
+  // even when the scene machine auto-advances without the user clicking "Proceed to Review"
+  useEffect(() => {
+    if (isDemoMode && spotPrice > 0) {
+      persistDemoDraft(spotPrice);
+    }
+  }, [isDemoMode, spotPrice]);
+
   /* ── Physical address completeness ── */
   const physAddressComplete = physStreet.trim() !== "" && physCity.trim() !== "" && physState.trim() !== "" && physZip.trim().length >= 5;
 
