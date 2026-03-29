@@ -254,9 +254,10 @@ export default function FirstTradeAuthorizePage() {
   /* ── Authorize: server-backed submission with price snapshot ── */
   const handleAuthorize = useCallback(async () => {
     if (isDemoMode) {
-      // Force-advance the scene machine so act-8 starts immediately
-      // instead of waiting for the silence recovery timer.
-      sceneStateMachine.advanceToNextScene();
+      // Fast-forward past all remaining act-7 micro-scenes to act-8.
+      // advanceToNextScene() only advances ONE micro-scene — if we're at
+      // act-7-boundary, it goes to act-7-proceed (still act-7), NOT act-8.
+      sceneStateMachine.skipToAct("act-8-success");
       router.push("/institutional/first-trade/success?demo=true");
       return;
     }

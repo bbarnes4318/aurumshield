@@ -235,7 +235,9 @@ export default function InstitutionalMarketplacePage() {
   const demoOrch = useMarketplaceDemoOrchestration(isDemoMode, demoSetters);
 
   // Apply demo orchestration side effects when phase changes
-  demoOrch.applyPhaseEffects();
+  useEffect(() => {
+    demoOrch.applyPhaseEffects();
+  }, [demoOrch]);
 
   /* ── Live spot price ── */
   const spotPrice = goldPrice?.spotPriceUsd ?? 0;
@@ -463,6 +465,7 @@ export default function InstitutionalMarketplacePage() {
               return (
                 <button
                   key={asset.id}
+                  data-card-id={asset.id}
                   data-tour={asset.id === "lbma-400oz" ? "cinematic-lbma-400oz" : undefined}
                   onClick={() => handleSelectAsset(asset)}
                   className={`

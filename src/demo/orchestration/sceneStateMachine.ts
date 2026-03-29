@@ -319,6 +319,56 @@ export class SceneStateMachine {
     }
   }
 
+  /**
+   * Fast-forward past all remaining micro-scenes until reaching a scene
+   * with a different actId. Fires exit actions (including advance_tour_step)
+   * along the way, but skips narration/timers. Used when the user clicks
+   * a CTA that jumps ahead (e.g., Authorize button skips to Act 8).
+   */
+  skipToAct(targetActId: string) {
+    if (!this.currentScene) return;
+
+    this.log("info", `skipToAct: fast-forwarding from ${this.currentScene.id} to act ${targetActId}`);
+
+    // Keep advancing until we either hit the target act or run out of scenes
+    let safety = 0;
+    while (this.currentScene && this.currentScene.actId !== targetActId && safety < 20) {
+      safety++;
+      this.cleanup(); // Clear timers/observers from current scene
+
+      // Fire exit actions for the current scene
+      for (const action of this.currentScene.exitActions) {
+        if (action.name === "advance_tour_step") continue;
+        this.dispatchFn?.(action);
+      }
+
+      // Dispatch advance_tour_step if this was the last scene in its act
+      const hasAdvance = this.currentScene.exitActions.some(
+        (a) => a.name === "advance_tour_step",
+      );
+      if (hasAdvance) {
+        this.dispatchFn?.({ name: "advance_tour_step", args: {} });
+      }
+
+      // Move to next micro-scene
+      const next = getNextMicroScene(this.currentScene.id);
+      if (!next) {
+        this.log("info", "skipToAct: reached end of all scenes");
+        this.currentScene = null;
+        this.cleanup();
+        return;
+      }
+      this.microSceneIndex++;
+      this.currentScene = next;
+    }
+
+    // Now enter the target act's first scene properly
+    if (this.currentScene && this.currentScene.actId === targetActId) {
+      this.log("info", `skipToAct: entering ${this.currentScene.id}`);
+      this.enterScene(this.currentScene);
+    }
+  }
+
   /** Full reset */
   reset() {
     this.cleanup();
