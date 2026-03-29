@@ -19,12 +19,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import type { ConciergeStatus, ConciergeToolCall, OnToolCallFn } from "./conciergeTypes";
-import {
-  CONCIERGE_TOOL_DECLARATIONS,
-  CONCIERGE_SYSTEM_INSTRUCTION,
-} from "./conciergeTypes";
 import {
   createMicrophoneStream,
   createAudioPlayer,
@@ -175,6 +171,9 @@ export function useConciergeVoice(
       playerRef.current = player;
 
       // 3. Connect to Gemini Live API directly from the browser
+      //    Config, tools, and systemInstruction are already baked into the
+      //    ephemeral token via liveConnectConstraints — re-specifying them
+      //    causes "Request contains an invalid argument."
       const ai = new GoogleGenAI({
         apiKey: token,
         httpOptions: { apiVersion: "v1alpha" },
@@ -182,12 +181,6 @@ export function useConciergeVoice(
 
       const session = await ai.live.connect({
         model: MODEL,
-        config: {
-          responseModalities: [Modality.AUDIO],
-          temperature: 0.2,
-          systemInstruction: CONCIERGE_SYSTEM_INSTRUCTION,
-          tools: CONCIERGE_TOOL_DECLARATIONS,
-        },
         callbacks: {
           onopen() {
             console.info("[Concierge] Session connected");
