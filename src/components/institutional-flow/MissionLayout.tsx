@@ -22,13 +22,22 @@ import {
   useContext,
 } from "react";
 import dynamic from "next/dynamic";
-import { AppLogo } from "@/components/shared/AppLogo";
+import { AppLogo } from "@/components/app-logo";
 
 /* Lazy-load the subtitles overlay (only needed in demo mode) */
 const ConciergeSubtitles = dynamic(
   () =>
     import("@/demo/concierge/ConciergeSubtitles").then(
       (m) => m.ConciergeSubtitles,
+    ),
+  { ssr: false },
+);
+
+/* Lazy-load the tour overlay pill (renders via portal) */
+const TourOverlay = dynamic(
+  () =>
+    import("@/demo/tour-engine/TourOverlay").then(
+      (m) => m.TourOverlay,
     ),
   { ssr: false },
 );
@@ -201,6 +210,7 @@ export function MissionLayout({
         </footer>
 
         <ConciergeSubtitles />
+        <TourOverlay />
       </div>
     </MissionContext.Provider>
   );
