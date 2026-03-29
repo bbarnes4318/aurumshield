@@ -22,6 +22,7 @@ import {
   useContext,
 } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { AppLogo } from "@/components/app-logo";
 
 /* Lazy-load the subtitles overlay (only needed in demo mode) */
@@ -116,15 +117,20 @@ export function useMissionLayout() {
 interface MissionLayoutProps {
   currentStage?: JourneyStageKey | string;
   showProgress?: boolean;
+  /** When true, children render edge-to-edge (no max-width constraint) */
+  fullBleed?: boolean;
   children: ReactNode;
 }
 
 export function MissionLayout({
   currentStage = "WELCOME",
   showProgress = true,
+  fullBleed = false,
   children,
 }: MissionLayoutProps) {
   const [rightSidebarContent, setRightSidebarContent] = useState<ReactNode>(null);
+  const searchParams = useSearchParams();
+  const isDemoMode = searchParams.get("demo") === "true";
 
   return (
     <MissionContext.Provider value={{ setRightSidebar: setRightSidebarContent }}>
@@ -169,32 +175,41 @@ export function MissionLayout({
           </div>
         </header>
 
-        {/* ── Main Content — Full Width Scrollable ── */}
-        <main className="flex-1 min-h-0 overflow-y-auto">
-          <div className="mx-auto max-w-5xl px-8 py-10 min-h-full">
-            {rightSidebarContent ? (
-              /* When right sidebar is injected (e.g. verification evidence), use grid */
-              <div className="grid grid-cols-12 gap-8 min-h-full">
-                <div className="col-span-12 lg:col-span-7 flex flex-col items-center">
-                  <div className="w-full max-w-2xl">
+        {/* ── Main Content ── */}
+        <main className={`flex-1 min-h-0 ${
+          isDemoMode
+            ? "overflow-hidden"
+            : "overflow-y-auto"
+        }`}>
+          {fullBleed ? (
+            /* Full-bleed: children control their own layout (e.g. success page) */
+            <div className="h-full w-full">{children}</div>
+          ) : (
+            <div className={`mx-auto max-w-5xl px-8 ${
+              isDemoMode ? "py-4" : "py-10 min-h-full"
+            }`}>
+              {rightSidebarContent ? (
+                <div className="grid grid-cols-12 gap-8 min-h-full">
+                  <div className="col-span-12 lg:col-span-7 flex flex-col items-center">
+                    <div className="w-full max-w-2xl">
+                      {children}
+                    </div>
+                  </div>
+                  <aside className="col-span-5 hidden lg:flex flex-col self-start sticky top-10">
+                    <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                      {rightSidebarContent}
+                    </div>
+                  </aside>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <div className="w-full max-w-3xl">
                     {children}
                   </div>
                 </div>
-                <aside className="col-span-5 hidden lg:flex flex-col self-start sticky top-10">
-                  <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                    {rightSidebarContent}
-                  </div>
-                </aside>
-              </div>
-            ) : (
-              /* Default: full-width centered content */
-              <div className="flex flex-col items-center">
-                <div className="w-full max-w-3xl">
-                  {children}
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </main>
 
         {/* ── Trust Footer ── */}

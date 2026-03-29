@@ -155,7 +155,7 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
   if (isDemoMode) {
     return (
       <StrictComplianceGate>
-        <MissionLayout currentStage="FIRST_TRADE_ASSET" showProgress>
+        <MissionLayout currentStage="FIRST_TRADE_ASSET" showProgress fullBleed>
           {children}
         </MissionLayout>
       </StrictComplianceGate>

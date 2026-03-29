@@ -220,6 +220,119 @@ export default function FirstTradeReviewPage() {
     );
   }
 
+  /* ═══════════════════════════════════════════════════════════════
+     DEMO MODE: Single-viewport Bento review (2-column grid)
+     ═══════════════════════════════════════════════════════════════ */
+  if (isDemoMode) {
+    return (
+      <div className="w-full max-w-4xl mx-auto animate-in fade-in duration-500" data-tour="review-summary">
+        {/* Header */}
+        <div className="text-center mb-4">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <div className="h-px w-8 bg-linear-to-r from-transparent to-[#C6A86B]/50" />
+            <span className="font-mono text-[9px] text-[#C6A86B] tracking-[0.3em] uppercase font-bold">Trade Review</span>
+            <div className="h-px w-8 bg-linear-to-l from-transparent to-[#C6A86B]/50" />
+          </div>
+          <h1 className="text-2xl font-heading font-bold text-white tracking-tight">Commercial Review</h1>
+        </div>
+
+        {/* Live Spot */}
+        <div className="flex items-center justify-center gap-3 border border-slate-800 bg-slate-900/30 px-4 py-2 mb-4">
+          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+          <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">XAU/USD</span>
+          <span className="font-mono text-sm text-white font-bold tabular-nums">{formatSpotPrice(spotPrice)}</span>
+        </div>
+
+        {/* Bento Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* LEFT: Trade Summary */}
+          <div className="border border-slate-800/60 bg-linear-to-b from-slate-900/60 to-slate-950/60 p-4">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-[#C6A86B]/70 mb-2">Trade Summary</h3>
+            {[
+              { l: "Asset", v: selectedAsset?.name ?? "—" },
+              { l: "Quantity", v: `${draft.quantity} ${draft.quantity === 1 ? "bar" : "bars"}` },
+              { l: "Weight", v: `${fmtWeight(totalWeightOz)} troy oz` },
+              { l: "Fineness", v: selectedAsset?.fineness ?? "—" },
+              { l: "Custody", v: draft.deliveryMethod === "vault_custody" ? "Allocated Vault — Zurich" : "Physical Delivery" },
+              { l: "Intent", v: draft.transactionIntent === "ALLOCATION" ? "Allocation" : "Delivery" },
+            ].map((r) => (
+              <div key={r.l} className="flex items-center justify-between py-1 border-b border-slate-800/30 last:border-0">
+                <span className="text-[10px] text-slate-500">{r.l}</span>
+                <span className="text-[11px] text-slate-300 font-medium">{r.v}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* RIGHT: Pricing + Status */}
+          <div className="border border-slate-800/60 bg-linear-to-b from-slate-900/60 to-slate-950/60 p-4">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-[#C6A86B]/70 mb-2">Indicative Pricing</h3>
+            {[
+              { l: "Spot Value", v: fmtUsd(baseSpotValue) },
+              { l: `Premium (+${selectedAsset ? (selectedAsset.premiumBps / 100).toFixed(2) : "0.00"}%)`, v: fmtUsd(assetPremium) },
+              { l: "Platform Fee (1.00%)", v: fmtUsd(platformFee) },
+            ].map((r) => (
+              <div key={r.l} className="flex items-center justify-between py-1 border-b border-slate-800/30 last:border-0">
+                <span className="text-[10px] text-slate-500">{r.l}</span>
+                <span className="font-mono text-[11px] text-slate-300">{r.v}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between pt-2 border-t border-[#C6A86B]/20 mt-1">
+              <span className="text-[11px] text-white font-semibold">Estimated Total</span>
+              <span className="font-mono text-base text-[#C6A86B] font-bold">{fmtUsd(estimatedNotional)}</span>
+            </div>
+            <div className="mt-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-slate-600 uppercase tracking-wider">Pricing</span>
+                <span className="font-mono text-[9px] text-[#C6A86B] font-bold uppercase">Indicative</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-slate-600 uppercase tracking-wider">Rail</span>
+                <span className="text-[9px] text-slate-400">At Execution</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-slate-600 uppercase tracking-wider">Delivery</span>
+                <span className="inline-flex items-center gap-1 text-[9px] text-emerald-400 font-semibold">
+                  <CheckCircle2 className="h-2.5 w-2.5" /> Complete
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Settlement Pipeline — Horizontal */}
+        <div className="border border-slate-800/60 bg-linear-to-r from-slate-900/40 to-slate-950/40 p-3 mt-3">
+          <h3 className="text-[9px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Post-Authorization Settlement Pipeline</h3>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { n: "01", t: "Case Opened", s: "Immediate" },
+              { n: "02", t: "Quote Locked", s: "< 1 biz day" },
+              { n: "03", t: "Funds Verified", s: "Rail-dependent" },
+              { n: "04", t: "Allocated", s: "1–3 biz days" },
+            ].map((st) => (
+              <div key={st.n} className="flex items-start gap-2">
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[#C6A86B]/30 bg-[#C6A86B]/10">
+                  <span className="font-mono text-[7px] text-[#C6A86B] font-bold">{st.n}</span>
+                </span>
+                <div>
+                  <p className="text-[10px] text-slate-300 font-semibold leading-tight">{st.t}</p>
+                  <p className="text-[8px] text-slate-600">{st.s}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div className="mt-3">
+          <StickyPrimaryAction label="Proceed to Authorization" onClick={handleContinue} disabled={false} icon={ShieldCheck} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     PRODUCTION MODE: Full stacked card layout
+     ═══════════════════════════════════════════════════════════════ */
   return (
     <StepShell
       icon={ClipboardList}
@@ -235,7 +348,6 @@ export default function FirstTradeReviewPage() {
       }
     >
       <div className="w-full space-y-5" data-tour="review-summary">
-        {/* ── Live Spot Price Context ── */}
         <div className="flex items-center justify-center gap-3 rounded-lg border border-slate-800 bg-slate-900/30 px-4 py-2.5">
           {priceLoading ? (
             <span className="font-mono text-xs text-slate-600 animate-pulse">

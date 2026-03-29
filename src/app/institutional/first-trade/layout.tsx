@@ -13,10 +13,11 @@
      /first-trade/delivery
      /first-trade/review
      /first-trade/authorize
-     /first-trade/success
+     /first-trade/success  (renders fullBleed — its own dashboard)
    ================================================================ */
 
 import { type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { MissionLayout } from "@/components/institutional-flow/MissionLayout";
 import { useJourneyStage } from "@/hooks/use-onboarding-state";
 
@@ -26,9 +27,15 @@ export default function FirstTradeLayout({
   children: ReactNode;
 }) {
   const { stage } = useJourneyStage();
+  const pathname = usePathname();
+  const isSuccessPage = pathname.endsWith("/success");
 
   return (
-    <MissionLayout currentStage={stage ?? undefined} showProgress>
+    <MissionLayout
+      currentStage={stage ?? undefined}
+      showProgress
+      fullBleed={isSuccessPage}
+    >
       {children}
     </MissionLayout>
   );

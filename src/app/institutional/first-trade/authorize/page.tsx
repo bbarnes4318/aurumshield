@@ -368,6 +368,94 @@ export default function FirstTradeAuthorizePage() {
     );
   }
 
+  /* ═══════════════════════════════════════════════════════════
+     DEMO MODE: Single-viewport authorization boundary
+     ═══════════════════════════════════════════════════════════ */
+  if (isDemoMode) {
+    return (
+      <div className="w-full max-w-3xl mx-auto animate-in fade-in duration-500" data-tour="review-ticket">
+        {/* Header */}
+        <div className="text-center mb-5">
+          <div className="inline-flex h-14 w-14 items-center justify-center border-2 border-[#C6A86B]/30 bg-linear-to-b from-[#C6A86B]/15 to-transparent mb-3 shadow-[0_0_50px_rgba(198,168,107,0.12)]">
+            <ShieldCheck className="h-7 w-7 text-[#C6A86B]" strokeWidth={1.2} />
+          </div>
+          <h1 className="text-2xl font-heading font-bold text-white tracking-tight mb-1">
+            Authorization Boundary
+          </h1>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Hardened 3-gate confirmation. This is where trade intent becomes a binding commitment.
+          </p>
+        </div>
+
+        {/* Authorization Card */}
+        <div className="border border-slate-800/60 bg-linear-to-b from-slate-900/60 to-slate-950/60 p-5">
+          {/* Trade Summary */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 mb-4">
+            {[
+              { l: "Asset", v: selectedAsset ? `${selectedAsset.shortName} × ${draft.quantity}` : "—" },
+              { l: "Weight", v: `${fmtWeight(totalWeightOz)} troy oz` },
+              { l: "Custody", v: getDeliveryLabel() },
+              { l: "Intent", v: draft.transactionIntent === "ALLOCATION" ? "Allocation" : "Physical Delivery" },
+            ].map((r) => (
+              <div key={r.l} className="flex items-center justify-between py-1 border-b border-slate-800/30">
+                <span className="text-[10px] text-slate-500">{r.l}</span>
+                <span className="text-[11px] text-slate-300 font-medium">{r.v}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Pricing */}
+          <div className="border-t border-slate-700/50 pt-3 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-slate-500">Indicative Spot Value</span>
+              <span className="font-mono text-[11px] text-slate-300">{fmtUsd(baseSpotValue)}</span>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-slate-500">Premium + Fee</span>
+              <span className="font-mono text-[11px] text-slate-300">{fmtUsd(assetPremium + platformFee)}</span>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-[#C6A86B]/20">
+              <span className="text-sm text-white font-bold">Estimated Total</span>
+              <span className="font-mono text-lg text-[#C6A86B] font-bold">{fmtUsd(estimatedNotional)}</span>
+            </div>
+          </div>
+
+          {/* 3-Gate Status */}
+          <div className="flex items-center justify-between gap-4 py-3 border-t border-slate-800/50">
+            {[
+              { gate: "Legal Acknowledgment", icon: "✓", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
+              { gate: "Confirmation Phrase", icon: "✓", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
+              { gate: "Authorization Hold", icon: "⏳", color: "text-[#C6A86B]", bg: "bg-[#C6A86B]/10 border-[#C6A86B]/30" },
+            ].map((g) => (
+              <div key={g.gate} className={`flex-1 flex flex-col items-center gap-1.5 py-2 border ${g.bg} rounded`}>
+                <span className={`text-sm ${g.color} font-bold`}>{g.icon}</span>
+                <span className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">{g.gate}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Authorize Button */}
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAuthorize}
+            className="group flex items-center justify-center gap-2 px-10 py-3 bg-[#C6A86B] hover:bg-[#d4b87a] text-slate-950 font-bold text-sm rounded-lg transition-all duration-200 shadow-[0_0_30px_rgba(198,168,107,0.25)] hover:shadow-[0_0_50px_rgba(198,168,107,0.4)]"
+          >
+            <KeyRound className="h-4 w-4" />
+            Authorize Trade
+          </button>
+          <span className="font-mono text-[8px] text-slate-600 uppercase tracking-widest">
+            Audit-logged · Session-fresh · Fail-closed
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════════════════
+     PRODUCTION MODE: Full hardened confirmation boundary
+     ════════════════════════════════════════════════════════ */
   return (
     <StepShell
       icon={ShieldCheck}
