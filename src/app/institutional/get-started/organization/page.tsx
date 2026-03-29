@@ -147,25 +147,21 @@ export default function OrganizationPage() {
     <StepShell
       icon={Building2}
       headline="Entity Profile"
+      badge="Phase 01 of 04"
       description="Initialize your institutional profile. This data seeds the regulatory screening process conducted by our autonomous compliance engine."
       footer={
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-4 py-3 px-6 rounded-full border border-slate-800/40 bg-slate-900/20 backdrop-blur-sm">
-            {[
-              { label: "Data", value: "Encrypted" },
-              { label: "Privacy", value: "Strict" },
-              { label: "Transmission", value: "TLS 1.3" }
-            ].map(attr => (
-              <div key={attr.label} className="flex items-center gap-1.5">
-                <ShieldCheck className="h-3 w-3 text-[#C6A86B]" />
-                <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wider">{attr.label}:</span>
-                <span className="font-mono text-[9px] text-slate-300 uppercase tracking-wider">{attr.value}</span>
-              </div>
-            ))}
-          </div>
-          <p className="font-mono text-[9px] text-slate-600 tracking-[0.2em] uppercase">
-            Sovereign Integrity Protocol v1.2
-          </p>
+        <div className="flex items-center justify-center gap-6">
+          {[
+            { label: "Data", value: "AES-256 Encrypted" },
+            { label: "Privacy", value: "Zero Knowledge" },
+            { label: "Transmission", value: "TLS 1.3" }
+          ].map(attr => (
+            <div key={attr.label} className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3 w-3 text-[#C6A86B]/40" />
+              <span className="font-mono text-[9px] text-slate-600 uppercase tracking-wider">{attr.label}:</span>
+              <span className="font-mono text-[9px] text-slate-400 uppercase tracking-wider">{attr.value}</span>
+            </div>
+          ))}
         </div>
       }
     >

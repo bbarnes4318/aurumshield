@@ -151,6 +151,7 @@ export default function VerificationPage() {
     <StepShell
       icon={ShieldCheck}
       headline="Compliance Verification"
+      badge="Phase 02 of 04"
       description="AurumShield's autonomous compliance engine is conducting mandatory perimeter integrity checks. All four gates must pass before capital confinement can be authorized."
     >
       <div className="w-full space-y-6">

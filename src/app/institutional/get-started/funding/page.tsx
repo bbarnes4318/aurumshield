@@ -323,6 +323,7 @@ export default function FundingPage() {
     <StepShell
       icon={Landmark}
       headline="Funding Configuration"
+      badge="Phase 03 of 04"
       description="Choose your settlement rail and provide account details. No funds are moved at this step — we register your source of funds for OFAC screening."
       footer={
         <div className="flex items-center justify-center gap-2">

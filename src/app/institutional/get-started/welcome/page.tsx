@@ -22,7 +22,6 @@ import {
   Lock,
   Fingerprint,
   Truck,
-  CheckCircle2,
 } from "lucide-react";
 import { useTour } from "@/demo/tour-engine/TourProvider";
 
@@ -131,7 +130,7 @@ export default function WelcomePage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[200px] w-[200px] bg-[#C6A86B]/8 rounded-full blur-[80px] pointer-events-none" />
 
         <div className="relative">
-          <div className="inline-flex h-16 w-16 items-center justify-center border-2 border-[#C6A86B]/40 bg-gradient-to-b from-[#C6A86B]/15 to-transparent mb-6 shadow-[0_0_60px_rgba(198,168,107,0.15)]">
+          <div className="inline-flex h-16 w-16 items-center justify-center border-2 border-[#C6A86B]/40 bg-linear-to-b from-[#C6A86B]/15 to-transparent mb-6 shadow-[0_0_60px_rgba(198,168,107,0.15)]">
             <Shield className="h-8 w-8 text-[#C6A86B]" strokeWidth={1.2} />
           </div>
 
@@ -140,11 +139,11 @@ export default function WelcomePage() {
           </h1>
 
           <div className="inline-flex items-center gap-2 mb-4">
-            <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#C6A86B]/60" />
+            <div className="h-px w-8 bg-linear-to-r from-transparent to-[#C6A86B]/60" />
             <span className="font-mono text-[10px] text-[#C6A86B] tracking-[0.3em] uppercase font-bold">
               Sovereign Gold Settlement Infrastructure
             </span>
-            <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#C6A86B]/60" />
+            <div className="h-px w-8 bg-linear-to-l from-transparent to-[#C6A86B]/60" />
           </div>
 
           <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
@@ -163,10 +162,10 @@ export default function WelcomePage() {
           return (
             <div
               key={pillar.title}
-              className="group relative border border-slate-800/60 bg-gradient-to-b from-slate-900/60 to-slate-950/60 p-5 hover:border-[#C6A86B]/20 transition-all duration-500 overflow-hidden"
+              className="group relative border border-slate-800/60 bg-linear-to-b from-slate-900/60 to-slate-950/60 p-5 hover:border-[#C6A86B]/20 transition-all duration-500 overflow-hidden"
             >
               {/* Hover glow */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#C6A86B]/3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute inset-0 bg-linear-to-b from-[#C6A86B]/3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
               <div className="relative space-y-3">
                 <div className="flex items-center justify-between">
@@ -202,11 +201,11 @@ export default function WelcomePage() {
          ══════════════════════════════════════════════════════════ */}
       <div data-tour="roadmap-bento">
         <div className="flex items-center gap-2 mb-3">
-          <div className="h-px flex-1 bg-gradient-to-r from-[#C6A86B]/20 to-transparent" />
+          <div className="h-px flex-1 bg-linear-to-r from-[#C6A86B]/20 to-transparent" />
           <span className="font-mono text-[9px] text-slate-600 tracking-[0.2em] uppercase shrink-0">
             Onboarding Phases
           </span>
-          <div className="h-px flex-1 bg-gradient-to-l from-[#C6A86B]/20 to-transparent" />
+          <div className="h-px flex-1 bg-linear-to-l from-[#C6A86B]/20 to-transparent" />
         </div>
 
         <div className="space-y-2">
