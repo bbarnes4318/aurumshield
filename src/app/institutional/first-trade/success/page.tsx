@@ -50,6 +50,7 @@ import type {
   MilestoneState,
   ArtifactType,
 } from "@/lib/types/settlement-case-types";
+import { ChainOfCustody } from "@/components/institutional/ChainOfCustody";
 import SettlementDocumentModal from "@/components/institutional-flow/SettlementDocumentModal";
 
 /* ================================================================
@@ -634,6 +635,9 @@ export default function FirstTradeSuccessPage() {
                 ))}
               </div>
             </div>
+
+            {/* ── Chain of Custody ── */}
+            <ChainOfCustody completedMilestones={completedMilestones} />
 
             {/* ── Settlement Artifacts ── */}
             <div className="border border-slate-800 bg-black/40 p-4 space-y-3">

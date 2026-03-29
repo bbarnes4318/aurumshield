@@ -325,6 +325,16 @@ REQUIRED FACTS:
 - Lloyd's of London Specie Insurance — full transit and static custody coverage. Same coverage class used by the Bank of England and the Perth Mint.
 - Physical armored delivery also available — Brink's Global Services
 
+CHAIN OF CUSTODY (point the viewer to the pipeline visualization in the right panel):
+- Below the execution panel, you can see the Sovereign Chain of Custody — the 5-link insured pipeline that every bar traverses:
+  1. LBMA-Approved Origin — conflict-free, provenance-certified extraction
+  2. Sovereign Armored Logistics — GPS-sealed transit via Brink's or Malca-Amit, full replacement insurance
+  3. Good Delivery Assay — LBMA referee lab certification, fineness verification, serial stamping
+  4. Insured Chain Transfer — continuous coverage with zero custody gaps between links
+  5. Allocated Freeport Vault — title transfer executes only here
+- The critical trust design: buyer capital remains in escrow until the destination vault confirms physical receipt and executes title transfer. At NO point does uninsured gold exist in this pipeline.
+- This is not a promise — it is an auditable, insured, end-to-end physical custody chain.
+
 MICRO-SCENE 5.4 — Settlement Rail
 → TOOL: set_tour_state({ key: "__marketplacePhase", value: "rail-set" })
 REQUIRED FACTS:
@@ -460,6 +470,7 @@ MILESTONE 7 — Title Transfer Complete:
 
 MILESTONE 8 — Custody Allocation Complete:
 - Gold has been allocated, serialized, and placed under bailment at the designated vault. The Custody Allocation Manifest is available — it shows specific bar serial numbers, refiner marks, exact weights, and the insurance policy reference. The buyer now has legal title to SPECIFIC physical bars, independently auditable at the vault.
+- On the right panel, notice the Chain of Custody has fully completed — all five links from source mine to vault are now verified with green checkmarks. Every link in this physical pipeline was insured, GPS-tracked, and custody-gap-free.
 
 CLOSING STATEMENT (after all 8 milestones complete):
 - You have now seen the complete institutional journey: entity registration, KYB compliance across seven jurisdictions, funding configuration, asset selection with full cost transparency, commercial review, deliberate authorization, and an 8-stage deterministic settlement lifecycle with cryptographic proof at every stage.

@@ -41,6 +41,7 @@ import {
 import {
   persistDemoDraft,
 } from "@/demo/data/demoConstants";
+import { ChainOfCustody } from "@/components/institutional/ChainOfCustody";
 
 /* ────────────────────────────────────────────────────────────────
    TYPES & CONSTANTS
@@ -1234,6 +1235,13 @@ export default function InstitutionalMarketplacePage() {
                     Proceed to Commercial Review
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
+                )}
+
+                {/* ── Demo: Chain of Custody Trust Signal ── */}
+                {isDemoMode && selectedAsset && (
+                  <div className="mt-3" data-tour="chain-of-custody">
+                    <ChainOfCustody completedMilestones={0} animate={false} />
+                  </div>
                 )}
 
                 <p className="font-mono text-[8px] text-slate-600 uppercase tracking-wide text-center mt-2">
