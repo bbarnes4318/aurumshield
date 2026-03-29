@@ -160,7 +160,7 @@ REQUIRED FACTS:
 - Behind the scenes: entity data is persisted to the onboarding state, a compliance case is pre-staged in OPEN status, and the authorized representative is prepared for KYCaid applicant creation
 - This is NOT a simple signup form. This is the opening of a formal compliance case file.
 
-→ TOOL: fill_form_fields({ fields: { "companyName": "Meridian Capital Holdings Ltd.", "jurisdiction": "US" } })
+→ TOOL: fill_form_fields({ fields: { "companyName": "Meridian Capital Holdings Ltd.", "repName": "James C. Sterling", "jurisdiction": "US" } })
 
 TRANSITION: Entity registered. Now we enter the most critical gate: the full KYB, UBO, and AML compliance perimeter. This is where the platform demonstrates institutional rigor.
 

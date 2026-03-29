@@ -42,6 +42,15 @@ const TourOverlay = dynamic(
   { ssr: false },
 );
 
+/* Lazy-load the spotlight ring for highlighted elements */
+const GlassShieldSpotlight = dynamic(
+  () =>
+    import("@/components/demo/GlassShieldSpotlight").then(
+      (m) => m.GlassShieldSpotlight,
+    ),
+  { ssr: false },
+);
+
 /* ── Progress Steps ── */
 const JOURNEY_STAGES = [
   { key: "WELCOME", label: "Welcome" },
@@ -211,6 +220,7 @@ export function MissionLayout({
 
         <ConciergeSubtitles />
         <TourOverlay />
+        <GlassShieldSpotlight />
       </div>
     </MissionContext.Provider>
   );

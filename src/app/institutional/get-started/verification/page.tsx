@@ -3,7 +3,13 @@
 /* ================================================================
    VERIFICATION — /institutional/get-started/verification
    ================================================================
-   ZERO SCROLL. Single viewport. Compact checklist + CTA.
+   ZERO SCROLL. Single viewport. Voice-reactive checklist.
+   
+   Items start as PENDING. When the AI calls set_checklist_item_state,
+   TourProvider sets conciergeSimulated["checklist:<key>"] = "done".
+   This page reads those values and flips items to PASS with animation.
+   
+   Panel overlays appear when AI calls open_demo_panel/close_demo_panel.
    ================================================================ */
 
 import { useState, useCallback, useMemo } from "react";
@@ -14,6 +20,10 @@ import {
   ArrowRight,
   CheckCircle2,
   Circle,
+  FileText,
+  Users,
+  AlertTriangle as AlertIcon,
+  Stamp,
 } from "lucide-react";
 
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
@@ -25,20 +35,68 @@ import {
   useComplianceCaseVerification,
   useInitiateVerification,
 } from "@/hooks/use-compliance-case";
+import { useTour } from "@/demo/tour-engine/TourProvider";
 import { type VerificationStageData } from "@/lib/schemas/verification-stage-schema";
 
 /* ── Milestones ── */
-const MILESTONES: { id: keyof VerificationStageData; label: string; detail: string }[] = [
-  { id: "entityVerificationPassed", label: "Identity & Liveness", detail: "Biometric + document verification" },
-  { id: "uboReviewPassed", label: "Corporate Structure", detail: "UBO identification & ownership chain" },
-  { id: "screeningPassed", label: "AML / Sanctions", detail: "OFAC · EU · UN · UK HMT screening" },
-  { id: "complianceReviewPassed", label: "Signatory Review", detail: "Authorized signatory confirmation" },
+const MILESTONES: {
+  id: keyof VerificationStageData;
+  stateKey: string;
+  label: string;
+  detail: string;
+  icon: typeof FileText;
+}[] = [
+  { id: "entityVerificationPassed", stateKey: "checklist:entityVerificationPassed", label: "Identity & Liveness", detail: "Biometric + document verification", icon: FileText },
+  { id: "uboReviewPassed", stateKey: "checklist:uboReviewPassed", label: "Corporate Structure", detail: "UBO identification & ownership chain", icon: Users },
+  { id: "screeningPassed", stateKey: "checklist:screeningPassed", label: "AML / Sanctions", detail: "OFAC · EU · UN · UK HMT screening", icon: AlertIcon },
+  { id: "complianceReviewPassed", stateKey: "checklist:complianceReviewPassed", label: "Signatory Review", detail: "Authorized signatory confirmation", icon: Stamp },
 ];
+
+/* ── Evidence panel content ── */
+const PANEL_CONTENT: Record<string, { title: string; icon: typeof FileText; items: string[] }> = {
+  documents: {
+    title: "Entity Verification Documents",
+    icon: FileText,
+    items: [
+      "Certificate of Incorporation",
+      "Articles of Association",
+      "Register of Directors",
+      "Shareholder Registry",
+      "Proof of Good Standing",
+      "Board Resolution",
+      "Authorized Signatory ID",
+      "Proof of Registered Address",
+    ],
+  },
+  ubo: {
+    title: "Ultimate Beneficial Ownership",
+    icon: Users,
+    items: [
+      "Founding CIO — 42% ownership — PEP: Clear",
+      "Managing Partner — 31% ownership — PEP: Clear",
+      "Family Trust — 27% ownership — Sanctions: Clear",
+    ],
+  },
+  sanctions: {
+    title: "Sanctions & AML Screening",
+    icon: AlertIcon,
+    items: [
+      "✓ OFAC (United States)",
+      "✓ EU Consolidated List",
+      "✓ UN Security Council",
+      "✓ UK HM Treasury",
+      "✓ Australian DFAT",
+      "✓ Adverse Media Databases",
+      "✓ Chainalysis KYT (On-chain)",
+    ],
+  },
+};
 
 export default function VerificationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemoMode = searchParams.get("demo") === "true";
+  const { state: tourState } = useTour();
 
   const {
     milestones,
@@ -46,7 +104,7 @@ export default function VerificationPage() {
     isLoading: caseLoading,
   } = useComplianceCaseVerification();
 
-  const { data: onboardingState, isLoading: stateLoading } = useOnboardingState();
+  const { isLoading: stateLoading } = useOnboardingState();
   const saveMutation = useSaveOnboardingState();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -55,13 +113,28 @@ export default function VerificationPage() {
     isPending: isInitiating,
   } = useInitiateVerification();
 
-  /* ── Derive check states ── */
-  const completedCount = useMemo(() => {
-    if (isDemoMode) return MILESTONES.length; // In demo, show all as complete
-    return MILESTONES.filter((m) => milestones?.[m.id]).length;
-  }, [milestones, isDemoMode]);
+  /* ── Read panel state from concierge ── */
+  const openPanelId = isDemoMode
+    ? (tourState.conciergeSimulated?.__openPanel as string) || ""
+    : "";
 
-  const isAllDone = isDemoMode || allComplete;
+  const panelContent = openPanelId ? PANEL_CONTENT[openPanelId] : null;
+
+  /* ── Derive check states from either real API or voice tool calls ── */
+  const checkStates = useMemo(() => {
+    return MILESTONES.map((m) => {
+      if (isDemoMode) {
+        // In demo mode, items are PENDING by default, flip to PASS when AI calls set_checklist_item_state
+        const aiState = tourState.conciergeSimulated?.[m.stateKey];
+        return { ...m, complete: aiState === "done" };
+      }
+      // Real mode: use API data
+      return { ...m, complete: !!milestones?.[m.id] };
+    });
+  }, [isDemoMode, milestones, tourState.conciergeSimulated]);
+
+  const completedCount = checkStates.filter((c) => c.complete).length;
+  const isAllDone = isDemoMode ? completedCount === MILESTONES.length : allComplete;
 
   /* ── Handlers ── */
   const handleInitiateVerification = useCallback(async () => {
@@ -111,7 +184,7 @@ export default function VerificationPage() {
 
   return (
     <div className="w-full flex flex-col items-center justify-center min-h-[calc(100vh-180px)] animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="w-full max-w-lg space-y-6 -mt-8">
+      <div className="w-full max-w-lg space-y-5 -mt-8" data-tour="compliance-checklist">
         {/* ── Header ── */}
         <div className="text-center space-y-3">
           <div className="inline-flex h-14 w-14 items-center justify-center border border-[#C6A86B]/30 bg-[#C6A86B]/5">
@@ -123,7 +196,7 @@ export default function VerificationPage() {
               Compliance Perimeter
             </h1>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Multi-stage identity, corporate structure, and sanctions verification.
+              Autonomous multi-gate verification. All four must pass.
             </p>
           </div>
         </div>
@@ -144,34 +217,35 @@ export default function VerificationPage() {
           </div>
         </div>
 
-        {/* ── Checklist — compact ── */}
+        {/* ── Checklist — voice-reactive ── */}
         <div className="space-y-2">
-          {MILESTONES.map((milestone, i) => {
-            const isComplete = isDemoMode || milestones?.[milestone.id];
+          {checkStates.map((item) => {
+            const Icon = item.icon;
             return (
               <div
-                key={milestone.id}
-                className={`flex items-center gap-3 px-4 py-3 border transition-all duration-500 ${
-                  isComplete
-                    ? "border-[#C6A86B]/20 bg-[#C6A86B]/3"
+                key={item.id}
+                className={`flex items-center gap-3 px-4 py-3 border transition-all duration-700 ${
+                  item.complete
+                    ? "border-[#C6A86B]/30 bg-[#C6A86B]/5"
                     : "border-slate-800/40 bg-slate-900/20"
                 }`}
               >
-                {isComplete ? (
-                  <CheckCircle2 className="h-4 w-4 text-[#C6A86B] shrink-0" />
+                {item.complete ? (
+                  <CheckCircle2 className="h-4 w-4 text-[#C6A86B] shrink-0 animate-in zoom-in duration-300" />
                 ) : (
                   <Circle className="h-4 w-4 text-slate-700 shrink-0" />
                 )}
+                <Icon className={`h-3.5 w-3.5 shrink-0 transition-colors duration-500 ${item.complete ? "text-[#C6A86B]/60" : "text-slate-700"}`} />
                 <div className="flex-1 min-w-0">
-                  <div className="font-mono text-xs text-white font-medium tracking-wide">
-                    {milestone.label}
+                  <div className={`font-mono text-xs font-medium tracking-wide transition-colors duration-500 ${item.complete ? "text-white" : "text-slate-500"}`}>
+                    {item.label}
                   </div>
                   <div className="font-mono text-[9px] text-slate-600 tracking-wider">
-                    {milestone.detail}
+                    {item.detail}
                   </div>
                 </div>
-                <span className={`font-mono text-[8px] uppercase tracking-widest ${isComplete ? "text-[#C6A86B]" : "text-slate-700"}`}>
-                  {isComplete ? "PASS" : "PENDING"}
+                <span className={`font-mono text-[8px] uppercase tracking-widest transition-colors duration-500 ${item.complete ? "text-[#C6A86B]" : "text-slate-700"}`}>
+                  {item.complete ? "PASS" : "PENDING"}
                 </span>
               </div>
             );
@@ -189,6 +263,62 @@ export default function VerificationPage() {
           />
         </div>
       </div>
+
+      {/* ══════════════════════════════════════════════════════════
+         EVIDENCE PANEL OVERLAY — appears when AI calls open_demo_panel
+         ══════════════════════════════════════════════════════════ */}
+      {panelContent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-300">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          
+          {/* Panel */}
+          <div className="relative w-full max-w-md mx-4 border border-[#C6A86B]/30 bg-navy-base/95 backdrop-blur-xl rounded-lg overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800/50 bg-slate-900/40">
+              <div className="flex items-center gap-2.5">
+                <panelContent.icon className="h-4 w-4 text-[#C6A86B]" />
+                <span className="font-mono text-xs text-white font-bold tracking-wide uppercase">
+                  {panelContent.title}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-mono text-[8px] text-emerald-400 uppercase tracking-wider">Live</span>
+              </div>
+            </div>
+
+            {/* Items */}
+            <div className="px-5 py-4 space-y-2 max-h-[50vh] overflow-y-auto">
+              {panelContent.items.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-2 border border-slate-800/30 bg-slate-900/20 animate-in fade-in slide-in-from-left-2 duration-300"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                >
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#C6A86B]/50 shrink-0" />
+                  <span className="font-mono text-[10px] text-slate-300 tracking-wide">
+                    {item}
+                  </span>
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500/60 shrink-0 ml-auto" />
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-2.5 border-t border-slate-800/30 bg-slate-900/20">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[8px] text-slate-600 uppercase tracking-widest">
+                  {panelContent.items.length} verified
+                </span>
+                <span className="font-mono text-[8px] text-[#C6A86B]/40 uppercase tracking-widest">
+                  Autonomous Engine
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
