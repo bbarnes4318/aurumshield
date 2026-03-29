@@ -46,13 +46,6 @@ export async function POST() {
           model: MODEL,
           config: {
             responseModalities: [Modality.AUDIO],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: "Orus",
-                },
-              },
-            },
             temperature: 0.2,
             systemInstruction: CONCIERGE_SYSTEM_INSTRUCTION,
             tools: CONCIERGE_TOOL_DECLARATIONS,
