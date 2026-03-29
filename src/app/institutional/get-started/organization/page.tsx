@@ -1,42 +1,34 @@
 "use client";
- 
+
 /* ================================================================
    ORGANIZATION — /institutional/get-started/organization
    ================================================================
-   Minimal pre-screen: collects only what the compliance provider needs to create
-   a COMPANY applicant (company name + country).
- 
-   Everything else (LEI, UBOs, documents, liveness, rep details)
-   is handled by the provider's hosted verification form in the next step.
+   ZERO SCROLL. Single viewport. Three fields. One CTA.
    ================================================================ */
- 
+
 import { useState, useCallback, useEffect, useRef } from "react";
 import { type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Loader2, ShieldCheck, Building2, Globe2, UserCheck, type LucideIcon } from "lucide-react";
- 
-import { StepShell } from "@/components/institutional-flow/StepShell";
+import { ArrowRight, Loader2, Building2, Globe2, UserCheck, type LucideIcon } from "lucide-react";
+
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
- 
+
 import {
   organizationStageSchema,
   ORGANIZATION_STAGE_DEFAULTS,
   type OrganizationStageFormData,
 } from "@/lib/schemas/organization-stage-schema";
- 
+
 import { JURISDICTION_OPTIONS } from "@/lib/schemas/onboarding-schema";
- 
+
 import {
   useOnboardingState,
   useSaveOnboardingState,
 } from "@/hooks/use-onboarding-state";
- 
-/* ================================================================
-   FORM FIELD — Styled for the guided-flow design system
-   ================================================================ */
- 
+
+/* ── Form field ── */
 function GuidedField({
   label,
   error,
@@ -51,7 +43,7 @@ function GuidedField({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 group">
+    <div className="flex flex-col gap-1 group">
       <div className="flex items-center justify-between">
         <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 group-focus-within:text-[#C6A86B] transition-colors">
           {label}
@@ -61,33 +53,26 @@ function GuidedField({
       </div>
       {children}
       {error && (
-        <p className="text-[10px] font-mono text-red-400 mt-1 uppercase tracking-wider">{error}</p>
+        <p className="text-[10px] font-mono text-red-400 uppercase tracking-wider">{error}</p>
       )}
     </div>
   );
 }
- 
+
 const INPUT_CLASSES =
-  "w-full rounded-xl border px-4 py-3 bg-slate-950/60 text-sm text-slate-200 placeholder:text-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#C6A86B]/20 focus:border-[#C6A86B]/40";
- 
+  "w-full rounded-lg border px-3.5 py-2.5 bg-slate-950/60 text-sm text-slate-200 placeholder:text-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#C6A86B]/20 focus:border-[#C6A86B]/40";
 const INPUT_ERROR_BORDER = "border-red-500/30";
 const INPUT_NORMAL_BORDER = "border-slate-800/60";
- 
-/* ================================================================
-   ORGANIZATION PAGE — Minimal Pre-Screen
-   ================================================================ */
- 
+
 export default function OrganizationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemoMode = searchParams.get("demo") === "true";
- 
-  /* ── State hooks ── */
+
   const { data: onboardingState, isLoading: stateLoading } = useOnboardingState();
   const saveMutation = useSaveOnboardingState();
   const hasRestoredRef = useRef(false);
- 
-  /* ── Form ── */
+
   const {
     register,
     handleSubmit,
@@ -98,14 +83,12 @@ export default function OrganizationPage() {
     defaultValues: ORGANIZATION_STAGE_DEFAULTS,
     mode: "onTouched",
   });
- 
+
   const [isSaving, setIsSaving] = useState(false);
- 
-  /* ── Restore form ── */
+
   useEffect(() => {
     if (hasRestoredRef.current || stateLoading) return;
     hasRestoredRef.current = true;
- 
     if (onboardingState?.metadataJson?.__organization) {
       reset({
         ...ORGANIZATION_STAGE_DEFAULTS,
@@ -113,10 +96,9 @@ export default function OrganizationPage() {
       });
     }
   }, [stateLoading, onboardingState, reset]);
- 
+
   const onSubmit = useCallback(
     async (data: OrganizationStageFormData) => {
-      // In demo mode, skip the real save API
       if (isDemoMode) {
         router.push("/institutional/get-started/verification?demo=true");
         return;
@@ -138,49 +120,38 @@ export default function OrganizationPage() {
     },
     [isDemoMode, saveMutation, router],
   );
- 
+
   if (stateLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-180px)] gap-3">
         <Loader2 className="h-8 w-8 text-[#C6A86B] animate-spin" strokeWidth={1.5} />
-        <p className="text-sm font-mono text-slate-500 uppercase tracking-widest">
-          Syncing State…
-        </p>
+        <p className="text-sm font-mono text-slate-500 uppercase tracking-widest">Syncing…</p>
       </div>
     );
   }
- 
+
   return (
-    <StepShell
-      icon={Building2}
-      headline="Entity Profile"
-      badge="Phase 01 of 04"
-      description="Initialize your institutional profile. This data seeds the regulatory screening process conducted by our autonomous compliance engine."
-      footer={
-        <div className="flex items-center justify-center gap-6">
-          {[
-            { label: "Data", value: "AES-256 Encrypted" },
-            { label: "Privacy", value: "Zero Knowledge" },
-            { label: "Transmission", value: "TLS 1.3" }
-          ].map(attr => (
-            <div key={attr.label} className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3 w-3 text-[#C6A86B]/40" />
-              <span className="font-mono text-[9px] text-slate-600 uppercase tracking-wider">{attr.label}:</span>
-              <span className="font-mono text-[9px] text-slate-400 uppercase tracking-wider">{attr.value}</span>
-            </div>
-          ))}
+    <div className="w-full flex flex-col items-center justify-center min-h-[calc(100vh-180px)] animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="w-full max-w-lg space-y-6 -mt-8">
+        {/* ── Header ── */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex h-14 w-14 items-center justify-center border border-[#C6A86B]/30 bg-[#C6A86B]/5">
+            <Building2 className="h-7 w-7 text-[#C6A86B]" strokeWidth={1.2} />
+          </div>
+          <div>
+            <div className="font-mono text-[9px] text-[#C6A86B]/60 tracking-[0.3em] uppercase mb-1">Phase 02 of 04</div>
+            <h1 className="text-2xl font-heading font-bold text-white tracking-tight">
+              Entity Profile
+            </h1>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Initialize your institutional profile for regulatory screening.
+            </p>
+          </div>
         </div>
-      }
-    >
-      <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-8 text-left" data-tour="entity-form">
-        <div className="space-y-6">
-          {/* ── Company Name ── */}
-          <GuidedField
-            label="Legal Entity Name"
-            error={errors.companyName?.message}
-            required
-            icon={Building2}
-          >
+
+        {/* ── Form ── */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" data-tour="entity-form">
+          <GuidedField label="Legal Entity Name" error={errors.companyName?.message} required icon={Building2}>
             <input
               id="companyName"
               type="text"
@@ -190,14 +161,8 @@ export default function OrganizationPage() {
               className={`${INPUT_CLASSES} ${errors.companyName ? INPUT_ERROR_BORDER : INPUT_NORMAL_BORDER}`}
             />
           </GuidedField>
- 
-          {/* ── Representative Name ── */}
-          <GuidedField
-            label="Authorized Representative"
-            error={errors.repName?.message}
-            required
-            icon={UserCheck}
-          >
+
+          <GuidedField label="Authorized Representative" error={errors.repName?.message} required icon={UserCheck}>
             <input
               id="repName"
               type="text"
@@ -207,14 +172,8 @@ export default function OrganizationPage() {
               className={`${INPUT_CLASSES} ${errors.repName ? INPUT_ERROR_BORDER : INPUT_NORMAL_BORDER}`}
             />
           </GuidedField>
-  
-          {/* ── Country / Jurisdiction ── */}
-          <GuidedField
-            label="Jurisdiction of Registration"
-            error={errors.jurisdiction?.message}
-            required
-            icon={Globe2}
-          >
+
+          <GuidedField label="Jurisdiction of Registration" error={errors.jurisdiction?.message} required icon={Globe2}>
             <select
               id="jurisdiction"
               {...register("jurisdiction")}
@@ -229,19 +188,19 @@ export default function OrganizationPage() {
               ))}
             </select>
           </GuidedField>
-        </div>
- 
-        {/* ── Primary Action ── */}
-        <div className="pt-4 border-t border-slate-800/40">
-          <StickyPrimaryAction
-            label="Initialize Verification"
-            onClick={isDemoMode ? () => router.push("/institutional/get-started/verification?demo=true") : handleSubmit(onSubmit)}
-            loading={isSaving}
-            disabled={isSaving || (!isDemoMode && !isValid)}
-            icon={ArrowRight}
-          />
-        </div>
-      </form>
-    </StepShell>
+
+          {/* ── CTA ── */}
+          <div className="pt-2">
+            <StickyPrimaryAction
+              label="Initialize Verification"
+              onClick={isDemoMode ? () => router.push("/institutional/get-started/verification?demo=true") : handleSubmit(onSubmit)}
+              loading={isSaving}
+              disabled={isSaving || (!isDemoMode && !isValid)}
+              icon={ArrowRight}
+            />
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

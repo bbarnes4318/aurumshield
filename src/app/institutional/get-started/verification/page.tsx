@@ -1,112 +1,70 @@
 "use client";
- 
+
 /* ================================================================
    VERIFICATION — /institutional/get-started/verification
    ================================================================
-   Full-width Bento Box experience.
-   High-fidelity Checklist with progress telemetry.
-   Evidence Locker sidebar (demo mode).
+   ZERO SCROLL. Single viewport. Compact checklist + CTA.
    ================================================================ */
- 
-import { useState, useCallback, useEffect, useMemo } from "react";
+
+import { useState, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { 
-  ShieldCheck, 
-  Loader2, 
-  ArrowRight, 
-  Save, 
-  AlertTriangle, 
-  ExternalLink 
+import {
+  ShieldCheck,
+  Loader2,
+  ArrowRight,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
- 
-import { StepShell } from "@/components/institutional-flow/StepShell";
+
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
-import { 
-  useOnboardingState, 
-  useSaveOnboardingState 
+import {
+  useOnboardingState,
+  useSaveOnboardingState,
 } from "@/hooks/use-onboarding-state";
-import { 
-  useComplianceCaseVerification, 
-  useInitiateVerification 
+import {
+  useComplianceCaseVerification,
+  useInitiateVerification,
 } from "@/hooks/use-compliance-case";
-import { AutoCheckList, type CheckItemStatus } from "@/components/institutional-flow/AutoCheckList";
-import { VerificationEvidenceWorkspace as DemoEvidenceWorkspace } from "@/components/demo/verification/VerificationEvidenceWorkspace";
-import { useMissionLayout } from "@/components/institutional-flow/MissionLayout";
 import { type VerificationStageData } from "@/lib/schemas/verification-stage-schema";
- 
-/* ── Multi-stage milestones for the checklist ── */
-const MILESTONES: { id: keyof VerificationStageData; label: string }[] = [
-  { id: "entityVerificationPassed", label: "Identity & Liveness" },
-  { id: "uboReviewPassed", label: "Corporate Structure" },
-  { id: "screeningPassed", label: "AML / Sanctions" },
-  { id: "complianceReviewPassed", label: "UBO / Signatory Review" },
+
+/* ── Milestones ── */
+const MILESTONES: { id: keyof VerificationStageData; label: string; detail: string }[] = [
+  { id: "entityVerificationPassed", label: "Identity & Liveness", detail: "Biometric + document verification" },
+  { id: "uboReviewPassed", label: "Corporate Structure", detail: "UBO identification & ownership chain" },
+  { id: "screeningPassed", label: "AML / Sanctions", detail: "OFAC · EU · UN · UK HMT screening" },
+  { id: "complianceReviewPassed", label: "Signatory Review", detail: "Authorized signatory confirmation" },
 ];
- 
+
 export default function VerificationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemoMode = searchParams.get("demo") === "true";
-  const { setRightSidebar } = useMissionLayout();
- 
-  /* ── Compliance state ── */
-  const { 
-    milestones, 
-    allComplete, 
-    statusLabel,
+
+  const {
+    milestones,
+    allComplete,
     isLoading: caseLoading,
   } = useComplianceCaseVerification();
- 
-  /* ── Derive sub-states ── */
-  const { completed, checkItems } = useMemo(() => {
-    const items = MILESTONES.map(m => {
-      const passed = milestones[m.id];
-      const status: CheckItemStatus = passed ? "done" : "pending";
- 
-      return {
-        key: m.id,
-        label: m.label,
-        status
-      };
-    });
-    const doneCount = items.filter(i => i.status === "done").length;
-    return { completed: doneCount, checkItems: items };
-  }, [milestones]);
- 
-  /* ── Sidebar Injection ── */
-  useEffect(() => {
-    if (isDemoMode) {
-      setRightSidebar(<DemoEvidenceWorkspace />);
-    } else {
-      setRightSidebar(null);
-    }
-    return () => setRightSidebar(null);
-  }, [isDemoMode, setRightSidebar]);
- 
-  /* ── Submission state ── */
+
   const { data: onboardingState, isLoading: stateLoading } = useOnboardingState();
   const saveMutation = useSaveOnboardingState();
   const [isSaving, setIsSaving] = useState(false);
- 
-  /* ── Verification initiation ── */
+
   const {
     mutateAsync: serverInitiateVerification,
     isPending: isInitiating,
-    error: initiationError,
-    reset: clearInitiationError,
   } = useInitiateVerification();
- 
-  /* ── Extract provider status ── */
-  const caseStatus = onboardingState?.metadataJson?.caseStatus as string | undefined;
-  const providerRedirectUrl = onboardingState?.metadataJson?.providerRedirectUrl as string | undefined;
- 
-  /* ── Can we initiate? ── */
-  const canInitiate = 
-    !allComplete && 
-    (!caseStatus || caseStatus === "OPEN" || caseStatus === "REJECTED");
- 
-  /* ── Initiate verification trigger ── */
+
+  /* ── Derive check states ── */
+  const completedCount = useMemo(() => {
+    if (isDemoMode) return MILESTONES.length; // In demo, show all as complete
+    return MILESTONES.filter((m) => milestones?.[m.id]).length;
+  }, [milestones, isDemoMode]);
+
+  const isAllDone = isDemoMode || allComplete;
+
+  /* ── Handlers ── */
   const handleInitiateVerification = useCallback(async () => {
-    // In demo mode, skip the real API call — just navigate to funding
     if (isDemoMode) {
       router.push("/institutional/get-started/funding?demo=true");
       return;
@@ -120,12 +78,14 @@ export default function VerificationPage() {
       console.error("[Verification] Failed to initiate:", err);
     }
   }, [isDemoMode, router, serverInitiateVerification]);
- 
-  /* ── Submit: validate → persist → advance → navigate ── */
+
   const handleContinue = useCallback(async () => {
-    if (!allComplete) return;
+    if (isDemoMode) {
+      router.push("/institutional/get-started/funding?demo=true");
+      return;
+    }
+    if (!isAllDone) return;
     setIsSaving(true);
- 
     try {
       await saveMutation.mutateAsync({
         currentStep: 3,
@@ -138,138 +98,97 @@ export default function VerificationPage() {
     } catch {
       setIsSaving(false);
     }
-  }, [allComplete, saveMutation, router]);
- 
-  /* ── Loading state ── */
-  if (stateLoading || caseLoading) {
+  }, [isDemoMode, isAllDone, saveMutation, router]);
+
+  if (caseLoading || stateLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-180px)] gap-3">
         <Loader2 className="h-8 w-8 text-[#C6A86B] animate-spin" strokeWidth={1.5} />
-        <p className="text-sm font-mono text-slate-500 uppercase tracking-widest">
-          Syncing Case…
-        </p>
+        <p className="text-sm font-mono text-slate-500 uppercase tracking-widest">Verifying Compliance…</p>
       </div>
     );
   }
- 
+
   return (
-    <StepShell
-      icon={ShieldCheck}
-      headline="Compliance Verification"
-      badge="Phase 02 of 04"
-      description="AurumShield's autonomous compliance engine is conducting mandatory perimeter integrity checks. All four gates must pass before capital confinement can be authorized."
-    >
-      <div className="w-full space-y-6">
-        {/* ── Active Audit Feed ── */}
-        <div data-tour="compliance-checklist" className="space-y-4 text-left">
-          <div className="flex items-center justify-between px-2 mb-2">
-            <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
-              — Live Audit Log
-            </span>
-            <div className="flex items-center gap-1.5">
-              <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono text-[9px] text-[#C6A86B] uppercase">
-                {statusLabel}
-              </span>
-            </div>
+    <div className="w-full flex flex-col items-center justify-center min-h-[calc(100vh-180px)] animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="w-full max-w-lg space-y-6 -mt-8">
+        {/* ── Header ── */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex h-14 w-14 items-center justify-center border border-[#C6A86B]/30 bg-[#C6A86B]/5">
+            <ShieldCheck className="h-7 w-7 text-[#C6A86B]" strokeWidth={1.2} />
           </div>
-          <AutoCheckList items={checkItems} />
+          <div>
+            <div className="font-mono text-[9px] text-[#C6A86B]/60 tracking-[0.3em] uppercase mb-1">Phase 03 of 04</div>
+            <h1 className="text-2xl font-heading font-bold text-white tracking-tight">
+              Compliance Perimeter
+            </h1>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Multi-stage identity, corporate structure, and sanctions verification.
+            </p>
+          </div>
         </div>
- 
-        {/* ── Progress Telemetry ── */}
-        <div className="rounded-xl border border-slate-800/40 bg-slate-950/40 p-4 font-mono">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-slate-600 uppercase tracking-wider">
-              Perimeter Gate Clearance
-            </span>
-            <span className="text-[10px] text-slate-400">
-              {completed} / {MILESTONES.length}
+
+        {/* ── Progress bar ── */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[9px] text-slate-600 uppercase tracking-wider">Compliance Progress</span>
+            <span className="font-mono text-[9px] text-[#C6A86B] uppercase tracking-wider">
+              {completedCount}/{MILESTONES.length} Complete
             </span>
           </div>
-          <div className="h-1 w-full bg-slate-900 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-[#C6A86B] transition-all duration-1000" 
-              style={{ width: `${(completed / MILESTONES.length) * 100}%` }}
+          <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#C6A86B] rounded-full transition-all duration-1000"
+              style={{ width: `${(completedCount / MILESTONES.length) * 100}%` }}
             />
           </div>
         </div>
- 
-        {/* ── Initiation CTA ── */}
-        {canInitiate && !providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-4 pt-4 border-t border-slate-800/40">
-            <p className="text-xs text-slate-400 text-center max-w-sm">
-              Manual interaction required. Launch the secure verification terminal to provide entity documentation.
-            </p>
-            <button
-              onClick={handleInitiateVerification}
-              disabled={isInitiating}
-              className="group relative inline-flex h-12 items-center gap-3 rounded-xl bg-[#C6A86B] px-8 text-sm font-semibold text-black transition-all hover:bg-[#d4b97a] disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-              {isInitiating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Requesting Authorization…
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="h-4 w-4" />
-                  Launch Verification Terminal
-                </>
-              )}
-            </button>
-          </div>
-        )}
- 
-        {/* ── Provider redirect notice ── */}
-        {providerRedirectUrl && (
-          <div className="flex flex-col items-center gap-3 pt-4 border-t border-slate-800/40">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#C6A86B]/20 bg-slate-900/40">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono text-[10px] text-[#C6A86B] uppercase tracking-wider">
-                Active External Session
-              </span>
-            </div>
-            <a
-              href={providerRedirectUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-slate-400 text-xs font-medium hover:text-[#C6A86B] transition-colors"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Restore Verification Instance
-            </a>
-          </div>
-        )}
- 
-        {/* ── Initiation error ── */}
-        {initiationError && (
-          <div className="flex items-start gap-3 p-4 rounded-xl border border-red-500/20 bg-red-500/5 text-left">
-            <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-            <div className="flex-1 space-y-2">
-              <p className="text-xs font-medium text-red-200">Session Initialization Failure</p>
-              <p className="text-[11px] text-red-400/80 font-mono leading-relaxed">{initiationError.message}</p>
-              <button
-                onClick={clearInitiationError}
-                className="text-[10px] text-red-500 underline uppercase tracking-widest font-bold"
+
+        {/* ── Checklist — compact ── */}
+        <div className="space-y-2">
+          {MILESTONES.map((milestone, i) => {
+            const isComplete = isDemoMode || milestones?.[milestone.id];
+            return (
+              <div
+                key={milestone.id}
+                className={`flex items-center gap-3 px-4 py-3 border transition-all duration-500 ${
+                  isComplete
+                    ? "border-[#C6A86B]/20 bg-[#C6A86B]/3"
+                    : "border-slate-800/40 bg-slate-900/20"
+                }`}
               >
-                Clear Log
-              </button>
-            </div>
-          </div>
-        )}
- 
-        {/* ── Primary Action ── */}
-        <div data-tour="continue-funding" className="pt-4 border-t border-slate-800/40">
+                {isComplete ? (
+                  <CheckCircle2 className="h-4 w-4 text-[#C6A86B] shrink-0" />
+                ) : (
+                  <Circle className="h-4 w-4 text-slate-700 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-mono text-xs text-white font-medium tracking-wide">
+                    {milestone.label}
+                  </div>
+                  <div className="font-mono text-[9px] text-slate-600 tracking-wider">
+                    {milestone.detail}
+                  </div>
+                </div>
+                <span className={`font-mono text-[8px] uppercase tracking-widest ${isComplete ? "text-[#C6A86B]" : "text-slate-700"}`}>
+                  {isComplete ? "PASS" : "PENDING"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── CTA ── */}
+        <div>
           <StickyPrimaryAction
-            label="Authorize & Continue"
-            onClick={handleContinue}
-            loading={isSaving}
-            disabled={!allComplete || isSaving}
-            icon={Save}
+            label={isAllDone ? "Continue to Funding" : "Launch Verification Terminal"}
+            onClick={isAllDone ? handleContinue : handleInitiateVerification}
+            loading={isSaving || isInitiating}
+            disabled={isSaving || isInitiating}
+            icon={ArrowRight}
           />
         </div>
       </div>
-    </StepShell>
+    </div>
   );
 }
