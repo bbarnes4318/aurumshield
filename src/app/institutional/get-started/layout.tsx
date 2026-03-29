@@ -25,7 +25,7 @@ export default function GuidedShellLayout({
   const { stage } = useJourneyStage();
 
   return (
-    <MissionLayout currentStage={stage} showProgress>
+    <MissionLayout currentStage={stage ?? undefined} showProgress>
       {children}
     </MissionLayout>
   );
