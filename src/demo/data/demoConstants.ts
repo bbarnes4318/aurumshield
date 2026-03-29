@@ -90,7 +90,7 @@ export const DEMO_DELIVERY = {
   deliveryMethod: "vault_custody" as const,
   vaultJurisdiction: "ZRH",
   vaultLabel: "Zurich — Malca-Amit Hub 1",
-  deliveryRegion: null,
+  deliveryRegion: "",
   transactionIntent: "ALLOCATION" as const,
 } as const;
 
