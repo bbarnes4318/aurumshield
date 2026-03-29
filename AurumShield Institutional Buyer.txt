@@ -1,0 +1,360 @@
+AurumShield: Institutional Buyer Journey — Start to Finish
+The complete lifecycle of an institutional gold purchase, from first click to physical gold in custody.
+
+Part 1: Digital Platform Experience
+Phase 1 — Entity Registration
+Route: /institutional/get-started/welcome → /organization
+
+The buyer lands on the institutional welcome screen. Four phases are previewed: Organization Setup, Identity Verification, Funding Readiness, and First Allocation.
+
+What the buyer does:
+
+Enters the Legal Entity Name (e.g., "Meridian Capital Holdings Ltd.")
+Selects Jurisdiction of Registration (40+ supported: US, UK, Cayman, BVI, Singapore, UAE, etc.)
+Provides the Authorized Representative name — the individual who will execute trades on behalf of the entity
+What happens behind the scenes:
+
+Entity data is persisted to the onboarding_states table
+A compliance case is pre-staged in OPEN status
+The representative name and company name are prepared for KYCaid applicant creation
+Phase 2 — KYB / UBO / AML Compliance Perimeter
+Route: /institutional/get-started/verification
+
+This is the most critical gate. The compliance engine runs four concurrent checks:
+
+Gate	What It Does	Evidence
+Entity Verification	Corporate registry cross-reference — incorporation docs, articles of association, register of directors, shareholder registry, proof of good standing, board resolution	8 corporate documents authenticated
+UBO Review	Identifies all beneficial owners holding ≥25% ownership. Each screened for PEP status, sanctions exposure, and adverse media	Ownership breakdown with individual screening results
+AML / Sanctions Screening	Concurrent checks against OFAC, EU Consolidated, UN Security Council, UK HMT, Australian DFAT, and adverse media. For stablecoin funding: on-chain wallet screening via Chainalysis KYT	7 jurisdictions, all-clear or flagged
+Compliance Decision	Holistic review. Approval timestamp and reviewer desk label recorded	Final clearance or rejection with reason
+Technical flow:
+
+Platform calls POST /api/compliance/cases/me/initiate
+Compliance engine (compliance-engine.ts) evaluates counterparty readiness
+KYCaid adapter creates a COMPANY applicant with hydrated affiliated_persons (UBOs and Authorized Signers)
+Provider returns a redirect URL → buyer completes verification in KYCaid's hosted form
+Webhook fires back → compliance case transitions: PENDING_USER → PENDING_PROVIDER → UNDER_REVIEW → APPROVED
+UI auto-polls every 10 seconds and updates the live audit feed
+IMPORTANT
+
+All four gates must pass before the buyer can proceed. This is fail-closed architecture — any missing gate rejects advancement.
+
+Phase 3 — Funding Rail Configuration
+Route: /institutional/get-started/funding
+
+The buyer selects how they will fund their account:
+
+Rail	Settlement Speed	Requirements
+Digital Stablecoin Bridge (USDC/USDT)	T+0 instant clearing	Corporate custody wallet, OFAC-screened wallet address
+Fedwire / Correspondent Banking	30-45 day underwriting	MSB compliance approval, bank account verification
+Phase 1 preferred rail: USDC on Ethereum via the stablecoin bridge. This bypasses legacy banking friction entirely.
+
+The buyer provides:
+
+Funding asset (USDC or USDT)
+Network (Ethereum, Polygon, etc.)
+Wallet address (screened against OFAC before acceptance)
+Phase 4 — Marketplace & Asset Selection
+Route: /institutional/marketplace
+
+This is the visual hero moment. The buyer enters the institutional execution terminal.
+
+Available Assets:
+
+Product	Weight	Fineness	Premium Above Spot
+LBMA 400oz Good Delivery Bar	350–430 troy oz	≥995	+0.10%
+1kg Gold Bar	32.15 troy oz	999.9	+0.35%
+10oz Cast Ingot	10 troy oz	999.9	+0.75%
+1oz Minted Bar	1 troy oz	999.9	+1.50%
+The buyer selects:
+
+Asset — e.g., LBMA 400oz Good Delivery Bar
+Custody — Allocated vaulting at one of 5 global locations
+Settlement Rail — Stablecoin bridge or Fedwire
+Cost Derivation (fully transparent):
+
+Base Spot Value:     XAU/USD × total troy ounces
++ Asset Premium:     +10 basis points (LBMA standard)
++ Vault Transit:     destination-specific basis points
++ Platform Fee:      1.0% Fee Sweep (calculated, frozen into record)
+─────────────────────────────────────────────────
+= Indicative Total:  All-in cost before execution
+NOTE
+
+All pricing shown is indicative — based on live spot. The final execution price is determined during settlement when a binding quote is issued by the operations team.
+
+Phase 5 — Commercial Review
+Route: /institutional/first-trade/review
+
+Every component of the transaction is displayed line-by-line:
+
+Asset type and specifications
+Custody location and insurance coverage
+Indicative estimate with full cost derivation
+Funding rail and wallet/bank details
+Nothing is hidden. Every basis point is visible.
+
+Phase 6 — Authorization Boundary
+Route: /institutional/first-trade/authorize
+
+This is a deliberately high-friction trust boundary. Three distinct confirmations are required:
+
+Legal Acknowledgment — Scroll-through disclosure covering: indicative pricing disclaimer, compliance terms, audit trail notice, and irrevocability clause
+Typed Confirmation Phrase — The representative types CONFIRM TRADE exactly. Not a checkbox. Not a toggle.
+Hold-to-Confirm — Press and hold for 3 full seconds to prevent accidental submission
+Server-side validation:
+
+Session freshness check
+KYB clearance verification
+Confirmation phrase match
+Fail-closed: any missing gate rejects the submission
+Phase 7 — Settlement Lifecycle
+Route: /institutional/first-trade/success → Order History
+
+Upon authorization, a Settlement Case is opened automatically. The 8-stage deterministic pipeline begins:
+
+1. Case Opened
+2. Binding Quote Issued
+3. Settlement Instructions Sent
+4. Funds Received & Verified
+5. Gold Allocated
+6. Custody Certificate Issued
+7. Insurance Confirmation
+8. Settlement Complete
+Stage	What Happens	Timeline
+1. Case Opened	Trade intent recorded, case reference generated, indicative price snapshot immutably logged	Immediate
+2. Binding Quote	Operations team locks the execution price based on live XAU/USD at the moment of quote generation	≤1 business day
+3. Settlement Instructions	Payment details and compliance confirmation sent to buyer	Same day as quote
+4. Funds Received	USDC arrives at platform wallet (or Fedwire received). AML re-screening occurs at receipt	T+0 (stablecoin) or T+1 (wire)
+5. Gold Allocated	Specific bars assigned from inventory. Serial numbers, assay certificates, and vault location recorded	Same day as fund receipt
+6. Custody Certificate	SHA-256 signed clearing certificate issued — cryptographic proof of ownership	Immediate upon allocation
+7. Insurance Activation	Lloyd's Specie Policy coverage activated for the stored allocation	Same day
+8. Settlement Complete	Legal title transferred. Case archived. Buyer has full ownership documentation	Same day
+Revenue captured at settlement:
+
+1.0% Fee Sweep extracted during funds clearing
+platformFeeUsd = Math.round(notionalUsd × 0.01 × 100) / 100
+Fee and net clearing amount frozen into the settlement_cases record
+Part 2: Physical Gold Lifecycle — Mine to Vault to Buyer
+Stage A — Sourcing from Mine Originators
+AurumShield operates as a Principal Market Maker, not a broker. Gold is acquired directly from mine originators at wholesale pricing, capturing a ~4.0–5.0% sourcing spread.
+
+┌─────────────────────┐
+│   MINE ORIGINATOR    │  Raw gold extracted (doré bars)
+│   (Africa, LATAM,    │  Purity: 70-90% gold content
+│    Central Asia)     │  Form: Unrefined doré
+└─────────┬───────────┘
+          │
+          ▼
+Stage B — Refinery Processing
+Doré bars are shipped under armed escort to LBMA-accredited refineries:
+
+┌─────────────────────┐
+│   LBMA REFINERY      │  Refining process:
+│   (Metalor, PAMP,    │  - Assaying (precise gold content measurement)
+│    Valcambi, Argor)  │  - Smelting & purification to ≥995 fineness
+│                      │  - Casting into standard bar formats
+│                      │  - Stamping: refiner mark, serial number,
+│                      │    weight, fineness, year
+│                      │  - Assay certificate generated
+└─────────┬───────────┘
+          │
+          ▼
+LBMA Good Delivery Standard:
+
+Weight: 350–430 troy ounces (approximately 11–13.4 kg)
+Fineness: Minimum 995 parts per thousand pure gold
+Stamped with: refiner's hallmark, serial number, fineness, year of manufacture
+Each bar is unique and individually tracked by serial number
+Stage C — Vault Allocation
+Refined bars are transported via Malca-Amit or Brink's armored logistics to one of five global vault facilities:
+
+Vault Location	Operator	Region
+Zurich	Malca-Amit Hub 1	EMEA (Swiss Freeport)
+London	Brink's Sovereign	EMEA
+Singapore	Malca-Amit Asia	APAC
+New York	Brink's CONUS	AMER
+Dubai	Brink's DMCC Freeport	MENA
+Allocation means:
+
+The specific bars are sequestered — tagged and reserved for the buyer's entity
+The bars are serialized — each has a unique serial number tied to the buyer's custody account
+Legal title is transferred — the buyer owns these specific bars, not a share of a pool
+This is NOT unallocated gold. The buyer's bars are physically separated and independently auditable.
+Stage D — Custody & Insurance
+Once allocated:
+
+Lloyd's Specie Policy — Full transit and custody insurance coverage activated
+Independent Audit — Bars are subject to periodic physical audit by the vault operator
+Real-Time Tracking — Buyer can view allocation status, vault location, bar serial numbers, and insurance documentation from their institutional workspace
+Stage E — Physical Delivery (Optional)
+If the buyer elects Sovereign Kinetic Redemption (physical delivery):
+
+┌─────────────────────┐
+│   VAULT FACILITY     │  Bars retrieved from allocated storage
+│   (e.g., NYC 10005) │  Chain-of-custody documentation prepared
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│   ARMORED TRANSIT    │  Carrier: Brink's Global Services
+│                      │  Vehicle: Armored truck deployment
+│                      │  Insurance: Lloyd's Specie (multi-tier)
+│                      │  Tracking: Real-time STP integration
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│   DELIVERY           │  Commercial or bank facility address
+│                      │  Signature required, ID verification
+│                      │  Delivery confirmation logged to platform
+└─────────────────────┘
+Delivery Pricing Formula:
+
+Base Dispatch:     $1,500.00 (flat fee, armored vehicle deployment)
++ Mileage:         $4.50 × driving miles (1.3× Haversine distance)
++ Insurance:       15 basis points × notional USD value
+───────────────────────────────────────────────────────
+= Total Logistics Fee
+Business Rules:
+
+Residential delivery capped at $100,000 notional — larger orders require a commercial or bank address
+Domestic network limit: 3,000 driving miles from NYC vault — beyond requires air-freight quote from Trade Desk
+Broker-dealers must provide a commercial sub-custodian facility
+Tracking: The Armored Shipment Tracker provides real-time updates:
+
+Brink's API pings
+Waybill generation (e.g., BRK-US-10005-XXXX)
+Carrier dispatch confirmation
+In-transit status updates
+Delivery confirmation with signature
+Complete Timeline — Summary
+Step	What Happens	Duration
+Entity Registration	Company name, jurisdiction, authorized rep	2 minutes
+KYB/AML Compliance	Automated screening across 7 jurisdictions	Hours (not weeks)
+Funding Configuration	Select stablecoin bridge or Fedwire	2 minutes
+Asset Selection	Choose product, custody location, settlement rail	5 minutes
+Commercial Review	Line-by-line cost verification	2 minutes
+Authorization	3-gate high-friction confirmation	1 minute
+Settlement Case → Binding Quote	Operations locks execution price	≤1 business day
+Fund Receipt + AML Re-screen	USDC received, re-screened	T+0 (stablecoin)
+Gold Allocation	Specific bars assigned, certificates issued	Same day
+Settlement Complete	SHA-256 signed clearing certificate, title transferred	Same day
+Physical Delivery (optional)	Armored transit via Brink's	1-5 business days
+Total: From first click to legal title in hand — as fast as 1-2 business days with stablecoin funding.
+
+Revenue Model
+AurumShield captures ~6.0%+ blended margin per transaction:
+
+Revenue Layer	Capture
+Sourcing Spread (wholesale from mine originators)	~4.0–5.0%
+Network Execution Fee (1% Fee Sweep)	1.0%
+Off-Ramp Arbitrage (liquidation to refining partners)	~0.9%
+All fees are visible, auditable, and frozen into the immutable settlement record. No hidden costs.
+
+
+**WHY IS MY MONEY SAFE WITH AURUMSHIELD?**
+
+1. Principal Risk, Not Broker Risk
+AurumShield is not a marketplace or broker. It operates as a Principal Market Maker. That means:
+
+AurumShield takes legal title to the gold itself before selling to you. You are buying from a single, known counterparty — not an anonymous seller on an exchange.
+There is no order-matching uncertainty. No "your order is pending a seller." The gold is sourced, allocated, and ready.
+The entity counterparty is a single, identifiable legal entity you can diligence, sue, and hold accountable — not a decentralized protocol or anonymous liquidity pool.
+Why this matters at $500M: Counterparty risk is the #1 concern at institutional scale. You need to know exactly who you are giving half a billion dollars to, and that entity needs to be legally accountable. A broker model introduces intermediary risk. A marketplace model introduces anonymous seller risk. Neither is acceptable at this scale.
+
+2. Allocated Custody — Not Pooled, Not Paper
+Every ounce you purchase is allocated. This is the critical distinction:
+
+Allocated = Specific, serialized bars are physically separated and titled to your entity. Bar serial numbers, assay certificates, refiner marks, and vault slot locations are on record.
+Unallocated (what banks do) = You own a claim against a pool. If the custodian fails, you're an unsecured creditor. At $500M, you'd be in line behind everyone else.
+Paper gold (ETFs like GLD) = You own shares in a trust. You have no right to specific bars. Redemption is at the trust's discretion. You cannot take physical delivery.
+Your custody arrangement:
+
+Custodians: Malca-Amit (Zurich, Singapore) and Brink's Global Services (London, New York, Dubai)
+These are the same custodians used by central banks, sovereign wealth funds, and the LBMA itself
+5 global vault locations — you choose where your gold sits based on your jurisdictional and geopolitical preferences
+Bars are independently auditable. You can request a physical audit at any time.
+Why this matters at $500M: At $500M in gold (approximately 5,000+ troy ounces at current spot), you are buying roughly 12-14 LBMA 400oz Good Delivery bars. Each one is a unique, serialized physical object. You will know exactly which bars are yours, exactly where they are, and you have a legal claim to those specific bars — not a proportional share of a commingled pool.
+
+3. Lloyd's of London Insurance — Full Coverage
+Every bar in custody is covered by a Lloyd's Specie Policy:
+
+Transit coverage: From moment of dispatch from the refinery/vault to arrival at your designated vault location
+Custody coverage: While stored at Malca-Amit or Brink's facilities
+Delivery coverage: If you elect physical delivery, the armored transit is insured door-to-door
+Lloyd's Specie is the gold standard (literally) for precious metals insurance. This is the same coverage class used by the Bank of England's gold vault, the Perth Mint, and the Swiss National Bank.
+
+Why this matters at $500M: At this notional, you are insured against theft, damage, natural disaster, and facility failure. If a vault is compromised, you are made whole. This is not a platform warranty — it's a Lloyd's underwriting syndicate policy.
+
+4. Fail-Closed Compliance Architecture
+The compliance perimeter is not optional or performative:
+
+KYB (Know Your Business): Full corporate registry verification — incorporation documents, articles of association, register of directors, shareholder registry, proof of good standing, board resolution, signatory identification, and proof of address. Eight documents minimum.
+UBO (Ultimate Beneficial Owner): Every individual holding ≥25% ownership is identified and screened for PEP status, sanctions exposure, and adverse media coverage.
+AML/Sanctions Screening: Concurrent checks against 7 sanctions lists: OFAC (US), EU Consolidated List, UN Security Council, UK HM Treasury, Australian DFAT, plus adverse media databases. For stablecoin funding: on-chain wallet screening via Chainalysis KYT for illicit activity.
+Source of Funds: Wallet origin or bank origin verified for operational readiness and risk classification.
+The architecture is fail-closed:
+
+Every state transition in the settlement pipeline requires a database-verified compliance approval
+If any gate fails, the entire transaction is blocked — not flagged for review, not overridden, blocked
+Compliance case status follows a confined state machine: OPEN → PENDING_USER → PENDING_PROVIDER → UNDER_REVIEW → APPROVED. There is no shortcut path.
+Why this matters at $500M: You need to demonstrate to your board, your investors, and your regulators that the counterparty you sent $500M to has a defensible, documented compliance process. Every step of AurumShield's compliance review is timestamped, auditable, and produces a verifiable record. This protects both sides.
+
+5. Deterministic Settlement — No Ambiguity
+The Goldwire Settlement Engine runs an 8-stage deterministic pipeline. There is no "pending" black box:
+
+Stage	What Happens	Your Proof
+Case Opened	Trade intent recorded, case reference generated	Case reference number
+Binding Quote	Operations locks execution price from live XAU/USD	Signed quote document
+Settlement Instructions	Payment details confirmed	Written instructions
+Funds Received	USDC received, AML re-screening at point of receipt	Receipt confirmation
+Gold Allocated	Specific bars assigned — serial numbers, assay certs	Allocation manifest
+Custody Certificate	SHA-256 signed clearing certificate	Cryptographic proof
+Insurance Confirmation	Lloyd's coverage activated for your specific bars	Policy confirmation
+Settlement Complete	Legal title transferred, case archived	Final settlement record
+Every state transition produces a tamper-evident audit event. The SHA-256 signed clearing certificate is cryptographic proof that the settlement lifecycle occurred as documented. It cannot be retroactively altered.
+
+Why this matters at $500M: Traditional gold settlement via LBMA member banks involves phone calls, manual confirmations, and multi-day settlement windows where Herstatt Risk (one party delivers while the other defaults) is real. AurumShield's stablecoin bridge enables T+0 settlement — title transfers on the same day funds are received. At $500M, eliminating even one day of settlement exposure eliminates significant counterparty risk.
+
+6. Radical Fee Transparency
+The 1% platform fee is:
+
+Visible during cost derivation before you commit
+Calculated deterministically: platformFeeUsd = notionalUsd × 0.01
+Frozen into the immutable settlement record — it cannot be changed after execution
+The only platform fee. No management fees, no custody fees, no AUM fees, no exit fees
+The full cost derivation is displayed line-by-line:
+
+Base Spot Value:     XAU/USD × total troy ounces
++ Asset Premium:     +10 basis points (LBMA Good Delivery)
++ Vault Transit:     destination-specific basis points
++ Platform Fee:      1.0% Fee Sweep
+────────────────────────────────────────────────
+= All-In Cost
+Why this matters at $500M: At 1%, your platform fee on $500M is $5M. That number is stated upfront, not buried in a prospectus footnote. Compare this to gold ETFs (0.40% annual management fee that compounds forever), prime broker custody (negotiated, opaque), or traditional dealers (spread + commissions + storage fees + insurance surcharges). With AurumShield, you pay once, you own the gold outright, and there are no recurring charges.
+
+7. Physical Redemption — The Ultimate Backstop
+Your gold is not trapped on a platform. You have two exit paths at any time:
+
+Option A — Fiat Liquidation (T+0): Instant conversion to fiat/USDC via regional OTC refining partners. Your allocation is liquidated and funds are returned.
+
+Option B — Physical Delivery: Armored transit via Brink's. The delivery logistics engine calculates:
+
+$1,500 base dispatch fee
+$4.50 per driving mile
+15 basis points insurance on notional value
+At $500M, a physical delivery to a Manhattan bank vault (from the NYC Brink's facility at ZIP 10005) would cost roughly $76,500 in logistics — 0.015% of your position. That's the cost to hold 12+ LBMA bars in your own hands.
+
+Why this matters at $500M: The ability to take physical possession is the ultimate proof that this is real gold, not a synthetic product. No ETF gives you this right at institutional scale. Physical redemption is the "break glass" exit that proves the asset is real.
+
+8. Infrastructure-Grade Security
+Authentication: Clerk-managed authentication with hardware key support
+Authorization: 3-gate confirmation boundary for trade execution — legal scroll, typed phrase, hold-to-confirm
+Encryption: TLS 1.3 in transit, AES-256 at rest
+Infrastructure: Three-tier AWS isolation in us-east-2, no shared tenancy
+Audit Trail: Every action produces a tamper-evident audit hash. The complete lifecycle is reconstructable from the audit chain.
+Idempotency: Every payout and title reassignment carries a unique SHA-256 idempotency key — prevents double-execution
+The One-Line Case
+At $500M, you need: a legally accountable counterparty who takes principal risk, allocated physical gold in Tier-1 vaults insured by Lloyd's, cryptographic proof of ownership, T+0 settlement, transparent 1% pricing, and the right to take physical delivery at any time. AurumShield delivers all of it.
+

@@ -83,10 +83,7 @@ export function buildSettlementCase(
   const totalWeightOz = assetInfo.weightOz * intent.quantity;
 
   /* ── Settlement rail inference ── */
-  const settlementRail =
-    intent.deliveryMethod === "vault_custody"
-      ? "Fedwire RTGS"
-      : "Fedwire RTGS";
+  const settlementRail = "Institutional Stablecoin Bridge (USDC)";
 
   /* ── Milestones ── */
   const clampedCount = Math.max(
@@ -174,7 +171,10 @@ export function buildSettlementCase(
     if (clampedCount >= 6) {
       priceLabel = "FINAL";
       priceSnapshot.label = "FINAL";
-    } else if (clampedCount >= 1) {
+    } else if (clampedCount >= 2) {
+      priceLabel = "LOCKED";
+      priceSnapshot.label = "LOCKED";
+    } else {
       priceLabel = "INDICATIVE";
       priceSnapshot.label = "INDICATIVE";
     }

@@ -26,6 +26,9 @@ import {
   BarChart3,
   Shield,
   ArrowRight,
+  Lock,
+  Fingerprint,
+  Truck,
 } from "lucide-react";
 import { useTour } from "@/demo/tour-engine/TourProvider";
 
@@ -33,23 +36,41 @@ import { useTour } from "@/demo/tour-engine/TourProvider";
 const GUIDED_STAGES = [
   {
     icon: Building2,
-    label: "Organization Setup",
-    description: "Entity name, jurisdiction, and authorized signatory",
+    label: "Entity Registration",
+    description: "Corporate identity, jurisdiction, and compliance case opening",
   },
   {
     icon: ShieldCheck,
-    label: "Identity Verification",
-    description: "KYB, UBO review, and OFAC sanctions screening",
+    label: "KYB Compliance Perimeter",
+    description: "8-document KYB, UBO identification, and 7-jurisdiction AML screening",
   },
   {
     icon: Landmark,
-    label: "Funding Readiness",
-    description: "Connect settlement rails — stablecoin or Fedwire",
+    label: "Settlement Rail Configuration",
+    description: "T+0 stablecoin bridge or Fedwire — choose your clearing path",
   },
   {
     icon: BarChart3,
-    label: "First Allocation",
-    description: "Select an asset, choose custody, and confirm intent",
+    label: "Asset Selection & Execution",
+    description: "LBMA Good Delivery bars, allocated custody, and deterministic settlement",
+  },
+] as const;
+
+const TRUST_PILLARS = [
+  {
+    icon: Lock,
+    title: "Principal Market Maker",
+    detail: "You buy from a single, legally accountable counterparty — not a broker, not a marketplace.",
+  },
+  {
+    icon: Fingerprint,
+    title: "Allocated Custody",
+    detail: "Serialized bars, physically segregated, titled to your entity under bailment law.",
+  },
+  {
+    icon: Truck,
+    title: "Physical Redemption",
+    detail: "Your gold is never trapped. Armored delivery via Brink's or T+0 fiat liquidation.",
   },
 ] as const;
 
@@ -110,11 +131,14 @@ export default function WelcomePage() {
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#C6A86B]/30 bg-slate-900/40 mb-6 shadow-[0_0_40px_rgba(198,168,107,0.12)]">
           <Shield className="h-6 w-6 text-[#C6A86B]" />
         </div>
-        <h1 className="text-4xl font-heading font-semibold text-white tracking-tight mb-4">
+        <h1 className="text-4xl font-heading font-semibold text-white tracking-tight mb-3">
           Institutional Access
         </h1>
-        <p className="text-lg text-slate-400 max-w-lg mx-auto leading-relaxed">
-          Welcome to the AurumShield Settlement Network. Complete your perimeter integrity checks to begin principal-protected trading.
+        <p className="font-mono text-[10px] text-[#C6A86B] tracking-[0.3em] uppercase font-bold mb-4">
+          Sovereign Gold Settlement Infrastructure
+        </p>
+        <p className="text-base text-slate-400 max-w-lg mx-auto leading-relaxed">
+          Complete your perimeter integrity checks to begin principal-protected trading on the Goldwire Settlement Network.
         </p>
       </div>
 
@@ -154,14 +178,39 @@ export default function WelcomePage() {
         })}
       </div>
 
-      {/* ── Trust Summary & Perimeter Status ── */}
+      {/* ── Trust Pillars ── */}
+      <div className="border border-slate-800/40 bg-slate-900/20 p-5">
+        <h3 className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase font-bold mb-4 text-center">
+          Why Institutions Trust AurumShield
+        </h3>
+        <div className="grid grid-cols-3 gap-4">
+          {TRUST_PILLARS.map((pillar) => {
+            const PillarIcon = pillar.icon;
+            return (
+              <div key={pillar.title} className="text-center space-y-2">
+                <div className="inline-flex h-9 w-9 items-center justify-center border border-[#C6A86B]/20 bg-[#C6A86B]/5 mx-auto">
+                  <PillarIcon className="h-4 w-4 text-[#C6A86B]" strokeWidth={1.5} />
+                </div>
+                <h4 className="font-mono text-[10px] text-white font-bold tracking-wider uppercase">
+                  {pillar.title}
+                </h4>
+                <p className="font-mono text-[9px] text-slate-500 leading-relaxed">
+                  {pillar.detail}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Perimeter Status ── */}
       <div className="pt-4 border-t border-slate-800/40">
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-6">
             {[
               { label: "Status", value: "ONLINE", color: "bg-emerald-500" },
-              { label: "Security", value: "TLS 1.3", color: "bg-blue-500" },
-              { label: "Pipeline", value: "SETTLEMENT V1.2", color: "bg-[#C6A86B]" }
+              { label: "Security", value: "TLS 1.3 / AES-256", color: "bg-blue-500" },
+              { label: "Engine", value: "GOLDWIRE V2.1", color: "bg-[#C6A86B]" }
             ].map(stat => (
               <div key={stat.label} className="flex items-center gap-2">
                 <div className={`h-1 w-1 rounded-full ${stat.color} animate-pulse`} />
@@ -170,10 +219,6 @@ export default function WelcomePage() {
               </div>
             ))}
           </div>
-
-          <p className="text-[10px] text-slate-600 font-mono tracking-widest uppercase text-center max-w-md opacity-40">
-            Authentication established via sovereign-grade encryption protocol. All data is confined to hardened infrastructure.
-          </p>
         </div>
       </div>
 
