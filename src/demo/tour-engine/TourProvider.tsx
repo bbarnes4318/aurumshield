@@ -331,61 +331,76 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Gemini Live Concierge Integration ── */
 
+  /**
+   * Core dispatch function that handles all tool calls from the scene machine.
+   * This is registered PERMANENTLY with the orchestrator so that autonomous
+   * scene machine actions (pre-actions, exit-actions, auto-advance) work.
+   */
+  const dispatchToolCall = useCallback(
+    (processedCall: ConciergeToolCall) => {
+      // Dispatch to reducer for instant state update
+      dispatch({ type: "TOOL_CALL", call: processedCall });
+
+      // Handle navigate_route as a side effect
+      if (processedCall.name === "navigate_route") {
+        const route = processedCall.args.route;
+        const separator = route.includes("?") ? "&" : "?";
+        const url = route.includes("demo=true")
+          ? route
+          : `${route}${separator}demo=true`;
+        router.push(url);
+      }
+
+      // Auto-clear highlight after duration
+      if (processedCall.name === "highlight_element") {
+        const durationMs = processedCall.args.durationMs ?? 4000;
+        setTimeout(() => {
+          dispatch({ type: "SET_HIGHLIGHT", selector: null });
+        }, durationMs);
+      }
+
+      // Fill form fields as DOM side effect
+      if (processedCall.name === "fill_form_fields") {
+        const fields = (processedCall.args as { fields: Record<string, string> }).fields;
+        Object.entries(fields).forEach(([fieldId, value]) => {
+          const el = document.querySelector(`#${fieldId}`) as HTMLInputElement | null;
+          if (el) {
+            // Use native input value setter for React controlled inputs
+            const nativeSetter = Object.getOwnPropertyDescriptor(
+              window.HTMLInputElement.prototype, 'value'
+            )?.set;
+            nativeSetter?.call(el, value);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+      }
+
+      // Select a card option via click
+      if (processedCall.name === "select_card_option") {
+        const cardId = (processedCall.args as { cardId: string }).cardId;
+        const el = document.querySelector(`[data-card-id="${cardId}"], [data-tour="cinematic-${cardId}"]`) as HTMLElement | null;
+        if (el) {
+          el.click();
+        }
+      }
+    },
+    [router],
+  );
+
+  // Register the dispatch function permanently with the orchestrator
+  // so autonomous scene machine actions (pre-actions, exit-actions) work
+  useEffect(() => {
+    demoOrchestrator.registerDispatch(dispatchToolCall);
+  }, [dispatchToolCall]);
+
   const handleToolCall = useCallback(
     (call: ConciergeToolCall) => {
       console.info(`[Tour] Concierge tool call: ${call.name}`, call.args);
-
       // Route through orchestrator for timing-sensitive calls
-      demoOrchestrator.processToolCall(call, (processedCall) => {
-        // Dispatch to reducer for instant state update
-        dispatch({ type: "TOOL_CALL", call: processedCall });
-
-        // Handle navigate_route as a side effect
-        if (processedCall.name === "navigate_route") {
-          const route = processedCall.args.route;
-          const separator = route.includes("?") ? "&" : "?";
-          const url = route.includes("demo=true")
-            ? route
-            : `${route}${separator}demo=true`;
-          router.push(url);
-        }
-
-        // Auto-clear highlight after duration
-        if (processedCall.name === "highlight_element") {
-          const durationMs = processedCall.args.durationMs ?? 4000;
-          setTimeout(() => {
-            dispatch({ type: "SET_HIGHLIGHT", selector: null });
-          }, durationMs);
-        }
-
-        // Fill form fields as DOM side effect
-        if (processedCall.name === "fill_form_fields") {
-          const fields = (processedCall.args as { fields: Record<string, string> }).fields;
-          Object.entries(fields).forEach(([fieldId, value]) => {
-            const el = document.querySelector(`#${fieldId}`) as HTMLInputElement | null;
-            if (el) {
-              // Use native input value setter for React controlled inputs
-              const nativeSetter = Object.getOwnPropertyDescriptor(
-                window.HTMLInputElement.prototype, 'value'
-              )?.set;
-              nativeSetter?.call(el, value);
-              el.dispatchEvent(new Event('input', { bubbles: true }));
-              el.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          });
-        }
-
-        // Select a card option via click
-        if (processedCall.name === "select_card_option") {
-          const cardId = (processedCall.args as { cardId: string }).cardId;
-          const el = document.querySelector(`[data-card-id="${cardId}"], [data-tour="cinematic-${cardId}"]`) as HTMLElement | null;
-          if (el) {
-            el.click();
-          }
-        }
-      });
+      demoOrchestrator.processToolCall(call, dispatchToolCall);
     },
-    [router],
+    [dispatchToolCall],
   );
 
   const conciergeVoice = useConciergeVoice(handleToolCall);

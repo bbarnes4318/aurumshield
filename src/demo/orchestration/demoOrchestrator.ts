@@ -1,9 +1,15 @@
 /* ================================================================
-   DEMO ORCHESTRATOR — Deterministic timing layer (v2)
+   DEMO ORCHESTRATOR — Deterministic timing layer (v3)
    
    Integrates the SceneStateMachine as the central authority for
    tool call timing. All tool calls from Gemini flow through here
    before reaching the TourProvider reducer.
+
+   v3 CRITICAL FIX: The external dispatch function is now registered
+   permanently via registerDispatch(), NOT transiently per tool call.
+   This ensures that autonomous scene machine actions (pre-actions,
+   exit-actions, silence-recovery auto-advance) actually dispatch
+   to the TourProvider instead of silently failing.
 
    Responsibilities:
      1. Route the scene state machine's pathname updates
@@ -27,7 +33,8 @@ export type OrchestratorEvent =
   | { type: "dom:ready"; selector: string }
   | { type: "tool:dispatched"; call: ConciergeToolCall }
   | { type: "tool:queued"; call: ConciergeToolCall; reason: string }
-  | { type: "tool:blocked"; call: ConciergeToolCall; reason: string };
+  | { type: "tool:blocked"; call: ConciergeToolCall; reason: string }
+  | { type: "tool:no-dispatch"; call: ConciergeToolCall; reason: string };
 
 export type OrchestratorListener = (event: OrchestratorEvent) => void;
 
@@ -36,6 +43,9 @@ export type OrchestratorListener = (event: OrchestratorEvent) => void;
 class DemoOrchestrator {
   private listeners = new Set<OrchestratorListener>();
   private currentPathname = "";
+
+  /** PERMANENT dispatch function — set once by TourProvider, used by all dispatches */
+  private permanentDispatch: ((call: ConciergeToolCall) => void) | null = null;
 
   /** Max ms to wait for DOM element before force-dispatching */
   private readonly DOM_TIMEOUT_MS = 3000;
@@ -64,6 +74,19 @@ class DemoOrchestrator {
     });
   }
 
+  /* ── Dispatch Registration ── */
+
+  /**
+   * Register the permanent dispatch function.
+   * Called ONCE by TourProvider during initialization.
+   * This function receives all tool calls from the scene machine
+   * (pre-actions, exit-actions, auto-advance dispatches).
+   */
+  registerDispatch(fn: (call: ConciergeToolCall) => void) {
+    this.permanentDispatch = fn;
+    console.info("[Orchestrator] Permanent dispatch registered");
+  }
+
   /* ── Route tracking ── */
 
   setCurrentPathname(pathname: string) {
@@ -78,15 +101,16 @@ class DemoOrchestrator {
   /**
    * Process a tool call through the scene state machine.
    * The machine handles idempotency, readiness gates, and ordering.
-   * The dispatch callback (set in constructor) calls executeDispatch,
-   * which calls the externalDispatch provided by the TourProvider.
+   * Uses the permanently registered dispatch function.
    */
   processToolCall(
     call: ConciergeToolCall,
-    externalDispatch: (call: ConciergeToolCall) => void,
+    _externalDispatch?: (call: ConciergeToolCall) => void,
   ): void {
-    // Store the external dispatch for this call chain
-    this._externalDispatch = externalDispatch;
+    // If we get a new dispatch function, update the permanent one
+    if (_externalDispatch && !this.permanentDispatch) {
+      this.permanentDispatch = _externalDispatch;
+    }
 
     // Route through the scene state machine for idempotency + ordering
     const dispatched = sceneStateMachine.handleToolCall(call);
@@ -100,12 +124,21 @@ class DemoOrchestrator {
     }
   }
 
-  // Temporary holder for the external dispatch during a processToolCall chain
-  private _externalDispatch: ((call: ConciergeToolCall) => void) | null = null;
-
   /* ── Internal dispatch (called by scene machine) ── */
 
   private executeDispatch(call: ConciergeToolCall) {
+    const dispatch = this.permanentDispatch;
+
+    if (!dispatch) {
+      console.warn(`[Orchestrator] No dispatch registered — dropping: ${call.name}`, call.args);
+      this.emit({
+        type: "tool:no-dispatch",
+        call,
+        reason: "No permanent dispatch registered",
+      });
+      return;
+    }
+
     // For queue_route_transition, convert to delayed navigate_route
     if (call.name === "queue_route_transition") {
       const args = call.args as { route: string; delayMs?: number };
@@ -115,7 +148,7 @@ class DemoOrchestrator {
           name: "navigate_route",
           args: { route: args.route },
         };
-        this._externalDispatch?.(navCall);
+        dispatch(navCall);
         this.emit({ type: "tool:dispatched", call: navCall });
       }, delayMs);
       return;
@@ -125,7 +158,7 @@ class DemoOrchestrator {
     if (call.name === "highlight_element" || call.name === "pin_focus_region") {
       const selector = (call.args as { selector: string }).selector;
       if (this.isDomReady(selector)) {
-        this._externalDispatch?.(call);
+        dispatch(call);
         this.emit({ type: "tool:dispatched", call });
       } else {
         this.emit({
@@ -134,7 +167,7 @@ class DemoOrchestrator {
           reason: `Waiting for DOM: ${selector}`,
         });
         this.waitForDom(selector, () => {
-          this._externalDispatch?.(call);
+          dispatch(call);
           this.emit({ type: "tool:dispatched", call });
         });
       }
@@ -142,7 +175,7 @@ class DemoOrchestrator {
     }
 
     // All other calls: dispatch immediately
-    this._externalDispatch?.(call);
+    dispatch(call);
     this.emit({ type: "tool:dispatched", call });
   }
 
@@ -203,6 +236,7 @@ class DemoOrchestrator {
 
   destroy() {
     this.listeners.clear();
+    this.permanentDispatch = null;
     sceneStateMachine.destroy();
   }
 }
