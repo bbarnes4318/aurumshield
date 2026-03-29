@@ -1,0 +1,37 @@
+﻿commit 38f9cb7cfd8c5f955f19554a306dc4933a6d9de1
+Author: Braden Barnes <bbarnes4318@gmail.com>
+Date:   Sat Mar 28 18:59:04 2026 -0400
+
+    feat: cinematic marketplace hero + mandatory override audit - Expand Act V to 7 micro-scenes (hero/asset/custody/rail/cost/total/handoff) - Add useMarketplaceDemoOrchestration hook for staged reveal - Rewrite concierge system instruction: grounded scene-aware, not verbatim - Add emotional arc directive (authority->excitement->solemnity->proof) - Upgrade Q&A recovery from mechanical to natural authoritative - Add marketplace data-tour anchors and demo Proceed to Review CTA - Fix demo routing to use ?demo=true consistently - Fix validate-tours.ts optional chaining on step.next - Update scene registry labels and grounded topics - All 7 route/selector pairs verified, build passing
+
+ src/app/demo/page.tsx                              |  16 +-
+ src/app/institutional/first-trade/review/page.tsx  |   2 +-
+ src/app/institutional/first-trade/success/page.tsx |   2 +-
+ .../get-started/verification/page.tsx              |  18 +-
+ src/app/institutional/marketplace/page.tsx         |  75 +-
+ src/components/demo/DemoGuideOverlay.tsx           |  19 +-
+ .../demo/verification/ComplianceDecisionPanel.tsx  | 171 +++++
+ .../demo/verification/DocumentPackagePanel.tsx     | 170 +++++
+ .../demo/verification/SanctionsScreeningPanel.tsx  | 166 +++++
+ .../demo/verification/SourceOfFundsPanel.tsx       | 209 ++++++
+ src/components/demo/verification/UBOGraphPanel.tsx | 190 +++++
+ .../verification/VerificationEvidenceWorkspace.tsx | 229 ++++++
+ src/demo/concierge/ConciergeSubtitles.tsx          |  83 ++-
+ src/demo/concierge/conciergeKnowledgePack.ts       | 171 +++++
+ src/demo/concierge/conciergeTypes.ts               | 447 ++++++++++--
+ src/demo/concierge/useConciergeVoice.ts            |  53 +-
+ src/demo/data/demoConstants.ts                     | 384 ++++++++++
+ src/demo/data/useDemoFirstTradeDraft.ts            | 123 ++++
+ src/demo/hooks/useMarketplaceDemoOrchestration.ts  | 137 ++++
+ src/demo/orchestration/demoOrchestrator.ts         | 211 ++++++
+ src/demo/orchestration/demoSceneRegistry.ts        | 213 ++++++
+ src/demo/orchestration/microSceneDefinitions.ts    | 513 +++++++++++++
+ src/demo/orchestration/sceneStateMachine.ts        | 568 +++++++++++++++
+ src/demo/orchestration/useDemoSceneSync.ts         | 158 ++++
+ src/demo/tour-engine/TourDebugPanel.tsx            |  18 +-
+ src/demo/tour-engine/TourOverlay.tsx               |  16 +-
+ src/demo/tour-engine/TourProvider.tsx              | 177 ++++-
+ src/demo/tour-engine/tourTypes.ts                  |  38 +-
+ src/demo/tour-engine/validate-tours.ts             |   4 +-
+ src/demo/tours/institutional-concierge.ts          | 811 ++++++++++++++-------
+ 30 files changed, 4944 insertions(+), 448 deletions(-)

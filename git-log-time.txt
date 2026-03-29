@@ -1,0 +1,15 @@
+﻿538bdb7 2026-03-28 19:28:31 -0400 revert: restore demo buttons to /institutional/get-started/welcome?demo=true (concierge tour)
+ac6bcfd 2026-03-28 19:14:15 -0400 fix: route homepage demo buttons to /demo/walkthrough instead of old cinematic tour
+38f9cb7 2026-03-28 18:59:04 -0400 feat: cinematic marketplace hero + mandatory override audit - Expand Act V to 7 micro-scenes (hero/asset/custody/rail/cost/total/handoff) - Add useMarketplaceDemoOrchestration hook for staged reveal - Rewrite concierge system instruction: grounded scene-aware, not verbatim - Add emotional arc directive (authority->excitement->solemnity->proof) - Upgrade Q&A recovery from mechanical to natural authoritative - Add marketplace data-tour anchors and demo Proceed to Review CTA - Fix demo routing to use ?demo=true consistently - Fix validate-tours.ts optional chaining on step.next - Update scene registry labels and grounded topics - All 7 route/selector pairs verified, build passing
+8a24eea 2026-03-28 13:11:52 -0400 fix: wire demo button to auto-start institutional concierge tour on ?demo=true
+61d48a4 2026-03-28 12:47:13 -0400 quarantine /offtaker/* legacy routes, centralize redirect map, fix marketing CTAs, 8-phase buyer journey, lint cleanup
+9163180 2026-03-28 11:21:16 -0400 fix: handle forwardRef lucide icons in StepShell ΓÇö fixes React error #31
+16c51a4 2026-03-28 10:52:43 -0400 ui: premium institutional onboarding ΓÇö contextual icons, no logo duplication, larger typography, remove debug alerts
+f2d7c53 2026-03-28 10:43:32 -0400 fix: add KYCAID_BUSINESS_ACTIVITY_ID to CI deploy.yml + switch to test mode
+43a3517 2026-03-28 10:40:41 -0400 chore: remove debug file
+69367d0 2026-03-28 10:40:31 -0400 fix: add KYCAID_BUSINESS_ACTIVITY_ID + fix adapter response parsing
+f8c5d63 2026-03-28 09:45:37 -0400 fix: route demo + institutional CTAs to new /institutional portal
+4c873eb 2026-03-28 09:40:01 -0400 fix: send required business_activity_id, phone, email to KYCaid POST /applicants ΓÇö fixes HTTP 422 validation error
+7f43050 2026-03-28 09:11:45 -0400 debug: alert on non-REDIRECT verification response to diagnose KYCaid routing
+e760d1d 2026-03-28 09:05:49 -0400 fix: KYCaid-only routing, ruthless viewport compaction, GEMINI_API_KEY
+a367b28 2026-03-28 08:31:58 -0400 fix: KYCaid-only routing, single-viewport layout - no scroll, no iDenfy

@@ -1,0 +1,40 @@
+﻿538bdb7 revert: restore demo buttons to /institutional/get-started/welcome?demo=true (concierge tour)
+ac6bcfd fix: route homepage demo buttons to /demo/walkthrough instead of old cinematic tour
+38f9cb7 feat: cinematic marketplace hero + mandatory override audit - Expand Act V to 7 micro-scenes (hero/asset/custody/rail/cost/total/handoff) - Add useMarketplaceDemoOrchestration hook for staged reveal - Rewrite concierge system instruction: grounded scene-aware, not verbatim - Add emotional arc directive (authority->excitement->solemnity->proof) - Upgrade Q&A recovery from mechanical to natural authoritative - Add marketplace data-tour anchors and demo Proceed to Review CTA - Fix demo routing to use ?demo=true consistently - Fix validate-tours.ts optional chaining on step.next - Update scene registry labels and grounded topics - All 7 route/selector pairs verified, build passing
+8a24eea fix: wire demo button to auto-start institutional concierge tour on ?demo=true
+61d48a4 quarantine /offtaker/* legacy routes, centralize redirect map, fix marketing CTAs, 8-phase buyer journey, lint cleanup
+9163180 fix: handle forwardRef lucide icons in StepShell ΓÇö fixes React error #31
+16c51a4 ui: premium institutional onboarding ΓÇö contextual icons, no logo duplication, larger typography, remove debug alerts
+f2d7c53 fix: add KYCAID_BUSINESS_ACTIVITY_ID to CI deploy.yml + switch to test mode
+43a3517 chore: remove debug file
+69367d0 fix: add KYCAID_BUSINESS_ACTIVITY_ID + fix adapter response parsing
+f8c5d63 fix: route demo + institutional CTAs to new /institutional portal
+4c873eb fix: send required business_activity_id, phone, email to KYCaid POST /applicants ΓÇö fixes HTTP 422 validation error
+7f43050 debug: alert on non-REDIRECT verification response to diagnose KYCaid routing
+e760d1d fix: KYCaid-only routing, ruthless viewport compaction, GEMINI_API_KEY
+a367b28 fix: KYCaid-only routing, single-viewport layout - no scroll, no iDenfy
+cdff439 fix: layout overflow + verification button always routes to KYCaid for non-APPROVED cases
+8f6052f feat: bulletproof demo - strict topic boundary, WebSocket fallback mode, hardResetDemo, temp=0.2
+a1a6526 feat: master concierge choreography ΓÇö 5-step verbatim script with data-tour selectors and tool call sequences
+7d90ba4 feat: cinematic concierge voice system ΓÇö Gemini Live API integration with backdrop-blur spotlight, real-time subtitles, premium HUD overlay
+6113cfe fix: hard overflow-hidden on MissionLayout - no scrollbar ever
+53b2645 fix: switch to KYCAID provider + add API keys + scrollbar fixes
+1d9fa9b ci: fix Docker Hub auth failure - logout before buildx setup
+04d7218 fix: add UNIQUE index on user_id for ON CONFLICT upsert
+29b6d9b fix: add status, started_at, last_seen_at to schema self-heal
+37db4fa fix: comprehensive schema self-healing - checks ALL columns upfront
+1313cc4 fix: auto-migrate current_step + logo box removal + route consistency
+a76fb48 ux: execution readiness panels + institutional support rail + versioned instructions
+2e9ef26 copy: upgrade trust language across guided journey
+625a909 refactor: eliminate mock data from institutional workspace
+1b3dad5 feat: settlement case post-authorization operational center
+dba5e4d ui: replace step icons with AurumShield logo, remove header logo, purge KYCaid vendor references
+25e0cb2 fix: auto-migrate missing onboarding columns on deploy + fix admin auth to use CRON_SECRET_KEY
+261cd26 fix: add missing current_step and metadata_json columns to onboarding migration
+9f07f9d fix: add missing onboarding_state columns to migration endpoint (org_id, provider_inquiry_id, status_reason)
+a6c2cf4 feat: streamline institutional onboarding to minimal pre-screen + fix MissionLayout clipping
+88abc66 fix: add migrate-kycaid to public routes in middleware
+d00dd00 fix: widen provider type to include KYCAID in all action/hook interfaces (build fix)
+2509cb8 chore: add one-time admin migration endpoint for kycaid_webhook_log table
+b090609 feat(compliance): migrate active vendor to KYCaid for institutional KYC/KYB/AML flows
+86429ce fix: use IDENFY_WEBHOOK_SECRET for migration endpoint auth (CRON_SECRET_KEY unavailable at build time)
