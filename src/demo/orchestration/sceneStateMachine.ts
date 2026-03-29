@@ -472,14 +472,17 @@ export class SceneStateMachine {
         `Silence recovery triggered (${this.currentScene.silenceRecoveryMs}ms)`,
       );
 
-      // For strict scenes (Act VII), do NOT auto-advance — just log
-      if (this.currentScene.id.startsWith("act-7")) {
+      // For the authorization boundary scene ONLY, do NOT auto-advance — just listen
+      if (this.currentScene.id === "act-7-boundary") {
         this.setPhase("LISTENING");
         return;
       }
 
-      // For other scenes, transition to LISTENING (system instruction handles the nudge)
-      this.setPhase("LISTENING");
+      // DETERMINISTIC: Auto-advance to next scene.
+      // This is the failsafe — if the AI doesn't fire advance_tour_step,
+      // the scene machine forces the demo forward anyway.
+      this.log("info", "Auto-advancing (deterministic failsafe)");
+      this.advanceToNextScene();
     }, this.currentScene.silenceRecoveryMs);
   }
 

@@ -11,8 +11,14 @@
    - allowedInterruptions: how the user can interrupt
    - transitionCondition:  what triggers moving to the next micro-scene
    - exitActions:          tool calls fired AFTER narration ends
-   - silenceRecoveryMs:    dead-air timeout (0 = disabled)
+   - silenceRecoveryMs:    DETERMINISTIC FAILSAFE — auto-advance after
+                           this duration if the AI hasn't fired
+                           advance_tour_step. Set to 0 for instant
+                           "wait-for-route" transitions.
 
+   DETERMINISTIC GUARANTEE: Every scene auto-advances after its
+   silenceRecoveryMs even if the AI voice fails entirely.
+   The AI can advance EARLIER by calling advance_tour_step.
    All routes use ?demo=true — never ?demo=active.
    ================================================================ */
 
@@ -42,11 +48,14 @@ export interface MicroScene {
   transitionCondition: TransitionCondition;
   /** Tool calls fired AFTER narration ends */
   exitActions: ConciergeToolCall[];
-  /** Dead-air silence timeout in ms (0 = disabled) */
+  /** DETERMINISTIC max duration in ms. Auto-advance after this. 0 = instant. */
   silenceRecoveryMs: number;
 }
 
-/* ---------- Act I — Institutional Welcome ---------- */
+/* ══════════════════════════════════════════════════════════════════
+   ACT I — INSTITUTIONAL WELCOME  (~50 seconds)
+   Route: /institutional/get-started/welcome
+   ══════════════════════════════════════════════════════════════════ */
 
 const act1: MicroScene[] = [
   {
@@ -59,11 +68,14 @@ const act1: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "tool-call",
     exitActions: [{ name: "advance_tour_step", args: {} }],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 50000,  // 50s max for welcome narration
   },
 ];
 
-/* ---------- Act II — Organization & Entity Setup ---------- */
+/* ══════════════════════════════════════════════════════════════════
+   ACT II — ORGANIZATION & ENTITY SETUP  (~40 seconds)
+   Route: /institutional/get-started/organization
+   ══════════════════════════════════════════════════════════════════ */
 
 const act2: MicroScene[] = [
   {
@@ -78,7 +90,7 @@ const act2: MicroScene[] = [
     allowedInterruptions: "none",
     transitionCondition: "auto",
     exitActions: [],
-    silenceRecoveryMs: 0,
+    silenceRecoveryMs: 0,  // Instant — just a route transition
   },
   {
     id: "act-2-entity-form",
@@ -93,13 +105,18 @@ const act2: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "tool-call",
     exitActions: [{ name: "advance_tour_step", args: {} }],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 40000,  // 40s max
   },
 ];
 
-/* ---------- Act III — KYB / UBO / AML Perimeter ---------- */
+/* ══════════════════════════════════════════════════════════════════
+   ACT III — KYB / UBO / AML PERIMETER  (~90 seconds total)
+   Route: /institutional/get-started/verification
+   6 micro-scenes: navigate → overview → documents → UBO → sanctions → decision
+   ══════════════════════════════════════════════════════════════════ */
 
 const act3: MicroScene[] = [
+  // 3.0 — Navigate to verification
   {
     id: "act-3-navigate",
     actId: "act-3-verification",
@@ -114,6 +131,7 @@ const act3: MicroScene[] = [
     exitActions: [],
     silenceRecoveryMs: 0,
   },
+  // 3.1 — Overview of the compliance perimeter
   {
     id: "act-3-overview",
     actId: "act-3-verification",
@@ -126,8 +144,9 @@ const act3: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "auto",
     exitActions: [],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 15000,  // 15s overview
   },
+  // 3.2 — Entity verification documents panel
   {
     id: "act-3-documents",
     actId: "act-3-verification",
@@ -143,8 +162,9 @@ const act3: MicroScene[] = [
       { name: "close_demo_panel", args: { panelId: "documents" } },
       { name: "set_checklist_item_state", args: { itemKey: "entityVerificationPassed", status: "done" } },
     ],
-    silenceRecoveryMs: 12000,
+    silenceRecoveryMs: 20000,  // 20s for 8-document narration
   },
+  // 3.3 — UBO review panel
   {
     id: "act-3-ubo",
     actId: "act-3-verification",
@@ -160,8 +180,9 @@ const act3: MicroScene[] = [
       { name: "close_demo_panel", args: { panelId: "ubo" } },
       { name: "set_checklist_item_state", args: { itemKey: "uboReviewPassed", status: "done" } },
     ],
-    silenceRecoveryMs: 12000,
+    silenceRecoveryMs: 18000,  // 18s for UBO narration
   },
+  // 3.4 — AML / Sanctions screening panel
   {
     id: "act-3-sanctions",
     actId: "act-3-verification",
@@ -177,8 +198,9 @@ const act3: MicroScene[] = [
       { name: "close_demo_panel", args: { panelId: "sanctions" } },
       { name: "set_checklist_item_state", args: { itemKey: "screeningPassed", status: "done" } },
     ],
-    silenceRecoveryMs: 12000,
+    silenceRecoveryMs: 18000,  // 18s for sanctions narration
   },
+  // 3.5 — Compliance decision (all checks pass)
   {
     id: "act-3-decision",
     actId: "act-3-verification",
@@ -191,11 +213,14 @@ const act3: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "tool-call",
     exitActions: [{ name: "advance_tour_step", args: {} }],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 15000,  // 15s for decision wrap-up
   },
 ];
 
-/* ---------- Act IV — Funding Rail Configuration ---------- */
+/* ══════════════════════════════════════════════════════════════════
+   ACT IV — FUNDING RAIL CONFIGURATION  (~40 seconds)
+   Route: /institutional/get-started/funding
+   ══════════════════════════════════════════════════════════════════ */
 
 const act4: MicroScene[] = [
   {
@@ -224,7 +249,7 @@ const act4: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "auto",
     exitActions: [],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 15000,  // 15s overview of funding options
   },
   {
     id: "act-4-config",
@@ -239,14 +264,18 @@ const act4: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "tool-call",
     exitActions: [{ name: "advance_tour_step", args: {} }],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 25000,  // 25s for stablecoin explanation
   },
 ];
 
-/* ---------- Act V — Marketplace: The Cinematic Centerpiece ---------- */
+/* ══════════════════════════════════════════════════════════════════
+   ACT V — MARKETPLACE: THE CINEMATIC CENTERPIECE  (~90 seconds)
+   Route: /institutional/marketplace
+   7 micro-scenes with phased reveal driven by __marketplacePhase
+   ══════════════════════════════════════════════════════════════════ */
 
 const act5: MicroScene[] = [
-  // 5.0 — Navigate to marketplace
+  // 5.0 — Navigate
   {
     id: "act-5-navigate",
     actId: "act-5-marketplace",
@@ -261,7 +290,7 @@ const act5: MicroScene[] = [
     exitActions: [],
     silenceRecoveryMs: 0,
   },
-  // 5.1 — Hero moment: let the gold imagery breathe
+  // 5.1 — Hero moment
   {
     id: "act-5-hero",
     actId: "act-5-marketplace",
@@ -275,9 +304,9 @@ const act5: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "auto",
     exitActions: [],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 15000,  // 15s hero moment
   },
-  // 5.2 — Auto-select 400oz LBMA bar
+  // 5.2 — Asset selection
   {
     id: "act-5-asset-select",
     actId: "act-5-marketplace",
@@ -291,9 +320,9 @@ const act5: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "auto",
     exitActions: [],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 12000,  // 12s asset narration
   },
-  // 5.3 — Set custody to Zurich vaulting
+  // 5.3 — Custody
   {
     id: "act-5-custody",
     actId: "act-5-marketplace",
@@ -306,9 +335,9 @@ const act5: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "auto",
     exitActions: [],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 12000,
   },
-  // 5.4 — Set settlement rail (USDT stablecoin)
+  // 5.4 — Settlement rail
   {
     id: "act-5-rail",
     actId: "act-5-marketplace",
@@ -321,9 +350,9 @@ const act5: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "auto",
     exitActions: [],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 12000,
   },
-  // 5.5 — Animate cost derivation line by line
+  // 5.5 — Cost derivation
   {
     id: "act-5-cost",
     actId: "act-5-marketplace",
@@ -336,9 +365,9 @@ const act5: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "auto",
     exitActions: [],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 15000,  // 15s for line-by-line cost breakdown
   },
-  // 5.6 — Total reveal and handoff to review
+  // 5.6 — Total reveal + handoff
   {
     id: "act-5-total",
     actId: "act-5-marketplace",
@@ -354,11 +383,14 @@ const act5: MicroScene[] = [
       { name: "set_tour_state", args: { key: "__marketplacePhase", value: "complete" } },
       { name: "advance_tour_step", args: {} },
     ],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 18000,  // 18s max, then auto-advance
   },
 ];
 
-/* ---------- Act VI — Commercial Review ---------- */
+/* ══════════════════════════════════════════════════════════════════
+   ACT VI — COMMERCIAL REVIEW  (~30 seconds)
+   Route: /institutional/first-trade/review
+   ══════════════════════════════════════════════════════════════════ */
 
 const act6: MicroScene[] = [
   {
@@ -380,18 +412,21 @@ const act6: MicroScene[] = [
     actId: "act-6-review",
     route: "/institutional/first-trade/review",
     requiredSelectors: [],
-    preActions: [
-      { name: "highlight_element", args: { selector: '[data-tour="review-summary"]', durationMs: 8000 } },
-    ],
+    preActions: [],
     narrationBlockId: "act-6-body",
     allowedInterruptions: "qa-only",
     transitionCondition: "tool-call",
     exitActions: [{ name: "advance_tour_step", args: {} }],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 30000,  // 30s review narration
   },
 ];
 
-/* ---------- Act VII — Authorization Boundary (STRICT) ---------- */
+/* ══════════════════════════════════════════════════════════════════
+   ACT VII — AUTHORIZATION BOUNDARY  (~45 seconds)
+   Route: /institutional/first-trade/authorize
+   NOTE: This is the ONLY act where auto-advance is DISABLED.
+   The user must explicitly proceed (voice says "when you're ready").
+   ══════════════════════════════════════════════════════════════════ */
 
 const act7: MicroScene[] = [
   {
@@ -422,9 +457,9 @@ const act7: MicroScene[] = [
     exitActions: [
       { name: "set_voice_mode", args: { mode: "paused" } },
     ],
-    // STRICT: No auto-advance. 15s silence timeout (longer than default).
-    // The system instruction handles the pause; we don't auto-advance here.
-    silenceRecoveryMs: 15000,
+    // Act VII: NO auto-advance. This is the deliberate pause point.
+    // The scene machine's silence handler checks for "act-7" prefix and skips auto-advance.
+    silenceRecoveryMs: 30000,
   },
   {
     id: "act-7-proceed",
@@ -438,11 +473,14 @@ const act7: MicroScene[] = [
     allowedInterruptions: "qa-only",
     transitionCondition: "tool-call",
     exitActions: [{ name: "advance_tour_step", args: {} }],
-    silenceRecoveryMs: 0,
+    silenceRecoveryMs: 20000,  // 20s then auto-advance to success
   },
 ];
 
-/* ---------- Act VIII — Success + Settlement ---------- */
+/* ══════════════════════════════════════════════════════════════════
+   ACT VIII — SUCCESS + SETTLEMENT LIFECYCLE  (~60 seconds)
+   Route: /institutional/first-trade/success
+   ══════════════════════════════════════════════════════════════════ */
 
 const act8: MicroScene[] = [
   {
@@ -465,7 +503,6 @@ const act8: MicroScene[] = [
     route: "/institutional/first-trade/success",
     requiredSelectors: [],
     preActions: [
-      { name: "highlight_element", args: { selector: '[data-tour="settlement-confirmation"]', durationMs: 6000 } },
       { name: "trigger_settlement_stage", args: { stage: "CASE_OPENED" } },
     ],
     narrationBlockId: "act-8-body",
@@ -474,7 +511,7 @@ const act8: MicroScene[] = [
     exitActions: [
       { name: "set_voice_mode", args: { mode: "listening" } },
     ],
-    silenceRecoveryMs: 10000,
+    silenceRecoveryMs: 60000,  // 60s — settlement animation runs 45s, voice wraps up
   },
 ];
 
