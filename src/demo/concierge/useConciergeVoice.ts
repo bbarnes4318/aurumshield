@@ -359,9 +359,30 @@ export function useConciergeVoice(
       // across reconnect attempts to enforce MAX_AUTO_RETRIES.
       console.info("[Concierge] Session fully active — mic and playback ready");
 
-      // The system instruction already tells the AI to speak first.
-      // Do NOT call sendClientContent — ephemeral token sessions
-      // reject it with "Request contains an invalid argument."
+      // Kick the AI to speak first. Without this, Gemini Live waits
+      // silently for meaningful user audio. Delay briefly to let the
+      // WebSocket fully stabilize before sending client content.
+      setTimeout(() => {
+        if (!activeRef.current || !sessionRef.current) return;
+        try {
+          sessionRef.current.sendClientContent({
+            turns: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: "Begin the walkthrough now.",
+                  },
+                ],
+              },
+            ],
+            turnComplete: true,
+          });
+          console.info("[Concierge] Initial kickoff message sent");
+        } catch (kickoffErr) {
+          console.warn("[Concierge] Kickoff failed (non-fatal):", kickoffErr);
+        }
+      }, 500);
     } catch (err) {
       console.error("[Concierge] Failed to start session:", err);
       // Don't surface raw errors — enter fallback gracefully
