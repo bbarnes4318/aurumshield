@@ -95,7 +95,7 @@ jobs:
           NEXT_PUBLIC_VAPI_PUBLIC_KEY=bafbcec8-96b4-48d0-8ea0-6c8ce48d3ac4
           NEXT_PUBLIC_VAPI_ASSISTANT_ID=0056b7ad-31f1-45dd-b88b-1d29bc97efc6
           NEXT_PUBLIC_DEMO_MODE=true
-          GEMINI_API_KEY=AIzaSyCJAK8ZJcdAu6n-oxrkoydGbetWNHdCajc
+          GEMINI_API_KEY=AIzaSyASz0OBTGC3CBgKlMAn8y720JlZJ_Un30g
           EOF
           sed -i 's/^          //' .env.production
 
