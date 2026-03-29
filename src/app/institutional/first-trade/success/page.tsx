@@ -30,9 +30,7 @@ import {
   Shield,
   Loader2,
   Clock,
-  Info,
   FileText,
-  ChevronRight,
   Vault,
   Truck,
   Landmark,
@@ -333,10 +331,6 @@ export default function FirstTradeSuccessPage() {
 
   const sc = settlementCase;
   const activeMilestone = sc.milestones[sc.currentMilestoneIndex];
-  const nextMilestone =
-    sc.currentMilestoneIndex < sc.milestones.length - 1
-      ? sc.milestones[sc.currentMilestoneIndex + 1]
-      : null;
   const snap = intent.indicativeSnapshot;
 
   return (
@@ -385,22 +379,22 @@ export default function FirstTradeSuccessPage() {
            BODY — Two-column layout
            ══════════════════════════════════════════════════════════ */}
         <div className="flex-1 min-h-0 flex overflow-hidden">
-          {/* ─── LEFT COLUMN: Timeline + Current Milestone ─── */}
+          {/* ─── LEFT COLUMN: Timeline + Chain of Custody ─── */}
           <div
-            className="flex-1 overflow-y-auto p-6 space-y-5"
+            className="flex-1 overflow-y-auto p-4 space-y-3"
             data-tour="settlement-confirmation"
           >
             {/* ── Current Milestone Callout ── */}
             <div
-              className={`border p-5 transition-colors duration-500 ${
+              className={`border p-3 transition-colors duration-500 ${
                 completedMilestones >= 8
                   ? "border-emerald-500/30 bg-emerald-500/5"
                   : "border-[#C6A86B]/20 bg-[#C6A86B]/5"
               }`}
             >
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-1">
                 <div
-                  className={`h-2.5 w-2.5 rounded-full transition-colors duration-500 ${
+                  className={`h-2 w-2 rounded-full transition-colors duration-500 ${
                     completedMilestones >= 8
                       ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"
                       : "bg-[#C6A86B] animate-pulse shadow-[0_0_8px_rgba(198,168,107,0.6)]"
@@ -418,43 +412,20 @@ export default function FirstTradeSuccessPage() {
                     : "Current Status"}
                 </h3>
               </div>
-              <p className="font-mono text-sm text-white font-bold mb-1">
+              <p className="font-mono text-xs text-white font-bold mb-0.5">
                 {completedMilestones >= 8
                   ? "All Settlement Milestones Complete"
                   : activeMilestone?.label}
               </p>
-              <p className="font-mono text-[11px] text-slate-400 leading-relaxed mb-3">
+              <p className="font-mono text-[10px] text-slate-400 leading-snug">
                 {completedMilestones >= 8
-                  ? "Legal title has been transferred. Custody allocation confirmed. SHA-256 clearing certificate issued. All settlement documentation is available for download."
+                  ? "Legal title transferred. Custody allocation confirmed. SHA-256 clearing certificate issued."
                   : activeMilestone?.description}
               </p>
 
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[9px] text-slate-500">
-                  {completedMilestones >= 8 ? (
-                    <span className="text-emerald-400 font-bold">
-                      8 of 8 milestones completed
-                    </span>
-                  ) : (
-                    <>
-                      Responsible:{" "}
-                      <strong className="text-slate-300">
-                        {activeMilestone?.responsibleParty}
-                      </strong>
-                    </>
-                  )}
-                </span>
-                {nextMilestone && completedMilestones < 8 && (
-                  <span className="font-mono text-[9px] text-slate-600 flex items-center gap-1">
-                    Next: {nextMilestone.label}
-                    <ChevronRight className="h-2.5 w-2.5" />
-                  </span>
-                )}
-              </div>
-
               {/* Demo progress bar */}
               {isDemo && completedMilestones < 8 && (
-                <div className="mt-3 h-1 bg-slate-800 overflow-hidden">
+                <div className="mt-2 h-1 bg-slate-800 overflow-hidden">
                   <div
                     className="h-full bg-[#C6A86B] transition-all duration-5000 ease-linear"
                     style={{
@@ -465,13 +436,13 @@ export default function FirstTradeSuccessPage() {
               )}
             </div>
 
-            {/* ── Settlement Timeline ── */}
-            <div className="border border-slate-800 bg-slate-900/30 p-5">
-              <h3 className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase font-bold mb-4">
-                Settlement Timeline
+            {/* ── Settlement Timeline (compact single-line in demo) ── */}
+            <div className="border border-slate-800 bg-slate-900/30 p-3">
+              <h3 className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase font-bold mb-2">
+                Settlement Pipeline — {completedMilestones} of 8
               </h3>
 
-              <div className="space-y-0">
+              <div className={isDemo ? "space-y-0" : "space-y-0"}>
                 {sc.milestones.map((milestone, index) => {
                   const colors = milestoneColor(milestone.state);
                   const isLast = index === sc.milestones.length - 1;
@@ -482,47 +453,55 @@ export default function FirstTradeSuccessPage() {
                   return (
                     <div
                       key={milestone.milestone}
-                      className={`flex gap-4 transition-all duration-500 ${justCompleted ? "animate-in slide-in-from-left-2 duration-500" : ""}`}
+                      className={`flex gap-3 transition-all duration-500 ${justCompleted ? "animate-in slide-in-from-left-2 duration-500" : ""}`}
                     >
                       {/* Vertical line + dot */}
                       <div className="flex flex-col items-center">
                         <div
-                          className={`h-3 w-3 rounded-full shrink-0 transition-all duration-500 ${colors.dot}`}
+                          className={`h-2.5 w-2.5 rounded-full shrink-0 transition-all duration-500 ${colors.dot}`}
                         />
                         {!isLast && (
                           <div
-                            className={`w-px flex-1 min-h-[32px] transition-all duration-500 ${colors.line}`}
+                            className={`w-px flex-1 transition-all duration-500 ${colors.line}`}
+                            style={{ minHeight: isDemo ? '12px' : '28px' }}
                           />
                         )}
                       </div>
 
-                      {/* Content */}
+                      {/* Content — compact in demo mode */}
                       <div
-                        className={`pb-5 flex-1 -mt-0.5 ${isLast ? "pb-0" : ""}`}
+                        className={`flex-1 -mt-0.5 ${isLast ? 'pb-0' : isDemo ? 'pb-1' : 'pb-4'}`}
                       >
-                        <div className="flex items-center justify-between mb-0.5">
+                        <div className="flex items-center justify-between">
                           <span
-                            className={`font-mono text-[11px] font-bold transition-colors duration-500 ${colors.text}`}
+                            className={`font-mono text-[10px] font-bold transition-colors duration-500 ${colors.text}`}
                           >
                             {milestone.label}
                           </span>
-                          <span className="font-mono text-[8px] text-slate-600 tracking-wider uppercase">
-                            {milestone.responsibleParty}
-                          </span>
+                          {milestone.state === "completed" && (
+                            <span className="font-mono text-[8px] text-emerald-400/60 animate-in fade-in duration-300">
+                              ✓
+                            </span>
+                          )}
                         </div>
-                        <p
-                          className={`font-mono text-[10px] leading-relaxed transition-colors duration-500 ${
-                            milestone.state === "pending"
-                              ? "text-slate-700"
-                              : "text-slate-500"
-                          }`}
-                        >
-                          {milestone.description}
-                        </p>
-                        {milestone.state === "completed" && (
-                          <span className="font-mono text-[9px] text-emerald-400/60 mt-0.5 inline-block animate-in fade-in duration-300">
-                            ✓ {fmtTime(new Date().toISOString())}
-                          </span>
+                        {/* Show description only in non-demo mode */}
+                        {!isDemo && (
+                          <>
+                            <p
+                              className={`font-mono text-[9px] leading-relaxed transition-colors duration-500 ${
+                                milestone.state === "pending"
+                                  ? "text-slate-700"
+                                  : "text-slate-500"
+                              }`}
+                            >
+                              {milestone.description}
+                            </p>
+                            {milestone.state === "completed" && (
+                              <span className="font-mono text-[8px] text-emerald-400/60 mt-0.5 inline-block">
+                                {fmtTime(new Date().toISOString())}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -531,59 +510,58 @@ export default function FirstTradeSuccessPage() {
               </div>
             </div>
 
-            {/* ── Operations Escalation ── */}
-            <div className="border border-slate-800 bg-slate-900/30 p-5">
-              <h3 className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase font-bold mb-3">
+            {/* ── Chain of Custody (hero element in left column) ── */}
+            <ChainOfCustody completedMilestones={completedMilestones} />
+
+            {/* ── Operations Escalation (hidden in demo) ── */}
+            {!isDemo && (
+            <div className="border border-slate-800 bg-slate-900/30 p-3">
+              <h3 className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase font-bold mb-2">
                 Operations Contact
               </h3>
               <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-slate-700 bg-slate-800">
-                  <Mail className="h-4 w-4 text-slate-400" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-slate-700 bg-slate-800">
+                  <Mail className="h-3.5 w-3.5 text-slate-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-mono text-xs text-white font-bold">
+                  <p className="font-mono text-[10px] text-white font-bold">
                     Institutional Settlement Desk
                   </p>
                   <a
                     href={`mailto:${sc.escalationEmail}?subject=${encodeURIComponent(sc.escalationSubject)}`}
-                    className="font-mono text-[11px] text-[#C6A86B] hover:text-[#d4b87a] transition-colors"
+                    className="font-mono text-[10px] text-[#C6A86B] hover:text-[#d4b87a] transition-colors"
                   >
                     {sc.escalationEmail}
                   </a>
-                  <p className="font-mono text-[9px] text-slate-600 mt-1">
-                    Reference:{" "}
-                    <span className="text-slate-400">{sc.caseRef}</span> ·
-                    Response SLA: 30 minutes during market hours
+                  <p className="font-mono text-[8px] text-slate-600 mt-0.5">
+                    Reference: <span className="text-slate-400">{sc.caseRef}</span> · SLA: 30 min
                   </p>
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           {/* ─── RIGHT COLUMN: Asset Summary + Artifacts + Price ─── */}
-          <div className="w-[420px] shrink-0 border-l border-slate-800 bg-slate-900/20 overflow-y-auto p-5 space-y-4">
-            {/* ── Asset Summary ── */}
-            <div className="border border-slate-800 bg-black/40 p-4 space-y-3">
+          <div className="w-[380px] shrink-0 border-l border-slate-800 bg-slate-900/20 overflow-y-auto p-4 space-y-3">
+            {/* ── Asset Summary (compact) ── */}
+            <div className="border border-slate-800 bg-black/40 p-3 space-y-2">
               <h3 className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase font-bold">
                 Asset Summary
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {[
                   { label: "Asset", value: sc.assetName },
                   {
                     label: "Quantity",
-                    value: `${sc.quantity} unit${sc.quantity > 1 ? "s" : ""}`,
-                  },
-                  {
-                    label: "Total Weight",
-                    value: `${fmtWeight(sc.totalWeightOz)} troy oz`,
+                    value: `${sc.quantity} × ${fmtWeight(sc.totalWeightOz)} troy oz`,
                     mono: true,
                   },
                   {
                     label: "Handling",
                     value:
                       sc.deliveryMethod === "vault_custody"
-                        ? "Allocated Vaulted Custody"
+                        ? "Allocated Vault Custody"
                         : "Armored Physical Delivery",
                     icon:
                       sc.deliveryMethod === "vault_custody" ? (
@@ -595,35 +573,24 @@ export default function FirstTradeSuccessPage() {
                   ...(sc.vaultJurisdiction
                     ? [{ label: "Vault", value: sc.vaultJurisdiction }]
                     : []),
-                  ...(sc.deliveryRegion
-                    ? [{ label: "Region", value: sc.deliveryRegion }]
-                    : []),
                   {
-                    label: "Settlement Rail",
-                    value: sc.settlementRail,
+                    label: "Rail",
+                    value: "USDC Stablecoin Bridge",
                     icon: <Landmark className="h-3 w-3 text-slate-500" />,
                   },
                   {
-                    label: "Custody Type",
-                    value: "ALLOCATED — Bailment",
-                  },
-                  {
-                    label: "Legal Framework",
-                    value: "English Law / UCC Art. 7",
-                  },
-                  {
                     label: "Insurance",
-                    value: "Lloyd's Specie Policy",
+                    value: "Lloyd's Specie · Bailment",
                   },
                 ].map((row) => (
                   <div
                     key={row.label}
                     className="flex items-center justify-between"
                   >
-                    <span className="font-mono text-[10px] text-slate-500">
+                    <span className="font-mono text-[9px] text-slate-500">
                       {row.label}
                     </span>
-                    <span className="font-mono text-[11px] text-slate-300 text-right max-w-[60%] truncate flex items-center gap-1.5">
+                    <span className="font-mono text-[10px] text-slate-300 text-right max-w-[60%] truncate flex items-center gap-1.5">
                       {"icon" in row && row.icon}
                       {"mono" in row && row.mono ? (
                         <span className="tabular-nums">{row.value}</span>
@@ -636,15 +603,12 @@ export default function FirstTradeSuccessPage() {
               </div>
             </div>
 
-            {/* ── Chain of Custody ── */}
-            <ChainOfCustody completedMilestones={completedMilestones} />
-
-            {/* ── Settlement Artifacts ── */}
-            <div className="border border-slate-800 bg-black/40 p-4 space-y-3">
+            {/* ── Settlement Documents (compact) ── */}
+            <div className="border border-slate-800 bg-black/40 p-3 space-y-2">
               <h3 className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase font-bold">
                 Settlement Documents
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {sc.artifacts.map((artifact) => (
                   <button
                     key={artifact.type}
@@ -652,76 +616,50 @@ export default function FirstTradeSuccessPage() {
                       artifact.available ? openDocument(artifact.type) : undefined
                     }
                     disabled={!artifact.available}
-                    className={`w-full text-left flex items-start gap-3 p-3 border transition-all duration-500 ${
+                    className={`w-full text-left flex items-center gap-2 px-2.5 py-1.5 border transition-all duration-500 ${
                       artifact.available
-                        ? "border-emerald-500/20 bg-emerald-500/5 cursor-pointer hover:border-emerald-500/40 hover:bg-emerald-500/8"
+                        ? "border-emerald-500/20 bg-emerald-500/5 cursor-pointer hover:border-emerald-500/40"
                         : "border-slate-800/50 bg-slate-900/30 cursor-default"
                     }`}
                   >
-                    <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center border transition-all duration-500 ${
-                        artifact.available
-                          ? "border-emerald-500/30 bg-emerald-500/10"
-                          : "border-slate-700 bg-slate-800"
+                    <FileText
+                      className={`h-3 w-3 shrink-0 transition-colors duration-500 ${
+                        artifact.available ? "text-emerald-400" : "text-slate-600"
+                      }`}
+                    />
+                    <span
+                      className={`font-mono text-[9px] font-bold flex-1 transition-colors duration-500 ${
+                        artifact.available ? "text-emerald-400" : "text-slate-500"
                       }`}
                     >
-                      <FileText
-                        className={`h-3.5 w-3.5 transition-colors duration-500 ${
-                          artifact.available
-                            ? "text-emerald-400"
-                            : "text-slate-600"
-                        }`}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`font-mono text-[10px] font-bold transition-colors duration-500 ${
-                            artifact.available
-                              ? "text-emerald-400"
-                              : "text-slate-500"
-                          }`}
-                        >
-                          {artifact.label}
-                        </span>
-                        {artifact.available ? (
-                          <span className="flex items-center gap-0.5 font-mono text-[8px] text-emerald-400 tracking-wider uppercase animate-in fade-in duration-300">
-                            View
-                            <ChevronRight className="h-2.5 w-2.5" />
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 font-mono text-[8px] text-slate-600 tracking-wider uppercase">
-                            <Clock className="h-2.5 w-2.5" />
-                            Pending
-                          </span>
-                        )}
-                      </div>
-                      <p
-                        className={`font-mono text-[9px] leading-relaxed mt-0.5 transition-colors duration-500 ${
-                          artifact.available
-                            ? "text-slate-500"
-                            : "text-slate-700"
-                        }`}
-                      >
-                        {artifact.description}
-                      </p>
-                    </div>
+                      {artifact.label}
+                    </span>
+                    {artifact.available ? (
+                      <span className="font-mono text-[8px] text-emerald-400 tracking-wider uppercase">
+                        View →
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[8px] text-slate-600 tracking-wider uppercase flex items-center gap-0.5">
+                        <Clock className="h-2 w-2" />
+                        Pending
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* ── Price Snapshot ── */}
+            {/* ── Price Snapshot (compact) ── */}
             {sc.priceSnapshot && (
-              <div className="border border-[#C6A86B]/15 bg-slate-900/40 p-4 space-y-3">
+              <div className="border border-[#C6A86B]/15 bg-slate-900/40 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="font-mono text-[9px] text-slate-500 tracking-[0.15em] uppercase font-bold">
-                    Pricing Snapshot
+                    Pricing
                   </h3>
                   <PriceLabelBadge label={sc.priceSnapshot.label} />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {[
                     {
                       label: "XAU/USD Spot",
@@ -732,7 +670,7 @@ export default function FirstTradeSuccessPage() {
                       value: fmtUsd(sc.priceSnapshot.baseSpotValueUsd),
                     },
                     {
-                      label: `Asset Premium (+${(sc.priceSnapshot.assetPremiumBps / 100).toFixed(2)}%)`,
+                      label: `Premium (+${(sc.priceSnapshot.assetPremiumBps / 100).toFixed(2)}%)`,
                       value: fmtUsd(sc.priceSnapshot.assetPremiumUsd),
                     },
                     {
@@ -742,23 +680,21 @@ export default function FirstTradeSuccessPage() {
                   ].map((row) => (
                     <div
                       key={row.label}
-                      className="flex items-center justify-between text-xs"
+                      className="flex items-center justify-between"
                     >
-                      <span className="font-mono text-[10px] text-slate-500">
+                      <span className="font-mono text-[9px] text-slate-500">
                         {row.label}
                       </span>
-                      <span className="font-mono text-[11px] text-slate-300 tabular-nums">
+                      <span className="font-mono text-[10px] text-slate-300 tabular-nums">
                         {row.value}
                       </span>
                     </div>
                   ))}
 
-                  <div className="border-t border-slate-700/50 pt-2">
+                  <div className="border-t border-slate-700/50 pt-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs text-slate-300 font-semibold">
-                        {sc.priceLabel === "FINAL"
-                          ? "Final Total"
-                          : "Estimated Total"}
+                      <span className="font-mono text-[10px] text-slate-300 font-semibold">
+                        {sc.priceLabel === "FINAL" ? "Final Total" : "Est. Total"}
                       </span>
                       <span className="font-mono text-sm text-white font-bold tabular-nums">
                         {fmtUsd(sc.priceSnapshot.estimatedTotalUsd)}
@@ -766,47 +702,28 @@ export default function FirstTradeSuccessPage() {
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-1.5 pt-1">
-                  <Clock className="h-3 w-3 shrink-0 text-slate-600" />
-                  <span className="font-mono text-[9px] text-slate-600">
-                    Captured {fmtTime(sc.priceSnapshot.capturedAt)}
-                  </span>
-                </div>
-
-                {sc.priceLabel === "INDICATIVE" && (
-                  <div className="flex items-start gap-2 border border-slate-800/50 bg-slate-900/30 px-3 py-2">
-                    <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#C6A86B]/60" />
-                    <p className="font-mono text-[9px] text-slate-500 leading-relaxed">
-                      This is an{" "}
-                      <strong className="text-slate-400">
-                        indicative estimate
-                      </strong>
-                      . Final execution price will be determined when a binding
-                      quote is issued by the settlement desk.
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 
-            {/* ── Quick Actions ── */}
-            <div className="space-y-2">
+            {/* ── Quick Actions (hidden in demo) ── */}
+            {!isDemo && (
+            <div className="space-y-1.5">
               <Link
                 href="/institutional/orders"
-                className="flex items-center justify-center gap-2 w-full py-3 border border-slate-800 bg-slate-900/30 font-mono text-[10px] text-slate-400 tracking-wider uppercase hover:text-white hover:border-slate-600 transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-2.5 border border-slate-800 bg-slate-900/30 font-mono text-[9px] text-slate-400 tracking-wider uppercase hover:text-white hover:border-slate-600 transition-colors"
               >
                 View Trade Blotter
                 <ArrowRight className="h-3 w-3" />
               </Link>
               <Link
                 href="/institutional/marketplace"
-                className="flex items-center justify-center gap-2 w-full py-3 border border-slate-800 bg-slate-900/30 font-mono text-[10px] text-slate-400 tracking-wider uppercase hover:text-white hover:border-slate-600 transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-2.5 border border-slate-800 bg-slate-900/30 font-mono text-[9px] text-slate-400 tracking-wider uppercase hover:text-white hover:border-slate-600 transition-colors"
               >
                 Return to Marketplace
                 <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
+            )}
           </div>
         </div>
 
