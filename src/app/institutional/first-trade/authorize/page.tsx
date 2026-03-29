@@ -31,7 +31,7 @@
    ================================================================ */
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
   Loader2,
@@ -106,6 +106,8 @@ function fmtTime(iso: string): string {
 
 export default function FirstTradeAuthorizePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemoMode = searchParams.get("demo") === "true";
 
   /* ── Data hooks ── */
   const { data: onboardingState, isLoading: stateLoading } =
@@ -136,6 +138,7 @@ export default function FirstTradeAuthorizePage() {
   useEffect(() => {
     if (draftRestored) return;
     if (stateLoading) return;
+    if (isDemoMode) { queueMicrotask(() => setDraftRestored(true)); return; }
 
     queueMicrotask(() => {
       if (onboardingState?.metadataJson) {
@@ -160,7 +163,7 @@ export default function FirstTradeAuthorizePage() {
       setDraftRestored(true);
       router.replace("/institutional/first-trade/delivery");
     });
-  }, [stateLoading, onboardingState, draftRestored, router]);
+  }, [stateLoading, onboardingState, draftRestored, isDemoMode, router]);
 
   /* ── Scroll detection for legal acknowledgment ── */
   useEffect(() => {
@@ -203,7 +206,7 @@ export default function FirstTradeAuthorizePage() {
   const phraseMatches =
     confirmationInput.trim().toUpperCase() === CONFIRMATION_PHRASE;
 
-  const canProceed =
+  const canProceed = isDemoMode ? true :
     isDeliveryStageReady(draft) &&
     hasScrolledLegal &&
     phraseMatches &&
@@ -249,6 +252,10 @@ export default function FirstTradeAuthorizePage() {
 
   /* ── Authorize: server-backed submission with price snapshot ── */
   const handleAuthorize = useCallback(async () => {
+    if (isDemoMode) {
+      router.push("/institutional/first-trade/success?demo=true");
+      return;
+    }
     if (!canProceed) return;
 
     // Capture a fresh snapshot at the exact moment of authorization
@@ -291,7 +298,7 @@ export default function FirstTradeAuthorizePage() {
       }
       setIsSubmitting(false);
     }
-  }, [canProceed, router, spotPrice, selectedAsset, totalWeightOz, baseSpotValue, assetPremium, platformFee, estimatedNotional, confirmationInput]);
+  }, [canProceed, isDemoMode, router, spotPrice, selectedAsset, totalWeightOz, baseSpotValue, assetPremium, platformFee, estimatedNotional, confirmationInput]);
 
   /* ── Hold-to-confirm handlers ── */
   const handleHoldStart = useCallback(() => {

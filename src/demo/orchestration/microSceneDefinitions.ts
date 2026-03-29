@@ -87,7 +87,7 @@ const act2: MicroScene[] = [
     requiredSelectors: ['[data-tour="entity-form"]'],
     preActions: [
       { name: "highlight_element", args: { selector: '[data-tour="entity-form"]', durationMs: 6000 } },
-      { name: "fill_form_fields", args: { fields: { companyName: "Meridian Capital Holdings Ltd.", jurisdiction: "US" } } },
+      { name: "fill_form_fields", args: { fields: { companyName: "Meridian Capital Holdings Ltd.", repName: "James C. Sterling", jurisdiction: "US" } } },
     ],
     narrationBlockId: "act-2-body",
     allowedInterruptions: "qa-only",
@@ -138,12 +138,12 @@ const act3: MicroScene[] = [
     ],
     narrationBlockId: "act-3-documents",
     allowedInterruptions: "qa-only",
-    transitionCondition: "auto",
+    transitionCondition: "tool-call",
     exitActions: [
       { name: "close_demo_panel", args: { panelId: "documents" } },
       { name: "set_checklist_item_state", args: { itemKey: "entityVerificationPassed", status: "done" } },
     ],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 12000,
   },
   {
     id: "act-3-ubo",
@@ -155,12 +155,12 @@ const act3: MicroScene[] = [
     ],
     narrationBlockId: "act-3-ubo",
     allowedInterruptions: "qa-only",
-    transitionCondition: "auto",
+    transitionCondition: "tool-call",
     exitActions: [
       { name: "close_demo_panel", args: { panelId: "ubo" } },
       { name: "set_checklist_item_state", args: { itemKey: "uboReviewPassed", status: "done" } },
     ],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 12000,
   },
   {
     id: "act-3-sanctions",
@@ -172,12 +172,12 @@ const act3: MicroScene[] = [
     ],
     narrationBlockId: "act-3-sanctions",
     allowedInterruptions: "qa-only",
-    transitionCondition: "auto",
+    transitionCondition: "tool-call",
     exitActions: [
       { name: "close_demo_panel", args: { panelId: "sanctions" } },
       { name: "set_checklist_item_state", args: { itemKey: "screeningPassed", status: "done" } },
     ],
-    silenceRecoveryMs: 8000,
+    silenceRecoveryMs: 12000,
   },
   {
     id: "act-3-decision",
@@ -365,7 +365,7 @@ const act6: MicroScene[] = [
     id: "act-6-navigate",
     actId: "act-6-review",
     route: "/institutional/first-trade/review",
-    requiredSelectors: ['[data-tour="review-summary"]'],
+    requiredSelectors: [],
     preActions: [
       { name: "navigate_route", args: { route: "/institutional/first-trade/review?demo=true" } },
     ],
@@ -379,7 +379,7 @@ const act6: MicroScene[] = [
     id: "act-6-review",
     actId: "act-6-review",
     route: "/institutional/first-trade/review",
-    requiredSelectors: ['[data-tour="review-summary"]'],
+    requiredSelectors: [],
     preActions: [
       { name: "highlight_element", args: { selector: '[data-tour="review-summary"]', durationMs: 8000 } },
     ],
@@ -449,7 +449,7 @@ const act8: MicroScene[] = [
     id: "act-8-navigate",
     actId: "act-8-success",
     route: "/institutional/first-trade/success",
-    requiredSelectors: ['[data-tour="settlement-confirmation"]'],
+    requiredSelectors: [],
     preActions: [
       { name: "navigate_route", args: { route: "/institutional/first-trade/success?demo=true" } },
     ],
@@ -463,7 +463,7 @@ const act8: MicroScene[] = [
     id: "act-8-confirmation",
     actId: "act-8-success",
     route: "/institutional/first-trade/success",
-    requiredSelectors: ['[data-tour="settlement-confirmation"]'],
+    requiredSelectors: [],
     preActions: [
       { name: "highlight_element", args: { selector: '[data-tour="settlement-confirmation"]', durationMs: 6000 } },
       { name: "trigger_settlement_stage", args: { stage: "CASE_OPENED" } },

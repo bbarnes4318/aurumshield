@@ -27,7 +27,7 @@
    ================================================================ */
 
 import { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ClipboardList,
   ShieldCheck,
@@ -84,6 +84,8 @@ function fmtWeight(oz: number): string {
 
 export default function FirstTradeReviewPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemoMode = searchParams.get("demo") === "true";
 
   /* ── Data hooks ── */
   const { data: onboardingState, isLoading: stateLoading } =
@@ -102,6 +104,7 @@ export default function FirstTradeReviewPage() {
   useEffect(() => {
     if (draftRestored) return;
     if (stateLoading) return;
+    if (isDemoMode) { queueMicrotask(() => setDraftRestored(true)); return; } // Demo: skip draft guard
 
     queueMicrotask(() => {
       if (onboardingState?.metadataJson) {
@@ -126,7 +129,7 @@ export default function FirstTradeReviewPage() {
       setDraftRestored(true);
       router.replace("/institutional/first-trade/delivery");
     });
-  }, [stateLoading, onboardingState, draftRestored, router]);
+  }, [stateLoading, onboardingState, draftRestored, isDemoMode, router]);
 
   /* ── Derived values ── */
   const spotPrice = goldPrice?.spotPriceUsd ?? 0;
@@ -156,6 +159,10 @@ export default function FirstTradeReviewPage() {
 
   /* ── Continue: persist → navigate to authorize ── */
   const handleContinue = useCallback(async () => {
+    if (isDemoMode) {
+      router.push("/institutional/first-trade/authorize?demo=true");
+      return;
+    }
     if (!canProceed) return;
 
     setIsSaving(true);
@@ -178,7 +185,7 @@ export default function FirstTradeReviewPage() {
       // TanStack Query handles the error — stays on page
       setIsSaving(false);
     }
-  }, [canProceed, draft, saveMutation, router]);
+  }, [canProceed, isDemoMode, draft, saveMutation, router]);
 
   /* ── Save and return later ── */
   const handleSaveAndExit = useCallback(async () => {
@@ -491,7 +498,7 @@ export default function FirstTradeReviewPage() {
           label="Proceed to Authorization"
           onClick={handleContinue}
           loading={isSaving}
-          disabled={!canProceed || isSaving}
+          disabled={(!isDemoMode && !canProceed) || isSaving}
           icon={ShieldCheck}
           secondaryLabel="Save and return later"
           secondaryOnClick={handleSaveAndExit}

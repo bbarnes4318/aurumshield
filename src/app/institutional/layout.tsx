@@ -22,8 +22,9 @@
    ================================================================ */
 
 import { type ReactNode, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { PortalShell } from "@/components/layout/portal-shell";
+import { MissionLayout } from "@/components/institutional-flow/MissionLayout";
 import { useOnboardingState } from "@/hooks/use-onboarding-state";
 import {
   Loader2,
@@ -45,6 +46,8 @@ import {
 function StrictComplianceGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isDemoMode = searchParams.get("demo") === "true";
   const {
     data: onboardingState,
     isLoading,
@@ -64,13 +67,14 @@ function StrictComplianceGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading || isError) return;
     if (isOnGuidedPath) return; // Never redirect guided routes
+    if (isDemoMode) return; // Demo mode bypasses compliance gate
     if (!isCleared) {
       router.replace("/institutional/get-started/welcome");
     }
-  }, [isLoading, isError, isCleared, isOnGuidedPath, router]);
+  }, [isLoading, isError, isCleared, isOnGuidedPath, isDemoMode, router]);
 
-  /* ── Guided path: skip all gate UI, let GuidedShellLayout render ── */
-  if (isOnGuidedPath) {
+  /* ── Guided path or demo mode: skip all gate UI ── */
+  if (isOnGuidedPath || isDemoMode) {
     return <>{children}</>;
   }
 
@@ -129,6 +133,8 @@ const NAV_ITEMS = [
 
 export default function InstitutionalLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isDemoMode = searchParams.get("demo") === "true";
 
   /* ── Guided flow: bypass PortalShell entirely ──
      The GuidedShellLayout provides its own full-screen calm layout.
@@ -140,6 +146,18 @@ export default function InstitutionalLayout({ children }: { children: ReactNode 
     return (
       <StrictComplianceGate>
         {children}
+      </StrictComplianceGate>
+    );
+  }
+
+  /* ── Demo mode for non-guided routes (marketplace): 
+     Use MissionLayout instead of PortalShell so spotlight/subtitles/overlay work ── */
+  if (isDemoMode) {
+    return (
+      <StrictComplianceGate>
+        <MissionLayout currentStage="FIRST_TRADE_ASSET" showProgress>
+          {children}
+        </MissionLayout>
       </StrictComplianceGate>
     );
   }

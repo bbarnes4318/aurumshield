@@ -197,6 +197,7 @@ REQUIRED FACTS:
 - Each document is authenticated against the issuing registry — not just uploaded and filed. The system verifies that the incorporation matches the stated jurisdiction, that directors are current, and that the entity is in good standing.
 → TOOL: close_demo_panel({ panelId: "documents" })
 → TOOL: set_checklist_item_state({ itemKey: "entityVerificationPassed", status: "done" })
+→ TOOL: advance_tour_step
 
 MICRO-SCENE: Ultimate Beneficial Ownership
 → TOOL: open_demo_panel({ panelId: "ubo" })
@@ -211,6 +212,7 @@ REQUIRED FACTS:
 - This matters because: at $500M, regulators and counterparties need to know exactly who controls the entity. UBO review eliminates anonymous ownership structures.
 → TOOL: close_demo_panel({ panelId: "ubo" })
 → TOOL: set_checklist_item_state({ itemKey: "uboReviewPassed", status: "done" })
+→ TOOL: advance_tour_step
 
 MICRO-SCENE: AML / Sanctions Screening
 → TOOL: open_demo_panel({ panelId: "sanctions" })
@@ -227,6 +229,7 @@ REQUIRED FACTS:
 - The screening is not a one-time check. AML re-screening occurs again at the point of fund receipt during settlement.
 → TOOL: close_demo_panel({ panelId: "sanctions" })
 → TOOL: set_checklist_item_state({ itemKey: "screeningPassed", status: "done" })
+→ TOOL: advance_tour_step
 
 MICRO-SCENE: Compliance Decision
 → TOOL: set_checklist_item_state({ itemKey: "complianceReviewPassed", status: "done" })
