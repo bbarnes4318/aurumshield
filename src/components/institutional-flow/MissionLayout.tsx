@@ -30,10 +30,7 @@ import { AppLogo } from "@/components/app-logo";
 import { SimpleProgress } from "@/components/institutional-flow/SimpleProgress";
 import { type InstitutionalJourneyStage } from "@/lib/schemas/institutional-journey-schema";
  
-// Tour components
 import dynamic from "next/dynamic";
-const TourHighlighter = dynamic(() => import("@/demo/tour-engine/TourHighlighter").then(m => m.TourHighlighter), { ssr: false });
-const TourOverlay = dynamic(() => import("@/demo/tour-engine/TourOverlay").then(m => m.TourOverlay), { ssr: false });
 const ConciergeSubtitles = dynamic(() => import("@/demo/concierge/ConciergeSubtitles").then(m => m.ConciergeSubtitles), { ssr: false });
  
 /* ── Context for Sidebar Injection ── */
@@ -192,9 +189,6 @@ export function MissionLayout({
           </div>
         </footer>
  
-        {/* ── Persistent Cinematic Overlays ── */}
-        <TourHighlighter />
-        <TourOverlay />
         <ConciergeSubtitles />
       </div>
     </MissionContext.Provider>

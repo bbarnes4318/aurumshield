@@ -364,6 +364,29 @@ export function useConciergeVoice(
       setFallbackMode(false); // Clear fallback on successful connect
       retryCountRef.current = 0; // Reset retry counter
       console.info("[Concierge] Session fully active — mic and playback ready");
+
+      // Force the concierge to take the first turn immediately.
+      // Without this, the AI waits for user audio which leaves
+      // the demo silent.
+      try {
+        session.sendClientContent({
+          turns: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text:
+                    "Begin now. You are on the Institutional Welcome screen. Greet the viewer immediately, introduce AurumShield, and begin the Act I walkthrough. Take the first turn without waiting for user audio.",
+                },
+              ],
+            },
+          ],
+          turnComplete: true,
+        });
+        console.info("[Concierge] Initial kickoff message sent");
+      } catch (kickoffErr) {
+        console.warn("[Concierge] Failed to send initial kickoff message:", kickoffErr);
+      }
     } catch (err) {
       console.error("[Concierge] Failed to start session:", err);
       // Don't surface raw errors — enter fallback gracefully

@@ -16,8 +16,7 @@ import { DemoProvider } from "@/providers/demo-provider";
 import { TourProvider } from "@/demo/tour-engine/TourProvider";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "sonner";
-import { DemoGuideOverlay } from "@/components/demo/DemoGuideOverlay";
-import { DemoDimmingOverlay } from "@/components/demo/DemoDimmingOverlay";
+
 import { ChunkErrorRecovery } from "@/components/chunk-error-recovery";
 
 /* ----------------------------------------------------------------
@@ -101,8 +100,7 @@ export default function RootLayout({
                     <DemoProvider>
                       <TourProvider>
                         <AppShell>{children}</AppShell>
-                        <DemoDimmingOverlay />
-                        <DemoGuideOverlay />
+
                       </TourProvider>
                       <Toaster
                         theme="dark"

@@ -7,7 +7,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { DemoScriptOverlay } from "@/components/demo/demo-script-overlay";
 import { TourOverlay } from "@/demo/tour-engine/TourOverlay";
-import { TourHighlighter } from "@/demo/tour-engine/TourHighlighter";
+
 import { TourDebugPanel } from "@/demo/tour-engine/TourDebugPanel";
 import { useDemo } from "@/providers/demo-provider";
 import { useTour } from "@/demo/tour-engine/TourProvider";
@@ -117,13 +117,8 @@ export function AppShell({ children }: AppShellProps) {
       {/* DemoScriptOverlay is hidden when tour is active (overlay collision prevention) */}
       {!isTourActive && <DemoScriptOverlay />}
 
-      {/* Tour engine overlays — only active during guided tours */}
-      {isTourActive && (
-        <>
-          <TourHighlighter />
-          <TourOverlay />
-        </>
-      )}
+      {/* Tour engine — minimal concierge status pill (non-blocking) */}
+      {isTourActive && <TourOverlay />}
 
       {/* Debug panel — visible only with ?debugTours=1 */}
       <TourDebugPanel />

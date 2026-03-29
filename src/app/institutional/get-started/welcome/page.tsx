@@ -17,7 +17,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { StepShell } from "@/components/institutional-flow/StepShell";
+
 import { StickyPrimaryAction } from "@/components/institutional-flow/StickyPrimaryAction";
 import {
   Building2,
@@ -25,7 +25,6 @@ import {
   Landmark,
   BarChart3,
   Shield,
-  Loader2,
   ArrowRight,
 } from "lucide-react";
 import { useTour } from "@/demo/tour-engine/TourProvider";
@@ -102,23 +101,7 @@ export default function WelcomePage() {
     return () => clearTimeout(voiceTimer);
   }, [isDemo, tourState.status, tourState.tourId, concierge]);
 
-  /* ── Demo loading state while tour is initializing ── */
-  if (isDemo && tourState.status !== "active") {
-    return (
-      <StepShell
-        icon={Shield}
-        headline="Initializing Concierge"
-        description="Connecting to your dedicated execution concierge…"
-      >
-        <div className="flex flex-col items-center gap-4 py-8">
-          <Loader2 className="h-8 w-8 text-[#C6A86B] animate-spin" />
-          <p className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
-            Establishing secure voice channel
-          </p>
-        </div>
-      </StepShell>
-    );
-  }
+  /* ── Demo mode: real page renders immediately, voice starts in background ── */
 
   return (
     <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
