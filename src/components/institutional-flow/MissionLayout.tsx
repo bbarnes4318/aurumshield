@@ -1,192 +1,205 @@
 "use client";
- 
+
 /* ================================================================
-   MISSION LAYOUT — Institutional Guided Journey Shell
+   MISSION LAYOUT — Institutional Guided Shell (v3)
    ================================================================
-   AUTHORITATIVE UI: This is the high-fidelity wrapper for the
-   institutional onboarding and First Trade experience.
- 
-   BRUTALIST PRINCIPLES:
-     1. Zero-Scroll Viewport: Uses h-screen and overflow-hidden.
-     2. Monospaced Rigidity: Financial and mission data in JetBrains Mono.
-     3. Cinematic Depth: Slow pulses, glassmorphism, and perimeter glows.
-     4. High Density: Integrated sidebars for telemetry and roadmap.
- 
-   REUSABLE FOR:
-     /get-started/welcome
-     /get-started/organization
-     /get-started/verification
-     /get-started/funding
-     /first-trade/layout.tsx (future)
+   Full-viewport cinematic layout for the institutional onboarding.
+   
+   Architecture:
+   - Fixed full-screen dark container
+   - Gold accent bar at top
+   - Compact header with brand + session info
+   - FULL-WIDTH center stage (no cramped sidebars)
+   - Progress stepper inline in header
+   - Trust footer
+   - Concierge subtitles overlay (portal)
    ================================================================ */
- 
+
 import {
+  type ReactNode,
+  useState,
   createContext,
   useContext,
-  useState,
-  type ReactNode,
 } from "react";
-import { AppLogo } from "@/components/app-logo";
-import { SimpleProgress } from "@/components/institutional-flow/SimpleProgress";
-import { type InstitutionalJourneyStage } from "@/lib/schemas/institutional-journey-schema";
- 
 import dynamic from "next/dynamic";
-const ConciergeSubtitles = dynamic(() => import("@/demo/concierge/ConciergeSubtitles").then(m => m.ConciergeSubtitles), { ssr: false });
- 
-/* ── Context for Sidebar Injection ── */
+import { AppLogo } from "@/components/shared/AppLogo";
+
+/* Lazy-load the subtitles overlay (only needed in demo mode) */
+const ConciergeSubtitles = dynamic(
+  () =>
+    import("@/demo/concierge/ConciergeSubtitles").then(
+      (m) => m.ConciergeSubtitles,
+    ),
+  { ssr: false },
+);
+
+/* ── Progress Steps ── */
+const JOURNEY_STAGES = [
+  { key: "WELCOME", label: "Welcome" },
+  { key: "ORGANIZATION", label: "Entity" },
+  { key: "VERIFICATION", label: "Compliance" },
+  { key: "FUNDING", label: "Funding" },
+  { key: "FIRST_TRADE_ASSET", label: "Asset" },
+  { key: "FIRST_TRADE_DELIVERY", label: "Delivery" },
+  { key: "FIRST_TRADE_REVIEW", label: "Review" },
+  { key: "FIRST_TRADE_AUTHORIZE", label: "Authorize" },
+] as const;
+
+type JourneyStageKey = (typeof JOURNEY_STAGES)[number]["key"];
+
+function getStageIndex(stage: string | undefined): number {
+  if (!stage) return 0;
+  const idx = JOURNEY_STAGES.findIndex((s) => s.key === stage);
+  return idx >= 0 ? idx : 0;
+}
+
+/* ── Inline Progress Bar ── */
+function InlineProgress({ currentStage }: { currentStage: string }) {
+  const currentIdx = getStageIndex(currentStage);
+
+  return (
+    <div className="flex items-center gap-1">
+      {JOURNEY_STAGES.map((stage, i) => {
+        const isCompleted = i < currentIdx;
+        const isCurrent = i === currentIdx;
+
+        return (
+          <div key={stage.key} className="flex items-center gap-1">
+            <div
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                isCompleted
+                  ? "w-6 bg-[#C6A86B]"
+                  : isCurrent
+                    ? "w-8 bg-[#C6A86B]/60"
+                    : "w-3 bg-slate-800"
+              }`}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Context for sidebar injection ── */
 interface MissionContextValue {
   setRightSidebar: (content: ReactNode) => void;
 }
- 
-const MissionContext = createContext<MissionContextValue | undefined>(undefined);
- 
+
+const MissionContext = createContext<MissionContextValue>({
+  setRightSidebar: () => {},
+});
+
 export function useMissionLayout() {
-  const ctx = useContext(MissionContext);
-  if (!ctx) throw new Error("useMissionLayout must be used within MissionLayout");
-  return ctx;
+  return useContext(MissionContext);
 }
- 
+
+/* ── Props ── */
 interface MissionLayoutProps {
-  currentStage?: InstitutionalJourneyStage;
+  currentStage?: JourneyStageKey | string;
   showProgress?: boolean;
   children: ReactNode;
 }
- 
+
 export function MissionLayout({
   currentStage = "WELCOME",
   showProgress = true,
   children,
 }: MissionLayoutProps) {
   const [rightSidebarContent, setRightSidebarContent] = useState<ReactNode>(null);
- 
+
   return (
     <MissionContext.Provider value={{ setRightSidebar: setRightSidebarContent }}>
-      <div className="fixed inset-0 z-10 flex flex-col overflow-hidden bg-slate-950 text-slate-300 font-sans selection:bg-[#C6A86B]/30 selection:text-white">
-        {/* ── Perimeter Glow ── */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-full max-w-[1200px] bg-linear-to-b from-[#C6A86B]/5 to-transparent blur-[120px] pointer-events-none" />
-        
-        {/* ── Top Bar ── */}
-        <div className="h-0.5 w-full bg-linear-to-r from-[#C6A86B]/0 via-[#C6A86B]/60 to-[#C6A86B]/0 shrink-0" />
- 
+      <div className="fixed inset-0 z-10 flex flex-col overflow-hidden bg-[#060b18] text-slate-300 font-sans selection:bg-[#C6A86B]/30 selection:text-white">
+        {/* ── Ambient glow ── */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[600px] w-full max-w-[1400px] bg-linear-to-b from-[#C6A86B]/4 to-transparent blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[300px] w-full max-w-[800px] bg-linear-to-t from-[#C6A86B]/3 to-transparent blur-[100px] pointer-events-none" />
+
+        {/* ── Gold accent bar ── */}
+        <div className="h-[2px] w-full bg-linear-to-r from-transparent via-[#C6A86B]/70 to-transparent shrink-0" />
+
         {/* ── Header ── */}
-        <header className="shrink-0 border-b border-slate-800/40 bg-slate-950/80 backdrop-blur-md px-8 py-5">
-          <div className="mx-auto flex items-center justify-between">
-            {/* Left — Mission Context (Monospace) */}
-            <div className="w-64 hidden lg:inline-flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-[#C6A86B] animate-pulse" />
-              <span className="font-mono text-[10px] text-slate-500 uppercase tracking-[0.2em]">
-                Mission: Perimeter Integrity
-              </span>
-            </div>
- 
-            {/* Center — Authoritative Brand Mark */}
-            <div className="flex-1 flex justify-center">
-              <AppLogo className="h-8 w-auto" variant="dark" />
-            </div>
- 
-            {/* Right — Active Session Telemetry */}
-            <div className="w-64 flex justify-end">
-              <div className="flex flex-col items-end gap-0.5">
-                <span className="font-mono text-[9px] text-[#C6A86B] uppercase tracking-wider">
-                  Authorized Session
-                </span>
-                <span className="font-mono text-[10px] text-slate-500 uppercase">
-                  {new Date().toISOString().split('T')[0]} · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        <header className="shrink-0 border-b border-slate-800/30 bg-[#060b18]/90 backdrop-blur-xl px-8 py-4">
+          <div className="mx-auto max-w-7xl flex items-center justify-between">
+            {/* Left — Brand */}
+            <div className="flex items-center gap-4">
+              <AppLogo className="h-7 w-auto" variant="dark" />
+              <div className="h-5 w-px bg-slate-800/60" />
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-mono text-[9px] text-slate-600 uppercase tracking-[0.2em]">
+                  Secure Session
                 </span>
               </div>
+            </div>
+
+            {/* Center — Progress */}
+            {showProgress && currentStage !== undefined && (
+              <InlineProgress currentStage={currentStage} />
+            )}
+
+            {/* Right — Session Info */}
+            <div className="flex items-center gap-4">
+              <span className="font-mono text-[9px] text-slate-600 uppercase tracking-wider">
+                {new Date().toISOString().split("T")[0]}
+              </span>
+              <div className="h-4 w-px bg-slate-800/40" />
+              <span className="font-mono text-[9px] text-[#C6A86B]/50 uppercase tracking-wider">
+                Institutional
+              </span>
             </div>
           </div>
         </header>
-        {/* ── Main Content — Scrollable Center with Sticky Sidebars ── */}
-        <main className="flex-1 min-h-0 overflow-y-auto px-8 py-8">
-          <div className="mx-auto min-h-full grid grid-cols-12 gap-8 max-w-[1600px]">
-            
-            {/* ── Left Sidebar (3/12) — Journey Roadmap ── */}
-            <aside className="col-span-3 hidden xl:flex flex-col gap-6 self-start sticky top-8">
-              <div className="rounded-xl border border-slate-800/60 bg-slate-900/20 p-6 backdrop-blur-sm">
-                <h3 className="font-mono text-[10px] text-slate-500 uppercase tracking-[0.2em] mb-6">
-                  — Onboarding Roadmap
-                </h3>
-                {showProgress && currentStage !== undefined && (
-                  <SimpleProgress currentStage={currentStage} />
-                )}
-              </div>
- 
-              <div className="rounded-xl border border-slate-800/30 bg-slate-900/5 p-6">
-                <p className="font-mono text-[9px] text-slate-600 leading-relaxed uppercase tracking-widest">
-                  &quot;Our deterministic settlement engine eliminates principal risk via atomic delivery-versus-payment escrow.&quot;
-                </p>
-              </div>
-            </aside>
- 
-            {/* ── Center Stage (6/12) — Core Action Area ── */}
-            <section className="col-span-12 xl:col-span-6 flex flex-col items-center py-4">
-              <div className="w-full max-w-2xl">
-                {children}
-              </div>
-            </section>
- 
-            {/* ── Right Sidebar (3/12) — Institutional Trust or Injected Content ── */}
-            <aside className="col-span-3 hidden xl:flex flex-col gap-6 self-start sticky top-8">
-              {rightSidebarContent ? (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-500 h-full overflow-hidden">
-                  {rightSidebarContent}
+
+        {/* ── Main Content — Full Width Scrollable ── */}
+        <main className="flex-1 min-h-0 overflow-y-auto">
+          <div className="mx-auto max-w-5xl px-8 py-10 min-h-full">
+            {rightSidebarContent ? (
+              /* When right sidebar is injected (e.g. verification evidence), use grid */
+              <div className="grid grid-cols-12 gap-8 min-h-full">
+                <div className="col-span-12 lg:col-span-7 flex flex-col items-center">
+                  <div className="w-full max-w-2xl">
+                    {children}
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div className="rounded-xl border border-slate-800/60 bg-slate-900/20 p-6 backdrop-blur-sm">
-                    <h3 className="font-mono text-[10px] text-slate-500 uppercase tracking-[0.2em] mb-4">
-                      — Guardrails & Security
-                    </h3>
-                    <div className="space-y-4">
-                      {[
-                        { label: "Encryption", value: "AES-256-GCM" },
-                        { label: "Integrity", value: "SOC 2 Type II" },
-                        { label: "Custody", value: "Qualified Vault" },
-                        { label: "Settlement", value: "T+0 Deterministic" }
-                      ].map(s => (
-                        <div key={s.label} className="flex items-center justify-between border-b border-slate-800/40 pb-2">
-                          <span className="text-[10px] text-slate-600 uppercase tracking-wider">{s.label}</span>
-                          <span className="font-mono text-[10px] text-slate-400">{s.value}</span>
-                        </div>
-                      ))}
-                    </div>
+                <aside className="col-span-5 hidden lg:flex flex-col self-start sticky top-10">
+                  <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                    {rightSidebarContent}
                   </div>
- 
-                  <div className="rounded-xl border border-slate-800/60 bg-slate-900/20 p-6">
-                    <h3 className="font-mono text-[10px] text-slate-500 uppercase tracking-[0.2em] mb-3">
-                      — Live Ops Desk
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mb-4">
-                      Your dedicated compliance officer is on standby for real-time approval acceleration.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      <span className="text-[11px] font-medium text-slate-400">Response time: &lt; 2m</span>
-                    </div>
-                  </div>
-                </>
-              )}
-            </aside>
+                </aside>
+              </div>
+            ) : (
+              /* Default: full-width centered content */
+              <div className="flex flex-col items-center">
+                <div className="w-full max-w-3xl">
+                  {children}
+                </div>
+              </div>
+            )}
           </div>
         </main>
- 
+
         {/* ── Trust Footer ── */}
-        <footer className="shrink-0 border-t border-slate-800/30 bg-slate-950 px-8 py-3 mt-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <AppLogo className="h-4 w-auto opacity-20 filter grayscale hover:opacity-40 transition-opacity" variant="dark" />
-              <div className="h-3 w-px bg-slate-800" />
-              <span className="font-mono text-[9px] text-slate-700 tracking-[0.2em] uppercase">
-                Operational Sovereignty Engine v1.216
+        <footer className="shrink-0 border-t border-slate-800/20 bg-[#060b18] px-8 py-2.5">
+          <div className="mx-auto max-w-7xl flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <AppLogo className="h-3.5 w-auto opacity-15 filter grayscale" variant="dark" />
+              <span className="font-mono text-[8px] text-slate-800 tracking-[0.15em] uppercase">
+                Goldwire Settlement Network
               </span>
             </div>
-            <p className="font-mono text-[9px] text-slate-600 tracking-wider uppercase">
-               TLS 1.3 · End-to-End Encrypted Session · Support: compliance@aurumshield.com
-            </p>
+            <div className="flex items-center gap-4">
+              <span className="font-mono text-[8px] text-slate-800 uppercase tracking-wider">
+                TLS 1.3 · AES-256
+              </span>
+              <div className="h-3 w-px bg-slate-800/30" />
+              <span className="font-mono text-[8px] text-slate-800 uppercase tracking-wider">
+                compliance@aurumshield.com
+              </span>
+            </div>
           </div>
         </footer>
- 
+
         <ConciergeSubtitles />
       </div>
     </MissionContext.Provider>
