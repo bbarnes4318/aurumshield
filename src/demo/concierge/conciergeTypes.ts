@@ -331,10 +331,6 @@ const closeDemoPanel: FunctionDeclaration = {
   },
 };
 
-
-
-
-
 const queueRouteTransition: FunctionDeclaration = {
   name: "queue_route_transition",
   description:
@@ -356,8 +352,6 @@ const queueRouteTransition: FunctionDeclaration = {
   },
 };
 
-
-
 const pinFocusRegion: FunctionDeclaration = {
   name: "pin_focus_region",
   description:
@@ -374,10 +368,6 @@ const pinFocusRegion: FunctionDeclaration = {
     required: ["selector"],
   },
 };
-
-
-
-
 
 const syncSubtitleBlock: FunctionDeclaration = {
   name: "sync_subtitle_block",
@@ -400,12 +390,135 @@ const syncSubtitleBlock: FunctionDeclaration = {
   },
 };
 
+const revealEvidenceItem: FunctionDeclaration = {
+  name: "reveal_evidence_item",
+  description:
+    "Animate a specific evidence item into view within an open panel. " +
+    "Used for progressive disclosure of compliance evidence.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      itemId: {
+        type: Type.STRING,
+        description: "ID of the evidence item to reveal.",
+      },
+      delay: {
+        type: Type.NUMBER,
+        description: "Optional delay in milliseconds before revealing.",
+      },
+    },
+    required: ["itemId"],
+  },
+};
+
+const animateMetric: FunctionDeclaration = {
+  name: "animate_metric",
+  description:
+    "Trigger a count-up animation on a financial metric display. " +
+    "Used to animate cost derivation rows.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      metricId: {
+        type: Type.STRING,
+        description: "ID of the metric element to animate.",
+      },
+      from: {
+        type: Type.NUMBER,
+        description: "Starting value.",
+      },
+      to: {
+        type: Type.NUMBER,
+        description: "Target value.",
+      },
+      durationMs: {
+        type: Type.NUMBER,
+        description: "Animation duration in ms. Defaults to 1500.",
+      },
+    },
+    required: ["metricId", "from", "to"],
+  },
+};
+
+const setVoiceMode: FunctionDeclaration = {
+  name: "set_voice_mode",
+  description:
+    "Signal the UI about the agent's current speaking mode. " +
+    "Use 'paused' before critical user interactions like legal scroll or typed confirmation.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      mode: {
+        type: Type.STRING,
+        description: '"narrating", "listening", or "paused".',
+      },
+    },
+    required: ["mode"],
+  },
+};
+
+const startCountup: FunctionDeclaration = {
+  name: "start_countup",
+  description:
+    "Begin an animated number counter on a target element, used for " +
+    "displaying financial totals with visual impact.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      targetId: {
+        type: Type.STRING,
+        description: "ID of the element to animate.",
+      },
+      endValue: {
+        type: Type.NUMBER,
+        description: "Final numeric value.",
+      },
+      suffix: {
+        type: Type.STRING,
+        description: 'Optional suffix like "USD" or "%".',
+      },
+    },
+    required: ["targetId", "endValue"],
+  },
+};
+
+const triggerReviewState: FunctionDeclaration = {
+  name: "trigger_review_state",
+  description:
+    "Set the first-trade review page to a specific display state to " +
+    "coordinate visual flow with narration.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      state: {
+        type: Type.STRING,
+        description: '"loading", "populated", or "ready".',
+      },
+    },
+    required: ["state"],
+  },
+};
+
+const triggerSettlementStage: FunctionDeclaration = {
+  name: "trigger_settlement_stage",
+  description:
+    "Advance the settlement case visualization to a specific pipeline stage.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      stage: {
+        type: Type.STRING,
+        description:
+          'Settlement stage identifier, e.g. "CASE_OPENED", "QUOTE_ISSUED", "FUNDS_VERIFIED", "CUSTODY_ALLOCATED".',
+      },
+    },
+    required: ["stage"],
+  },
+};
+
 /**
  * Function declarations sent to Gemini Live API in the session config.
- * Only includes tools with working implementations.
- * Removed: revealEvidenceItem, animateMetric, startCountup,
- *          setVoiceMode, triggerReviewState, triggerSettlementStage
- *          (stored state but no consumers, or no side-effect handlers)
+ * All 18 tools — must match what the system instruction references.
  */
 export const CONCIERGE_TOOL_DECLARATIONS = [
   {
@@ -419,8 +532,14 @@ export const CONCIERGE_TOOL_DECLARATIONS = [
       setChecklistItemState,
       openDemoPanel,
       closeDemoPanel,
+      revealEvidenceItem,
+      animateMetric,
       queueRouteTransition,
+      setVoiceMode,
       pinFocusRegion,
+      startCountup,
+      triggerReviewState,
+      triggerSettlementStage,
       syncSubtitleBlock,
     ],
   },
