@@ -83,7 +83,7 @@ export function buildSettlementCase(
   const totalWeightOz = assetInfo.weightOz * intent.quantity;
 
   /* ── Settlement rail inference ── */
-  const settlementRail = "Institutional Stablecoin Bridge (USDC)";
+  const settlementRail = "Fedwire RTGS — Institutional Settlement";
 
   /* ── Milestones ── */
   const clampedCount = Math.max(
