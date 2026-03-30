@@ -181,15 +181,11 @@ export function useConciergeVoice(
 
       const session = await ai.live.connect({
         model: MODEL,
-        config: {
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: "Orus",
-              },
-            },
-          },
-        },
+        // NOTE: speechConfig cannot be set here when using ephemeral tokens.
+        // The token's liveConnectConstraints already bake in config, and ANY
+        // config object here causes "Request contains an invalid argument."
+        // Voice remains default (Puck) until Google supports speechConfig
+        // alongside ephemeral token constraints.
         callbacks: {
           onopen() {
             console.info("[Concierge] Session connected");
